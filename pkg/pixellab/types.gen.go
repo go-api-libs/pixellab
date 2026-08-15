@@ -160,12 +160,9 @@ type EstimateSkeletonRequest struct {
 
 // EstimateSkeletonResponse defines a model
 type EstimateSkeletonResponse struct {
-	Usage     Usage                             `json:"usage"`
-	Keypoints EstimateSkeletonResponseKeypoints `json:"keypoints,omitempty"`
+	Usage     Usage     `json:"usage"`
+	Keypoints Keypoints `json:"keypoints,omitempty"`
 }
-
-// EstimateSkeletonResponseKeypoints defines a model
-type EstimateSkeletonResponseKeypoints []Keypoint
 
 // Request model for image generation endpoint
 type GenerateImageBitforgeRequest struct {
@@ -332,6 +329,9 @@ type Keypoint struct {
 	Label  string  `json:"label,omitzero"`
 	ZIndex float64 `json:"z_index"`
 }
+
+// Keypoints defines a model
+type Keypoints []Keypoint
 
 // Outline defines a model
 type Outline string

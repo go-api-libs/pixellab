@@ -534,20 +534,13 @@
             "$ref": "#/components/schemas/Usage"
           },
           "keypoints": {
-            "$ref": "#/components/schemas/EstimateSkeletonResponseKeypoints"
+            "$ref": "#/components/schemas/Keypoints"
           }
         },
         "required": [
           "usage",
           "keypoints"
         ]
-      },
-      "EstimateSkeletonResponseKeypoints": {
-        "title": "Keypoints",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Keypoint"
-        }
       },
       "GenerateImageBitforgeRequest": {
         "title": "GenerateImageBitforgeRequest",
@@ -992,6 +985,12 @@
           "label",
           "z_index"
         ]
+      },
+      "Keypoints": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Keypoint"
+        }
       },
       "Outline": {
         "title": "Outline",
