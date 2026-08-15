@@ -30,7 +30,7 @@ type AnimateWithSkeletonRequest struct {
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-	SkeletonKeypoints []AnimateWithSkeletonRequestSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints []Points `json:"skeleton_keypoints,omitempty"`
 	// Reference image
 	ReferenceImage Image `json:"reference_image"`
 	// Images used for showing the model with connected skeleton (default: [null, null, null]
@@ -42,9 +42,6 @@ type AnimateWithSkeletonRequest struct {
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
-
-// AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
-type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
 
 // Request model for animation using text endpoint
 type AnimateWithTextRequest struct {
@@ -366,6 +363,9 @@ type Point struct {
 	Label  SkeletonLabel `json:"label,omitzero"`
 	ZIndex *int          `json:"z_index,omitempty"`
 }
+
+// Points defines a model
+type Points []Point
 
 // Request model for image generation endpoint
 type RotateRequest struct {
