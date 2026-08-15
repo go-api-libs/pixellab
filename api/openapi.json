@@ -2779,7 +2779,11 @@
           "200": {
             "description": "Successfully retrieved sidescroller tileset",
             "content": {
-              "application/json": {}
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
             }
           },
           "401": {
@@ -4402,7 +4406,11 @@
           "200": {
             "description": "ZIP file download containing character data",
             "content": {
-              "application/json": {},
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
               "application/zip": {
                 "example": "Binary ZIP file content"
               }
@@ -10040,8 +10048,8 @@
           "image_size": {
             "description": "Object dimensions",
             "default": {
-              "width": 128,
-              "height": 128
+              "height": 128,
+              "width": 128
             },
             "$ref": "#/components/schemas/app__endpoints__external__v2__create_map_object__ImageSize"
           },
@@ -10827,8 +10835,8 @@
           "tile_size": {
             "description": "Size of individual tiles within the tileset",
             "default": {
-              "height": 16,
-              "width": 16
+              "width": 16,
+              "height": 16
             },
             "$ref": "#/components/schemas/TileSize"
           },
