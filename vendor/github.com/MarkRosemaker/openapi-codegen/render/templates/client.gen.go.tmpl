@@ -210,13 +210,9 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 	}
 	{{- end }}
 {{ end }}
-{{- if .RequestBody}}
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(body); err != nil {
-		return {{if .SuccessReturn}}{{.SuccessReturn.ZeroValue}}, {{end}}fmt.Errorf("encode body: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.Method{{titleCase .Method}}, u.String(), &buf)
-{{- else}}
+{{ if .RequestBody -}}
+	pr, pw := io.Pipe()
+{{ end -}}
 	req := (&http.Request{
 		Header: http.Header{
 			{{ if $.Auth.Bearer.Name -}}
@@ -229,6 +225,9 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 			"{{ .JSONName }}": []string{ {{- or .Value .FormatExpr -}} },
 			{{ end -}}
 			"User-Agent":     []string{c.userAgent},
+			{{ if .RequestBody -}}
+			"Content-Type": []string{ {{printf "%q" .RequestBody.ContentType}} },
+			{{ end -}}
 		},
 		Host:       u.Host,
 		Method:     http.Method{{titleCase .Method}},
@@ -236,10 +235,15 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 		URL:        u,
+		{{ if .RequestBody -}}
+		Body:          pr,
+		ContentLength: -1,
+		{{ end -}}
 	}).WithContext(ctx)
-{{- end}}
-{{- if .RequestBody}}
-	req.Header.Set("Content-Type", {{printf "%q" .RequestBody.ContentType}})
+
+{{ if .RequestBody }}
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
 {{- end}}
 
 	rsp, err := c.cli.Do(req)
