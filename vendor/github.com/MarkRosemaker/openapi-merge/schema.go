@@ -180,20 +180,22 @@ func Schema(a, b *openapi.Schema, isParam bool) error {
 		return &errpath.ErrField{Field: "format", Err: fmt.Errorf("%q != %q", a.Format, b.Format)}
 	}
 
+	// add the example from b to the enum of a; enums are no longer
+	// string-only, so this applies regardless of the schema's type
+	if a.Enum != nil && b.Example != nil {
+		var ex any
+		if err := json.Unmarshal(b.Example, &ex); err != nil {
+			return &errpath.ErrField{Field: "example", Err: err}
+		}
+
+		if !slices.Contains(a.Enum, ex) {
+			a.Enum = append(a.Enum, ex)
+		}
+	}
+
 	// merge according to type
 	switch tp {
-	case openapi.TypeString:
-		// add the example from b to the enums of a
-		if a.Enum != nil && b.Example != nil {
-			ex := ""
-			if err := json.Unmarshal(b.Example, &ex); err != nil {
-				return &errpath.ErrField{Field: "example", Err: err}
-			}
-
-			if !slices.Contains(a.Enum, ex) {
-				a.Enum = append(a.Enum, ex)
-			}
-		}
+	case openapi.TypeString: // nothing left to do here; enum handled above
 	case openapi.TypeObject:
 		if a.AdditionalProperties != nil {
 			// is a string map

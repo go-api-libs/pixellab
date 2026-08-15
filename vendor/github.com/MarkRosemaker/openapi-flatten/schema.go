@@ -28,7 +28,7 @@ func schemaRef(d *openapi.Document, s *openapi.SchemaRef, name string, mode mode
 	}
 
 	switch s.Value.Type {
-	case openapi.TypeInteger, openapi.TypeNumber, openapi.TypeBoolean: // no need to move to components
+	case openapi.TypeInteger, openapi.TypeNumber, openapi.TypeBoolean, openapi.TypeNull: // no need to move to components
 	case openapi.TypeString:
 		if s.Value.Enum != nil && mode != neverMove {
 			moveSchemaToComponents(d, name, s)
