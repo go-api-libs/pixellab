@@ -1,0 +1,1554 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Pixel Lab API",
+    "description": "\nThe API provides endpoints for creating AI-generated pixel art images, rotations,\nanimations, and more. Making it easy for applications to integrate pixel art\ngeneration capabilities.\n\n### Python Client\n\nFor convenience, a Python client library is available to simplify integration with your applications.\nVisit our [GitHub repository](https://github.com/pixellab-code/pixellab-python) for installation \ninstructions and examples.\n\n```bash\npip install pixellab\n```\n\n### Authentication\n\nThe API uses a simple token based authentication system. After creating an account, you can find your API token \nin your [account settings](https://pixellab.ai/account). Include this token in all API requests using the Bearer authentication scheme:\n\n```bash\ncurl -X POST https://api.pixellab.ai/v1/generate-image-pixflux \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\n        \"description\": \"cute dragon\",\n        \"image_size\": {\"width\": 128, \"height\": 128}\n    }'\n```\n\nOr use the Python client:\n\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\nclient.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\n```\n\n### Supported models\n\n- **Generate Image Bitforge**: Apply custom art styles using reference images.\n- **Generate Image Pixflux**: Generate pixel art from text descriptions.\n- **Animate (skeleton)**: Generate 4 frames of an animation from skeleton poses.\n- **Animate (text)**: Generate animation from text descriptions.\n- **Inpaint**: Edit and modify existing pixel art.\n- **Rotate**: Rotate an object or a character.\n",
+    "version": "dev"
+  },
+  "servers": [
+    {
+      "url": "/v1"
+    }
+  ],
+  "paths": {
+    "/generate-image-pixflux": {
+      "post": {
+        "tags": [
+          "Generate Image"
+        ],
+        "summary": "Generate image (pixflux)",
+        "description": "Creates a pixel art image based on the provided parameters. Called \"Create image (new)\" in the plugin.\n\nSupported image size: \n- Minimum area 32x32 and maximum area 400x400  \n\nSupported features:\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
+        "operationId": "GenerateImagePixflux",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenerateImagePixflux"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ImageResult"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/generate-image-bitforge": {
+      "post": {
+        "tags": [
+          "Generate Image"
+        ],
+        "summary": "Generate image (bitforge)",
+        "description": "Generates a pixel art image based on the provided parameters. Called \"Generate image (style)\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200  \n\nSupported features:\n- Style image\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_bitforge(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
+        "operationId": "GenerateImageBitforge",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GenerateImageBitforge"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ImageResult"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/animate-with-skeleton": {
+      "post": {
+        "tags": [
+          "Animate"
+        ],
+        "summary": "Generate animation using skeletons",
+        "description": "Creates a pixel art animation based on the provided parameters. Called \"Animate with skeleton\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256  \n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_skeleton(\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    inpainting_images=existing_animation_frames,\n    mask_images=mask_images,\n    skeleton_keypoints=skeleton_keypoints,\n)\nimages = [image.pil_image() for image in response.images]\n```",
+        "operationId": "AnimateWithSkeleton",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AnimateWithSkeleton"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/AnimateWithSkeleton"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/animate-with-text": {
+      "post": {
+        "tags": [
+          "Animate"
+        ],
+        "summary": "Generate animation using text description",
+        "description": "Creates a pixel art animation based on text description and parameters.\n\nSupported image sizes: \n- 64x64\n\nSupported features:\n- Text-guided animation generation\n- Inpainting\n- Init image\n- Forced palette\n- Multiple frames\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_text(\n    description=\"human mage\",\n    action=\"walk\",\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    n_frames=4\n)\nimages = [image.pil_image() for image in response.images]\n```",
+        "operationId": "AnimateWithText",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AnimateWithTextRequestBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/AnimateWithTextOkResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/rotate": {
+      "post": {
+        "tags": [
+          "Rotate"
+        ],
+        "summary": "Rotate character or object",
+        "description": "Rotates a pixel art image based on the provided parameters. Called \"Rotate\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128    \n\nSupported features:\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.rotate(\n    from_view=\"side\",\n    to_view=\"side\",\n    from_direction=\"south\",\n    to_direction=\"east\",\n    image_size=dict(width=16, height=16),\n    from_image=image_of_subject_facing_south,\n)\nresponse.image.pil_image()\n```",
+        "operationId": "Rotate",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/RotateRequest"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ImageResult"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/inpaint": {
+      "post": {
+        "tags": [
+          "Inpaint"
+        ],
+        "summary": "Inpaint image",
+        "description": "Creates a pixel art image based on the provided parameters. Called \"Inpaint\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200\n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.inpaint(\n    description=\"boy with wings\",\n    image_size=dict(width=16, height=16),\n    inpainting_image=image_of_boy_without_wings,\n    mask_image=mask_image,\n)\nresponse.image.pil_image()\n```",
+        "operationId": "Inpaint",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/InpaintRequestBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ImageResult"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/estimate-skeleton": {
+      "post": {
+        "tags": [
+          "Animate"
+        ],
+        "summary": "Estimate skeleton",
+        "description": "Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.estimate_skeleton(\n    image=image_of_the_character_on_a_transparent_background,\n)\nresponse.keypoints\n```",
+        "operationId": "EstimateSkeleton",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/EstimateSkeletonRequestBody"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/EstimateSkeletonOkResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "422": {
+            "$ref": "#/components/responses/EntityResponse"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "529": {
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
+          }
+        }
+      }
+    },
+    "/balance": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Get balance",
+        "description": "Returns the current balance for your account.\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\nbalance = client.get_balance()\nprint(f\"Current balance: {balance.usd} USD\")\n```",
+        "operationId": "GetBalance",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetBalanceOkResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnimateWithSkeletonRequest": {
+        "title": "AnimateWithSkeletonRequest",
+        "description": "Request model for animation using skeleton endpoint",
+        "type": "object",
+        "properties": {
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v1__animate_with_skeleton__ImageSize"
+          },
+          "guidance_scale": {
+            "title": "Guidance Scale",
+            "description": "How closely to follow the reference image and skeleton keypoints",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 4
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (default: side)"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (default: east)"
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view",
+            "type": "boolean",
+            "default": false
+          },
+          "oblique_projection": {
+            "title": "Oblique Projection",
+            "description": "Generate in oblique projection",
+            "type": "boolean",
+            "default": false
+          },
+          "init_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Initial images to start the generation from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "skeleton_keypoints": {
+            "$ref": "#/components/schemas/SkeletonKeypoints"
+          },
+          "reference_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image"
+          },
+          "inpainting_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Images used for showing the model with connected skeleton (default: [null, null, null]"
+          },
+          "mask_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image_size",
+          "reference_image"
+        ],
+        "example": {
+          "image_size": {
+            "height": 64,
+            "width": 64
+          }
+        }
+      },
+      "AnimateWithTextRequest": {
+        "title": "AnimateWithTextRequest",
+        "description": "Request model for animation using text endpoint",
+        "type": "object",
+        "properties": {
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v1__animate_with_text__ImageSize"
+          },
+          "description": {
+            "title": "Description",
+            "description": "Character description",
+            "type": "string"
+          },
+          "negative_description": {
+            "title": "Negative Description",
+            "description": "Negative prompt to guide what not to generate",
+            "type": "string"
+          },
+          "action": {
+            "title": "Action",
+            "description": "Action description",
+            "type": "string"
+          },
+          "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text prompts",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 8
+          },
+          "image_guidance_scale": {
+            "title": "Image Guidance Scale",
+            "description": "How closely to follow the reference image",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 1.4
+          },
+          "n_frames": {
+            "title": "N Frames",
+            "description": "Length of full animation (the model will always generate 4 frames)",
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 20,
+            "default": 4
+          },
+          "start_frame_index": {
+            "title": "Start Frame Index",
+            "description": "Starting frame index of the full animation",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 0
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (default: side)"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (default: east)"
+          },
+          "init_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Initial images to start the generation from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "reference_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image"
+          },
+          "inpainting_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Existing animation frames to guide the generation (default: [null, null, null, null])"
+          },
+          "mask_images": {
+            "$ref": "#/components/schemas/Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint; default: [null, null, null, null])"
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed for reproducible results (0 for random)",
+            "type": "integer",
+            "default": 0
+          }
+        },
+        "required": [
+          "image_size",
+          "description",
+          "action",
+          "reference_image"
+        ],
+        "example": {
+          "action": "walk",
+          "description": "human mage",
+          "direction": "south",
+          "image_size": {
+            "height": 64,
+            "width": 64
+          },
+          "view": "side"
+        }
+      },
+      "CameraView": {
+        "title": "CameraView",
+        "type": "string",
+        "enum": [
+          "side",
+          "low top-down",
+          "high top-down"
+        ],
+        "default": "side"
+      },
+      "CreditsResponse": {
+        "title": "CreditsResponse",
+        "description": "Response model for credits endpoint\n\nAttributes:\n    credits (float): The user's current credit balance",
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "default": "usd",
+            "const": "usd"
+          },
+          "usd": {
+            "title": "Usd",
+            "type": "number"
+          }
+        },
+        "required": [
+          "usd"
+        ]
+      },
+      "Detail": {
+        "title": "Detail",
+        "type": "string",
+        "enum": [
+          "low detail",
+          "medium detail",
+          "highly detailed"
+        ]
+      },
+      "Direction": {
+        "title": "Direction",
+        "type": "string",
+        "enum": [
+          "north",
+          "north-east",
+          "east",
+          "south-east",
+          "south",
+          "south-west",
+          "west",
+          "north-west"
+        ]
+      },
+      "EstimateSkeletonRequest": {
+        "title": "EstimateSkeletonRequest",
+        "description": "Request model for estimate skeleton endpoint",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Image for which to estimate the skeleton"
+          }
+        }
+      },
+      "EstimateSkeletonResponse": {
+        "title": "EstimateSkeletonResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "keypoints": {
+            "$ref": "#/components/schemas/Keypoints"
+          }
+        },
+        "required": [
+          "usage",
+          "keypoints"
+        ]
+      },
+      "GenerateImageBitforgeRequest": {
+        "title": "GenerateImageBitforgeRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "description": "Text description of the image to generate",
+            "type": "string"
+          },
+          "negative_description": {
+            "title": "Negative Description",
+            "description": "Text description of what to avoid in the generated image",
+            "type": "string"
+          },
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
+          },
+          "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 8
+          },
+          "extra_guidance_scale": {
+            "title": "Extra Guidance Scale",
+            "description": "(Deprecated)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 3
+          },
+          "style_strength": {
+            "title": "Style Strength",
+            "description": "Strength of the style transfer (0-100). 50 = balanced.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "default": 0
+          },
+          "outline": {
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference"
+          },
+          "shading": {
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference"
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction"
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view",
+            "type": "boolean",
+            "default": false
+          },
+          "oblique_projection": {
+            "title": "Oblique Projection",
+            "description": "Generate in oblique projection",
+            "type": "boolean",
+            "default": false
+          },
+          "no_background": {
+            "title": "No Background",
+            "description": "Generate with transparent background",
+            "type": "boolean",
+            "default": false
+          },
+          "coverage_percentage": {
+            "title": "Coverage Percentage",
+            "description": "Percentage of the canvas to cover",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "init_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Initial image to start from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "style_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image for style transfer"
+          },
+          "inpainting_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image which is inpainted"
+          },
+          "mask_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "skeleton_guidance_scale": {
+            "title": "Skeleton Guidance Scale",
+            "description": "How closely to follow the skeleton keypoints",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5,
+            "default": 1
+          },
+          "skeleton_keypoints": {
+            "$ref": "#/components/schemas/Points",
+            "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "image_size"
+        ],
+        "example": {
+          "description": "cute dragon",
+          "image_size": {
+            "height": 128,
+            "width": 128
+          },
+          "no_background": true,
+          "style_guidance_scale": 3,
+          "style_strength": 20,
+          "text_guidance_scale": 3
+        }
+      },
+      "GenerateImagePixfluxRequest": {
+        "title": "GenerateImagePixfluxRequest",
+        "description": "Request model for pixflux image generation endpoint",
+        "type": "object",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "description": "Text description of the image to generate",
+            "type": "string"
+          },
+          "negative_description": {
+            "title": "Negative Description",
+            "description": "(Deprecated)",
+            "type": "string"
+          },
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v1__generate_image_pixflux__ImageSize"
+          },
+          "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 8
+          },
+          "outline": {
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference (weakly guiding)"
+          },
+          "shading": {
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference (weakly guiding)"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference (weakly guiding)"
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (weakly guiding)"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (weakly guiding)"
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view (weakly guiding)",
+            "type": "boolean",
+            "default": false
+          },
+          "no_background": {
+            "title": "No Background",
+            "description": "Generate with transparent background, (blank background over 200x200 area)",
+            "type": "boolean",
+            "default": false
+          },
+          "init_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Initial image to start from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "image_size"
+        ],
+        "example": {
+          "description": "cute dragon",
+          "image_size": {
+            "height": 128,
+            "width": 128
+          },
+          "no_background": true
+        }
+      },
+      "Image": {
+        "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data",
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "description": "Image data type",
+            "type": "string",
+            "default": "base64",
+            "const": "base64"
+          },
+          "base64": {
+            "title": "Base64",
+            "description": "Base64 encoded image data",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base64"
+        ]
+      },
+      "ImageResult": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "image": {
+            "$ref": "#/components/schemas/Image"
+          }
+        },
+        "required": [
+          "usage",
+          "image"
+        ]
+      },
+      "Images": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Image"
+        }
+      },
+      "ImagesResult": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Images"
+          }
+        },
+        "required": [
+          "usage",
+          "images"
+        ]
+      },
+      "InpaintRequest": {
+        "title": "InpaintRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "description": "Text description of the image to generate",
+            "type": "string"
+          },
+          "negative_description": {
+            "title": "Negative Description",
+            "description": "Text description of what to avoid in the generated image",
+            "type": "string"
+          },
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
+          },
+          "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3
+          },
+          "extra_guidance_scale": {
+            "title": "Extra Guidance Scale",
+            "description": "(Deprecated)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20,
+            "default": 3
+          },
+          "outline": {
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference"
+          },
+          "shading": {
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference"
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction"
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view",
+            "type": "boolean",
+            "default": false
+          },
+          "oblique_projection": {
+            "title": "Oblique Projection",
+            "description": "Generate in oblique projection",
+            "type": "boolean",
+            "default": false
+          },
+          "no_background": {
+            "title": "No Background",
+            "description": "Generate with transparent background",
+            "type": "boolean",
+            "default": false
+          },
+          "init_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Initial image to start from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "inpainting_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image which is inpainted"
+          },
+          "mask_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Inpainting / mask image. (black and white image, where the white is where the model should inpaint)."
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "description",
+          "image_size",
+          "inpainting_image",
+          "mask_image"
+        ],
+        "example": {
+          "description": "cute dragon",
+          "image_size": {
+            "height": 128,
+            "width": 128
+          },
+          "no_background": true
+        }
+      },
+      "Keypoint": {
+        "title": "Keypoint",
+        "type": "object",
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "z_index": {
+            "title": "Z Index",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "label",
+          "z_index"
+        ]
+      },
+      "Keypoints": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Keypoint"
+        }
+      },
+      "Outline": {
+        "title": "Outline",
+        "type": "string",
+        "enum": [
+          "single color black outline",
+          "single color outline",
+          "selective outline",
+          "lineless"
+        ]
+      },
+      "Point": {
+        "title": "Point",
+        "type": "object",
+        "properties": {
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          },
+          "label": {
+            "$ref": "#/components/schemas/SkeletonLabel"
+          },
+          "z_index": {
+            "title": "Z Index",
+            "type": "integer",
+            "default": 0
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "label"
+        ]
+      },
+      "Points": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Point"
+        }
+      },
+      "RotateRequest": {
+        "title": "RotateRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
+        "properties": {
+          "image_size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
+          },
+          "image_guidance_scale": {
+            "title": "Image Guidance Scale",
+            "description": "How closely to follow the reference image",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 3
+          },
+          "view_change": {
+            "title": "View Change",
+            "description": "How many degrees to tilt the subject",
+            "type": "integer",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "direction_change": {
+            "title": "Direction Change",
+            "description": "How many degrees to rotate the subject",
+            "type": "integer",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "from_view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "From camera view angle (default: side)"
+          },
+          "to_view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "To camera view angle (default: side)"
+          },
+          "from_direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "From subject direction (default: south)"
+          },
+          "to_direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "From subject direction (default: east)"
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view",
+            "type": "boolean",
+            "default": false
+          },
+          "oblique_projection": {
+            "title": "Oblique Projection",
+            "description": "Generate in oblique projection",
+            "type": "boolean",
+            "default": false
+          },
+          "init_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Initial image to start from"
+          },
+          "init_image_strength": {
+            "title": "Init Image Strength",
+            "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
+            "default": 300
+          },
+          "mask_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)"
+          },
+          "from_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Reference image to rotate"
+          },
+          "color_image": {
+            "$ref": "#/components/schemas/Image",
+            "description": "Forced color palette, image containing colors used for palette"
+          },
+          "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image_size",
+          "from_image"
+        ],
+        "example": {
+          "description": "cute dragon",
+          "from_direction": "south",
+          "from_view": "side",
+          "image_guidance_scale": 7.5,
+          "image_size": {
+            "height": 128,
+            "width": 128
+          },
+          "to_direction": "east",
+          "to_view": "side"
+        }
+      },
+      "Shading": {
+        "title": "Shading",
+        "type": "string",
+        "enum": [
+          "flat shading",
+          "basic shading",
+          "medium shading",
+          "detailed shading",
+          "highly detailed shading"
+        ]
+      },
+      "SkeletonKeypoints": {
+        "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": {
+          "$ref": "#/components/schemas/Points"
+        }
+      },
+      "SkeletonLabel": {
+        "title": "SkeletonLabel",
+        "type": "string",
+        "enum": [
+          "NOSE",
+          "NECK",
+          "RIGHT SHOULDER",
+          "RIGHT ELBOW",
+          "RIGHT ARM",
+          "LEFT SHOULDER",
+          "LEFT ELBOW",
+          "LEFT ARM",
+          "RIGHT HIP",
+          "RIGHT KNEE",
+          "RIGHT LEG",
+          "LEFT HIP",
+          "LEFT KNEE",
+          "LEFT LEG",
+          "RIGHT EYE",
+          "LEFT EYE",
+          "RIGHT EAR",
+          "LEFT EAR"
+        ]
+      },
+      "Usage": {
+        "title": "Usage",
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/UsageType"
+          },
+          "usd": {
+            "title": "Usd",
+            "type": "number"
+          },
+          "generations": {
+            "title": "Generations",
+            "type": "number"
+          }
+        }
+      },
+      "UsageType": {
+        "title": "Type",
+        "type": "string",
+        "enum": [
+          "usd",
+          "generations"
+        ],
+        "default": "usd"
+      },
+      "app__endpoints__external__v1__animate_with_skeleton__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 128,
+          "width": 128
+        }
+      },
+      "app__endpoints__external__v1__animate_with_text__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
+      },
+      "app__endpoints__external__v1__generate_image_pixflux__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 400
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 400
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 128,
+          "width": 128
+        }
+      },
+      "app__endpoints__external__v__generate_image_bitforge__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 128,
+          "width": 128
+        }
+      }
+    },
+    "responses": {
+      "AnimateWithSkeleton": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImagesResult"
+            },
+            "example": {
+              "images": [
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                }
+              ],
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "AnimateWithTextOkResponse": {
+        "description": "Successfully generated animation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImagesResult"
+            },
+            "example": {
+              "images": [
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                }
+              ],
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "EntityResponse": {
+        "description": "Validation error"
+      },
+      "EstimateSkeletonOkResponse": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EstimateSkeletonResponse"
+            },
+            "example": {
+              "image": {
+                "type": "base64",
+                "base64": "data:image/png;base64,..."
+              },
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "GetBalanceOkResponse": {
+        "description": "Successfully retrieved balance",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreditsResponse"
+            },
+            "example": {
+              "usd": 100
+            }
+          }
+        }
+      },
+      "ImageResult": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImageResult"
+            },
+            "example": {
+              "image": {
+                "type": "base64",
+                "base64": "data:image/png;base64,..."
+              },
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "PaymentRequired": {
+        "description": "Insufficient credits"
+      },
+      "TheServiceIsOverloaded": {
+        "description": "Rate limit exceeded"
+      },
+      "TooManyRequests": {
+        "description": "Too many requests"
+      },
+      "UnauthorizedResponse": {
+        "description": "Invalid API token"
+      }
+    },
+    "requestBodies": {
+      "AnimateWithSkeleton": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnimateWithSkeletonRequest"
+            }
+          }
+        }
+      },
+      "AnimateWithTextRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnimateWithTextRequest"
+            }
+          }
+        }
+      },
+      "EstimateSkeletonRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EstimateSkeletonRequest"
+            }
+          }
+        }
+      },
+      "GenerateImageBitforge": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateImageBitforgeRequest"
+            }
+          }
+        }
+      },
+      "GenerateImagePixflux": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateImagePixfluxRequest"
+            }
+          }
+        }
+      },
+      "InpaintRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/InpaintRequest"
+            }
+          }
+        }
+      },
+      "RotateRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RotateRequest"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "security": [
+    {
+      "HTTPBearer": []
+    }
+  ],
+  "x-scalar-watch-mode": false,
+  "x-scalar-order": [
+    "pixel-lab-api/description/introduction",
+    "pixel-lab-api/tag/generate-image",
+    "pixel-lab-api/tag/animate",
+    "pixel-lab-api/tag/rotate",
+    "pixel-lab-api/tag/inpaint",
+    "pixel-lab-api/tag/account",
+    "pixel-lab-api/models"
+  ]
+}
