@@ -18,7 +18,7 @@
         ],
         "summary": "Generate image (pixflux)",
         "description": "Creates a pixel art image based on the provided parameters. Called \"Create image (new)\" in the plugin.\n\nSupported image size: \n- Minimum area 32x32 and maximum area 400x400  \n\nSupported features:\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
-        "operationId": "generate_image_pixflux_generate_image_pixflux_post",
+        "operationId": "GenerateImagePixfluxGenerateImagePixfluxPost",
         "requestBody": {
           "required": true,
           "content": {
@@ -75,7 +75,7 @@
         ],
         "summary": "Generate image (bitforge)",
         "description": "Generates a pixel art image based on the provided parameters. Called \"Generate image (style)\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200  \n\nSupported features:\n- Style image\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_bitforge(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
-        "operationId": "generate_image_bitforge_generate_image_bitforge_post",
+        "operationId": "GenerateImageBitforgeGenerateImageBitforgePost",
         "requestBody": {
           "required": true,
           "content": {
@@ -132,7 +132,7 @@
         ],
         "summary": "Generate animation using skeletons",
         "description": "Creates a pixel art animation based on the provided parameters. Called \"Animate with skeleton\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256  \n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_skeleton(\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    inpainting_images=existing_animation_frames,\n    mask_images=mask_images,\n    skeleton_keypoints=skeleton_keypoints,\n)\nimages = [image.pil_image() for image in response.images]\n```",
-        "operationId": "animate_with_skeleton_animate_with_skeleton_post",
+        "operationId": "AnimateWithSkeletonAnimateWithSkeletonPost",
         "requestBody": {
           "required": true,
           "content": {
@@ -199,7 +199,7 @@
         ],
         "summary": "Generate animation using text description",
         "description": "Creates a pixel art animation based on text description and parameters.\n\nSupported image sizes: \n- 64x64\n\nSupported features:\n- Text-guided animation generation\n- Inpainting\n- Init image\n- Forced palette\n- Multiple frames\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_text(\n    description=\"human mage\",\n    action=\"walk\",\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    n_frames=4\n)\nimages = [image.pil_image() for image in response.images]\n```",
-        "operationId": "animate_with_text_animate_with_text_post",
+        "operationId": "AnimateWithTextAnimateWithTextPost",
         "requestBody": {
           "required": true,
           "content": {
@@ -270,7 +270,7 @@
         ],
         "summary": "Rotate character or object",
         "description": "Rotates a pixel art image based on the provided parameters. Called \"Rotate\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128    \n\nSupported features:\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.rotate(\n    from_view=\"side\",\n    to_view=\"side\",\n    from_direction=\"south\",\n    to_direction=\"east\",\n    image_size=dict(width=16, height=16),\n    from_image=image_of_subject_facing_south,\n)\nresponse.image.pil_image()\n```",
-        "operationId": "generate_rotation_rotate_post",
+        "operationId": "GenerateRotationRotatePost",
         "requestBody": {
           "required": true,
           "content": {
@@ -327,7 +327,7 @@
         ],
         "summary": "Inpaint image",
         "description": "Creates a pixel art image based on the provided parameters. Called \"Inpaint\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200\n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.inpaint(\n    description=\"boy with wings\",\n    image_size=dict(width=16, height=16),\n    inpainting_image=image_of_boy_without_wings,\n    mask_image=mask_image,\n)\nresponse.image.pil_image()\n```",
-        "operationId": "generate_inpainting_inpaint_post",
+        "operationId": "GenerateInpaintingInpaintPost",
         "requestBody": {
           "required": true,
           "content": {
@@ -384,7 +384,7 @@
         ],
         "summary": "Estimate skeleton",
         "description": "Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.estimate_skeleton(\n    image=image_of_the_character_on_a_transparent_background,\n)\nresponse.keypoints\n```",
-        "operationId": "estimate_skeleton_estimate_skeleton_post",
+        "operationId": "EstimateSkeletonEstimateSkeletonPost",
         "requestBody": {
           "required": true,
           "content": {
@@ -441,7 +441,7 @@
         ],
         "summary": "Get balance",
         "description": "Returns the current balance for your account.\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\nbalance = client.get_balance()\nprint(f\"Current balance: {balance.usd} USD\")\n```",
-        "operationId": "get_balance_balance_get",
+        "operationId": "GetBalanceBalanceGet",
         "responses": {
           "200": {
             "description": "Successfully retrieved balance",
