@@ -33,21 +33,15 @@ type AnimateWithSkeletonRequest struct {
 	SkeletonKeypoints []AnimateWithSkeletonRequestSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
 	// Reference image
 	ReferenceImage Image `json:"reference_image"`
-	// Images used for showing the model with connected skeleton
-	InpaintingImages AnimateWithSkeletonRequestInpaintingImages `json:"inpainting_images,omitempty"`
+	// Images used for showing the model with connected skeleton (default: [null, null, null]
+	InpaintingImages Images `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages AnimateWithSkeletonRequestMaskImages `json:"mask_images,omitempty"`
+	MaskImages Images `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
-
-// Images used for showing the model with connected skeleton
-type AnimateWithSkeletonRequestInpaintingImages []Image
-
-// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-type AnimateWithSkeletonRequestMaskImages []Image
 
 // AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
@@ -79,21 +73,15 @@ type AnimateWithTextRequest struct {
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
 	ReferenceImage Image `json:"reference_image"`
-	// Existing animation frames to guide the generation
-	InpaintingImages AnimateWithTextRequestInpaintingImages `json:"inpainting_images,omitempty"`
-	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages AnimateWithTextRequestMaskImages `json:"mask_images,omitempty"`
+	// Existing animation frames to guide the generation (default: [null, null, null, null])
+	InpaintingImages Images `json:"inpainting_images,omitempty"`
+	// Inpainting / mask image (black and white image, where the white is where the model should inpaint; default: [null, null, null, null])
+	MaskImages Images `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
 	Seed *int `json:"seed,omitempty"`
 }
-
-// Existing animation frames to guide the generation
-type AnimateWithTextRequestInpaintingImages []Image
-
-// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-type AnimateWithTextRequestMaskImages []Image
 
 // CameraView defines a model
 type CameraView string

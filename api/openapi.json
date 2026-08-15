@@ -324,10 +324,12 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonRequestInpaintingImages"
+            "$ref": "#/components/schemas/Images",
+            "description": "Images used for showing the model with connected skeleton (default: [null, null, null]"
           },
           "mask_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonRequestMaskImages"
+            "$ref": "#/components/schemas/Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
           },
           "color_image": {
             "$ref": "#/components/schemas/Image",
@@ -348,27 +350,6 @@
             "height": 64,
             "width": 64
           }
-        }
-      },
-      "AnimateWithSkeletonRequestInpaintingImages": {
-        "title": "Inpainting Images",
-        "description": "Images used for showing the model with connected skeleton",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Image"
-        },
-        "default": [
-          null,
-          null,
-          null
-        ]
-      },
-      "AnimateWithSkeletonRequestMaskImages": {
-        "title": "Mask Images",
-        "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Image"
         }
       },
       "AnimateWithSkeletonRequestSkeletonKeypointsItem": {
@@ -457,10 +438,12 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "$ref": "#/components/schemas/AnimateWithTextRequestInpaintingImages"
+            "$ref": "#/components/schemas/Images",
+            "description": "Existing animation frames to guide the generation (default: [null, null, null, null])"
           },
           "mask_images": {
-            "$ref": "#/components/schemas/AnimateWithTextRequestMaskImages"
+            "$ref": "#/components/schemas/Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint; default: [null, null, null, null])"
           },
           "color_image": {
             "$ref": "#/components/schemas/Image",
@@ -489,34 +472,6 @@
           },
           "view": "side"
         }
-      },
-      "AnimateWithTextRequestInpaintingImages": {
-        "title": "Inpainting Images",
-        "description": "Existing animation frames to guide the generation",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Image"
-        },
-        "default": [
-          null,
-          null,
-          null,
-          null
-        ]
-      },
-      "AnimateWithTextRequestMaskImages": {
-        "title": "Mask Images",
-        "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Image"
-        },
-        "default": [
-          null,
-          null,
-          null,
-          null
-        ]
       },
       "CameraView": {
         "title": "CameraView",
