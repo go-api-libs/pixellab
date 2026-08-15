@@ -421,7 +421,7 @@ func (e Shading) Valid() bool {
 }
 
 // Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-type SkeletonKeypoints []Points
+type SkeletonKeypoints [3]Points
 
 // SkeletonLabel defines a model
 type SkeletonLabel string
