@@ -12,9 +12,6 @@ var jsonOpts = json.JoinOptions(
 	json.RejectUnknownMembers(true),
 )
 
-// Initial images to start the generation from
-type AnimateWithSkeletonInitImages []Base64Image
-
 // Request model for animation using skeleton endpoint
 type AnimateWithSkeletonRequest struct {
 	ImageSize app__endpoints__external__v1__animate_with_skeleton__ImageSize `json:"image_size"`
@@ -29,7 +26,7 @@ type AnimateWithSkeletonRequest struct {
 	// Generate in oblique projection
 	ObliqueProjection bool `json:"oblique_projection,omitempty"`
 	// Initial images to start the generation from
-	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitempty"`
+	InitImages Images `json:"init_images,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
@@ -77,7 +74,7 @@ type AnimateWithTextRequest struct {
 	// Subject direction (default: east)
 	Direction Direction `json:"direction,omitzero"`
 	// Initial images to start the generation from
-	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitempty"`
+	InitImages Images `json:"init_images,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
