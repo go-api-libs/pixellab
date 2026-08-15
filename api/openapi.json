@@ -5850,9 +5850,8 @@
             "default": 4
           },
           "view": {
-            "description": "Camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
           },
           "direction": {
             "description": "Subject direction",
@@ -6100,9 +6099,8 @@
             "default": 0
           },
           "view": {
-            "description": "Camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
           },
           "direction": {
             "description": "Subject direction",
@@ -6809,7 +6807,8 @@
           "side",
           "low top-down",
           "high top-down"
-        ]
+        ],
+        "default": "side"
       },
       "CharacterDetail": {
         "title": "CharacterDetail",
@@ -10048,8 +10047,8 @@
           "image_size": {
             "description": "Object dimensions",
             "default": {
-              "height": 128,
-              "width": 128
+              "width": 128,
+              "height": 128
             },
             "$ref": "#/components/schemas/app__endpoints__external__v2__create_map_object__ImageSize"
           },
@@ -16284,8 +16283,7 @@
               {
                 "type": "null"
               }
-            ],
-            "default": "side"
+            ]
           },
           "to_view": {
             "description": "To camera view angle",
@@ -16296,8 +16294,7 @@
               {
                 "type": "null"
               }
-            ],
-            "default": "side"
+            ]
           },
           "from_direction": {
             "description": "From subject direction",
