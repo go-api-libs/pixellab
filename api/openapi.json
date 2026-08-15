@@ -8665,10 +8665,6 @@
           },
           "image_size": {
             "description": "Object dimensions",
-            "default": {
-              "height": 128,
-              "width": 128
-            },
             "$ref": "#/components/schemas/app__endpoints__external__v2__create_map_object__ImageSize"
           },
           "view": {
@@ -15174,6 +15170,11 @@
       },
       "app__endpoints__external__v2__create_map_object__ImageSize": {
         "title": "ImageSize",
+
+            "default": {
+              "height": 128,
+              "width": 128
+            },
         "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96",
         "type": "object",
         "properties": {
