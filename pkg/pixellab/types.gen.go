@@ -12,9 +12,6 @@ var jsonOpts = json.JoinOptions(
 	json.RejectUnknownMembers(true),
 )
 
-// AnimateWithSkeletonImages defines a model
-type AnimateWithSkeletonImages []Base64Image
-
 // Initial images to start the generation from
 type AnimateWithSkeletonInitImages []Base64Image
 
@@ -58,12 +55,6 @@ type AnimateWithSkeletonRequestMaskImages []Base64Image
 // AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
 
-// AnimateWithSkeletonResponse defines a model
-type AnimateWithSkeletonResponse struct {
-	Usage  Usage                     `json:"usage"`
-	Images AnimateWithSkeletonImages `json:"images,omitempty"`
-}
-
 // Request model for animation using text endpoint
 type AnimateWithTextRequest struct {
 	ImageSize app__endpoints__external__v1__animate_with_text__ImageSize `json:"image_size"`
@@ -106,12 +97,6 @@ type AnimateWithTextRequestInpaintingImages []Base64Image
 
 // Inpainting / mask image (black and white image, where the white is where the model should inpaint)
 type AnimateWithTextRequestMaskImages []Base64Image
-
-// AnimateWithTextResponse defines a model
-type AnimateWithTextResponse struct {
-	Usage  Usage                     `json:"usage"`
-	Images AnimateWithSkeletonImages `json:"images,omitempty"`
-}
 
 // A base64 encoded image.
 //
@@ -267,17 +252,6 @@ type GenerateImageBitforgeRequest struct {
 // Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
 type GenerateImageBitforgeRequestSkeletonKeypoints []Point
 
-// GenerateImageBitforgeResponse defines a model
-type GenerateImageBitforgeResponse struct {
-	Usage Usage `json:"usage"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	Image Base64Image `json:"image"`
-}
-
 // Request model for pixflux image generation endpoint
 type GenerateImagePixfluxRequest struct {
 	// Text description of the image to generate
@@ -311,8 +285,8 @@ type GenerateImagePixfluxRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// GenerateImagePixfluxResponse defines a model
-type GenerateImagePixfluxResponse struct {
+// ImageResult defines a model
+type ImageResult struct {
 	Usage Usage `json:"usage"`
 	// A base64 encoded image.
 	//
@@ -320,6 +294,15 @@ type GenerateImagePixfluxResponse struct {
 	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
 	//     base64 (str): The base64 encoded image data
 	Image Base64Image `json:"image"`
+}
+
+// Images defines a model
+type Images []Base64Image
+
+// ImagesResult defines a model
+type ImagesResult struct {
+	Usage  Usage  `json:"usage"`
+	Images Images `json:"images,omitempty"`
 }
 
 // Request model for image generation endpoint
@@ -361,17 +344,6 @@ type InpaintRequest struct {
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// InpaintResponse defines a model
-type InpaintResponse struct {
-	Usage Usage `json:"usage"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	Image Base64Image `json:"image"`
 }
 
 // Keypoint defines a model
@@ -443,17 +415,6 @@ type RotateRequest struct {
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// RotateResponse defines a model
-type RotateResponse struct {
-	Usage Usage `json:"usage"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	Image Base64Image `json:"image"`
 }
 
 // Shading defines a model

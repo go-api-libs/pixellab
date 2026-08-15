@@ -93,8 +93,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // ```
 //
 //	POST /generate-image-pixflux
-func (c *Client) GenerateImagePixflux(ctx context.Context, body GenerateImagePixfluxRequest) (*GenerateImagePixfluxResponse, error) {
-	return GenerateImagePixflux[GenerateImagePixfluxResponse](ctx, c, body)
+func (c *Client) GenerateImagePixflux(ctx context.Context, body GenerateImagePixfluxRequest) (*ImageResult, error) {
+	return GenerateImagePixflux[ImageResult](ctx, c, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
@@ -213,8 +213,8 @@ func GenerateImagePixflux[R any](ctx context.Context, c *Client, body GenerateIm
 // ```
 //
 //	POST /generate-image-bitforge
-func (c *Client) GenerateImageBitforge(ctx context.Context, body GenerateImageBitforgeRequest) (*GenerateImageBitforgeResponse, error) {
-	return GenerateImageBitforge[GenerateImageBitforgeResponse](ctx, c, body)
+func (c *Client) GenerateImageBitforge(ctx context.Context, body GenerateImageBitforgeRequest) (*ImageResult, error) {
+	return GenerateImageBitforge[ImageResult](ctx, c, body)
 }
 
 // Generates a pixel art image based on the provided parameters. Called "Generate image (style)" in the plugin.
@@ -342,8 +342,8 @@ func GenerateImageBitforge[R any](ctx context.Context, c *Client, body GenerateI
 // ```
 //
 //	POST /animate-with-skeleton
-func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeletonResponse, error) {
-	return AnimateWithSkeleton[AnimateWithSkeletonResponse](ctx, c, body)
+func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*ImagesResult, error) {
+	return AnimateWithSkeleton[ImagesResult](ctx, c, body)
 }
 
 // Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
@@ -476,8 +476,8 @@ func AnimateWithSkeleton[R any](ctx context.Context, c *Client, body AnimateWith
 // ```
 //
 //	POST /animate-with-text
-func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithTextResponse, error) {
-	return AnimateWithText[AnimateWithTextResponse](ctx, c, body)
+func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*ImagesResult, error) {
+	return AnimateWithText[ImagesResult](ctx, c, body)
 }
 
 // Creates a pixel art animation based on text description and parameters.
@@ -607,8 +607,8 @@ func AnimateWithText[R any](ctx context.Context, c *Client, body AnimateWithText
 // ```
 //
 //	POST /rotate
-func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*RotateResponse, error) {
-	return Rotate[RotateResponse](ctx, c, body)
+func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResult, error) {
+	return Rotate[ImageResult](ctx, c, body)
 }
 
 // Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
@@ -734,8 +734,8 @@ func Rotate[R any](ctx context.Context, c *Client, body RotateRequest) (*R, erro
 // ```
 //
 //	POST /inpaint
-func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*InpaintResponse, error) {
-	return Inpaint[InpaintResponse](ctx, c, body)
+func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageResult, error) {
+	return Inpaint[ImageResult](ctx, c, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.

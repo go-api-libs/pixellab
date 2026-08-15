@@ -20,50 +20,26 @@
         "description": "Creates a pixel art image based on the provided parameters. Called \"Create image (new)\" in the plugin.\n\nSupported image size: \n- Minimum area 32x32 and maximum area 400x400  \n\nSupported features:\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
         "operationId": "GenerateImagePixflux",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImagePixfluxRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/GenerateImagePixflux"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GenerateImagePixfluxResponse"
-                },
-                "example": {
-                  "image": {
-                    "type": "base64",
-                    "base64": "data:image/png;base64,..."
-                  },
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/ImageResult"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -77,50 +53,26 @@
         "description": "Generates a pixel art image based on the provided parameters. Called \"Generate image (style)\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200  \n\nSupported features:\n- Style image\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_bitforge(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
         "operationId": "GenerateImageBitforge",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateImageBitforgeRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/GenerateImageBitforge"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GenerateImageBitforgeResponse"
-                },
-                "example": {
-                  "image": {
-                    "type": "base64",
-                    "base64": "data:image/png;base64,..."
-                  },
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/ImageResult"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -134,60 +86,26 @@
         "description": "Creates a pixel art animation based on the provided parameters. Called \"Animate with skeleton\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256  \n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_skeleton(\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    inpainting_images=existing_animation_frames,\n    mask_images=mask_images,\n    skeleton_keypoints=skeleton_keypoints,\n)\nimages = [image.pil_image() for image in response.images]\n```",
         "operationId": "AnimateWithSkeleton",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnimateWithSkeletonRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/AnimateWithSkeleton"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AnimateWithSkeletonResponse"
-                },
-                "example": {
-                  "images": [
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    },
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    },
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    }
-                  ],
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/AnimateWithSkeleton"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -201,64 +119,26 @@
         "description": "Creates a pixel art animation based on text description and parameters.\n\nSupported image sizes: \n- 64x64\n\nSupported features:\n- Text-guided animation generation\n- Inpainting\n- Init image\n- Forced palette\n- Multiple frames\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_text(\n    description=\"human mage\",\n    action=\"walk\",\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    n_frames=4\n)\nimages = [image.pil_image() for image in response.images]\n```",
         "operationId": "AnimateWithText",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AnimateWithTextRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/AnimateWithTextRequestBody"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated animation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AnimateWithTextResponse"
-                },
-                "example": {
-                  "images": [
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    },
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    },
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    },
-                    {
-                      "type": "base64",
-                      "base64": "data:image/png;base64,..."
-                    }
-                  ],
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/AnimateWithTextOkResponse"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -272,50 +152,26 @@
         "description": "Rotates a pixel art image based on the provided parameters. Called \"Rotate\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128    \n\nSupported features:\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.rotate(\n    from_view=\"side\",\n    to_view=\"side\",\n    from_direction=\"south\",\n    to_direction=\"east\",\n    image_size=dict(width=16, height=16),\n    from_image=image_of_subject_facing_south,\n)\nresponse.image.pil_image()\n```",
         "operationId": "Rotate",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RotateRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/RotateRequest"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RotateResponse"
-                },
-                "example": {
-                  "image": {
-                    "type": "base64",
-                    "base64": "data:image/png;base64,..."
-                  },
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/ImageResult"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -329,50 +185,26 @@
         "description": "Creates a pixel art image based on the provided parameters. Called \"Inpaint\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200\n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.inpaint(\n    description=\"boy with wings\",\n    image_size=dict(width=16, height=16),\n    inpainting_image=image_of_boy_without_wings,\n    mask_image=mask_image,\n)\nresponse.image.pil_image()\n```",
         "operationId": "Inpaint",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InpaintRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/InpaintRequestBody"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InpaintResponse"
-                },
-                "example": {
-                  "image": {
-                    "type": "base64",
-                    "base64": "data:image/png;base64,..."
-                  },
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/ImageResult"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -386,50 +218,26 @@
         "description": "Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.estimate_skeleton(\n    image=image_of_the_character_on_a_transparent_background,\n)\nresponse.keypoints\n```",
         "operationId": "EstimateSkeleton",
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EstimateSkeletonRequest"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/EstimateSkeletonRequestBody"
         },
         "responses": {
           "200": {
-            "description": "Successfully generated image",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EstimateSkeletonResponse"
-                },
-                "example": {
-                  "image": {
-                    "type": "base64",
-                    "base64": "data:image/png;base64,..."
-                  },
-                  "usage": {
-                    "type": "usd",
-                    "usd": 0.01
-                  }
-                }
-              }
-            }
+            "$ref": "#/components/responses/EstimateSkeletonOkResponse"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "402": {
-            "description": "Insufficient credits"
+            "$ref": "#/components/responses/PaymentRequired"
           },
           "422": {
-            "description": "Validation error"
+            "$ref": "#/components/responses/EntityResponse"
           },
           "429": {
-            "description": "Too many requests"
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "529": {
-            "description": "Rate limit exceeded"
+            "$ref": "#/components/responses/TheServiceIsOverloaded"
           }
         }
       }
@@ -444,20 +252,10 @@
         "operationId": "GetBalance",
         "responses": {
           "200": {
-            "description": "Successfully retrieved balance",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreditsResponse"
-                },
-                "example": {
-                  "usd": 100
-                }
-              }
-            }
+            "$ref": "#/components/responses/GetBalanceOkResponse"
           },
           "401": {
-            "description": "Invalid API token"
+            "$ref": "#/components/responses/UnauthorizedResponse"
           }
         }
       }
@@ -465,6 +263,14 @@
   },
   "components": {
     "schemas": {
+      "AnimateWithSkeletonInitImages": {
+        "title": "Init Images",
+        "description": "Initial images to start the generation from",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
+        }
+      },
       "AnimateWithSkeletonRequest": {
         "title": "AnimateWithSkeletonRequest",
         "description": "Request model for animation using skeleton endpoint",
@@ -502,12 +308,8 @@
             "default": false
           },
           "init_images": {
-            "title": "Init Images",
-            "description": "Initial images to start the generation from",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            }
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages",
+            "description": "Initial images to start the generation from"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -522,10 +324,7 @@
             "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
             "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Point"
-              }
+              "$ref": "#/components/schemas/AnimateWithSkeletonRequestSkeletonKeypointsItem"
             }
           },
           "reference_image": {
@@ -533,25 +332,10 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "title": "Inpainting Images",
-            "description": "Images used for showing the model with connected skeleton",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            },
-            "default": [
-              null,
-              null,
-              null
-            ]
+            "$ref": "#/components/schemas/AnimateWithSkeletonRequestInpaintingImages"
           },
           "mask_images": {
-            "title": "Mask Images",
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            }
+            "$ref": "#/components/schemas/AnimateWithSkeletonRequestMaskImages"
           },
           "color_image": {
             "$ref": "#/components/schemas/Base64Image",
@@ -574,25 +358,32 @@
           }
         }
       },
-      "AnimateWithSkeletonResponse": {
-        "title": "AnimateWithSkeletonResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "images": {
-            "title": "Images",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            }
-          }
+      "AnimateWithSkeletonRequestInpaintingImages": {
+        "title": "Inpainting Images",
+        "description": "Images used for showing the model with connected skeleton",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
         },
-        "required": [
-          "usage",
-          "images"
+        "default": [
+          null,
+          null,
+          null
         ]
+      },
+      "AnimateWithSkeletonRequestMaskImages": {
+        "title": "Mask Images",
+        "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
+        }
+      },
+      "AnimateWithSkeletonRequestSkeletonKeypointsItem": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Point"
+        }
       },
       "AnimateWithTextRequest": {
         "title": "AnimateWithTextRequest",
@@ -658,12 +449,7 @@
             "description": "Subject direction (default: east)"
           },
           "init_images": {
-            "title": "Init Images",
-            "description": "Initial images to start the generation from",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            }
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -678,32 +464,10 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "title": "Inpainting Images",
-            "description": "Existing animation frames to guide the generation",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            },
-            "default": [
-              null,
-              null,
-              null,
-              null
-            ]
+            "$ref": "#/components/schemas/AnimateWithTextRequestInpaintingImages"
           },
           "mask_images": {
-            "title": "Mask Images",
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            },
-            "default": [
-              null,
-              null,
-              null,
-              null
-            ]
+            "$ref": "#/components/schemas/AnimateWithTextRequestMaskImages"
           },
           "color_image": {
             "$ref": "#/components/schemas/Base64Image",
@@ -733,24 +497,32 @@
           "view": "side"
         }
       },
-      "AnimateWithTextResponse": {
-        "title": "AnimateWithTextResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "images": {
-            "title": "Images",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Base64Image"
-            }
-          }
+      "AnimateWithTextRequestInpaintingImages": {
+        "title": "Inpainting Images",
+        "description": "Existing animation frames to guide the generation",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
         },
-        "required": [
-          "usage",
-          "images"
+        "default": [
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      "AnimateWithTextRequestMaskImages": {
+        "title": "Mask Images",
+        "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
+        },
+        "default": [
+          null,
+          null,
+          null,
+          null
         ]
       },
       "Base64Image": {
@@ -847,17 +619,20 @@
             "$ref": "#/components/schemas/Usage"
           },
           "keypoints": {
-            "title": "Keypoints",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Keypoint"
-            }
+            "$ref": "#/components/schemas/EstimateSkeletonResponseKeypoints"
           }
         },
         "required": [
           "usage",
           "keypoints"
         ]
+      },
+      "EstimateSkeletonResponseKeypoints": {
+        "title": "Keypoints",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Keypoint"
+        }
       },
       "GenerateImageBitforgeRequest": {
         "title": "GenerateImageBitforgeRequest",
@@ -875,7 +650,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v1__generate_image_bitforge__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -983,12 +758,7 @@
             "default": 1
           },
           "skeleton_keypoints": {
-            "title": "Skeleton Keypoints",
-            "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Point"
-            }
+            "$ref": "#/components/schemas/GenerateImageBitforgeRequestSkeletonKeypoints"
           },
           "seed": {
             "title": "Seed",
@@ -1012,21 +782,13 @@
           "text_guidance_scale": 3
         }
       },
-      "GenerateImageBitforgeResponse": {
-        "title": "GenerateImageBitforgeResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "image": {
-            "$ref": "#/components/schemas/Base64Image"
-          }
-        },
-        "required": [
-          "usage",
-          "image"
-        ]
+      "GenerateImageBitforgeRequestSkeletonKeypoints": {
+        "title": "Skeleton Keypoints",
+        "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Point"
+        }
       },
       "GenerateImagePixfluxRequest": {
         "title": "GenerateImagePixfluxRequest",
@@ -1121,8 +883,7 @@
           "no_background": true
         }
       },
-      "GenerateImagePixfluxResponse": {
-        "title": "GenerateImagePixfluxResponse",
+      "ImageResult": {
         "type": "object",
         "properties": {
           "usage": {
@@ -1135,6 +896,27 @@
         "required": [
           "usage",
           "image"
+        ]
+      },
+      "Images": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Base64Image"
+        }
+      },
+      "ImagesResult": {
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "images": {
+            "$ref": "#/components/schemas/Images"
+          }
+        },
+        "required": [
+          "usage",
+          "images"
         ]
       },
       "InpaintRequest": {
@@ -1153,7 +935,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v1__generate_inpainting__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -1254,22 +1036,6 @@
           "no_background": true
         }
       },
-      "InpaintResponse": {
-        "title": "InpaintResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "image": {
-            "$ref": "#/components/schemas/Base64Image"
-          }
-        },
-        "required": [
-          "usage",
-          "image"
-        ]
-      },
       "Keypoint": {
         "title": "Keypoint",
         "type": "object",
@@ -1341,7 +1107,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v1__generate_rotation__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_bitforge__ImageSize"
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
@@ -1440,22 +1206,6 @@
           "to_view": "side"
         }
       },
-      "RotateResponse": {
-        "title": "RotateResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "image": {
-            "$ref": "#/components/schemas/Base64Image"
-          }
-        },
-        "required": [
-          "usage",
-          "image"
-        ]
-      },
       "Shading": {
         "title": "Shading",
         "type": "string",
@@ -1496,13 +1246,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "title": "Type",
-            "type": "string",
-            "enum": [
-              "usd",
-              "generations"
-            ],
-            "default": "usd"
+            "$ref": "#/components/schemas/UsageType"
           },
           "usd": {
             "title": "Usd",
@@ -1513,6 +1257,15 @@
             "type": "number"
           }
         }
+      },
+      "UsageType": {
+        "title": "Type",
+        "type": "string",
+        "enum": [
+          "usd",
+          "generations"
+        ],
+        "default": "usd"
       },
       "app__endpoints__external__v1__animate_with_skeleton__ImageSize": {
         "title": "ImageSize",
@@ -1570,34 +1323,6 @@
           "width": 64
         }
       },
-      "app__endpoints__external__v1__generate_image_bitforge__ImageSize": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
       "app__endpoints__external__v1__generate_image_pixflux__ImageSize": {
         "title": "ImageSize",
         "type": "object",
@@ -1626,7 +1351,7 @@
           "width": 128
         }
       },
-      "app__endpoints__external__v1__generate_inpainting__ImageSize": {
+      "app__endpoints__external__v__generate_image_bitforge__ImageSize": {
         "title": "ImageSize",
         "type": "object",
         "properties": {
@@ -1653,33 +1378,211 @@
           "height": 128,
           "width": 128
         }
-      },
-      "app__endpoints__external__v1__generate_rotation__ImageSize": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
+      }
+    },
+    "responses": {
+      "AnimateWithSkeleton": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImagesResult"
+            },
+            "example": {
+              "images": [
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                }
+              ],
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
           }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
+        }
+      },
+      "AnimateWithTextOkResponse": {
+        "description": "Successfully generated animation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImagesResult"
+            },
+            "example": {
+              "images": [
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                },
+                {
+                  "type": "base64",
+                  "base64": "data:image/png;base64,..."
+                }
+              ],
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "EntityResponse": {
+        "description": "Validation error"
+      },
+      "EstimateSkeletonOkResponse": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EstimateSkeletonResponse"
+            },
+            "example": {
+              "image": {
+                "type": "base64",
+                "base64": "data:image/png;base64,..."
+              },
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "GetBalanceOkResponse": {
+        "description": "Successfully retrieved balance",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreditsResponse"
+            },
+            "example": {
+              "usd": 100
+            }
+          }
+        }
+      },
+      "ImageResult": {
+        "description": "Successfully generated image",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImageResult"
+            },
+            "example": {
+              "image": {
+                "type": "base64",
+                "base64": "data:image/png;base64,..."
+              },
+              "usage": {
+                "type": "usd",
+                "usd": 0.01
+              }
+            }
+          }
+        }
+      },
+      "PaymentRequired": {
+        "description": "Insufficient credits"
+      },
+      "TheServiceIsOverloaded": {
+        "description": "Rate limit exceeded"
+      },
+      "TooManyRequests": {
+        "description": "Too many requests"
+      },
+      "UnauthorizedResponse": {
+        "description": "Invalid API token"
+      }
+    },
+    "requestBodies": {
+      "AnimateWithSkeleton": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnimateWithSkeletonRequest"
+            }
+          }
+        }
+      },
+      "AnimateWithTextRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnimateWithTextRequest"
+            }
+          }
+        }
+      },
+      "EstimateSkeletonRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/EstimateSkeletonRequest"
+            }
+          }
+        }
+      },
+      "GenerateImageBitforge": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateImageBitforgeRequest"
+            }
+          }
+        }
+      },
+      "GenerateImagePixflux": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateImagePixfluxRequest"
+            }
+          }
+        }
+      },
+      "InpaintRequestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/InpaintRequest"
+            }
+          }
+        }
+      },
+      "RotateRequest": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RotateRequest"
+            }
+          }
         }
       }
     },
