@@ -5,6 +5,11 @@
     "description": "\nThe API provides endpoints for creating AI-generated pixel art images, rotations,\nanimations, and more. Making it easy for applications to integrate pixel art\ngeneration capabilities.\n\n### Python Client\n\nFor convenience, a Python client library is available to simplify integration with your applications.\nVisit our [GitHub repository](https://github.com/pixellab-code/pixellab-python) for installation \ninstructions and examples.\n\n```bash\npip install pixellab\n```\n\n### Authentication\n\nThe API uses a simple token based authentication system. After creating an account, you can find your API token \nin your [account settings](https://pixellab.ai/account). Include this token in all API requests using the Bearer authentication scheme:\n\n```bash\ncurl -X POST https://api.pixellab.ai/v1/generate-image-pixflux \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\n        \"description\": \"cute dragon\",\n        \"image_size\": {\"width\": 128, \"height\": 128}\n    }'\n```\n\nOr use the Python client:\n\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\nclient.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\n```\n\n### Supported models\n\n- **Generate Image Bitforge**: Apply custom art styles using reference images.\n- **Generate Image Pixflux**: Generate pixel art from text descriptions.\n- **Animate (skeleton)**: Generate 4 frames of an animation from skeleton poses.\n- **Animate (text)**: Generate animation from text descriptions.\n- **Inpaint**: Edit and modify existing pixel art.\n- **Rotate**: Rotate an object or a character.\n",
     "version": "dev"
   },
+  "servers": [
+    {
+      "url": "/v1"
+    }
+  ],
   "paths": {
     "/generate-image-pixflux": {
       "post": {
@@ -15,14 +20,14 @@
         "description": "Creates a pixel art image based on the provided parameters. Called \"Create image (new)\" in the plugin.\n\nSupported image size: \n- Minimum area 32x32 and maximum area 400x400  \n\nSupported features:\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_pixflux(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
         "operationId": "generate_image_pixflux_generate_image_pixflux_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GenerateImagePixfluxRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -60,12 +65,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/generate-image-bitforge": {
@@ -77,14 +77,14 @@
         "description": "Generates a pixel art image based on the provided parameters. Called \"Generate image (style)\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200  \n\nSupported features:\n- Style image\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.generate_image_bitforge(\n    description=\"cute dragon\",\n    image_size=dict(width=128, height=128),\n)\nresponse.image.pil_image()\n```",
         "operationId": "generate_image_bitforge_generate_image_bitforge_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/GenerateImageBitforgeRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -122,12 +122,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/animate-with-skeleton": {
@@ -139,14 +134,14 @@
         "description": "Creates a pixel art animation based on the provided parameters. Called \"Animate with skeleton\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256  \n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_skeleton(\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    inpainting_images=existing_animation_frames,\n    mask_images=mask_images,\n    skeleton_keypoints=skeleton_keypoints,\n)\nimages = [image.pil_image() for image in response.images]\n```",
         "operationId": "animate_with_skeleton_animate_with_skeleton_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnimateWithSkeletonRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -194,12 +189,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/animate-with-text": {
@@ -211,14 +201,14 @@
         "description": "Creates a pixel art animation based on text description and parameters.\n\nSupported image sizes: \n- 64x64\n\nSupported features:\n- Text-guided animation generation\n- Inpainting\n- Init image\n- Forced palette\n- Multiple frames\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.animate_with_text(\n    description=\"human mage\",\n    action=\"walk\",\n    view=\"side\",\n    direction=\"south\",\n    image_size=dict(width=64, height=64),\n    reference_image=reference_image,\n    n_frames=4\n)\nimages = [image.pil_image() for image in response.images]\n```",
         "operationId": "animate_with_text_animate_with_text_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AnimateWithTextRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -270,12 +260,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/rotate": {
@@ -287,14 +272,14 @@
         "description": "Rotates a pixel art image based on the provided parameters. Called \"Rotate\" in the plugin.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128    \n\nSupported features:\n- Init image\n- Forced palette\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.rotate(\n    from_view=\"side\",\n    to_view=\"side\",\n    from_direction=\"south\",\n    to_direction=\"east\",\n    image_size=dict(width=16, height=16),\n    from_image=image_of_subject_facing_south,\n)\nresponse.image.pil_image()\n```",
         "operationId": "generate_rotation_rotate_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RotateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -332,12 +317,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/inpaint": {
@@ -349,14 +329,14 @@
         "description": "Creates a pixel art image based on the provided parameters. Called \"Inpaint\" in the plugin.\n\nSupported image size: \n- Maximum area 200x200\n\nSupported features:\n- Inpainting\n- Init image\n- Forced palette\n- Transparent background\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.inpaint(\n    description=\"boy with wings\",\n    image_size=dict(width=16, height=16),\n    inpainting_image=image_of_boy_without_wings,\n    mask_image=mask_image,\n)\nresponse.image.pil_image()\n```",
         "operationId": "generate_inpainting_inpaint_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/InpaintRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -394,12 +374,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/estimate-skeleton": {
@@ -411,14 +386,14 @@
         "description": "Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.\n\nSupported image sizes: \n- 16x16\n- 32x32\n- 64x64\n- 128x128\n- 256x256\n\nUsing the Python client:\n```python\nimport pixellab\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\nresponse = client.estimate_skeleton(\n    image=image_of_the_character_on_a_transparent_background,\n)\nresponse.keypoints\n```",
         "operationId": "estimate_skeleton_estimate_skeleton_post",
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EstimateSkeletonRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -456,12 +431,7 @@
           "529": {
             "description": "Rate limit exceeded"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/balance": {
@@ -489,91 +459,92 @@
           "401": {
             "description": "Invalid API token"
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     }
   },
   "components": {
     "schemas": {
       "AnimateWithSkeletonRequest": {
+        "title": "AnimateWithSkeletonRequest",
+        "description": "Request model for animation using skeleton endpoint",
+        "type": "object",
         "properties": {
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__animate_with_skeleton__ImageSize"
           },
           "guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 1,
             "title": "Guidance Scale",
             "description": "How closely to follow the reference image and skeleton keypoints",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 4
           },
           "view": {
-            "$ref": "#/components/schemas/CameraView",
             "description": "Camera view angle",
-            "default": "side"
+            "default": "side",
+            "$ref": "#/components/schemas/CameraView"
           },
           "direction": {
-            "$ref": "#/components/schemas/Direction",
             "description": "Subject direction",
-            "default": "east"
+            "default": "east",
+            "$ref": "#/components/schemas/Direction"
           },
           "isometric": {
-            "type": "boolean",
             "title": "Isometric",
             "description": "Generate in isometric view",
+            "type": "boolean",
             "default": false
           },
           "oblique_projection": {
-            "type": "boolean",
             "title": "Oblique Projection",
             "description": "Generate in oblique projection",
+            "type": "boolean",
             "default": false
           },
           "init_images": {
+            "title": "Init Images",
+            "description": "Initial images to start the generation from",
             "anyOf": [
               {
+                "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/Base64Image"
-                },
-                "type": "array"
+                }
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Init Images",
-            "description": "Initial images to start the generation from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "skeleton_keypoints": {
+            "title": "Skeleton Keypoints",
+            "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
+            "type": "array",
             "items": {
+              "type": "array",
               "items": {
                 "$ref": "#/components/schemas/Point"
-              },
-              "type": "array"
-            },
-            "type": "array",
-            "title": "Skeleton Keypoints",
-            "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422."
+              }
+            }
           },
           "reference_image": {
             "$ref": "#/components/schemas/Base64Image",
             "description": "Reference image"
           },
           "inpainting_images": {
+            "title": "Inpainting Images",
+            "description": "Images used for showing the model with connected skeleton",
+            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -584,9 +555,6 @@
                 }
               ]
             },
-            "type": "array",
-            "title": "Inpainting Images",
-            "description": "Images used for showing the model with connected skeleton",
             "default": [
               null,
               null,
@@ -594,6 +562,9 @@
             ]
           },
           "mask_images": {
+            "title": "Mask Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
+            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -603,12 +574,10 @@
                   "type": "null"
                 }
               ]
-            },
-            "type": "array",
-            "title": "Mask Images",
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
+            }
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -616,10 +585,11 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
             "anyOf": [
               {
                 "type": "integer"
@@ -627,18 +597,13 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Seed",
-            "description": "Seed decides the starting noise"
+            ]
           }
         },
-        "type": "object",
         "required": [
           "image_size",
           "reference_image"
         ],
-        "title": "AnimateWithSkeletonRequest",
-        "description": "Request model for animation using skeleton endpoint",
         "example": {
           "image_size": {
             "height": 64,
@@ -647,36 +612,41 @@
         }
       },
       "AnimateWithSkeletonResponse": {
+        "title": "AnimateWithSkeletonResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
           },
           "images": {
+            "title": "Images",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Base64Image"
-            },
-            "type": "array",
-            "title": "Images"
+            }
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "images"
-        ],
-        "title": "AnimateWithSkeletonResponse"
+        ]
       },
       "AnimateWithTextRequest": {
+        "title": "AnimateWithTextRequest",
+        "description": "Request model for animation using text endpoint",
+        "type": "object",
         "properties": {
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__animate_with_text__ImageSize"
           },
           "description": {
-            "type": "string",
             "title": "Description",
-            "description": "Character description"
+            "description": "Character description",
+            "type": "string"
           },
           "negative_description": {
+            "title": "Negative Description",
+            "description": "Negative prompt to guide what not to generate",
             "anyOf": [
               {
                 "type": "string"
@@ -684,107 +654,104 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Negative Description",
-            "description": "Negative prompt to guide what not to generate",
-            "default": ""
+            ]
           },
           "action": {
-            "type": "string",
             "title": "Action",
-            "description": "Action description"
+            "description": "Action description",
+            "type": "string"
           },
           "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text prompts",
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 20,
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 20
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Text Guidance Scale",
-            "description": "How closely to follow the text prompts",
             "default": 8
           },
           "image_guidance_scale": {
+            "title": "Image Guidance Scale",
+            "description": "How closely to follow the reference image",
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 20,
-                "minimum": 1
+                "minimum": 1,
+                "maximum": 20
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Image Guidance Scale",
-            "description": "How closely to follow the reference image",
             "default": 1.4
           },
           "n_frames": {
+            "title": "N Frames",
+            "description": "Length of full animation (the model will always generate 4 frames)",
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 20,
-                "minimum": 2
+                "minimum": 2,
+                "maximum": 20
               },
               {
                 "type": "null"
               }
             ],
-            "title": "N Frames",
-            "description": "Length of full animation (the model will always generate 4 frames)",
             "default": 4
           },
           "start_frame_index": {
+            "title": "Start Frame Index",
+            "description": "Starting frame index of the full animation",
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 20,
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 20
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Start Frame Index",
-            "description": "Starting frame index of the full animation",
             "default": 0
           },
           "view": {
-            "$ref": "#/components/schemas/CameraView",
             "description": "Camera view angle",
-            "default": "side"
+            "default": "side",
+            "$ref": "#/components/schemas/CameraView"
           },
           "direction": {
-            "$ref": "#/components/schemas/Direction",
             "description": "Subject direction",
-            "default": "east"
+            "default": "east",
+            "$ref": "#/components/schemas/Direction"
           },
           "init_images": {
+            "title": "Init Images",
+            "description": "Initial images to start the generation from",
             "anyOf": [
               {
+                "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/Base64Image"
-                },
-                "type": "array"
+                }
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Init Images",
-            "description": "Initial images to start the generation from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "reference_image": {
@@ -792,6 +759,9 @@
             "description": "Reference image"
           },
           "inpainting_images": {
+            "title": "Inpainting Images",
+            "description": "Existing animation frames to guide the generation",
+            "type": "array",
             "items": {
               "anyOf": [
                 {
@@ -802,9 +772,6 @@
                 }
               ]
             },
-            "type": "array",
-            "title": "Inpainting Images",
-            "description": "Existing animation frames to guide the generation",
             "default": [
               null,
               null,
@@ -813,8 +780,11 @@
             ]
           },
           "mask_images": {
+            "title": "Mask Images",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "anyOf": [
               {
+                "type": "array",
                 "items": {
                   "anyOf": [
                     {
@@ -824,15 +794,12 @@
                       "type": "null"
                     }
                   ]
-                },
-                "type": "array"
+                }
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Mask Images",
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "default": [
               null,
               null,
@@ -841,6 +808,7 @@
             ]
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -848,10 +816,11 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed for reproducible results (0 for random)",
             "anyOf": [
               {
                 "type": "integer"
@@ -860,20 +829,15 @@
                 "type": "null"
               }
             ],
-            "title": "Seed",
-            "description": "Seed for reproducible results (0 for random)",
             "default": 0
           }
         },
-        "type": "object",
         "required": [
           "image_size",
           "description",
           "action",
           "reference_image"
         ],
-        "title": "AnimateWithTextRequest",
-        "description": "Request model for animation using text endpoint",
         "example": {
           "action": "walk",
           "description": "human mage",
@@ -886,86 +850,87 @@
         }
       },
       "AnimateWithTextResponse": {
+        "title": "AnimateWithTextResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
           },
           "images": {
+            "title": "Images",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Base64Image"
-            },
-            "type": "array",
-            "title": "Images"
+            }
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "images"
-        ],
-        "title": "AnimateWithTextResponse"
+        ]
       },
       "Base64Image": {
+        "title": "Base64Image",
+        "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data",
+        "type": "object",
         "properties": {
           "type": {
-            "type": "string",
-            "const": "base64",
             "title": "Type",
             "description": "Image data type",
-            "default": "base64"
+            "type": "string",
+            "default": "base64",
+            "const": "base64"
           },
           "base64": {
-            "type": "string",
             "title": "Base64",
-            "description": "Base64 encoded image data"
+            "description": "Base64 encoded image data",
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "base64"
-        ],
-        "title": "Base64Image",
-        "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data"
+        ]
       },
       "CameraView": {
+        "title": "CameraView",
         "type": "string",
         "enum": [
           "side",
           "low top-down",
           "high top-down"
-        ],
-        "title": "CameraView"
+        ]
       },
       "CreditsResponse": {
+        "title": "CreditsResponse",
+        "description": "Response model for credits endpoint\n\nAttributes:\n    credits (float): The user's current credit balance",
+        "type": "object",
         "properties": {
           "type": {
-            "type": "string",
-            "const": "usd",
             "title": "Type",
-            "default": "usd"
+            "type": "string",
+            "default": "usd",
+            "const": "usd"
           },
           "usd": {
-            "type": "number",
-            "title": "Usd"
+            "title": "Usd",
+            "type": "number"
           }
         },
-        "type": "object",
         "required": [
           "usd"
-        ],
-        "title": "CreditsResponse",
-        "description": "Response model for credits endpoint\n\nAttributes:\n    credits (float): The user's current credit balance"
+        ]
       },
       "Detail": {
+        "title": "Detail",
         "type": "string",
         "enum": [
           "low detail",
           "medium detail",
           "highly detailed"
-        ],
-        "title": "Detail"
+        ]
       },
       "Direction": {
+        "title": "Direction",
         "type": "string",
         "enum": [
           "north",
@@ -976,81 +941,83 @@
           "south-west",
           "west",
           "north-west"
-        ],
-        "title": "Direction"
+        ]
       },
       "EstimateSkeletonRequest": {
+        "title": "EstimateSkeletonRequest",
+        "description": "Request model for estimate skeleton endpoint",
+        "type": "object",
         "properties": {
           "image": {
             "$ref": "#/components/schemas/Base64Image",
             "description": "Image for which to estimate the skeleton"
           }
-        },
-        "type": "object",
-        "title": "EstimateSkeletonRequest",
-        "description": "Request model for estimate skeleton endpoint"
+        }
       },
       "EstimateSkeletonResponse": {
+        "title": "EstimateSkeletonResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
           },
           "keypoints": {
+            "title": "Keypoints",
+            "type": "array",
             "items": {
               "$ref": "#/components/schemas/Keypoint"
-            },
-            "type": "array",
-            "title": "Keypoints"
+            }
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "keypoints"
-        ],
-        "title": "EstimateSkeletonResponse"
+        ]
       },
       "GenerateImageBitforgeRequest": {
+        "title": "GenerateImageBitforgeRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
         "properties": {
           "description": {
-            "type": "string",
             "title": "Description",
-            "description": "Text description of the image to generate"
+            "description": "Text description of the image to generate",
+            "type": "string"
           },
           "negative_description": {
-            "type": "string",
             "title": "Negative Description",
             "description": "Text description of what to avoid in the generated image",
-            "default": ""
+            "type": "string"
           },
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__generate_image_bitforge__ImageSize"
           },
           "text_guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 1,
             "title": "Text Guidance Scale",
             "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 8
           },
           "extra_guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 0,
             "title": "Extra Guidance Scale",
             "description": "(Deprecated)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20,
             "default": 3
           },
           "style_strength": {
-            "type": "integer",
-            "maximum": 100,
-            "minimum": 0,
             "title": "Style Strength",
             "description": "Strength of the style transfer (0-100). 50 = balanced.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
             "default": 0
           },
           "outline": {
+            "description": "Outline style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Outline"
@@ -1058,10 +1025,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Outline style reference"
+            ]
           },
           "shading": {
+            "description": "Shading style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Shading"
@@ -1069,10 +1036,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Shading style reference"
+            ]
           },
           "detail": {
+            "description": "Detail style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -1080,10 +1047,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Detail style reference"
+            ]
           },
           "view": {
+            "description": "Camera view angle",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -1091,10 +1058,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Camera view angle"
+            ]
           },
           "direction": {
+            "description": "Subject direction",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -1102,42 +1069,42 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Subject direction"
+            ]
           },
           "isometric": {
-            "type": "boolean",
             "title": "Isometric",
             "description": "Generate in isometric view",
+            "type": "boolean",
             "default": false
           },
           "oblique_projection": {
-            "type": "boolean",
             "title": "Oblique Projection",
             "description": "Generate in oblique projection",
+            "type": "boolean",
             "default": false
           },
           "no_background": {
-            "type": "boolean",
             "title": "No Background",
             "description": "Generate with transparent background",
+            "type": "boolean",
             "default": false
           },
           "coverage_percentage": {
+            "title": "Coverage Percentage",
+            "description": "Percentage of the canvas to cover",
             "anyOf": [
               {
                 "type": "number",
-                "maximum": 100,
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 100
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Coverage Percentage",
-            "description": "Percentage of the canvas to cover"
+            ]
           },
           "init_image": {
+            "description": "Initial image to start from",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1145,18 +1112,18 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Initial image to start from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "style_image": {
+            "description": "Reference image for style transfer",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1164,10 +1131,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Reference image for style transfer"
+            ]
           },
           "inpainting_image": {
+            "description": "Reference image which is inpainted",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1175,10 +1142,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Reference image which is inpainted"
+            ]
           },
           "mask_image": {
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1186,10 +1153,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
+            ]
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1197,33 +1164,34 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "skeleton_guidance_scale": {
-            "type": "number",
-            "maximum": 5,
-            "minimum": 0,
             "title": "Skeleton Guidance Scale",
             "description": "How closely to follow the skeleton keypoints",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5,
             "default": 1
           },
           "skeleton_keypoints": {
+            "title": "Skeleton Keypoints",
+            "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
             "anyOf": [
               {
+                "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/Point"
-                },
-                "type": "array"
+                }
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Skeleton Keypoints",
-            "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
             "anyOf": [
               {
                 "type": "integer"
@@ -1231,18 +1199,13 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Seed",
-            "description": "Seed decides the starting noise"
+            ]
           }
         },
-        "type": "object",
         "required": [
           "description",
           "image_size"
         ],
-        "title": "GenerateImageBitforgeRequest",
-        "description": "Request model for image generation endpoint",
         "example": {
           "description": "cute dragon",
           "image_size": {
@@ -1256,6 +1219,8 @@
         }
       },
       "GenerateImageBitforgeResponse": {
+        "title": "GenerateImageBitforgeResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
@@ -1264,38 +1229,39 @@
             "$ref": "#/components/schemas/Base64Image"
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "image"
-        ],
-        "title": "GenerateImageBitforgeResponse"
+        ]
       },
       "GenerateImagePixfluxRequest": {
+        "title": "GenerateImagePixfluxRequest",
+        "description": "Request model for pixflux image generation endpoint",
+        "type": "object",
         "properties": {
           "description": {
-            "type": "string",
             "title": "Description",
-            "description": "Text description of the image to generate"
+            "description": "Text description of the image to generate",
+            "type": "string"
           },
           "negative_description": {
-            "type": "string",
             "title": "Negative Description",
             "description": "(Deprecated)",
-            "default": ""
+            "type": "string"
           },
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__generate_image_pixflux__ImageSize"
           },
           "text_guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 1,
             "title": "Text Guidance Scale",
             "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 8
           },
           "outline": {
+            "description": "Outline style reference (weakly guiding)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Outline"
@@ -1303,10 +1269,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Outline style reference (weakly guiding)"
+            ]
           },
           "shading": {
+            "description": "Shading style reference (weakly guiding)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Shading"
@@ -1314,10 +1280,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Shading style reference (weakly guiding)"
+            ]
           },
           "detail": {
+            "description": "Detail style reference (weakly guiding)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -1325,10 +1291,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Detail style reference (weakly guiding)"
+            ]
           },
           "view": {
+            "description": "Camera view angle (weakly guiding)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -1336,10 +1302,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Camera view angle (weakly guiding)"
+            ]
           },
           "direction": {
+            "description": "Subject direction (weakly guiding)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -1347,22 +1313,22 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Subject direction (weakly guiding)"
+            ]
           },
           "isometric": {
-            "type": "boolean",
             "title": "Isometric",
             "description": "Generate in isometric view (weakly guiding)",
+            "type": "boolean",
             "default": false
           },
           "no_background": {
-            "type": "boolean",
             "title": "No Background",
             "description": "Generate with transparent background, (blank background over 200x200 area)",
+            "type": "boolean",
             "default": false
           },
           "init_image": {
+            "description": "Initial image to start from",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1370,18 +1336,18 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Initial image to start from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1389,10 +1355,11 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
             "anyOf": [
               {
                 "type": "integer"
@@ -1400,18 +1367,13 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Seed",
-            "description": "Seed decides the starting noise"
+            ]
           }
         },
-        "type": "object",
         "required": [
           "description",
           "image_size"
         ],
-        "title": "GenerateImagePixfluxRequest",
-        "description": "Request model for pixflux image generation endpoint",
         "example": {
           "description": "cute dragon",
           "image_size": {
@@ -1422,6 +1384,8 @@
         }
       },
       "GenerateImagePixfluxResponse": {
+        "title": "GenerateImagePixfluxResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
@@ -1430,46 +1394,47 @@
             "$ref": "#/components/schemas/Base64Image"
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "image"
-        ],
-        "title": "GenerateImagePixfluxResponse"
+        ]
       },
       "InpaintRequest": {
+        "title": "InpaintRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
         "properties": {
           "description": {
-            "type": "string",
             "title": "Description",
-            "description": "Text description of the image to generate"
+            "description": "Text description of the image to generate",
+            "type": "string"
           },
           "negative_description": {
-            "type": "string",
             "title": "Negative Description",
             "description": "Text description of what to avoid in the generated image",
-            "default": ""
+            "type": "string"
           },
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__generate_inpainting__ImageSize"
           },
           "text_guidance_scale": {
-            "type": "number",
-            "maximum": 10,
-            "minimum": 1,
             "title": "Text Guidance Scale",
             "description": "How closely to follow the text description",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
             "default": 3
           },
           "extra_guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 0,
             "title": "Extra Guidance Scale",
             "description": "(Deprecated)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 20,
             "default": 3
           },
           "outline": {
+            "description": "Outline style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Outline"
@@ -1477,10 +1442,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Outline style reference"
+            ]
           },
           "shading": {
+            "description": "Shading style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Shading"
@@ -1488,10 +1453,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Shading style reference"
+            ]
           },
           "detail": {
+            "description": "Detail style reference",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -1499,10 +1464,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Detail style reference"
+            ]
           },
           "view": {
+            "description": "Camera view angle",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -1510,10 +1475,10 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Camera view angle"
+            ]
           },
           "direction": {
+            "description": "Subject direction",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -1521,28 +1486,28 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Subject direction"
+            ]
           },
           "isometric": {
-            "type": "boolean",
             "title": "Isometric",
             "description": "Generate in isometric view",
+            "type": "boolean",
             "default": false
           },
           "oblique_projection": {
-            "type": "boolean",
             "title": "Oblique Projection",
             "description": "Generate in oblique projection",
+            "type": "boolean",
             "default": false
           },
           "no_background": {
-            "type": "boolean",
             "title": "No Background",
             "description": "Generate with transparent background",
+            "type": "boolean",
             "default": false
           },
           "init_image": {
+            "description": "Initial image to start from",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1550,15 +1515,14 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Initial image to start from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "inpainting_image": {
@@ -1570,6 +1534,7 @@
             "description": "Inpainting / mask image. (black and white image, where the white is where the model should inpaint)."
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1577,10 +1542,11 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
             "anyOf": [
               {
                 "type": "integer"
@@ -1588,20 +1554,15 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Seed",
-            "description": "Seed decides the starting noise"
+            ]
           }
         },
-        "type": "object",
         "required": [
           "description",
           "image_size",
           "inpainting_image",
           "mask_image"
         ],
-        "title": "InpaintRequest",
-        "description": "Request model for image generation endpoint",
         "example": {
           "description": "cute dragon",
           "image_size": {
@@ -1612,6 +1573,8 @@
         }
       },
       "InpaintResponse": {
+        "title": "InpaintResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
@@ -1620,120 +1583,122 @@
             "$ref": "#/components/schemas/Base64Image"
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "image"
-        ],
-        "title": "InpaintResponse"
+        ]
       },
       "Keypoint": {
+        "title": "Keypoint",
+        "type": "object",
         "properties": {
           "x": {
-            "type": "number",
-            "title": "X"
+            "title": "X",
+            "type": "number"
           },
           "y": {
-            "type": "number",
-            "title": "Y"
+            "title": "Y",
+            "type": "number"
           },
           "label": {
-            "type": "string",
-            "title": "Label"
+            "title": "Label",
+            "type": "string"
           },
           "z_index": {
-            "type": "number",
-            "title": "Z Index"
+            "title": "Z Index",
+            "type": "number"
           }
         },
-        "type": "object",
         "required": [
           "x",
           "y",
           "label",
           "z_index"
-        ],
-        "title": "Keypoint"
+        ]
       },
       "Outline": {
+        "title": "Outline",
         "type": "string",
         "enum": [
           "single color black outline",
           "single color outline",
           "selective outline",
           "lineless"
-        ],
-        "title": "Outline"
+        ]
       },
       "Point": {
+        "title": "Point",
+        "type": "object",
         "properties": {
           "x": {
-            "type": "number",
-            "title": "X"
+            "title": "X",
+            "type": "number"
           },
           "y": {
-            "type": "number",
-            "title": "Y"
+            "title": "Y",
+            "type": "number"
           },
           "label": {
             "$ref": "#/components/schemas/SkeletonLabel"
           },
           "z_index": {
-            "type": "integer",
             "title": "Z Index",
+            "type": "integer",
             "default": 0
           }
         },
-        "type": "object",
         "required": [
           "x",
           "y",
           "label"
-        ],
-        "title": "Point"
+        ]
       },
       "RotateRequest": {
+        "title": "RotateRequest",
+        "description": "Request model for image generation endpoint",
+        "type": "object",
         "properties": {
           "image_size": {
             "$ref": "#/components/schemas/app__endpoints__external__v1__generate_rotation__ImageSize"
           },
           "image_guidance_scale": {
-            "type": "number",
-            "maximum": 20,
-            "minimum": 1,
             "title": "Image Guidance Scale",
             "description": "How closely to follow the reference image",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 3
           },
           "view_change": {
+            "title": "View Change",
+            "description": "How many degrees to tilt the subject",
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 90,
-                "minimum": -90
+                "minimum": -90,
+                "maximum": 90
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "View Change",
-            "description": "How many degrees to tilt the subject"
+            ]
           },
           "direction_change": {
+            "title": "Direction Change",
+            "description": "How many degrees to rotate the subject",
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 180,
-                "minimum": -180
+                "minimum": -180,
+                "maximum": 180
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Direction Change",
-            "description": "How many degrees to rotate the subject"
+            ]
           },
           "from_view": {
+            "description": "From camera view angle",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -1742,10 +1707,10 @@
                 "type": "null"
               }
             ],
-            "description": "From camera view angle",
             "default": "side"
           },
           "to_view": {
+            "description": "To camera view angle",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -1754,10 +1719,10 @@
                 "type": "null"
               }
             ],
-            "description": "To camera view angle",
             "default": "side"
           },
           "from_direction": {
+            "description": "From subject direction",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -1766,10 +1731,10 @@
                 "type": "null"
               }
             ],
-            "description": "From subject direction",
             "default": "south"
           },
           "to_direction": {
+            "description": "From subject direction",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -1778,22 +1743,22 @@
                 "type": "null"
               }
             ],
-            "description": "From subject direction",
             "default": "east"
           },
           "isometric": {
-            "type": "boolean",
             "title": "Isometric",
             "description": "Generate in isometric view",
+            "type": "boolean",
             "default": false
           },
           "oblique_projection": {
-            "type": "boolean",
             "title": "Oblique Projection",
             "description": "Generate in oblique projection",
+            "type": "boolean",
             "default": false
           },
           "init_image": {
+            "description": "Initial image to start from",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1801,18 +1766,18 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Initial image to start from"
+            ]
           },
           "init_image_strength": {
-            "type": "integer",
-            "maximum": 999,
-            "minimum": 1,
             "title": "Init Image Strength",
             "description": "Strength of the initial image influence",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999,
             "default": 300
           },
           "mask_image": {
+            "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1820,14 +1785,14 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)"
+            ]
           },
           "from_image": {
             "$ref": "#/components/schemas/Base64Image",
             "description": "Reference image to rotate"
           },
           "color_image": {
+            "description": "Forced color palette, image containing colors used for palette",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Base64Image"
@@ -1835,10 +1800,11 @@
               {
                 "type": "null"
               }
-            ],
-            "description": "Forced color palette, image containing colors used for palette"
+            ]
           },
           "seed": {
+            "title": "Seed",
+            "description": "Seed decides the starting noise",
             "anyOf": [
               {
                 "type": "integer"
@@ -1846,18 +1812,13 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Seed",
-            "description": "Seed decides the starting noise"
+            ]
           }
         },
-        "type": "object",
         "required": [
           "image_size",
           "from_image"
         ],
-        "title": "RotateRequest",
-        "description": "Request model for image generation endpoint",
         "example": {
           "description": "cute dragon",
           "from_direction": "south",
@@ -1872,6 +1833,8 @@
         }
       },
       "RotateResponse": {
+        "title": "RotateResponse",
+        "type": "object",
         "properties": {
           "usage": {
             "$ref": "#/components/schemas/Usage"
@@ -1880,14 +1843,13 @@
             "$ref": "#/components/schemas/Base64Image"
           }
         },
-        "type": "object",
         "required": [
           "usage",
           "image"
-        ],
-        "title": "RotateResponse"
+        ]
       },
       "Shading": {
+        "title": "Shading",
         "type": "string",
         "enum": [
           "flat shading",
@@ -1895,10 +1857,10 @@
           "medium shading",
           "detailed shading",
           "highly detailed shading"
-        ],
-        "title": "Shading"
+        ]
       },
       "SkeletonLabel": {
+        "title": "SkeletonLabel",
         "type": "string",
         "enum": [
           "NOSE",
@@ -1919,21 +1881,23 @@
           "LEFT EYE",
           "RIGHT EAR",
           "LEFT EAR"
-        ],
-        "title": "SkeletonLabel"
+        ]
       },
       "Usage": {
+        "title": "Usage",
+        "type": "object",
         "properties": {
           "type": {
+            "title": "Type",
             "type": "string",
             "enum": [
               "usd",
               "generations"
             ],
-            "title": "Type",
             "default": "usd"
           },
           "usd": {
+            "title": "Usd",
             "anyOf": [
               {
                 "type": "number"
@@ -1941,10 +1905,10 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Usd"
+            ]
           },
           "generations": {
+            "title": "Generations",
             "anyOf": [
               {
                 "type": "number"
@@ -1952,176 +1916,173 @@
               {
                 "type": "null"
               }
-            ],
-            "title": "Generations"
+            ]
           }
-        },
-        "type": "object",
-        "title": "Usage"
+        }
       },
       "app__endpoints__external__v1__animate_with_skeleton__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 256,
-            "minimum": 16,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
           },
           "height": {
-            "type": "integer",
-            "maximum": 256,
-            "minimum": 16,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 128,
           "width": 128
         }
       },
       "app__endpoints__external__v1__animate_with_text__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 64,
-            "minimum": 64,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
           },
           "height": {
-            "type": "integer",
-            "maximum": 64,
-            "minimum": 64,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 64,
           "width": 64
         }
       },
       "app__endpoints__external__v1__generate_image_bitforge__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           },
           "height": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 128,
           "width": 128
         }
       },
       "app__endpoints__external__v1__generate_image_pixflux__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 400,
-            "minimum": 16,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 400
           },
           "height": {
-            "type": "integer",
-            "maximum": 400,
-            "minimum": 16,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 400
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 128,
           "width": 128
         }
       },
       "app__endpoints__external__v1__generate_inpainting__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           },
           "height": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 128,
           "width": 128
         }
       },
       "app__endpoints__external__v1__generate_rotation__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
         "properties": {
           "width": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Width",
-            "description": "Image width in pixels"
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           },
           "height": {
-            "type": "integer",
-            "maximum": 200,
-            "minimum": 16,
             "title": "Height",
-            "description": "Image height in pixels"
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
           }
         },
-        "type": "object",
         "required": [
           "width",
           "height"
         ],
-        "title": "ImageSize",
         "example": {
           "height": 128,
           "width": 128
@@ -2135,9 +2096,9 @@
       }
     }
   },
-  "servers": [
+  "security": [
     {
-      "url": "/v1"
+      "HTTPBearer": []
     }
   ],
   "x-scalar-watch-mode": false,
