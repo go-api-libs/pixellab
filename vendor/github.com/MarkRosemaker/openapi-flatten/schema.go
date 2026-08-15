@@ -73,7 +73,8 @@ func schema(d *openapi.Document, s *openapi.Schema, name string) error {
 	case openapi.TypeString,
 		openapi.TypeInteger,
 		openapi.TypeNumber,
-		openapi.TypeBoolean: // no need to do anything
+		openapi.TypeBoolean,
+		openapi.TypeNull: // no need to do anything
 		return nil
 	case openapi.TypeArray, openapi.TypeObject: // do below
 	case "": // is valid if schema contains oneOf, anyOf, allOf, or properties
