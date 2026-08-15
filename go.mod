@@ -9,6 +9,8 @@ tool (
 	github.com/MarkRosemaker/openapi-flatten/cmd/openapi-flatten
 )
 
+require github.com/go-api-libs/api v0.0.0-20260705004954-dad48fbb4ab2
+
 require (
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/MarkRosemaker/errpath v0.0.0-20260425165607-bbd4959d04d9 // indirect
