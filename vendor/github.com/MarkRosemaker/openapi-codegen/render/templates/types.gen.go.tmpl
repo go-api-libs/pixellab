@@ -72,7 +72,7 @@ type {{.Name}} {{.Type}}
 
 const (
 {{- range .EnumValues}}
-	{{.GoName}} {{$typeName}} = "{{.Value}}"
+	{{.GoName}} {{$typeName}} = {{.Literal}}
 {{- end}}
 )
 

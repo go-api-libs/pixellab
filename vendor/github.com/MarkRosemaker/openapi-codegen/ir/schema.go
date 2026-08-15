@@ -3,6 +3,7 @@ package ir
 import (
 	"cmp"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -201,11 +202,11 @@ func fromSchema(name string, s *openapi.Schema) (*Schema, error) {
 		}
 
 		return fromObjectSchema(name, s)
-	case openapi.TypeString:
+	case openapi.TypeString, openapi.TypeInteger, openapi.TypeNumber, openapi.TypeBoolean:
 		if len(s.Enum) > 0 {
 			return fromEnumSchema(name, s)
 		}
-		return nil, nil // plain strings don't produce named schemas
+		return nil, nil // plain scalars don't produce named schemas
 	case openapi.TypeArray:
 		return fromArraySchema(name, s)
 	case "":
@@ -333,16 +334,22 @@ func fromObjectSchema(name string, s *openapi.Schema) (*Schema, error) {
 }
 
 func fromEnumSchema(name string, s *openapi.Schema) (*Schema, error) {
-	tp, err := stringGoType(s.Format)
+	tp, err := enumBaseGoType(s.Type, s.Format)
 	if err != nil {
 		return nil, err
 	}
 
 	values := make([]EnumValue, len(s.Enum))
 	for i, v := range s.Enum {
+		display, literal, err := formatEnumValue(v, s.Type)
+		if err != nil {
+			return nil, fmt.Errorf("enum[%d]: %w", i, err)
+		}
+
 		values[i] = EnumValue{
-			GoName: enumConstName(name, v),
-			Value:  v,
+			GoName:  enumConstName(name, display),
+			Value:   display,
+			Literal: literal,
 		}
 	}
 
@@ -353,6 +360,59 @@ func fromEnumSchema(name string, s *openapi.Schema) (*Schema, error) {
 		Type:        tp.String(),
 		EnumValues:  values,
 	}, nil
+}
+
+// enumBaseGoType returns the underlying Go type for an enum's declared schema type.
+func enumBaseGoType(t openapi.DataType, f openapi.Format) (*GoType, error) {
+	switch t {
+	case openapi.TypeString:
+		return stringGoType(f)
+	case openapi.TypeInteger:
+		return integerGoType(f)
+	case openapi.TypeNumber:
+		return numberGoType(f)
+	case openapi.TypeBoolean:
+		return &GoType{Name: "bool"}, nil
+	default:
+		return nil, fmt.Errorf("unsupported enum type: %q", t)
+	}
+}
+
+// formatEnumValue converts a raw enum member (decoded from JSON as string,
+// float64, or bool per the schema's declared type) into its human-readable
+// display form and its Go source literal.
+func formatEnumValue(v any, t openapi.DataType) (display, literal string, err error) {
+	switch t {
+	case openapi.TypeString:
+		s, ok := v.(string)
+		if !ok {
+			return "", "", fmt.Errorf("value %v is not a string", v)
+		}
+		return s, strconv.Quote(s), nil
+	case openapi.TypeInteger:
+		f, ok := v.(float64)
+		if !ok {
+			return "", "", fmt.Errorf("value %v is not a number", v)
+		}
+		s := strconv.FormatInt(int64(f), 10)
+		return s, s, nil
+	case openapi.TypeNumber:
+		f, ok := v.(float64)
+		if !ok {
+			return "", "", fmt.Errorf("value %v is not a number", v)
+		}
+		s := strconv.FormatFloat(f, 'g', -1, 64)
+		return s, s, nil
+	case openapi.TypeBoolean:
+		b, ok := v.(bool)
+		if !ok {
+			return "", "", fmt.Errorf("value %v is not a bool", v)
+		}
+		s := strconv.FormatBool(b)
+		return s, s, nil
+	default:
+		return "", "", fmt.Errorf("unsupported enum type: %q", t)
+	}
 }
 
 func fromArraySchema(name string, s *openapi.Schema) (*Schema, error) {

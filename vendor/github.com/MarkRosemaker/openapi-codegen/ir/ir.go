@@ -142,7 +142,11 @@ type Field struct {
 // EnumValue is one member of an enum type.
 type EnumValue struct {
 	GoName string `json:"goName,omitzero"`
-	Value  string `json:"value,omitzero"`
+	// Value is the human-readable string form of the enum member, e.g. "active" or "3.14".
+	Value string `json:"value,omitzero"`
+	// Literal is the Go source literal to embed in the generated constant,
+	// e.g. `"active"` (quoted) for a string enum or `3.14` for a number enum.
+	Literal string `json:"literal,omitzero"`
 }
 
 type GlobalType string
