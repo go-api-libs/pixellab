@@ -320,7 +320,7 @@
             }
           },
           "reference_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image"
           },
           "inpainting_images": {
@@ -330,7 +330,7 @@
             "$ref": "#/components/schemas/AnimateWithSkeletonRequestMaskImages"
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
@@ -355,7 +355,7 @@
         "description": "Images used for showing the model with connected skeleton",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Base64Image"
+          "$ref": "#/components/schemas/Image"
         },
         "default": [
           null,
@@ -368,7 +368,7 @@
         "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Base64Image"
+          "$ref": "#/components/schemas/Image"
         }
       },
       "AnimateWithSkeletonRequestSkeletonKeypointsItem": {
@@ -453,7 +453,7 @@
             "default": 300
           },
           "reference_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image"
           },
           "inpainting_images": {
@@ -463,7 +463,7 @@
             "$ref": "#/components/schemas/AnimateWithTextRequestMaskImages"
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
@@ -495,7 +495,7 @@
         "description": "Existing animation frames to guide the generation",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Base64Image"
+          "$ref": "#/components/schemas/Image"
         },
         "default": [
           null,
@@ -509,34 +509,13 @@
         "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Base64Image"
+          "$ref": "#/components/schemas/Image"
         },
         "default": [
           null,
           null,
           null,
           null
-        ]
-      },
-      "Base64Image": {
-        "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data",
-        "type": "object",
-        "properties": {
-          "type": {
-            "title": "Type",
-            "description": "Image data type",
-            "type": "string",
-            "default": "base64",
-            "const": "base64"
-          },
-          "base64": {
-            "title": "Base64",
-            "description": "Base64 encoded image data",
-            "type": "string"
-          }
-        },
-        "required": [
-          "base64"
         ]
       },
       "CameraView": {
@@ -598,7 +577,7 @@
         "type": "object",
         "properties": {
           "image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Image for which to estimate the skeleton"
           }
         }
@@ -714,7 +693,7 @@
             "maximum": 100
           },
           "init_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Initial image to start from"
           },
           "init_image_strength": {
@@ -726,19 +705,19 @@
             "default": 300
           },
           "style_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image for style transfer"
           },
           "inpainting_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image which is inpainted"
           },
           "mask_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "skeleton_guidance_scale": {
@@ -841,7 +820,7 @@
             "default": false
           },
           "init_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Initial image to start from"
           },
           "init_image_strength": {
@@ -853,7 +832,7 @@
             "default": 300
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
@@ -875,6 +854,27 @@
           "no_background": true
         }
       },
+      "Image": {
+        "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data",
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "description": "Image data type",
+            "type": "string",
+            "default": "base64",
+            "const": "base64"
+          },
+          "base64": {
+            "title": "Base64",
+            "description": "Base64 encoded image data",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base64"
+        ]
+      },
       "ImageResult": {
         "type": "object",
         "properties": {
@@ -882,7 +882,7 @@
             "$ref": "#/components/schemas/Usage"
           },
           "image": {
-            "$ref": "#/components/schemas/Base64Image"
+            "$ref": "#/components/schemas/Image"
           }
         },
         "required": [
@@ -893,7 +893,7 @@
       "Images": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Base64Image"
+          "$ref": "#/components/schemas/Image"
         }
       },
       "ImagesResult": {
@@ -984,7 +984,7 @@
             "default": false
           },
           "init_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Initial image to start from"
           },
           "init_image_strength": {
@@ -996,15 +996,15 @@
             "default": 300
           },
           "inpainting_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image which is inpainted"
           },
           "mask_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Inpainting / mask image. (black and white image, where the white is where the model should inpaint)."
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
@@ -1152,7 +1152,7 @@
             "default": false
           },
           "init_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Initial image to start from"
           },
           "init_image_strength": {
@@ -1164,15 +1164,15 @@
             "default": 300
           },
           "mask_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)"
           },
           "from_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Reference image to rotate"
           },
           "color_image": {
-            "$ref": "#/components/schemas/Base64Image",
+            "$ref": "#/components/schemas/Image",
             "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {

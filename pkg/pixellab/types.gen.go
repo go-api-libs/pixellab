@@ -32,22 +32,22 @@ type AnimateWithSkeletonRequest struct {
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
 	SkeletonKeypoints []AnimateWithSkeletonRequestSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
 	// Reference image
-	ReferenceImage Base64Image `json:"reference_image"`
+	ReferenceImage Image `json:"reference_image"`
 	// Images used for showing the model with connected skeleton
 	InpaintingImages AnimateWithSkeletonRequestInpaintingImages `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
 	MaskImages AnimateWithSkeletonRequestMaskImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
 
 // Images used for showing the model with connected skeleton
-type AnimateWithSkeletonRequestInpaintingImages []Base64Image
+type AnimateWithSkeletonRequestInpaintingImages []Image
 
 // Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-type AnimateWithSkeletonRequestMaskImages []Base64Image
+type AnimateWithSkeletonRequestMaskImages []Image
 
 // AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
@@ -78,35 +78,22 @@ type AnimateWithTextRequest struct {
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
-	ReferenceImage Base64Image `json:"reference_image"`
+	ReferenceImage Image `json:"reference_image"`
 	// Existing animation frames to guide the generation
 	InpaintingImages AnimateWithTextRequestInpaintingImages `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
 	MaskImages AnimateWithTextRequestMaskImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
 	Seed *int `json:"seed,omitempty"`
 }
 
 // Existing animation frames to guide the generation
-type AnimateWithTextRequestInpaintingImages []Base64Image
+type AnimateWithTextRequestInpaintingImages []Image
 
 // Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-type AnimateWithTextRequestMaskImages []Base64Image
-
-// A base64 encoded image.
-//
-// Attributes:
-//
-//	type (Literal["base64"]): Always "base64" to indicate the image encoding type
-//	base64 (str): The base64 encoded image data
-type Base64Image struct {
-	// Image data type
-	Type string `json:"type,omitzero"`
-	// Base64 encoded image data
-	Base64 string `json:"base64,omitzero"`
-}
+type AnimateWithTextRequestMaskImages []Image
 
 // CameraView defines a model
 type CameraView string
@@ -183,7 +170,7 @@ func (e Direction) Valid() bool {
 // Request model for estimate skeleton endpoint
 type EstimateSkeletonRequest struct {
 	// Image for which to estimate the skeleton
-	Image *Base64Image `json:"image,omitempty"`
+	Image *Image `json:"image,omitempty"`
 }
 
 // EstimateSkeletonResponse defines a model
@@ -227,17 +214,17 @@ type GenerateImageBitforgeRequest struct {
 	// Percentage of the canvas to cover
 	CoveragePercentage *float64 `json:"coverage_percentage,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *Image `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image for style transfer
-	StyleImage *Base64Image `json:"style_image,omitempty"`
+	StyleImage *Image `json:"style_image,omitempty"`
 	// Reference image which is inpainted
-	InpaintingImage *Base64Image `json:"inpainting_image,omitempty"`
+	InpaintingImage *Image `json:"inpainting_image,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImage *Base64Image `json:"mask_image,omitempty"`
+	MaskImage *Image `json:"mask_image,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// How closely to follow the skeleton keypoints
 	SkeletonGuidanceScale *float64 `json:"skeleton_guidance_scale,omitempty"`
 	// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
@@ -273,13 +260,26 @@ type GenerateImagePixfluxRequest struct {
 	// Generate with transparent background, (blank background over 200x200 area)
 	NoBackground bool `json:"no_background,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *Image `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
+}
+
+// A base64 encoded image.
+//
+// Attributes:
+//
+//	type (Literal["base64"]): Always "base64" to indicate the image encoding type
+//	base64 (str): The base64 encoded image data
+type Image struct {
+	// Image data type
+	Type string `json:"type,omitzero"`
+	// Base64 encoded image data
+	Base64 string `json:"base64,omitzero"`
 }
 
 // ImageResult defines a model
@@ -290,11 +290,11 @@ type ImageResult struct {
 	// Attributes:
 	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
 	//     base64 (str): The base64 encoded image data
-	Image Base64Image `json:"image"`
+	Image Image `json:"image"`
 }
 
 // Images defines a model
-type Images []Base64Image
+type Images []Image
 
 // ImagesResult defines a model
 type ImagesResult struct {
@@ -330,15 +330,15 @@ type InpaintRequest struct {
 	// Generate with transparent background
 	NoBackground bool `json:"no_background,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *Image `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image which is inpainted
-	InpaintingImage Base64Image `json:"inpainting_image"`
+	InpaintingImage Image `json:"inpainting_image"`
 	// Inpainting / mask image. (black and white image, where the white is where the model should inpaint).
-	MaskImage Base64Image `json:"mask_image"`
+	MaskImage Image `json:"mask_image"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
@@ -401,15 +401,15 @@ type RotateRequest struct {
 	// Generate in oblique projection
 	ObliqueProjection bool `json:"oblique_projection,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *Image `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)
-	MaskImage *Base64Image `json:"mask_image,omitempty"`
+	MaskImage *Image `json:"mask_image,omitempty"`
 	// Reference image to rotate
-	FromImage Base64Image `json:"from_image"`
+	FromImage Image `json:"from_image"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
