@@ -315,6 +315,8 @@
             "title": "Skeleton Keypoints",
             "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
             "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
             "items": {
               "$ref": "#/components/schemas/Points"
             }
