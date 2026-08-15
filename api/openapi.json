@@ -482,14 +482,12 @@
             "default": 4
           },
           "view": {
-            "description": "Camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (default: side)"
           },
           "direction": {
-            "description": "Subject direction",
-            "default": "east",
-            "$ref": "#/components/schemas/Direction"
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (default: east)"
           },
           "isometric": {
             "title": "Isometric",
@@ -898,7 +896,8 @@
           "side",
           "low top-down",
           "high top-down"
-        ]
+        ],
+        "default": "side"
       },
       "CreditsResponse": {
         "title": "CreditsResponse",
@@ -941,7 +940,8 @@
           "south-west",
           "west",
           "north-west"
-        ]
+        ],
+        "default": "east"
       },
       "EstimateSkeletonRequest": {
         "title": "EstimateSkeletonRequest",
