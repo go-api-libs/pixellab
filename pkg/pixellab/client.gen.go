@@ -93,8 +93,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // ```
 //
 //	POST /generate-image-pixflux
-func (c *Client) GenerateImagePixfluxGenerateImagePixfluxPost(ctx context.Context, body GenerateImagePixfluxRequest) (*GenerateImagePixfluxResponse, error) {
-	return GenerateImagePixfluxGenerateImagePixfluxPost[GenerateImagePixfluxResponse](ctx, c, body)
+func (c *Client) GenerateImagePixflux(ctx context.Context, body GenerateImagePixfluxRequest) (*GenerateImagePixfluxResponse, error) {
+	return GenerateImagePixflux[GenerateImagePixfluxResponse](ctx, c, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
@@ -124,7 +124,7 @@ func (c *Client) GenerateImagePixfluxGenerateImagePixfluxPost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-image-pixflux
-func GenerateImagePixfluxGenerateImagePixfluxPost[R any](ctx context.Context, c *Client, body GenerateImagePixfluxRequest) (*R, error) {
+func GenerateImagePixflux[R any](ctx context.Context, c *Client, body GenerateImagePixfluxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-image-pixflux")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -167,19 +167,19 @@ func GenerateImagePixfluxGenerateImagePixfluxPost[R any](ctx context.Context, c 
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImagePixfluxGenerateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImagePixflux: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImagePixfluxGenerateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImagePixflux: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImagePixfluxGenerateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImagePixflux: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateImagePixfluxGenerateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImagePixflux: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateImagePixfluxGenerateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImagePixflux: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -213,8 +213,8 @@ func GenerateImagePixfluxGenerateImagePixfluxPost[R any](ctx context.Context, c 
 // ```
 //
 //	POST /generate-image-bitforge
-func (c *Client) GenerateImageBitforgeGenerateImageBitforgePost(ctx context.Context, body GenerateImageBitforgeRequest) (*GenerateImageBitforgeResponse, error) {
-	return GenerateImageBitforgeGenerateImageBitforgePost[GenerateImageBitforgeResponse](ctx, c, body)
+func (c *Client) GenerateImageBitforge(ctx context.Context, body GenerateImageBitforgeRequest) (*GenerateImageBitforgeResponse, error) {
+	return GenerateImageBitforge[GenerateImageBitforgeResponse](ctx, c, body)
 }
 
 // Generates a pixel art image based on the provided parameters. Called "Generate image (style)" in the plugin.
@@ -246,7 +246,7 @@ func (c *Client) GenerateImageBitforgeGenerateImageBitforgePost(ctx context.Cont
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-image-bitforge
-func GenerateImageBitforgeGenerateImageBitforgePost[R any](ctx context.Context, c *Client, body GenerateImageBitforgeRequest) (*R, error) {
+func GenerateImageBitforge[R any](ctx context.Context, c *Client, body GenerateImageBitforgeRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-image-bitforge")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -289,19 +289,19 @@ func GenerateImageBitforgeGenerateImageBitforgePost[R any](ctx context.Context, 
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImageBitforgeGenerateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImageBitforge: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImageBitforgeGenerateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImageBitforge: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImageBitforgeGenerateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImageBitforge: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateImageBitforgeGenerateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImageBitforge: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateImageBitforgeGenerateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImageBitforge: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -342,8 +342,8 @@ func GenerateImageBitforgeGenerateImageBitforgePost[R any](ctx context.Context, 
 // ```
 //
 //	POST /animate-with-skeleton
-func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPost(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeletonResponse, error) {
-	return AnimateWithSkeletonAnimateWithSkeletonPost[AnimateWithSkeletonResponse](ctx, c, body)
+func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeletonResponse, error) {
+	return AnimateWithSkeleton[AnimateWithSkeletonResponse](ctx, c, body)
 }
 
 // Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
@@ -382,7 +382,7 @@ func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPost(ctx context.Context,
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-skeleton
-func AnimateWithSkeletonAnimateWithSkeletonPost[R any](ctx context.Context, c *Client, body AnimateWithSkeletonRequest) (*R, error) {
+func AnimateWithSkeleton[R any](ctx context.Context, c *Client, body AnimateWithSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -425,19 +425,19 @@ func AnimateWithSkeletonAnimateWithSkeletonPost[R any](ctx context.Context, c *C
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -476,8 +476,8 @@ func AnimateWithSkeletonAnimateWithSkeletonPost[R any](ctx context.Context, c *C
 // ```
 //
 //	POST /animate-with-text
-func (c *Client) AnimateWithTextAnimateWithTextPost(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithTextResponse, error) {
-	return AnimateWithTextAnimateWithTextPost[AnimateWithTextResponse](ctx, c, body)
+func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithTextResponse, error) {
+	return AnimateWithText[AnimateWithTextResponse](ctx, c, body)
 }
 
 // Creates a pixel art animation based on text description and parameters.
@@ -514,7 +514,7 @@ func (c *Client) AnimateWithTextAnimateWithTextPost(ctx context.Context, body An
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-text
-func AnimateWithTextAnimateWithTextPost[R any](ctx context.Context, c *Client, body AnimateWithTextRequest) (*R, error) {
+func AnimateWithText[R any](ctx context.Context, c *Client, body AnimateWithTextRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -557,19 +557,19 @@ func AnimateWithTextAnimateWithTextPost[R any](ctx context.Context, c *Client, b
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -607,8 +607,8 @@ func AnimateWithTextAnimateWithTextPost[R any](ctx context.Context, c *Client, b
 // ```
 //
 //	POST /rotate
-func (c *Client) GenerateRotationRotatePost(ctx context.Context, body RotateRequest) (*RotateResponse, error) {
-	return GenerateRotationRotatePost[RotateResponse](ctx, c, body)
+func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*RotateResponse, error) {
+	return Rotate[RotateResponse](ctx, c, body)
 }
 
 // Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
@@ -644,7 +644,7 @@ func (c *Client) GenerateRotationRotatePost(ctx context.Context, body RotateRequ
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /rotate
-func GenerateRotationRotatePost[R any](ctx context.Context, c *Client, body RotateRequest) (*R, error) {
+func Rotate[R any](ctx context.Context, c *Client, body RotateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("rotate")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -687,19 +687,19 @@ func GenerateRotationRotatePost[R any](ctx context.Context, c *Client, body Rota
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -734,8 +734,8 @@ func GenerateRotationRotatePost[R any](ctx context.Context, c *Client, body Rota
 // ```
 //
 //	POST /inpaint
-func (c *Client) GenerateInpaintingInpaintPost(ctx context.Context, body InpaintRequest) (*InpaintResponse, error) {
-	return GenerateInpaintingInpaintPost[InpaintResponse](ctx, c, body)
+func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*InpaintResponse, error) {
+	return Inpaint[InpaintResponse](ctx, c, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
@@ -768,7 +768,7 @@ func (c *Client) GenerateInpaintingInpaintPost(ctx context.Context, body Inpaint
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /inpaint
-func GenerateInpaintingInpaintPost[R any](ctx context.Context, c *Client, body InpaintRequest) (*R, error) {
+func Inpaint[R any](ctx context.Context, c *Client, body InpaintRequest) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -811,19 +811,19 @@ func GenerateInpaintingInpaintPost[R any](ctx context.Context, c *Client, body I
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -853,8 +853,8 @@ func GenerateInpaintingInpaintPost[R any](ctx context.Context, c *Client, body I
 // ```
 //
 //	POST /estimate-skeleton
-func (c *Client) EstimateSkeletonEstimateSkeletonPost(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
-	return EstimateSkeletonEstimateSkeletonPost[EstimateSkeletonResponse](ctx, c, body)
+func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
+	return EstimateSkeleton[EstimateSkeletonResponse](ctx, c, body)
 }
 
 // Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
@@ -882,7 +882,7 @@ func (c *Client) EstimateSkeletonEstimateSkeletonPost(ctx context.Context, body 
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /estimate-skeleton
-func EstimateSkeletonEstimateSkeletonPost[R any](ctx context.Context, c *Client, body EstimateSkeletonRequest) (*R, error) {
+func EstimateSkeleton[R any](ctx context.Context, c *Client, body EstimateSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("estimate-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -925,19 +925,19 @@ func EstimateSkeletonEstimateSkeletonPost[R any](ctx context.Context, c *Client,
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -955,8 +955,8 @@ func EstimateSkeletonEstimateSkeletonPost[R any](ctx context.Context, c *Client,
 // ```
 //
 //	GET /balance
-func (c *Client) GetBalanceBalanceGet(ctx context.Context) (*CreditsResponse, error) {
-	return GetBalanceBalanceGet[CreditsResponse](ctx, c)
+func (c *Client) GetBalance(ctx context.Context) (*CreditsResponse, error) {
+	return GetBalance[CreditsResponse](ctx, c)
 }
 
 // Returns the current balance for your account.
@@ -972,7 +972,7 @@ func (c *Client) GetBalanceBalanceGet(ctx context.Context) (*CreditsResponse, er
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /balance
-func GetBalanceBalanceGet[R any](ctx context.Context, c *Client) (*R, error) {
+func GetBalance[R any](ctx context.Context, c *Client) (*R, error) {
 	u := c.baseURL.JoinPath("balance")
 	req := (&http.Request{
 		Header: http.Header{
@@ -1008,7 +1008,7 @@ func GetBalanceBalanceGet[R any](ctx context.Context, c *Client) (*R, error) {
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetBalanceBalanceGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}

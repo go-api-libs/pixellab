@@ -33,7 +33,7 @@ func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func TestClient_Error(t *testing.T) {
-	t.Run("GenerateImagePixfluxGenerateImagePixfluxPost", func(t *testing.T) {
+	t.Run("GenerateImagePixflux", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -42,7 +42,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImagePixfluxGenerateImagePixfluxPost(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
+			if _, err := c.GenerateImagePixflux(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -62,7 +62,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImagePixfluxGenerateImagePixfluxPost(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
+			if _, err := c.GenerateImagePixflux(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -90,7 +90,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImagePixfluxGenerateImagePixfluxPost(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
+			if _, err := c.GenerateImagePixflux(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -115,7 +115,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImagePixfluxGenerateImagePixfluxPost(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
+			if _, err := c.GenerateImagePixflux(t.Context(), GenerateImagePixfluxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -125,7 +125,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GenerateImageBitforgeGenerateImageBitforgePost", func(t *testing.T) {
+	t.Run("GenerateImageBitforge", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -134,7 +134,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImageBitforgeGenerateImageBitforgePost(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
+			if _, err := c.GenerateImageBitforge(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -154,7 +154,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImageBitforgeGenerateImageBitforgePost(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
+			if _, err := c.GenerateImageBitforge(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -182,7 +182,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImageBitforgeGenerateImageBitforgePost(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
+			if _, err := c.GenerateImageBitforge(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -207,7 +207,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImageBitforgeGenerateImageBitforgePost(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
+			if _, err := c.GenerateImageBitforge(t.Context(), GenerateImageBitforgeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -217,7 +217,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateWithSkeletonAnimateWithSkeletonPost", func(t *testing.T) {
+	t.Run("AnimateWithSkeleton", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -226,7 +226,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeletonAnimateWithSkeletonPost(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -246,7 +246,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeletonAnimateWithSkeletonPost(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -274,7 +274,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeletonAnimateWithSkeletonPost(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -299,7 +299,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeletonAnimateWithSkeletonPost(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -309,7 +309,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateWithTextAnimateWithTextPost", func(t *testing.T) {
+	t.Run("AnimateWithText", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -318,7 +318,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextAnimateWithTextPost(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -338,7 +338,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextAnimateWithTextPost(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -366,7 +366,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextAnimateWithTextPost(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -391,7 +391,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextAnimateWithTextPost(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -401,7 +401,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GenerateRotationRotatePost", func(t *testing.T) {
+	t.Run("Rotate", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -410,7 +410,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateRotationRotatePost(t.Context(), RotateRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -430,7 +430,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateRotationRotatePost(t.Context(), RotateRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -458,7 +458,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateRotationRotatePost(t.Context(), RotateRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -483,7 +483,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateRotationRotatePost(t.Context(), RotateRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -493,7 +493,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GenerateInpaintingInpaintPost", func(t *testing.T) {
+	t.Run("Inpaint", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -502,7 +502,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateInpaintingInpaintPost(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -522,7 +522,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateInpaintingInpaintPost(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -550,7 +550,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateInpaintingInpaintPost(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -575,7 +575,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateInpaintingInpaintPost(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -585,7 +585,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("EstimateSkeletonEstimateSkeletonPost", func(t *testing.T) {
+	t.Run("EstimateSkeleton", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -594,7 +594,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EstimateSkeletonEstimateSkeletonPost(t.Context(), EstimateSkeletonRequest{}); err == nil {
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -614,7 +614,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EstimateSkeletonEstimateSkeletonPost(t.Context(), EstimateSkeletonRequest{}); err == nil {
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -642,7 +642,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EstimateSkeletonEstimateSkeletonPost(t.Context(), EstimateSkeletonRequest{}); err == nil {
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -667,7 +667,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EstimateSkeletonEstimateSkeletonPost(t.Context(), EstimateSkeletonRequest{}); err == nil {
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -677,7 +677,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetBalanceBalanceGet", func(t *testing.T) {
+	t.Run("GetBalance", func(t *testing.T) {
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -686,7 +686,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalanceBalanceGet(t.Context()); err == nil {
+			if _, err := c.GetBalance(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -706,7 +706,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalanceBalanceGet(t.Context()); err == nil {
+			if _, err := c.GetBalance(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -734,7 +734,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalanceBalanceGet(t.Context()); err == nil {
+			if _, err := c.GetBalance(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -759,7 +759,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalanceBalanceGet(t.Context()); err == nil {
+			if _, err := c.GetBalance(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
