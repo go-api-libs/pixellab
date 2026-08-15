@@ -833,8 +833,7 @@
           "south-west",
           "west",
           "north-west"
-        ],
-        "default": "east"
+        ]
       },
       "EstimateSkeletonRequest": {
         "title": "EstimateSkeletonRequest",
@@ -1374,24 +1373,20 @@
             "maximum": 180
           },
           "from_view": {
-            "description": "From camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "From camera view angle (default: side)"
           },
           "to_view": {
-            "description": "To camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "To camera view angle (default: side)"
           },
           "from_direction": {
-            "description": "From subject direction",
-            "default": "south",
-            "$ref": "#/components/schemas/Direction"
+            "$ref": "#/components/schemas/Direction",
+            "description": "From subject direction (default: south)"
           },
           "to_direction": {
-            "description": "From subject direction",
-            "default": "east",
-            "$ref": "#/components/schemas/Direction"
+            "$ref": "#/components/schemas/Direction",
+            "description": "From subject direction (default: east)"
           },
           "isometric": {
             "title": "Isometric",
