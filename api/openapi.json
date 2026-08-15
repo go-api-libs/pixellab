@@ -678,7 +678,8 @@
             "default": 1
           },
           "skeleton_keypoints": {
-            "$ref": "#/components/schemas/GenerateImageBitforgeRequestSkeletonKeypoints"
+            "$ref": "#/components/schemas/Points",
+            "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality"
           },
           "seed": {
             "title": "Seed",
@@ -700,14 +701,6 @@
           "style_guidance_scale": 3,
           "style_strength": 20,
           "text_guidance_scale": 3
-        }
-      },
-      "GenerateImageBitforgeRequestSkeletonKeypoints": {
-        "title": "Skeleton Keypoints",
-        "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Point"
         }
       },
       "GenerateImagePixfluxRequest": {

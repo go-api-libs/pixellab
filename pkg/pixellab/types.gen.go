@@ -213,13 +213,10 @@ type GenerateImageBitforgeRequest struct {
 	// How closely to follow the skeleton keypoints
 	SkeletonGuidanceScale *float64 `json:"skeleton_guidance_scale,omitempty"`
 	// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
-	SkeletonKeypoints GenerateImageBitforgeRequestSkeletonKeypoints `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints Points `json:"skeleton_keypoints,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
-
-// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
-type GenerateImageBitforgeRequestSkeletonKeypoints []Point
 
 // Request model for pixflux image generation endpoint
 type GenerateImagePixfluxRequest struct {
