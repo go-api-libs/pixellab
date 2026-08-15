@@ -16,6 +16,10 @@ import (
 // guaranteeing len(doc.InteractionCalls) == len(interactions) on success.
 func matchInteractions(doc *ir.Document, interactions cassette.Interactions) error {
 	for _, ia := range interactions {
+		if ia.Request.URL == "" {
+			continue // just a scaffold
+		}
+
 		u, err := url.Parse(ia.Request.URL)
 		if err != nil {
 			return err
