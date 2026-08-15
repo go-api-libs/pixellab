@@ -139,14 +139,18 @@ func arrayGoType(s *openapi.Schema) (*GoType, error) {
 		return &GoType{Name: "[]any"}, nil
 	}
 
-	itemType, err := SchemaRefGoType(s.Items)
+	tp, err := SchemaRefGoType(s.Items)
 	if err != nil {
 		return nil, fmt.Errorf("items: %w", err)
 	}
 
-	itemType.Name = "[]" + itemType.Name
+	if s.MinItems > 0 && s.MaxItems != nil && s.MinItems == *s.MaxItems {
+		tp.IsArrayOfSize = int(s.MinItems)
+	} else {
+		tp.IsSlice = true
+	}
 
-	return itemType, nil
+	return tp, nil
 }
 
 func objectGoType(s *openapi.Schema) (*GoType, error) {

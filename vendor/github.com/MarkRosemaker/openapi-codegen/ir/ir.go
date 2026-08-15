@@ -210,9 +210,10 @@ func (doc Document) getGlobal(tp GlobalType) *Param {
 
 // GoType is a resolved Go type reference.
 type GoType struct {
-	Name      string `json:"name,omitzero"`
-	IsPointer bool   `json:"isPointer,omitzero"`
-	IsSlice   bool   `json:"isSlice,omitzero"`
+	Name          string `json:"name,omitzero"`
+	IsPointer     bool   `json:"isPointer,omitzero"`
+	IsSlice       bool   `json:"isSlice,omitzero"`
+	IsArrayOfSize int    `json:"isArrayOfSize,omitzero"`
 }
 
 // String returns the Go type expression.
@@ -222,6 +223,8 @@ func (t GoType) String() string {
 		return "*" + t.Name
 	case t.IsSlice:
 		return "[]" + t.Name
+	case t.IsArrayOfSize > 0:
+		return fmt.Sprintf("[%d]%s", t.IsArrayOfSize, t.Name)
 	default:
 		return t.Name
 	}
@@ -231,6 +234,8 @@ func (t GoType) Nilable() string {
 	switch {
 	case t.IsSlice:
 		return "[]" + t.Name
+	case t.IsArrayOfSize > 0:
+		return fmt.Sprintf("[%d]%s", t.IsArrayOfSize, t.Name)
 	default:
 		return "*" + t.Name
 	}
@@ -238,9 +243,10 @@ func (t GoType) Nilable() string {
 
 // ZeroValue returns the Go zero-value literal for the type.
 func (t GoType) ZeroValue() string {
-	if t.IsPointer || t.IsSlice {
+	if t.IsPointer || t.IsSlice || t.IsArrayOfSize > 0 {
 		return "nil"
 	}
+
 	switch t.Name {
 	case "string":
 		return `""`
