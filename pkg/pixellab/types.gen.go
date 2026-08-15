@@ -42,7 +42,7 @@ type AnimateWithSkeletonRequest struct {
 	// Images used for showing the model with connected skeleton
 	InpaintingImages AnimateWithSkeletonRequestInpaintingImages `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages []AnimateWithSkeletonRequestMaskImagesItem `json:"mask_images,omitempty"`
+	MaskImages AnimateWithSkeletonRequestMaskImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
@@ -51,6 +51,9 @@ type AnimateWithSkeletonRequest struct {
 
 // Images used for showing the model with connected skeleton
 type AnimateWithSkeletonRequestInpaintingImages []Base64Image
+
+// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
+type AnimateWithSkeletonRequestMaskImages []Base64Image
 
 // AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point

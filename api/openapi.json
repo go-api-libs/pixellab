@@ -550,14 +550,7 @@
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "color_image": {
