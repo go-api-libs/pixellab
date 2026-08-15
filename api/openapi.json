@@ -504,17 +504,10 @@
           "init_images": {
             "title": "Init Images",
             "description": "Initial images to start the generation from",
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Base64Image"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Base64Image"
+            }
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -544,14 +537,7 @@
             "description": "Images used for showing the model with connected skeleton",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
@@ -575,27 +561,13 @@
             }
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
             "title": "Seed",
             "description": "Seed decides the starting noise",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer"
           }
         },
         "required": [
@@ -645,14 +617,7 @@
           "negative_description": {
             "title": "Negative Description",
             "description": "Negative prompt to guide what not to generate",
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "action": {
             "title": "Action",
@@ -662,87 +627,50 @@
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
             "description": "How closely to follow the text prompts",
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 8
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
             "description": "How closely to follow the reference image",
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20,
             "default": 1.4
           },
           "n_frames": {
             "title": "N Frames",
             "description": "Length of full animation (the model will always generate 4 frames)",
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 2,
-                "maximum": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 20,
             "default": 4
           },
           "start_frame_index": {
             "title": "Start Frame Index",
             "description": "Starting frame index of the full animation",
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": 0,
-                "maximum": 20
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
             "default": 0
           },
           "view": {
-            "description": "Camera view angle",
-            "default": "side",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (default: side)"
           },
           "direction": {
-            "description": "Subject direction",
-            "default": "east",
-            "$ref": "#/components/schemas/Direction"
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (default: east)"
           },
           "init_images": {
             "title": "Init Images",
             "description": "Initial images to start the generation from",
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Base64Image"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Base64Image"
+            }
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -761,14 +689,7 @@
             "description": "Existing animation frames to guide the generation",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
@@ -780,24 +701,10 @@
           "mask_images": {
             "title": "Mask Images",
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/Base64Image"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Base64Image"
+            },
             "default": [
               null,
               null,
@@ -806,27 +713,13 @@
             ]
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
             "title": "Seed",
             "description": "Seed for reproducible results (0 for random)",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "default": 0
           }
         },
@@ -1017,59 +910,24 @@
             "default": 0
           },
           "outline": {
-            "description": "Outline style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Outline"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference"
           },
           "shading": {
-            "description": "Shading style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Shading"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference"
           },
           "detail": {
-            "description": "Detail style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Detail"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference"
           },
           "view": {
-            "description": "Camera view angle",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CameraView"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
           },
           "direction": {
-            "description": "Subject direction",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Direction"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction"
           },
           "isometric": {
             "title": "Isometric",
@@ -1092,27 +950,13 @@
           "coverage_percentage": {
             "title": "Coverage Percentage",
             "description": "Percentage of the canvas to cover",
-            "anyOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 100
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
           },
           "init_image": {
-            "description": "Initial image to start from",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Initial image to start from"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -1123,48 +967,20 @@
             "default": 300
           },
           "style_image": {
-            "description": "Reference image for style transfer",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Reference image for style transfer"
           },
           "inpainting_image": {
-            "description": "Reference image which is inpainted",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Reference image which is inpainted"
           },
           "mask_image": {
-            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)"
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "skeleton_guidance_scale": {
             "title": "Skeleton Guidance Scale",
@@ -1177,29 +993,15 @@
           "skeleton_keypoints": {
             "title": "Skeleton Keypoints",
             "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Point"
-                }
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            }
           },
           "seed": {
             "title": "Seed",
             "description": "Seed decides the starting noise",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer"
           }
         },
         "required": [
@@ -1261,59 +1063,24 @@
             "default": 8
           },
           "outline": {
-            "description": "Outline style reference (weakly guiding)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Outline"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference (weakly guiding)"
           },
           "shading": {
-            "description": "Shading style reference (weakly guiding)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Shading"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference (weakly guiding)"
           },
           "detail": {
-            "description": "Detail style reference (weakly guiding)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Detail"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference (weakly guiding)"
           },
           "view": {
-            "description": "Camera view angle (weakly guiding)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CameraView"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle (weakly guiding)"
           },
           "direction": {
-            "description": "Subject direction (weakly guiding)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Direction"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction (weakly guiding)"
           },
           "isometric": {
             "title": "Isometric",
@@ -1328,15 +1095,8 @@
             "default": false
           },
           "init_image": {
-            "description": "Initial image to start from",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Initial image to start from"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -1347,27 +1107,13 @@
             "default": 300
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
             "title": "Seed",
             "description": "Seed decides the starting noise",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer"
           }
         },
         "required": [
@@ -1434,59 +1180,24 @@
             "default": 3
           },
           "outline": {
-            "description": "Outline style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Outline"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style reference"
           },
           "shading": {
-            "description": "Shading style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Shading"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading style reference"
           },
           "detail": {
-            "description": "Detail style reference",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Detail"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Detail",
+            "description": "Detail style reference"
           },
           "view": {
-            "description": "Camera view angle",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CameraView"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view angle"
           },
           "direction": {
-            "description": "Subject direction",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Direction"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Direction",
+            "description": "Subject direction"
           },
           "isometric": {
             "title": "Isometric",
@@ -1507,15 +1218,8 @@
             "default": false
           },
           "init_image": {
-            "description": "Initial image to start from",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Initial image to start from"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -1534,27 +1238,13 @@
             "description": "Inpainting / mask image. (black and white image, where the white is where the model should inpaint)."
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
             "title": "Seed",
             "description": "Seed decides the starting noise",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer"
           }
         },
         "required": [
@@ -1672,78 +1362,36 @@
           "view_change": {
             "title": "View Change",
             "description": "How many degrees to tilt the subject",
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": -90,
-                "maximum": 90
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "minimum": -90,
+            "maximum": 90
           },
           "direction_change": {
             "title": "Direction Change",
             "description": "How many degrees to rotate the subject",
-            "anyOf": [
-              {
-                "type": "integer",
-                "minimum": -180,
-                "maximum": 180
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer",
+            "minimum": -180,
+            "maximum": 180
           },
           "from_view": {
             "description": "From camera view angle",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CameraView"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "side"
+            "default": "side",
+            "$ref": "#/components/schemas/CameraView"
           },
           "to_view": {
             "description": "To camera view angle",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CameraView"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "side"
+            "default": "side",
+            "$ref": "#/components/schemas/CameraView"
           },
           "from_direction": {
             "description": "From subject direction",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Direction"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "south"
+            "default": "south",
+            "$ref": "#/components/schemas/Direction"
           },
           "to_direction": {
             "description": "From subject direction",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Direction"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "east"
+            "default": "east",
+            "$ref": "#/components/schemas/Direction"
           },
           "isometric": {
             "title": "Isometric",
@@ -1758,15 +1406,8 @@
             "default": false
           },
           "init_image": {
-            "description": "Initial image to start from",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Initial image to start from"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -1777,42 +1418,21 @@
             "default": 300
           },
           "mask_image": {
-            "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)"
           },
           "from_image": {
             "$ref": "#/components/schemas/Base64Image",
             "description": "Reference image to rotate"
           },
           "color_image": {
-            "description": "Forced color palette, image containing colors used for palette",
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Base64Image"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Forced color palette, image containing colors used for palette"
           },
           "seed": {
             "title": "Seed",
             "description": "Seed decides the starting noise",
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "integer"
           }
         },
         "required": [
@@ -1898,25 +1518,11 @@
           },
           "usd": {
             "title": "Usd",
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "number"
           },
           "generations": {
             "title": "Generations",
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "number"
           }
         }
       },
