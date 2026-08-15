@@ -30,7 +30,7 @@ type AnimateWithSkeletonRequest struct {
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-	SkeletonKeypoints []Points `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints SkeletonKeypoints `json:"skeleton_keypoints,omitempty"`
 	// Reference image
 	ReferenceImage Image `json:"reference_image"`
 	// Images used for showing the model with connected skeleton (default: [null, null, null]
@@ -419,6 +419,9 @@ func (e Shading) Valid() bool {
 		return false
 	}
 }
+
+// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
+type SkeletonKeypoints []Points
 
 // SkeletonLabel defines a model
 type SkeletonLabel string

@@ -312,14 +312,7 @@
             "default": 300
           },
           "skeleton_keypoints": {
-            "title": "Skeleton Keypoints",
-            "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
-            "type": "array",
-            "minItems": 3,
-            "maxItems": 3,
-            "items": {
-              "$ref": "#/components/schemas/Points"
-            }
+            "$ref": "#/components/schemas/SkeletonKeypoints"
           },
           "reference_image": {
             "$ref": "#/components/schemas/Image",
@@ -1158,6 +1151,15 @@
           "detailed shading",
           "highly detailed shading"
         ]
+      },
+      "SkeletonKeypoints": {
+        "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 3,
+        "items": {
+          "$ref": "#/components/schemas/Points"
+        }
       },
       "SkeletonLabel": {
         "title": "SkeletonLabel",
