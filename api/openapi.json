@@ -9216,12 +9216,8 @@
             "type": "string"
           },
           "tile_size": {
-            "description": "Size of individual tiles within the tileset",
-            "default": {
-              "width": 16,
-              "height": 16
-            },
-            "$ref": "#/components/schemas/TileSize"
+            "$ref": "#/components/schemas/TileSize",
+            "description": "Size of individual tiles within the tileset"
           },
           "mode": {
             "title": "Mode",
@@ -9413,12 +9409,8 @@
             "type": "string"
           },
           "tile_size": {
-            "description": "Size of individual tiles within the tileset",
-            "default": {
-              "width": 16,
-              "height": 16
-            },
-            "$ref": "#/components/schemas/SidescrollerTileSize"
+            "$ref": "#/components/schemas/SidescrollerTileSize",
+            "description": "Size of individual tiles within the tileset"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -13241,6 +13233,10 @@
             "example": 16
           }
         },
+        "default": {
+          "width": 16,
+          "height": 16
+        },
         "example": {
           "height": 16,
           "width": 16
@@ -13825,6 +13821,10 @@
             "default": 16,
             "example": 16
           }
+        },
+        "default": {
+          "width": 16,
+          "height": 16
         },
         "example": {
           "height": 16,
