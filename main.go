@@ -153,6 +153,10 @@ func improveSchema(ss *openapi.SchemaRef) {
 		improveSchema(p)
 	}
 
+	if s.Items != nil {
+		improveSchema(s.Items)
+	}
+
 	if s.Type == "" && len(s.AnyOf) == 0 {
 		s.Type = openapi.TypeObject
 	}
@@ -177,6 +181,7 @@ func improveSchema(ss *openapi.SchemaRef) {
 		s.Description = descr
 	}
 
+	improveSchema(ss)
 }
 
 func mustEncode(v any) jsontext.Value {
