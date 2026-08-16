@@ -193,8 +193,10 @@ func Schema(a, b *openapi.Schema, isParam bool) error {
 		for i, enum := range a.Enum {
 			enum = enum.Clone()
 			if err := enum.Canonicalize(); err != nil {
-				return &errpath.ErrField{Field: "enum",
-					Err: &errpath.ErrIndex{Index: i, Err: err}}
+				return &errpath.ErrField{
+					Field: "enum",
+					Err:   &errpath.ErrIndex{Index: i, Err: err},
+				}
 			}
 
 			if bytes.Equal(enum, ex) {

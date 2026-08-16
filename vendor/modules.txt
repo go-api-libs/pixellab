@@ -10,31 +10,31 @@ github.com/MarkRosemaker/json2yaml
 # github.com/MarkRosemaker/jsonutil v0.0.0-20260718153618-78b5039427a4
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/jsonutil
-# github.com/MarkRosemaker/openapi v0.0.0-20260816013442-81734c053376
+# github.com/MarkRosemaker/openapi v0.0.0-20260816160214-339f6866f4df
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi
-# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260816122148-1ffbbad20b55
+# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260816235223-b20b28a6e508
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/cmd/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/config
 github.com/MarkRosemaker/openapi-codegen/ir
 github.com/MarkRosemaker/openapi-codegen/render
-# github.com/MarkRosemaker/openapi-compress v0.0.0-20260816121106-e9572b3527d8
+# github.com/MarkRosemaker/openapi-compress v0.0.0-20260816161445-ad6a6f3b1ebf
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-compress
 github.com/MarkRosemaker/openapi-compress/cmd/openapi-compress
-# github.com/MarkRosemaker/openapi-enrich v0.0.0-20260816120239-8ae925b21caf
+# github.com/MarkRosemaker/openapi-enrich v0.0.0-20260816160816-b67b6b8e2f20
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-enrich
 github.com/MarkRosemaker/openapi-enrich/cassette
 github.com/MarkRosemaker/openapi-enrich/cmd/openapi-enrich
 github.com/MarkRosemaker/openapi-enrich/recorder
-# github.com/MarkRosemaker/openapi-flatten v0.0.0-20260816040523-628e18b01253
+# github.com/MarkRosemaker/openapi-flatten v0.0.0-20260816161131-559283c0cc08
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-flatten
 github.com/MarkRosemaker/openapi-flatten/cmd/openapi-flatten
-# github.com/MarkRosemaker/openapi-merge v0.0.0-20260816120055-bf8333effb51
+# github.com/MarkRosemaker/openapi-merge v0.0.0-20260816160238-821350209889
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-merge
 # github.com/MarkRosemaker/ordmap v0.0.0-20260813220117-99bdc4d3bc78
@@ -49,9 +49,6 @@ github.com/MarkRosemaker/yaml2json
 # github.com/ettle/strcase v0.2.0
 ## explicit; go 1.12
 github.com/ettle/strcase
-# github.com/go-api-libs/api v0.0.0-20260705004954-dad48fbb4ab2
-## explicit; go 1.26
-github.com/go-api-libs/api
 # github.com/go-api-libs/types v0.0.0-20251210072721-82754f56609d
 ## explicit; go 1.23.2
 github.com/go-api-libs/types
