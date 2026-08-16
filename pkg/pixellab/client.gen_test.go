@@ -8159,7 +8159,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := c.GetLlmsTxtLlmsTxtGet(t.Context()); err == nil {
+			if _, err := c.GetLlmsTxtLlmsTxtGet(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
