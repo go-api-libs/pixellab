@@ -9,23 +9,25 @@ tool (
 	github.com/MarkRosemaker/openapi-flatten/cmd/openapi-flatten
 )
 
-require github.com/go-api-libs/api v0.0.0-20260705004954-dad48fbb4ab2
+require (
+	github.com/MarkRosemaker/openapi v0.0.0-20260816004524-2c812f787153
+	github.com/ettle/strcase v0.2.0
+	github.com/go-api-libs/api v0.0.0-20260705004954-dad48fbb4ab2
+)
 
 require (
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/MarkRosemaker/errpath v0.0.0-20260425165607-bbd4959d04d9 // indirect
 	github.com/MarkRosemaker/json2yaml v0.0.0-20260507220148-d6cc0d01bff0 // indirect
 	github.com/MarkRosemaker/jsonutil v0.0.0-20260718153618-78b5039427a4 // indirect
-	github.com/MarkRosemaker/openapi v0.0.0-20260815172747-241b899d8e0d // indirect
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260815183901-1825af3427ed // indirect
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20260813221544-f5a45bac67b3 // indirect
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260815161028-618b00ce6d51 // indirect
-	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260815161433-8837eaf65f9f // indirect
-	github.com/MarkRosemaker/openapi-merge v0.0.0-20260815133013-4e45d3e29e7e // indirect
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260815222232-43d4bfa3dee0 // indirect
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20260815184306-84f3bd44b00d // indirect
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260815221342-07ae441c99e4 // indirect
+	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260815221746-8f8de734d4a4 // indirect
+	github.com/MarkRosemaker/openapi-merge v0.0.0-20260815220630-37e309ed2480 // indirect
 	github.com/MarkRosemaker/ordmap v0.0.0-20260813220117-99bdc4d3bc78 // indirect
 	github.com/MarkRosemaker/yaml v0.0.0-20260508005758-fe21a538b084 // indirect
 	github.com/MarkRosemaker/yaml2json v0.0.0-20260507220136-7748efc522b2 // indirect
-	github.com/ettle/strcase v0.2.0 // indirect
 	github.com/go-api-libs/types v0.0.0-20251210072721-82754f56609d // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
