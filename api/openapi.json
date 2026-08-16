@@ -934,9 +934,6 @@
           "410": {
             "description": "Generation failed permanently"
           },
-          "423": {
-            "description": "Still processing; see Retry-After header"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -946,6 +943,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Still processing; see Retry-After header"
           }
         },
         "security": [
@@ -1320,9 +1320,6 @@
           "410": {
             "description": "Generation failed permanently"
           },
-          "423": {
-            "description": "Still processing; see Retry-After header"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -1332,6 +1329,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Still processing; see Retry-After header"
           }
         },
         "security": [
@@ -2227,16 +2227,6 @@
           }
         },
         "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateTilesetBackgroundResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully generated tileset",
             "content": {
@@ -2413,6 +2403,16 @@
               }
             }
           },
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTilesetBackgroundResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Invalid API token"
           },
@@ -2466,14 +2466,11 @@
               }
             }
           },
-          "423": {
-            "description": "Tileset is still being generated"
+          "401": {
+            "description": "Invalid API token"
           },
           "404": {
             "description": "Tileset not found"
-          },
-          "401": {
-            "description": "Invalid API token"
           },
           "422": {
             "description": "Validation Error",
@@ -2484,6 +2481,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Tileset is still being generated"
           }
         },
         "security": [
@@ -2792,9 +2792,6 @@
           "404": {
             "description": "Sidescroller tileset not found"
           },
-          "423": {
-            "description": "Still being generated; see Retry-After header"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2804,6 +2801,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Still being generated; see Retry-After header"
           }
         },
         "security": [
@@ -2888,16 +2888,6 @@
           }
         },
         "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateIsometricTileBackgroundResponse"
-                }
-              }
-            }
-          },
           "200": {
             "description": "Successfully generated image",
             "content": {
@@ -2911,6 +2901,16 @@
                     "type": "usd",
                     "usd": 0.01
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateIsometricTileBackgroundResponse"
                 }
               }
             }
@@ -2968,14 +2968,11 @@
               }
             }
           },
-          "404": {
-            "description": "Tile not found"
-          },
           "401": {
             "description": "Invalid API token"
           },
-          "423": {
-            "description": "Tile still processing"
+          "404": {
+            "description": "Tile not found"
           },
           "422": {
             "description": "Validation Error",
@@ -2986,6 +2983,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Tile still processing"
           }
         },
         "security": [
@@ -3190,14 +3190,11 @@
               }
             }
           },
-          "404": {
-            "description": "Tiles not found"
-          },
           "401": {
             "description": "Invalid API token"
           },
-          "423": {
-            "description": "Tiles still processing"
+          "404": {
+            "description": "Tiles not found"
           },
           "422": {
             "description": "Validation Error",
@@ -3208,6 +3205,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Tiles still processing"
           }
         },
         "security": [
@@ -3427,9 +3427,6 @@
           "410": {
             "description": "Object generation failed permanently"
           },
-          "423": {
-            "description": "Still generating; see Retry-After header"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -3439,6 +3436,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Still generating; see Retry-After header"
           }
         },
         "security": [
@@ -4118,9 +4118,6 @@
           "404": {
             "description": "Source character not found"
           },
-          "429": {
-            "description": "Concurrent job limit reached"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4130,6 +4127,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Concurrent job limit reached"
           }
         },
         "security": [
@@ -4299,9 +4299,6 @@
           "404": {
             "description": "Character not found"
           },
-          "429": {
-            "description": "Too many requests"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4311,6 +4308,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests"
           }
         },
         "security": [
@@ -4416,9 +4416,6 @@
               }
             }
           },
-          "423": {
-            "description": "Character or animations still being generated"
-          },
           "404": {
             "description": "Character not found"
           },
@@ -4431,6 +4428,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "description": "Character or animations still being generated"
           }
         }
       }
@@ -4498,9 +4498,6 @@
           "404": {
             "description": "Character not found"
           },
-          "429": {
-            "description": "Too many requests"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4510,6 +4507,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests"
           }
         },
         "security": [
@@ -4575,9 +4575,6 @@
           "404": {
             "description": "Job not found or doesn't belong to user"
           },
-          "429": {
-            "description": "Too many requests"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4587,6 +4584,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too many requests"
           }
         },
         "security": [
@@ -4750,9 +4750,6 @@
           "409": {
             "description": "Direction already animated (pass replace_existing=true to overwrite)"
           },
-          "429": {
-            "description": "All directions rate-limited (no jobs queued)"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4762,6 +4759,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "All directions rate-limited (no jobs queued)"
           }
         },
         "security": [
@@ -4929,9 +4929,6 @@
           "404": {
             "description": "Source object not found"
           },
-          "429": {
-            "description": "Concurrent job limit reached"
-          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -4941,6 +4938,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Concurrent job limit reached"
           }
         },
         "security": [
