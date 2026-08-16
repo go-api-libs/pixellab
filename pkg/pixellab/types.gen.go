@@ -1473,7 +1473,7 @@ type CreateMapObjectRequest struct {
 	// Background/map image for style matching. Required when using inpainting.
 	BackgroundImage *Base64Image `json:"background_image,omitempty"`
 	// Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
-	Inpainting *CreateMapObjectRequestInpainting `json:"inpainting,omitempty"`
+	Inpainting *any `json:"inpainting,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 }
@@ -1895,7 +1895,7 @@ type CreateUIAssetRequest struct {
 	// Output image size in pixels (192–688; max per axis depends on aspect)
 	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
-	Pieces []CreateUIAssetPiecesItem `json:"pieces,omitempty"`
+	Pieces []any `json:"pieces,omitempty"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
 	Elements []string `json:"elements,omitempty"`
 	// Optional style reference image (PNG/JPEG base64)
@@ -3948,11 +3948,11 @@ type V3OutputImageSize struct {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []CreateUIAssetPiecesItem `json:"loc,omitempty"`
-	Msg   string                    `json:"msg,omitzero"`
-	Type  string                    `json:"type,omitzero"`
-	Input *struct{}                 `json:"input,omitempty"`
-	Ctx   *struct{}                 `json:"ctx,omitempty"`
+	Loc   []any     `json:"loc,omitempty"`
+	Msg   string    `json:"msg,omitzero"`
+	Type  string    `json:"type,omitzero"`
+	Input *struct{} `json:"input,omitempty"`
+	Ctx   *struct{} `json:"ctx,omitempty"`
 }
 
 // VocalAnimationRequest defines a model
