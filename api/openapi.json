@@ -5775,14 +5775,7 @@
             "description": "Images used for showing the model with connected skeleton",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
@@ -5795,14 +5788,7 @@
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "color_image": {
@@ -5929,14 +5915,7 @@
             "description": "Existing animation frames to guide the generation",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
