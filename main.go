@@ -136,6 +136,7 @@ func main() {
 	if err := codegen.Generate(codegen.Config{
 		Spec:        doc,
 		PackageName: "pixellab",
+		OutputDir:   "pkg/pixellab",
 	}); err != nil {
 		log.Fatalf("codegen: %v", err)
 	}
