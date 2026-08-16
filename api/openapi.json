@@ -5766,7 +5766,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 4
+            "default": 4.0
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
@@ -5774,7 +5774,7 @@
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction  (default: \"east\")"
+            "description": "Subject direction (default: \"east\")"
           },
           "isometric": {
             "title": "Isometric",
@@ -5951,7 +5951,7 @@
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction  (default: \"east\")"
+            "description": "Subject direction (default: \"east\")"
           },
           "init_images": {
             "title": "Init Images",
@@ -6681,7 +6681,7 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "arms_length": {
             "title": "Arms Length",
@@ -6689,7 +6689,7 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "legs_length": {
             "title": "Legs Length",
@@ -6697,7 +6697,7 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "shoulder_width": {
             "title": "Shoulder Width",
@@ -6705,7 +6705,7 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "hip_width": {
             "title": "Hip Width",
@@ -6713,7 +6713,7 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           }
         },
         "example": {
@@ -8109,7 +8109,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 8
+            "default": 8.0
           },
           "extra_guidance_scale": {
             "title": "Extra Guidance Scale",
@@ -8117,7 +8117,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 20,
-            "default": 3
+            "default": 3.0
           },
           "style_strength": {
             "title": "Style Strength",
@@ -8206,7 +8206,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 5,
-            "default": 1
+            "default": 1.0
           },
           "skeleton_keypoints": {
             "title": "Skeleton Keypoints",
@@ -8669,14 +8669,13 @@
           },
           "view": {
             "title": "View",
-            "description": "Camera angle",
+            "description": "Camera angle (default: \"high top-down\")",
             "type": "string",
             "enum": [
               "low top-down",
               "high top-down",
               "side"
-            ],
-            "default": "high top-down"
+            ]
           },
           "outline": {
             "title": "Outline",
@@ -8715,7 +8714,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 8
+            "default": 8.0
           },
           "init_image": {
             "$ref": "#/components/schemas/Base64Image",
@@ -9258,7 +9257,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "default": 0
+            "default": 0.0
           },
           "raggedness": {
             "title": "Raggedness",
@@ -9266,7 +9265,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "default": 0
+            "default": 0.0
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -9274,7 +9273,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 8
+            "default": 8.0
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -9289,9 +9288,8 @@
             "description": "Detail style reference"
           },
           "view": {
-            "description": "Camera view angle for tileset",
-            "default": "high top-down",
-            "$ref": "#/components/schemas/TilesetCameraView"
+            "$ref": "#/components/schemas/TilesetCameraView",
+            "description": "Camera view angle for tileset (default: \"high top-down\")"
           },
           "tile_strength": {
             "title": "Tile Strength",
@@ -9299,7 +9297,7 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "tileset_adherence_freedom": {
             "title": "Tileset Adherence Freedom",
@@ -9307,7 +9305,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 900,
-            "default": 500
+            "default": 500.0
           },
           "tileset_adherence": {
             "title": "Tileset Adherence",
@@ -9315,7 +9313,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 500,
-            "default": 100
+            "default": 100.0
           },
           "transition_size": {
             "title": "Transition Size",
@@ -9323,7 +9321,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "default": 0
+            "default": 0.0
           },
           "lower_reference_image": {
             "$ref": "#/components/schemas/Base64Image",
@@ -9418,7 +9416,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 8
+            "default": 8.0
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -9438,7 +9436,7 @@
             "type": "number",
             "minimum": 0.1,
             "maximum": 2,
-            "default": 1
+            "default": 1.0
           },
           "tileset_adherence_freedom": {
             "title": "Tileset Adherence Freedom",
@@ -9446,7 +9444,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 900,
-            "default": 500
+            "default": 500.0
           },
           "tileset_adherence": {
             "title": "Tileset Adherence",
@@ -9454,19 +9452,19 @@
             "type": "number",
             "minimum": 0,
             "maximum": 500,
-            "default": 100
+            "default": 100.0
           },
           "transition_size": {
             "title": "Transition Size",
             "description": "Size of transition area (0 = no transition, 0.25 = quarter tile, 0.5 = half tile, 1.0 = full tile)",
             "type": "number",
             "enum": [
-              0,
+              0.0,
               0.25,
               0.5,
-              1
+              1.0
             ],
-            "default": 0
+            "default": 0.0
           },
           "lower_reference_image": {
             "$ref": "#/components/schemas/Base64Image",
@@ -11514,7 +11512,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 10,
-            "default": 3
+            "default": 3.0
           },
           "extra_guidance_scale": {
             "title": "Extra Guidance Scale",
@@ -11522,7 +11520,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 20,
-            "default": 3
+            "default": 3.0
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -12999,7 +12997,7 @@
             "type": "number",
             "minimum": 1,
             "maximum": 20,
-            "default": 3
+            "default": 3.0
           },
           "view_change": {
             "title": "View Change",
@@ -13029,7 +13027,7 @@
           },
           "to_direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "From subject direction  (default: \"east\")"
+            "description": "From subject direction (default: \"east\")"
           },
           "isometric": {
             "title": "Isometric",
@@ -14515,7 +14513,7 @@
           "phase": {
             "title": "Phase",
             "type": "number",
-            "default": 0
+            "default": 0.0
           }
         },
         "required": [
