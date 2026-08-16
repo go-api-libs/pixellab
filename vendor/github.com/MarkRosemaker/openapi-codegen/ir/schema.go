@@ -2,6 +2,8 @@ package ir
 
 import (
 	"cmp"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"strconv"
 	"strings"
@@ -385,33 +387,37 @@ func enumBaseGoType(t openapi.DataType, f openapi.Format) (*GoType, error) {
 // formatEnumValue converts a raw enum member (decoded from JSON as string,
 // float64, or bool per the schema's declared type) into its human-readable
 // display form and its Go source literal.
-func formatEnumValue(v any, t openapi.DataType) (display, literal string, err error) {
+func formatEnumValue(v jsontext.Value, t openapi.DataType) (display, literal string, err error) {
 	switch t {
 	case openapi.TypeString:
-		s, ok := v.(string)
-		if !ok {
-			return "", "", fmt.Errorf("value %v is not a string", v)
+		var s string
+		if err := json.Unmarshal(v, &s); err != nil {
+			return "", "", fmt.Errorf("unmarshalling %q into a string: %w", v, err)
 		}
+
 		return s, strconv.Quote(s), nil
 	case openapi.TypeInteger:
-		f, ok := v.(float64)
-		if !ok {
-			return "", "", fmt.Errorf("value %v is not a number", v)
+		var i int64
+		if err := json.Unmarshal(v, &i); err != nil {
+			return "", "", fmt.Errorf("unmarshalling %q into a int64: %w", v, err)
 		}
-		s := strconv.FormatInt(int64(f), 10)
+
+		s := strconv.FormatInt(i, 10)
 		return s, s, nil
 	case openapi.TypeNumber:
-		f, ok := v.(float64)
-		if !ok {
-			return "", "", fmt.Errorf("value %v is not a number", v)
+		var f float64
+		if err := json.Unmarshal(v, &f); err != nil {
+			return "", "", fmt.Errorf("unmarshalling %q into a float64: %w", v, err)
 		}
+
 		s := strconv.FormatFloat(f, 'g', -1, 64)
 		return s, s, nil
 	case openapi.TypeBoolean:
-		b, ok := v.(bool)
-		if !ok {
-			return "", "", fmt.Errorf("value %v is not a bool", v)
+		var b bool
+		if err := json.Unmarshal(v, &b); err != nil {
+			return "", "", fmt.Errorf("unmarshalling %q into a bool: %w", v, err)
 		}
+
 		s := strconv.FormatBool(b)
 		return s, s, nil
 	default:

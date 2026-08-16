@@ -1,6 +1,8 @@
 package compress
 
 import (
+	"bytes"
+	"encoding/json/jsontext"
 	"reflect"
 	"slices"
 
@@ -23,7 +25,8 @@ func schemasEqual(a, b *openapi.Schema) bool {
 		float64PtrsEqual(a.Min, b.Min) &&
 		float64PtrsEqual(a.Max, b.Max) &&
 		regexpStringsEqual(a.Pattern, b.Pattern) &&
-		slices.Equal(a.Enum, b.Enum) &&
+		slices.EqualFunc(a.Enum, b.Enum,
+			func(c, d jsontext.Value) bool { return bytes.Equal(c, d) }) &&
 		a.MinItems == b.MinItems &&
 		uintPtrsEqual(a.MaxItems, b.MaxItems) &&
 		schemaRefPtrsEqual(a.Items, b.Items) &&

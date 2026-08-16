@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"bytes"
 	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
@@ -183,12 +184,26 @@ func Schema(a, b *openapi.Schema, isParam bool) error {
 	// add the example from b to the enum of a; enums are no longer
 	// string-only, so this applies regardless of the schema's type
 	if a.Enum != nil && b.Example != nil {
-		var ex any
-		if err := json.Unmarshal(b.Example, &ex); err != nil {
+		ex := b.Example.Clone()
+		if err := ex.Canonicalize(); err != nil {
 			return &errpath.ErrField{Field: "example", Err: err}
 		}
 
-		if !slices.Contains(a.Enum, ex) {
+		found := false
+		for i, enum := range a.Enum {
+			enum = enum.Clone()
+			if err := enum.Canonicalize(); err != nil {
+				return &errpath.ErrField{Field: "enum",
+					Err: &errpath.ErrIndex{Index: i, Err: err}}
+			}
+
+			if bytes.Equal(enum, ex) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
 			a.Enum = append(a.Enum, ex)
 		}
 	}

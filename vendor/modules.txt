@@ -10,31 +10,31 @@ github.com/MarkRosemaker/json2yaml
 # github.com/MarkRosemaker/jsonutil v0.0.0-20260718153618-78b5039427a4
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/jsonutil
-# github.com/MarkRosemaker/openapi v0.0.0-20260816004524-2c812f787153
+# github.com/MarkRosemaker/openapi v0.0.0-20260816013442-81734c053376
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi
-# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260815222232-43d4bfa3dee0
+# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260816122148-1ffbbad20b55
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/cmd/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/config
 github.com/MarkRosemaker/openapi-codegen/ir
 github.com/MarkRosemaker/openapi-codegen/render
-# github.com/MarkRosemaker/openapi-compress v0.0.0-20260815184306-84f3bd44b00d
+# github.com/MarkRosemaker/openapi-compress v0.0.0-20260816121106-e9572b3527d8
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-compress
 github.com/MarkRosemaker/openapi-compress/cmd/openapi-compress
-# github.com/MarkRosemaker/openapi-enrich v0.0.0-20260815221342-07ae441c99e4
+# github.com/MarkRosemaker/openapi-enrich v0.0.0-20260816120239-8ae925b21caf
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-enrich
 github.com/MarkRosemaker/openapi-enrich/cassette
 github.com/MarkRosemaker/openapi-enrich/cmd/openapi-enrich
 github.com/MarkRosemaker/openapi-enrich/recorder
-# github.com/MarkRosemaker/openapi-flatten v0.0.0-20260815221746-8f8de734d4a4
+# github.com/MarkRosemaker/openapi-flatten v0.0.0-20260816040523-628e18b01253
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-flatten
 github.com/MarkRosemaker/openapi-flatten/cmd/openapi-flatten
-# github.com/MarkRosemaker/openapi-merge v0.0.0-20260815220630-37e309ed2480
+# github.com/MarkRosemaker/openapi-merge v0.0.0-20260816120055-bf8333effb51
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-merge
 # github.com/MarkRosemaker/ordmap v0.0.0-20260813220117-99bdc4d3bc78
