@@ -259,9 +259,9 @@ type AnimateWithSkeletonRequest struct {
 	// Reference image
 	ReferenceImage Base64Image `json:"reference_image"`
 	// Images used for showing the model with connected skeleton
-	InpaintingImages []AnimateWithSkeletonInpaintingImagesItem `json:"inpainting_images,omitempty"`
+	InpaintingImages []Base64Image `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages []AnimateWithSkeletonInpaintingImagesItem `json:"mask_images,omitempty"`
+	MaskImages []Base64Image `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
@@ -305,9 +305,9 @@ type AnimateWithTextRequest struct {
 	// Reference image
 	ReferenceImage Base64Image `json:"reference_image"`
 	// Existing animation frames to guide the generation
-	InpaintingImages []AnimateWithSkeletonInpaintingImagesItem `json:"inpainting_images,omitempty"`
+	InpaintingImages []Base64Image `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages []AnimateWithSkeletonInpaintingImagesItem `json:"mask_images,omitempty"`
+	MaskImages []AnimateWithTextMaskImagesItem `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
@@ -1895,7 +1895,7 @@ type CreateUIAssetRequest struct {
 	// Output image size in pixels (192–688; max per axis depends on aspect)
 	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
-	Pieces []AnimateWithSkeletonInpaintingImagesItem `json:"pieces,omitempty"`
+	Pieces []AnimateWithTextMaskImagesItem `json:"pieces,omitempty"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
 	Elements []string `json:"elements,omitempty"`
 	// Optional style reference image (PNG/JPEG base64)
@@ -3948,11 +3948,11 @@ type V3OutputImageSize struct {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []AnimateWithSkeletonInpaintingImagesItem `json:"loc,omitempty"`
-	Msg   string                                    `json:"msg,omitzero"`
-	Type  string                                    `json:"type,omitzero"`
-	Input *struct{}                                 `json:"input,omitempty"`
-	Ctx   *struct{}                                 `json:"ctx,omitempty"`
+	Loc   []AnimateWithTextMaskImagesItem `json:"loc,omitempty"`
+	Msg   string                          `json:"msg,omitzero"`
+	Type  string                          `json:"type,omitzero"`
+	Input *struct{}                       `json:"input,omitempty"`
+	Ctx   *struct{}                       `json:"ctx,omitempty"`
 }
 
 // VocalAnimationRequest defines a model
