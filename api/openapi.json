@@ -14782,7 +14782,8 @@
             "type": "string"
           },
           "input": {
-            "title": "Input"
+            "title": "Input",
+            "type": "object"
           },
           "ctx": {
             "title": "Context",
