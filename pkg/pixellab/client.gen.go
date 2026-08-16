@@ -10462,7 +10462,7 @@ func EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost[R any](ctx context.Con
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /llms.txt
-func GetLlmsTxtLlmsTxtGet(ctx context.Context, c *Client) error {
+func (c *Client) GetLlmsTxtLlmsTxtGet(ctx context.Context) ([]byte, error) {
 	u := c.baseURL.JoinPath("llms.txt")
 	req := (&http.Request{
 		Header: http.Header{
@@ -10478,7 +10478,7 @@ func GetLlmsTxtLlmsTxtGet(ctx context.Context, c *Client) error {
 
 	rsp, err := c.cli.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rsp.Body.Close()
 
@@ -10486,11 +10486,18 @@ func GetLlmsTxtLlmsTxtGet(ctx context.Context, c *Client) error {
 	case http.StatusOK:
 		// LLM-friendly API documentation
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "":
+		case "text/plain":
+			out, err := io.ReadAll(rsp.Body)
+			if err != nil {
+				return nil, api.WrapDecodingError(rsp, err)
+			}
+
+			return out, nil
+
 		default:
-			return api.NewErrUnknownContentType(rsp)
+			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
-		return api.NewErrUnknownStatusCode(rsp)
+		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
