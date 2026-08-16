@@ -5597,7 +5597,6 @@
   "components": {
     "schemas": {
       "AnimateObjectRequest": {
-        "title": "AnimateObjectRequest",
         "description": "Request to add an animation to an existing object.",
         "type": "object",
         "properties": {
@@ -5692,7 +5691,6 @@
         }
       },
       "AnimateObjectResponse": {
-        "title": "AnimateObjectResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -5753,7 +5751,6 @@
         ]
       },
       "AnimateWithSkeletonRequest": {
-        "title": "AnimateWithSkeletonRequest",
         "description": "Request model for animation using skeleton endpoint",
         "type": "object",
         "properties": {
@@ -5876,7 +5873,6 @@
         }
       },
       "AnimateWithSkeletonResponse": {
-        "title": "AnimateWithSkeletonResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -5895,7 +5891,6 @@
         ]
       },
       "AnimateWithTextRequest": {
-        "title": "AnimateWithTextRequest",
         "description": "Request model for animation using text endpoint",
         "type": "object",
         "properties": {
@@ -6037,7 +6032,6 @@
         }
       },
       "AnimateWithTextResponse": {
-        "title": "AnimateWithTextResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -6056,7 +6050,6 @@
         ]
       },
       "AnimateWithTextV2Request": {
-        "title": "AnimateWithTextV2Request",
         "description": "Request model for text-to-animation endpoint",
         "type": "object",
         "properties": {
@@ -6146,7 +6139,6 @@
         }
       },
       "AnimateWithTextV2Response": {
-        "title": "AnimateWithTextV2Response",
         "description": "Response model for text-to-animation endpoint (background job)",
         "type": "object",
         "properties": {
@@ -6178,7 +6170,6 @@
         }
       },
       "AnimateWithTextV3Request": {
-        "title": "AnimateWithTextV3Request",
         "description": "Request model for animate with text v3 endpoint",
         "type": "object",
         "properties": {
@@ -6244,7 +6235,6 @@
         }
       },
       "AnimateWithTextV3Response": {
-        "title": "AnimateWithTextV3Response",
         "description": "Background job response. Poll GET /v2/background-jobs/{id} for results.",
         "type": "object",
         "properties": {
@@ -6281,7 +6271,6 @@
         }
       },
       "AnimationDirection": {
-        "title": "AnimationDirection",
         "type": "object",
         "properties": {
           "direction": {
@@ -6308,7 +6297,6 @@
         ]
       },
       "AnimationGroup": {
-        "title": "AnimationGroup",
         "type": "object",
         "properties": {
           "animation_type": {
@@ -6340,7 +6328,6 @@
         ]
       },
       "BackgroundJobResponse": {
-        "title": "BackgroundJobResponse",
         "description": "Response model for background job status",
         "type": "object",
         "properties": {
@@ -6401,7 +6388,6 @@
         }
       },
       "BalanceResponse": {
-        "title": "BalanceResponse",
         "description": "Response model for balance endpoint",
         "type": "object",
         "properties": {
@@ -6418,7 +6404,6 @@
         ]
       },
       "Base64Image": {
-        "title": "Base64Image",
         "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
         "type": "object",
         "properties": {
@@ -6446,7 +6431,6 @@
         ]
       },
       "BoundingBox": {
-        "title": "BoundingBox",
         "description": "Bounding box to mark the editing area on the context image.",
         "type": "object",
         "properties": {
@@ -6489,7 +6473,6 @@
         }
       },
       "CameraView": {
-        "title": "CameraView",
         "type": "string",
         "enum": [
           "side",
@@ -6499,7 +6482,6 @@
         "default": "side"
       },
       "CharacterDetail": {
-        "title": "CharacterDetail",
         "description": "Detailed character information including rotation URLs",
         "type": "object",
         "properties": {
@@ -6664,7 +6646,6 @@
         }
       },
       "CharacterProportions": {
-        "title": "CharacterProportions",
         "description": "Character proportions with individual control.",
         "type": "object",
         "properties": {
@@ -6726,7 +6707,6 @@
         }
       },
       "CharacterProportionsPreset": {
-        "title": "CharacterProportionsPreset",
         "description": "Preset character proportions.",
         "type": "object",
         "properties": {
@@ -6759,7 +6739,6 @@
         }
       },
       "CharacterRotationUrls": {
-        "title": "CharacterRotationUrls",
         "description": "URLs for character rotation images",
         "type": "object",
         "properties": {
@@ -6812,7 +6791,6 @@
         ]
       },
       "CharacterSize": {
-        "title": "CharacterSize",
         "description": "Character sprite dimensions",
         "type": "object",
         "properties": {
@@ -6833,7 +6811,6 @@
         ]
       },
       "CharacterSummary": {
-        "title": "CharacterSummary",
         "description": "Summary of a character for listing",
         "type": "object",
         "properties": {
@@ -6949,7 +6926,6 @@
         }
       },
       "CharactersListResponse": {
-        "title": "CharactersListResponse",
         "description": "Response for character listing",
         "type": "object",
         "properties": {
@@ -7005,7 +6981,6 @@
         }
       },
       "ConceptImage": {
-        "title": "ConceptImage",
         "description": "Optional concept image for UI generation guidance.",
         "type": "object",
         "properties": {
@@ -7033,7 +7008,6 @@
         }
       },
       "Create1DirectionObjectRequest": {
-        "title": "Create1DirectionObjectRequest",
         "description": "Request to create a 1-direction object.",
         "type": "object",
         "properties": {
@@ -7091,7 +7065,6 @@
         }
       },
       "Create1DirectionObjectResponse": {
-        "title": "Create1DirectionObjectResponse",
         "description": "Response model for 1-direction object creation.",
         "type": "object",
         "properties": {
@@ -7124,7 +7097,6 @@
         ]
       },
       "Create8DirectionObjectRequest": {
-        "title": "Create8DirectionObjectRequest",
         "description": "Request to create an 8-direction object.",
         "type": "object",
         "properties": {
@@ -7178,7 +7150,6 @@
         }
       },
       "Create8DirectionObjectResponse": {
-        "title": "Create8DirectionObjectResponse",
         "description": "Response model for 8-direction object creation.",
         "type": "object",
         "properties": {
@@ -7205,7 +7176,6 @@
         ]
       },
       "CreateCharacterAnimationRequest": {
-        "title": "CreateCharacterAnimationRequest",
         "description": "Request model for character animation endpoint",
         "type": "object",
         "properties": {
@@ -7343,7 +7313,6 @@
         }
       },
       "CreateCharacterAnimationResponse": {
-        "title": "CreateCharacterAnimationResponse",
         "description": "Response model for character animation (background jobs)",
         "type": "object",
         "properties": {
@@ -7396,7 +7365,6 @@
         }
       },
       "CreateCharacterProRequest": {
-        "title": "CreateCharacterProRequest",
         "description": "Request model for /v2/create-character-pro.",
         "type": "object",
         "properties": {
@@ -7486,7 +7454,6 @@
         }
       },
       "CreateCharacterProResponse": {
-        "title": "CreateCharacterProResponse",
         "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
         "type": "object",
         "properties": {
@@ -7521,7 +7488,6 @@
         }
       },
       "CreateCharacterStateRequest": {
-        "title": "CreateCharacterStateRequest",
         "description": "Request to produce a state (variant) of an existing character.",
         "type": "object",
         "properties": {
@@ -7573,7 +7539,6 @@
         }
       },
       "CreateCharacterStateResponse": {
-        "title": "CreateCharacterStateResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -7599,7 +7564,6 @@
         ]
       },
       "CreateCharacterV3Request": {
-        "title": "CreateCharacterV3Request",
         "description": "Request model for /v2/create-character-v3.\n\nTwo modes:\n- **Reference image**: provide `reference_image` — v3 rotates it into 8 directions.\n- **From scratch**: omit `reference_image` — pixen generates a sprite from\n  `description`, then v3 rotates it. Supports extra style params (`outline`, `detail`).",
         "type": "object",
         "properties": {
@@ -7699,7 +7663,6 @@
         ]
       },
       "CreateCharacterV3Response": {
-        "title": "CreateCharacterV3Response",
         "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
         "type": "object",
         "properties": {
@@ -7743,7 +7706,6 @@
         }
       },
       "CreateCharacterWith4DirectionsRequest": {
-        "title": "CreateCharacterWith4DirectionsRequest",
         "description": "Request model for 4-directions character creation endpoint",
         "type": "object",
         "properties": {
@@ -7875,7 +7837,6 @@
         }
       },
       "CreateCharacterWith4DirectionsResponse": {
-        "title": "CreateCharacterWith4DirectionsResponse",
         "description": "Response model for 4-directions character creation (background job)",
         "type": "object",
         "properties": {
@@ -7910,7 +7871,6 @@
         }
       },
       "CreateCharacterWith8DirectionsRequest": {
-        "title": "CreateCharacterWith8DirectionsRequest",
         "description": "Request model for 8-directions character creation endpoint",
         "type": "object",
         "properties": {
@@ -8051,7 +8011,6 @@
         }
       },
       "CreateCharacterWith8DirectionsResponse": {
-        "title": "CreateCharacterWith8DirectionsResponse",
         "description": "Response model for 8-directions character creation (background job)",
         "type": "object",
         "properties": {
@@ -8086,7 +8045,6 @@
         }
       },
       "CreateImageBitforgeRequest": {
-        "title": "CreateImageBitforgeRequest",
         "description": "Request model for image generation endpoint",
         "type": "object",
         "properties": {
@@ -8239,7 +8197,6 @@
         }
       },
       "CreateImageBitforgeResponse": {
-        "title": "CreateImageBitforgeResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -8254,7 +8211,6 @@
         ]
       },
       "CreateImagePixenRequest": {
-        "title": "CreateImagePixenRequest",
         "description": "Request model for Pixen image generation endpoint",
         "type": "object",
         "properties": {
@@ -8325,7 +8281,6 @@
         }
       },
       "CreateImagePixenResponse": {
-        "title": "CreateImagePixenResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -8349,7 +8304,6 @@
         ]
       },
       "CreateImagePixfluxBackgroundResponse": {
-        "title": "CreateImagePixfluxBackgroundResponse",
         "description": "Response model for the background pixflux endpoint",
         "type": "object",
         "properties": {
@@ -8381,7 +8335,6 @@
         }
       },
       "CreateImagePixfluxRequest": {
-        "title": "CreateImagePixfluxRequest",
         "description": "Request model for pixflux image generation endpoint",
         "type": "object",
         "properties": {
@@ -8484,7 +8437,6 @@
         }
       },
       "CreateImagePixfluxResponse": {
-        "title": "CreateImagePixfluxResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -8499,7 +8451,6 @@
         ]
       },
       "CreateIsometricTileBackgroundResponse": {
-        "title": "CreateIsometricTileBackgroundResponse",
         "description": "Response for background isometric tile generation (async-only)",
         "type": "object",
         "properties": {
@@ -8530,7 +8481,6 @@
         ]
       },
       "CreateIsometricTileRequest": {
-        "title": "CreateIsometricTileRequest",
         "description": "Request model for pixflux image generation endpoint",
         "type": "object",
         "properties": {
@@ -8637,7 +8587,6 @@
         }
       },
       "CreateIsometricTileResponse": {
-        "title": "CreateIsometricTileResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -8652,7 +8601,6 @@
         ]
       },
       "CreateMapObjectRequest": {
-        "title": "CreateMapObjectRequest",
         "description": "Request for creating a map object with transparent background",
         "type": "object",
         "properties": {
@@ -8777,7 +8725,6 @@
         }
       },
       "CreateMapObjectResponse": {
-        "title": "CreateMapObjectResponse",
         "description": "Response model for map object creation (background job)",
         "type": "object",
         "properties": {
@@ -8812,7 +8759,6 @@
         }
       },
       "CreateObjectStateRequest": {
-        "title": "CreateObjectStateRequest",
         "description": "Request to produce a state (variant) of an existing object.",
         "type": "object",
         "properties": {
@@ -8842,7 +8788,6 @@
         }
       },
       "CreateObjectStateResponse": {
-        "title": "CreateObjectStateResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -8868,7 +8813,6 @@
         ]
       },
       "CreateTilesProBackgroundResponse": {
-        "title": "CreateTilesProBackgroundResponse",
         "description": "Response for background tiles pro generation (async-only)",
         "type": "object",
         "properties": {
@@ -8899,7 +8843,6 @@
         ]
       },
       "CreateTilesProRequest": {
-        "title": "CreateTilesProRequest",
         "description": "Request model for tiles pro generation endpoint",
         "type": "object",
         "properties": {
@@ -9068,7 +9011,6 @@
         }
       },
       "CreateTilesetBackgroundResponse": {
-        "title": "CreateTilesetBackgroundResponse",
         "description": "Response for background tileset generation (async-only)",
         "type": "object",
         "properties": {
@@ -9180,7 +9122,6 @@
         }
       },
       "CreateTilesetRequest": {
-        "title": "CreateTilesetRequest",
         "description": "Request model for tileset generation endpoint",
         "type": "object",
         "properties": {
@@ -9363,7 +9304,6 @@
         }
       },
       "CreateTilesetResponse": {
-        "title": "CreateTilesetResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -9384,7 +9324,6 @@
         ]
       },
       "CreateTilesetSidescrollerRequest": {
-        "title": "CreateTilesetSidescrollerRequest",
         "description": "Request model for sidescroller tileset generation endpoint.\n\nCreates platform tilesets for 2D platformer/side-scrolling games.\nThe view is always \"side\" and background is always transparent.",
         "type": "object",
         "properties": {
@@ -9498,7 +9437,6 @@
         }
       },
       "CreateUIAssetRequest": {
-        "title": "CreateUIAssetRequest",
         "description": "Request for POST /v2/ui-assets (shape-based UI panel generation).",
         "type": "object",
         "properties": {
@@ -9586,7 +9524,6 @@
         }
       },
       "CreateUIAssetResponse": {
-        "title": "CreateUIAssetResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -9620,7 +9557,6 @@
         }
       },
       "Credits": {
-        "title": "Credits",
         "description": "USD credit balance",
         "type": "object",
         "properties": {
@@ -9644,7 +9580,6 @@
         ]
       },
       "DeleteAnimationResponse": {
-        "title": "DeleteAnimationResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -9682,7 +9617,6 @@
         ]
       },
       "DeleteCharacterResponse": {
-        "title": "DeleteCharacterResponse",
         "description": "Response for v2 API character deletion",
         "type": "object",
         "properties": {
@@ -9720,7 +9654,6 @@
         ]
       },
       "DeleteIsometricTileResponse": {
-        "title": "DeleteIsometricTileResponse",
         "description": "Response for isometric tile deletion.",
         "type": "object",
         "properties": {
@@ -9748,7 +9681,6 @@
         ]
       },
       "DeleteObjectResponse": {
-        "title": "DeleteObjectResponse",
         "description": "Response for object deletion",
         "type": "object",
         "properties": {
@@ -9776,7 +9708,6 @@
         ]
       },
       "DeleteSidescrollerTilesetResponse": {
-        "title": "DeleteSidescrollerTilesetResponse",
         "description": "Response for sidescroller tileset deletion.",
         "type": "object",
         "properties": {
@@ -9804,7 +9735,6 @@
         ]
       },
       "DeleteTilesProResponse": {
-        "title": "DeleteTilesProResponse",
         "description": "Response for tiles-pro deletion.",
         "type": "object",
         "properties": {
@@ -9832,7 +9762,6 @@
         ]
       },
       "DeleteTilesetResponse": {
-        "title": "DeleteTilesetResponse",
         "description": "Response for tileset deletion.",
         "type": "object",
         "properties": {
@@ -9860,7 +9789,6 @@
         ]
       },
       "DeleteUIAssetResponse": {
-        "title": "DeleteUIAssetResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -9877,7 +9805,6 @@
         ]
       },
       "Detail": {
-        "title": "Detail",
         "type": "string",
         "enum": [
           "low detail",
@@ -9886,7 +9813,6 @@
         ]
       },
       "Direction": {
-        "title": "Direction",
         "type": "string",
         "enum": [
           "north",
@@ -9900,7 +9826,6 @@
         ]
       },
       "DirectionSubmission": {
-        "title": "DirectionSubmission",
         "type": "object",
         "properties": {
           "direction": {
@@ -9930,7 +9855,6 @@
         ]
       },
       "DismissReviewResponse": {
-        "title": "DismissReviewResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -9939,7 +9863,6 @@
         }
       },
       "EditAnimationV2Request": {
-        "title": "EditAnimationV2Request",
         "description": "Request model for edit-animation-v2 endpoint",
         "type": "object",
         "properties": {
@@ -10012,7 +9935,6 @@
         }
       },
       "EditAnimationV2Response": {
-        "title": "EditAnimationV2Response",
         "description": "Response model for edit-animation-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10044,7 +9966,6 @@
         }
       },
       "EditImage": {
-        "title": "EditImage",
         "description": "An image to edit with its dimensions.",
         "type": "object",
         "properties": {
@@ -10081,7 +10002,6 @@
         }
       },
       "EditImageRequest": {
-        "title": "EditImageRequest",
         "description": "Request model for image editing endpoint",
         "type": "object",
         "properties": {
@@ -10161,7 +10081,6 @@
         }
       },
       "EditImageResponse": {
-        "title": "EditImageResponse",
         "description": "Response model for image editing endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10193,7 +10112,6 @@
         }
       },
       "EditImagesV2Request": {
-        "title": "EditImagesV2Request",
         "description": "Request model for edit-images endpoint",
         "type": "object",
         "properties": {
@@ -10269,7 +10187,6 @@
         }
       },
       "EditImagesV2Response": {
-        "title": "EditImagesV2Response",
         "description": "Response model for edit-images endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10301,7 +10218,6 @@
         }
       },
       "EnhanceAnimationV3PromptRequest": {
-        "title": "EnhanceAnimationV3PromptRequest",
         "type": "object",
         "properties": {
           "first_frame": {
@@ -10332,7 +10248,6 @@
         }
       },
       "EnhanceAnimationV3PromptResponse": {
-        "title": "EnhanceAnimationV3PromptResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -10349,7 +10264,6 @@
         ]
       },
       "EnhanceCharacterV3PromptRequest": {
-        "title": "EnhanceCharacterV3PromptRequest",
         "type": "object",
         "properties": {
           "description": {
@@ -10400,7 +10314,6 @@
         }
       },
       "EnhanceCharacterV3PromptResponse": {
-        "title": "EnhanceCharacterV3PromptResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -10417,7 +10330,6 @@
         ]
       },
       "EnhancePixenPromptRequest": {
-        "title": "EnhancePixenPromptRequest",
         "type": "object",
         "properties": {
           "description": {
@@ -10469,7 +10381,6 @@
         }
       },
       "EnhancePixenPromptResponse": {
-        "title": "EnhancePixenPromptResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -10486,7 +10397,6 @@
         ]
       },
       "EstimateSkeletonRequest": {
-        "title": "EstimateSkeletonRequest",
         "description": "Request model for estimate skeleton endpoint",
         "type": "object",
         "properties": {
@@ -10497,7 +10407,6 @@
         }
       },
       "EstimateSkeletonResponse": {
-        "title": "EstimateSkeletonResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -10516,7 +10425,6 @@
         ]
       },
       "FrameSize": {
-        "title": "FrameSize",
         "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.",
         "type": "object",
         "properties": {
@@ -10539,7 +10447,6 @@
         ]
       },
       "Generate8RotationsV2Request": {
-        "title": "Generate8RotationsV2Request",
         "description": "Request model for generate-8-rotations-v2 endpoint",
         "type": "object",
         "properties": {
@@ -10623,7 +10530,6 @@
         }
       },
       "Generate8RotationsV2Response": {
-        "title": "Generate8RotationsV2Response",
         "description": "Response model for generate-8-rotations-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10655,7 +10561,6 @@
         }
       },
       "Generate8RotationsV3Request": {
-        "title": "Generate8RotationsV3Request",
         "description": "Request model for generate-8-rotations-v3 endpoint",
         "type": "object",
         "properties": {
@@ -10694,7 +10599,6 @@
         }
       },
       "Generate8RotationsV3Response": {
-        "title": "Generate8RotationsV3Response",
         "description": "Background job response. Poll GET /v2/background-jobs/{id} for results.",
         "type": "object",
         "properties": {
@@ -10722,7 +10626,6 @@
         }
       },
       "GenerateFontProRequest": {
-        "title": "GenerateFontProRequest",
         "description": "Request model for the generate-font-pro endpoint.\n\nNo input image — the glyph layout + style come from a bundled per-weight\nreference atlas; ``description`` drives the restyle.",
         "type": "object",
         "properties": {
@@ -10780,7 +10683,6 @@
         }
       },
       "GenerateFontProResponse": {
-        "title": "GenerateFontProResponse",
         "description": "Response model for the generate-font-pro endpoint (background job).",
         "type": "object",
         "properties": {
@@ -10812,7 +10714,6 @@
         }
       },
       "GenerateImageV2Request": {
-        "title": "GenerateImageV2Request",
         "description": "Request model for generate-image-v2 endpoint",
         "type": "object",
         "properties": {
@@ -10871,7 +10772,6 @@
         }
       },
       "GenerateImageV2Response": {
-        "title": "GenerateImageV2Response",
         "description": "Response model for generate-image-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10903,7 +10803,6 @@
         }
       },
       "GenerateUIV2Request": {
-        "title": "GenerateUIV2Request",
         "description": "Request model for generate-ui-v2 endpoint",
         "type": "object",
         "properties": {
@@ -10955,7 +10854,6 @@
         }
       },
       "GenerateUIV2Response": {
-        "title": "GenerateUIV2Response",
         "description": "Response model for generate-ui-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -10987,7 +10885,6 @@
         }
       },
       "GenerateWithStyleV2Request": {
-        "title": "GenerateWithStyleV2Request",
         "description": "Request model for generate-with-style-v2 endpoint",
         "type": "object",
         "properties": {
@@ -11055,7 +10952,6 @@
         }
       },
       "GenerateWithStyleV2Response": {
-        "title": "GenerateWithStyleV2Response",
         "description": "Response model for generate-with-style-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -11087,7 +10983,6 @@
         }
       },
       "GetFontResponse": {
-        "title": "GetFontResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11123,7 +11018,6 @@
         ]
       },
       "GetMapObjectResponse": {
-        "title": "GetMapObjectResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11170,7 +11064,6 @@
         ]
       },
       "GetPortraitCharacterResponse": {
-        "title": "GetPortraitCharacterResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11209,7 +11102,6 @@
         ]
       },
       "GetTilesProResponse": {
-        "title": "GetTilesProResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11243,7 +11135,6 @@
         ]
       },
       "GetVocalAnimationResponse": {
-        "title": "GetVocalAnimationResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11316,7 +11207,6 @@
         ]
       },
       "HTTPValidationError": {
-        "title": "HTTPValidationError",
         "type": "object",
         "properties": {
           "detail": {
@@ -11329,7 +11219,6 @@
         }
       },
       "ImageToPixelartProRequest": {
-        "title": "ImageToPixelartProRequest",
         "description": "Request model for image to pixel art (pro) endpoint",
         "type": "object",
         "properties": {
@@ -11363,7 +11252,6 @@
         }
       },
       "ImageToPixelartProResponse": {
-        "title": "ImageToPixelartProResponse",
         "description": "Response model for image to pixel art (pro) endpoint (background job)",
         "type": "object",
         "properties": {
@@ -11395,7 +11283,6 @@
         }
       },
       "ImageToPixelartRequest": {
-        "title": "ImageToPixelartRequest",
         "description": "Request model for image to pixel art endpoint",
         "type": "object",
         "properties": {
@@ -11445,7 +11332,6 @@
         }
       },
       "ImageToPixelartResponse": {
-        "title": "ImageToPixelartResponse",
         "description": "Response for completed image to pixel art conversion",
         "type": "object",
         "properties": {
@@ -11461,7 +11347,6 @@
         ]
       },
       "InpaintImage": {
-        "title": "InpaintImage",
         "description": "Image with size for inpainting.",
         "type": "object",
         "properties": {
@@ -11489,7 +11374,6 @@
         }
       },
       "InpaintRequest": {
-        "title": "InpaintRequest",
         "description": "Request model for image generation endpoint",
         "type": "object",
         "properties": {
@@ -11606,7 +11490,6 @@
         }
       },
       "InpaintResponse": {
-        "title": "InpaintResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -11621,7 +11504,6 @@
         ]
       },
       "InpaintV3Request": {
-        "title": "InpaintV3Request",
         "description": "Request model for inpaint-v3 endpoint",
         "type": "object",
         "properties": {
@@ -11695,7 +11577,6 @@
         }
       },
       "InpaintV3Response": {
-        "title": "InpaintV3Response",
         "description": "Response model for inpaint-v3 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -11727,7 +11608,6 @@
         }
       },
       "InterpolationV2Request": {
-        "title": "InterpolationV2Request",
         "description": "Request model for interpolation-v2 endpoint",
         "type": "object",
         "properties": {
@@ -11797,7 +11677,6 @@
         }
       },
       "InterpolationV2Response": {
-        "title": "InterpolationV2Response",
         "description": "Response model for interpolation-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -11829,7 +11708,6 @@
         }
       },
       "IsometricTileSummary": {
-        "title": "IsometricTileSummary",
         "description": "Summary of an isometric tile for listing",
         "type": "object",
         "properties": {
@@ -11877,7 +11755,6 @@
         ]
       },
       "IsometricTilesListResponse": {
-        "title": "IsometricTilesListResponse",
         "description": "Response for isometric tile listing",
         "type": "object",
         "properties": {
@@ -11904,7 +11781,6 @@
         ]
       },
       "KeyframeImage": {
-        "title": "KeyframeImage",
         "description": "Keyframe image for interpolation.",
         "type": "object",
         "properties": {
@@ -11932,7 +11808,6 @@
         }
       },
       "Keypoint": {
-        "title": "Keypoint",
         "type": "object",
         "properties": {
           "x": {
@@ -11960,7 +11835,6 @@
         ]
       },
       "LipSyncFrameOut": {
-        "title": "LipSyncFrameOut",
         "type": "object",
         "properties": {
           "viseme": {
@@ -11992,7 +11866,6 @@
         ]
       },
       "LipSyncRequest": {
-        "title": "LipSyncRequest",
         "type": "object",
         "properties": {
           "text": {
@@ -12056,7 +11929,6 @@
         }
       },
       "LipSyncResponse": {
-        "title": "LipSyncResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -12113,7 +11985,6 @@
         ]
       },
       "MaskInpainting": {
-        "title": "MaskInpainting",
         "description": "Manual mask image for precise control",
         "type": "object",
         "properties": {
@@ -12133,7 +12004,6 @@
         ]
       },
       "ObjectAnimationDirection": {
-        "title": "ObjectAnimationDirection",
         "description": "One direction within an animation group.",
         "type": "object",
         "properties": {
@@ -12162,7 +12032,6 @@
         ]
       },
       "ObjectAnimationGroup": {
-        "title": "ObjectAnimationGroup",
         "description": "An animation grouped across one or more directions, keyed by animation_group_id.\n\nLegacy rows that share an animation_name but lack a group_id are bucketed\nby name and surfaced here too — the animation_group_id field will be the\nbackfilled UUID after migration 005 runs.",
         "type": "object",
         "properties": {
@@ -12203,7 +12072,6 @@
         ]
       },
       "ObjectDetail": {
-        "title": "ObjectDetail",
         "description": "Detailed object information including rotation URLs",
         "type": "object",
         "properties": {
@@ -12350,7 +12218,6 @@
         }
       },
       "ObjectRotationUrls": {
-        "title": "ObjectRotationUrls",
         "description": "URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).\nFor 1-direction objects all keys are null — see `storage_urls['unknown']`.",
         "type": "object",
         "properties": {
@@ -12397,7 +12264,6 @@
         }
       },
       "ObjectSize": {
-        "title": "ObjectSize",
         "description": "Object sprite dimensions",
         "type": "object",
         "properties": {
@@ -12418,7 +12284,6 @@
         ]
       },
       "ObjectSummary": {
-        "title": "ObjectSummary",
         "description": "Summary of an object for listing",
         "type": "object",
         "properties": {
@@ -12508,7 +12373,6 @@
         }
       },
       "ObjectsListResponse": {
-        "title": "ObjectsListResponse",
         "description": "Response for object listing",
         "type": "object",
         "properties": {
@@ -12558,7 +12422,6 @@
         }
       },
       "OriginalPosition": {
-        "title": "OriginalPosition",
         "description": "Original position in source tileset grid",
         "type": "object",
         "properties": {
@@ -12579,7 +12442,6 @@
         ]
       },
       "Outline": {
-        "title": "Outline",
         "type": "string",
         "enum": [
           "single color black outline",
@@ -12589,7 +12451,6 @@
         ]
       },
       "OutputSize": {
-        "title": "OutputSize",
         "description": "Output dimensions",
         "type": "object",
         "properties": {
@@ -12618,7 +12479,6 @@
         }
       },
       "OvalInpainting": {
-        "title": "OvalInpainting",
         "description": "Automatic oval/ellipse mask generation",
         "type": "object",
         "properties": {
@@ -12639,7 +12499,6 @@
         }
       },
       "Point": {
-        "title": "Point",
         "type": "object",
         "properties": {
           "x": {
@@ -12666,7 +12525,6 @@
         ]
       },
       "PortraitCharacterProRequest": {
-        "title": "PortraitCharacterProRequest",
         "description": "Request model for portrait-character-pro endpoint.",
         "type": "object",
         "properties": {
@@ -12730,7 +12588,6 @@
         }
       },
       "PortraitCharacterProResponse": {
-        "title": "PortraitCharacterProResponse",
         "description": "Response model for portrait-character-pro endpoint (background job).",
         "type": "object",
         "properties": {
@@ -12762,7 +12619,6 @@
         }
       },
       "ProImageSize": {
-        "title": "ProImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -12790,7 +12646,6 @@
         }
       },
       "RectangleInpainting": {
-        "title": "RectangleInpainting",
         "description": "Automatic rectangular mask generation",
         "type": "object",
         "properties": {
@@ -12811,7 +12666,6 @@
         }
       },
       "RemoveBackgroundRequest": {
-        "title": "RemoveBackgroundRequest",
         "description": "Request model for remove-background endpoint",
         "type": "object",
         "properties": {
@@ -12862,7 +12716,6 @@
         }
       },
       "RemoveBackgroundResponse": {
-        "title": "RemoveBackgroundResponse",
         "description": "Response for completed background removal",
         "type": "object",
         "properties": {
@@ -12878,7 +12731,6 @@
         ]
       },
       "ResizeRequest": {
-        "title": "ResizeRequest",
         "description": "Request model for resize endpoint",
         "type": "object",
         "properties": {
@@ -12968,7 +12820,6 @@
         }
       },
       "ResizeResponse": {
-        "title": "ResizeResponse",
         "description": "Response for completed resize",
         "type": "object",
         "properties": {
@@ -12984,7 +12835,6 @@
         ]
       },
       "RotateRequest": {
-        "title": "RotateRequest",
         "description": "Request model for image generation endpoint",
         "type": "object",
         "properties": {
@@ -13089,7 +12939,6 @@
         }
       },
       "RotateResponse": {
-        "title": "RotateResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13104,7 +12953,6 @@
         ]
       },
       "SelectObjectFramesRequest": {
-        "title": "SelectObjectFramesRequest",
         "type": "object",
         "properties": {
           "indices": {
@@ -13134,7 +12982,6 @@
         }
       },
       "SelectObjectFramesResponse": {
-        "title": "SelectObjectFramesResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13153,7 +13000,6 @@
         ]
       },
       "SetPortraitRequest": {
-        "title": "SetPortraitRequest",
         "type": "object",
         "properties": {
           "image": {
@@ -13166,7 +13012,6 @@
         ]
       },
       "SetPortraitResponse": {
-        "title": "SetPortraitResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13194,7 +13039,6 @@
         ]
       },
       "Shading": {
-        "title": "Shading",
         "type": "string",
         "enum": [
           "flat shading",
@@ -13205,7 +13049,6 @@
         ]
       },
       "SidescrollerTileSize": {
-        "title": "SidescrollerTileSize",
         "type": "object",
         "properties": {
           "width": {
@@ -13241,7 +13084,6 @@
         }
       },
       "SidescrollerTilesetSummary": {
-        "title": "SidescrollerTilesetSummary",
         "type": "object",
         "properties": {
           "id": {
@@ -13287,7 +13129,6 @@
         ]
       },
       "SidescrollerTilesetsListResponse": {
-        "title": "SidescrollerTilesetsListResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13312,7 +13153,6 @@
         ]
       },
       "SkeletonLabel": {
-        "title": "SkeletonLabel",
         "type": "string",
         "enum": [
           "NOSE",
@@ -13336,7 +13176,6 @@
         ]
       },
       "StyleImage": {
-        "title": "StyleImage",
         "description": "Style reference image with dimensions.",
         "type": "object",
         "properties": {
@@ -13373,7 +13212,6 @@
         }
       },
       "StyleOptions": {
-        "title": "StyleOptions",
         "description": "Options for what to copy from the style image.",
         "type": "object",
         "properties": {
@@ -13410,7 +13248,6 @@
         }
       },
       "StyleReferenceImage": {
-        "title": "StyleReferenceImage",
         "type": "object",
         "properties": {
           "type": {
@@ -13437,7 +13274,6 @@
         ]
       },
       "Subscription": {
-        "title": "Subscription",
         "description": "Subscription generation balance",
         "type": "object",
         "properties": {
@@ -13484,7 +13320,6 @@
         ]
       },
       "TalkingGifRequest": {
-        "title": "TalkingGifRequest",
         "type": "object",
         "properties": {
           "text": {
@@ -13545,7 +13380,6 @@
         }
       },
       "TalkingGifResponse": {
-        "title": "TalkingGifResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13599,7 +13433,6 @@
         ]
       },
       "Tile": {
-        "title": "Tile",
         "description": "Individual tile with metadata",
         "type": "object",
         "properties": {
@@ -13649,7 +13482,6 @@
         ]
       },
       "TileConnections": {
-        "title": "TileConnections",
         "description": "Deprecated. Valid tile connections in each cardinal direction.",
         "type": "object",
         "properties": {
@@ -13694,7 +13526,6 @@
         ]
       },
       "TileCorners": {
-        "title": "TileCorners",
         "description": "Corner terrain types for a tile",
         "type": "object",
         "properties": {
@@ -13747,7 +13578,6 @@
         ]
       },
       "TilePattern4x4": {
-        "title": "TilePattern4x4",
         "description": "4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)",
         "type": "object",
         "properties": {
@@ -13792,7 +13622,6 @@
         ]
       },
       "TileSize": {
-        "title": "TileSize",
         "type": "object",
         "properties": {
           "width": {
@@ -13830,7 +13659,6 @@
         }
       },
       "TilesProListResponse": {
-        "title": "TilesProListResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -13855,7 +13683,6 @@
         ]
       },
       "TilesProStyleImage": {
-        "title": "TilesProStyleImage",
         "description": "A style reference image with its dimensions.",
         "type": "object",
         "properties": {
@@ -13884,7 +13711,6 @@
         ]
       },
       "TilesProStyleOptions": {
-        "title": "TilesProStyleOptions",
         "description": "Options for what to copy from the style images.",
         "type": "object",
         "properties": {
@@ -13915,7 +13741,6 @@
         }
       },
       "TilesProSummary": {
-        "title": "TilesProSummary",
         "type": "object",
         "properties": {
           "id": {
@@ -13968,7 +13793,6 @@
         ]
       },
       "TilesetCameraView": {
-        "title": "TilesetCameraView",
         "description": "Camera view options supported for tileset generation",
         "type": "string",
         "enum": [
@@ -13977,7 +13801,6 @@
         ]
       },
       "TilesetData": {
-        "title": "TilesetData",
         "description": "Tileset containing individual tiles",
         "type": "object",
         "properties": {
@@ -14028,7 +13851,6 @@
         ]
       },
       "TilesetMetadata": {
-        "title": "TilesetMetadata",
         "description": "Metadata about the tileset generation",
         "type": "object",
         "properties": {
@@ -14090,7 +13912,6 @@
         ]
       },
       "TilesetSummary": {
-        "title": "TilesetSummary",
         "description": "Summary of a tileset for listing",
         "type": "object",
         "properties": {
@@ -14147,7 +13968,6 @@
         ]
       },
       "TilesetsListResponse": {
-        "title": "TilesetsListResponse",
         "description": "Response for tileset listing",
         "type": "object",
         "properties": {
@@ -14174,7 +13994,6 @@
         ]
       },
       "TransferOutfitV2Request": {
-        "title": "TransferOutfitV2Request",
         "description": "Request model for transfer-outfit-v2 endpoint",
         "type": "object",
         "properties": {
@@ -14259,7 +14078,6 @@
         }
       },
       "TransferOutfitV2Response": {
-        "title": "TransferOutfitV2Response",
         "description": "Response model for transfer-outfit-v2 endpoint (background job)",
         "type": "object",
         "properties": {
@@ -14291,7 +14109,6 @@
         }
       },
       "UIAssetDetail": {
-        "title": "UIAssetDetail",
         "type": "object",
         "properties": {
           "id": {
@@ -14347,7 +14164,6 @@
         ]
       },
       "UIAssetSize": {
-        "title": "UIAssetSize",
         "type": "object",
         "properties": {
           "width": {
@@ -14367,7 +14183,6 @@
         ]
       },
       "UIAssetSummary": {
-        "title": "UIAssetSummary",
         "type": "object",
         "properties": {
           "id": {
@@ -14413,7 +14228,6 @@
         ]
       },
       "UIAssetsListResponse": {
-        "title": "UIAssetsListResponse",
         "type": "object",
         "properties": {
           "usage": {
@@ -14439,7 +14253,6 @@
         ]
       },
       "UiPieceCircle": {
-        "title": "UiPieceCircle",
         "type": "object",
         "properties": {
           "id": {
@@ -14477,7 +14290,6 @@
         ]
       },
       "UiPiecePolygon": {
-        "title": "UiPiecePolygon",
         "description": "Regular polygon — `sides` vertices at distance `r` from (x, y),\nstarting from angle `phase` (radians).",
         "type": "object",
         "properties": {
@@ -14526,7 +14338,6 @@
         ]
       },
       "UiPieceRect": {
-        "title": "UiPieceRect",
         "type": "object",
         "properties": {
           "id": {
@@ -14574,7 +14385,6 @@
         ]
       },
       "UpdateObjectTagsRequest": {
-        "title": "UpdateObjectTagsRequest",
         "description": "Request to update object tags",
         "type": "object",
         "properties": {
@@ -14600,7 +14410,6 @@
         }
       },
       "UpdateObjectTagsResponse": {
-        "title": "UpdateObjectTagsResponse",
         "description": "Response after updating tags",
         "type": "object",
         "properties": {
@@ -14628,7 +14437,6 @@
         }
       },
       "UpdateTagsRequest": {
-        "title": "UpdateTagsRequest",
         "description": "Request to update character tags",
         "type": "object",
         "properties": {
@@ -14655,7 +14463,6 @@
         }
       },
       "UpdateTagsResponse": {
-        "title": "UpdateTagsResponse",
         "description": "Response after updating tags",
         "type": "object",
         "properties": {
@@ -14688,7 +14495,6 @@
         }
       },
       "Usage": {
-        "title": "Usage",
         "type": "object",
         "properties": {
           "type": {
@@ -14727,7 +14533,6 @@
         ]
       },
       "V3OutputImageSize": {
-        "title": "V3OutputImageSize",
         "description": "Output frame size. The model derives output size from the input; this\nis advisory and used as the initial canvas size on the character row\nbefore pad-for-animation runs.",
         "type": "object",
         "properties": {
@@ -14756,7 +14561,6 @@
         }
       },
       "ValidationError": {
-        "title": "ValidationError",
         "type": "object",
         "properties": {
           "loc": {
@@ -14796,7 +14600,6 @@
         ]
       },
       "VocalAnimationRequest": {
-        "title": "VocalAnimationRequest",
         "type": "object",
         "properties": {
           "character_id": {
@@ -14853,7 +14656,6 @@
         }
       },
       "VocalAnimationResponse": {
-        "title": "VocalAnimationResponse",
         "type": "object",
         "properties": {
           "usage": {
