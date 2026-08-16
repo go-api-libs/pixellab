@@ -8139,7 +8139,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := c.GetLlmsTxtLlmsTxtGet(t.Context()); err == nil {
+			if _, err := c.GetLlmsTxtLlmsTxtGet(t.Context()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
