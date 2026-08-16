@@ -5929,14 +5929,7 @@
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "type": "array",
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Base64Image"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "color_image": {
@@ -7738,6 +7731,7 @@
           "proportions": {
             "title": "Proportions",
             "description": "Character body proportions (preset or custom values). Only applies to humanoid characters.",
+            "type": "object",
             "oneOf": [
               {
                 "$ref": "#/components/schemas/CharacterProportionsPreset"
@@ -7914,6 +7908,7 @@
           "proportions": {
             "title": "Proportions",
             "description": "Character body proportions (preset or custom values). Only applies to humanoid characters.",
+            "type": "object",
             "oneOf": [
               {
                 "$ref": "#/components/schemas/CharacterProportionsPreset"
