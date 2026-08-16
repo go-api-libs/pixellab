@@ -8673,9 +8673,6 @@
               },
               {
                 "$ref": "#/components/schemas/RectangleInpainting"
-              },
-              {
-                "type": "null"
               }
             ]
           },
