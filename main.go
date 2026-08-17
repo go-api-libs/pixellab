@@ -161,8 +161,16 @@ func improveSchema(ss *openapi.SchemaRef) {
 		s.Type = openapi.TypeObject
 	}
 
-	if len(s.AnyOf) != 2 ||
-		s.AnyOf[1].Value.Type != openapi.TypeNull {
+	if len(s.AnyOf) < 2 {
+		return
+	}
+
+	if n := s.AnyOf[len(s.AnyOf)-1]; n.Value.Type != openapi.TypeNull {
+		return
+	}
+
+	s.AnyOf = s.AnyOf[:len(s.AnyOf)-1]
+	if len(s.AnyOf) > 1 {
 		return
 	}
 
