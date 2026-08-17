@@ -18,20 +18,13 @@ import (
 // this function extracts the component name from the identifier or maps the inline type.
 func SchemaRefGoType(ref *openapi.SchemaRef) (*GoType, error) {
 	if ref.Ref != nil {
-		if ref.Value != nil {
-			// A date-time-or-int oneOf collapses to time.Time even when reached
-			// via $ref, so no synthetic component type name leaks into the
-			// generated code.
-			if isDateTimeOrIntegerOneOf(ref.Value) {
-				return &GoType{Name: "time.Time"}, nil
-			}
-			// An untagged anyOf union has no single Go type that represents
-			// every variant; fromSchema never emits a named type for it (see
-			// below), so resolve straight to `any` instead of a dangling
-			// reference to a type that doesn't exist in the generated code.
-			if isAnyOfOnly(ref.Value) {
-				return &GoType{Name: "any"}, nil
-			}
+		// A date-time-or-int oneOf collapses to time.Time even when reached
+		// via $ref, so no synthetic component type name leaks into the
+		// generated code. A oneOf/anyOf union otherwise resolves to its own
+		// generated pointer-bag type (see fromUnionSchema), so the ordinary
+		// $ref-name resolution below already does the right thing for it.
+		if ref.Value != nil && isDateTimeOrIntegerOneOf(ref.Value) {
+			return &GoType{Name: "time.Time"}, nil
 		}
 		// "#/components/schemas/Name" → "Name"
 		parts := strings.Split(ref.Ref.Identifier, "/")
@@ -60,7 +53,12 @@ func SchemaGoType(s *openapi.Schema) (*GoType, error) {
 		if isDateTimeOrIntegerOneOf(s) {
 			return &GoType{Name: "time.Time"}, nil
 		}
-		if isAnyOfOnly(s) {
+		// A oneOf/anyOf union normally goes through fromSchema as a named
+		// component and gets a real generated pointer-bag type (see
+		// fromUnionSchema). This is only reached for a union with no name to
+		// give it (e.g. inline within array items or additionalProperties),
+		// where there's nothing to generate a struct for.
+		if isAnyOfOnly(s) || isOneOfOnly(s) {
 			return &GoType{Name: "any"}, nil
 		}
 		return nil, fmt.Errorf("unsupported schema type: %q", s.Type)
@@ -97,11 +95,17 @@ func isDateTimeOrIntegerOneOf(s *openapi.Schema) bool {
 }
 
 // isAnyOfOnly reports whether s is an untagged union expressed purely via
-// anyOf (no type, allOf, or oneOf of its own). Such a composition has no
-// single Go type that can represent every variant, so callers should fall
-// back to `any` rather than a discriminated-union type.
+// anyOf (no type, allOf, or oneOf of its own).
 func isAnyOfOnly(s *openapi.Schema) bool {
 	return s.Type == "" && len(s.AnyOf) > 0 && len(s.AllOf) == 0 && len(s.OneOf) == 0
+}
+
+// isOneOfOnly reports whether s is an untagged union expressed purely via
+// oneOf (no type, allOf, or anyOf of its own), and is not the
+// date-time-or-integer pattern that collapses to time.Time.
+func isOneOfOnly(s *openapi.Schema) bool {
+	return s.Type == "" && len(s.OneOf) > 0 && len(s.AllOf) == 0 && len(s.AnyOf) == 0 &&
+		!isDateTimeOrIntegerOneOf(s)
 }
 
 func integerGoType(f openapi.Format) (*GoType, error) {
@@ -237,13 +241,76 @@ func fromSchema(name string, s *openapi.Schema) (*Schema, error) {
 	case openapi.TypeArray:
 		return fromArraySchema(name, s)
 	case "":
+		if isDateTimeOrIntegerOneOf(s) {
+			return nil, nil // handled specially: SchemaRefGoType resolves the $ref straight to time.Time
+		}
 		if len(s.AllOf) > 0 {
 			return fromAllOfSchema(name, s)
+		}
+		if len(s.OneOf) > 0 {
+			return fromUnionSchema(name, s, true)
+		}
+		if len(s.AnyOf) > 0 {
+			return fromUnionSchema(name, s, false)
 		}
 		return nil, nil
 	default:
 		return nil, nil // scalar types are used inline
 	}
+}
+
+// fromUnionSchema builds a pointer-bag union type from an untagged oneOf or
+// anyOf composition: one nilable field per variant, with no discriminator.
+// The caller distinguishes which variant matched by checking which field is
+// non-nil after unmarshaling.
+func fromUnionSchema(name string, s *openapi.Schema, isOneOf bool) (*Schema, error) {
+	variants := s.AnyOf
+	if isOneOf {
+		variants = s.OneOf
+	}
+
+	counts := make(map[string]int, len(variants))
+	unionVariants := make([]UnionVariant, len(variants))
+	for i, v := range variants {
+		tp, err := SchemaRefGoType(v)
+		if err != nil {
+			return nil, fmt.Errorf("variant %d: %w", i, err)
+		}
+
+		base := unionVariantFieldName(tp, i)
+		counts[base]++
+		fieldName := base
+		if n := counts[base]; n > 1 {
+			fieldName = fmt.Sprintf("%s%d", base, n)
+		}
+
+		unionVariants[i] = UnionVariant{
+			FieldName: fieldName,
+			Type:      tp.String(),
+		}
+	}
+
+	return &Schema{
+		Name:          name,
+		Description:   getDescription(s, name),
+		Kind:          SchemaKindUnion,
+		UnionVariants: unionVariants,
+		IsOneOf:       isOneOf,
+	}, nil
+}
+
+// unionVariantFieldName derives an exported Go field name from a union
+// variant's resolved type, e.g. "Card" for *Card, "UUID" for uuid.UUID.
+func unionVariantFieldName(t *GoType, index int) string {
+	name := t.Name
+	if i := strings.LastIndex(name, "."); i >= 0 {
+		name = name[i+1:] // strip package qualifier, e.g. "uuid.UUID" -> "UUID"
+	}
+	name = strcase.ToGoPascal(name)
+	if name == "" {
+		name = fmt.Sprintf("Variant%d", index+1)
+	}
+	return name
 }
 
 func getDescription(s *openapi.Schema, name string) string {

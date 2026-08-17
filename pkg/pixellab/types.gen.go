@@ -5,7 +5,9 @@
 package pixellab
 
 import (
+	"encoding/json/jsontext"
 	"encoding/json/v2"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -1473,7 +1475,7 @@ type CreateMapObjectRequest struct {
 	// Background/map image for style matching. Required when using inpainting.
 	BackgroundImage *Base64Image `json:"background_image,omitempty"`
 	// Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
-	Inpainting *any `json:"inpainting,omitempty"`
+	Inpainting *CreateMapObjectRequestInpainting `json:"inpainting,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 }
@@ -1495,6 +1497,68 @@ func (e CreateMapObjectRequestDetail) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
+// CreateMapObjectRequestInpainting is an untagged anyOf union: at least one field is set after unmarshaling.
+type CreateMapObjectRequestInpainting struct {
+	MaskInpainting      *MaskInpainting
+	OvalInpainting      *OvalInpainting
+	RectangleInpainting *RectangleInpainting
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *CreateMapObjectRequestInpainting) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	{
+		var vv MaskInpainting
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.MaskInpainting = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv OvalInpainting
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.OvalInpainting = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv RectangleInpainting
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.RectangleInpainting = &vv
+			matched++
+		}
+	}
+
+	if matched == 0 {
+		return fmt.Errorf("CreateMapObjectRequestInpainting: expected at least one matching variant, got 0")
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.MaskInpainting != nil:
+		return json.MarshalEncode(enc, v.MaskInpainting, jsonOpts)
+	case v.OvalInpainting != nil:
+		return json.MarshalEncode(enc, v.OvalInpainting, jsonOpts)
+	case v.RectangleInpainting != nil:
+		return json.MarshalEncode(enc, v.RectangleInpainting, jsonOpts)
+	}
+
+	return fmt.Errorf("CreateMapObjectRequestInpainting: no variant set")
 }
 
 // Outline style
@@ -1888,6 +1952,68 @@ type CreateTilesetSidescrollerRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
+// CreateUIAssetPiecesItem defines a model
+// CreateUIAssetPiecesItem is an untagged anyOf union: at least one field is set after unmarshaling.
+type CreateUIAssetPiecesItem struct {
+	UIPieceRect    *UiPieceRect
+	UIPieceCircle  *UiPieceCircle
+	UIPiecePolygon *UiPiecePolygon
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *CreateUIAssetPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	{
+		var vv UiPieceRect
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.UIPieceRect = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv UiPieceCircle
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.UIPieceCircle = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv UiPiecePolygon
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.UIPiecePolygon = &vv
+			matched++
+		}
+	}
+
+	if matched == 0 {
+		return fmt.Errorf("CreateUIAssetPiecesItem: expected at least one matching variant, got 0")
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *CreateUIAssetPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.UIPieceRect != nil:
+		return json.MarshalEncode(enc, v.UIPieceRect, jsonOpts)
+	case v.UIPieceCircle != nil:
+		return json.MarshalEncode(enc, v.UIPieceCircle, jsonOpts)
+	case v.UIPiecePolygon != nil:
+		return json.MarshalEncode(enc, v.UIPiecePolygon, jsonOpts)
+	}
+
+	return fmt.Errorf("CreateUIAssetPiecesItem: no variant set")
+}
+
 // Request for POST /v2/ui-assets (shape-based UI panel generation).
 type CreateUIAssetRequest struct {
 	// Style description for the UI panel (e.g. 'wooden RPG panel with gold trim')
@@ -1895,7 +2021,7 @@ type CreateUIAssetRequest struct {
 	// Output image size in pixels (192–688; max per axis depends on aspect)
 	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
-	Pieces []any `json:"pieces,omitempty"`
+	Pieces []CreateUIAssetPiecesItem `json:"pieces,omitempty"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
 	Elements []string `json:"elements,omitempty"`
 	// Optional style reference image (PNG/JPEG base64)
@@ -3948,11 +4074,11 @@ type V3OutputImageSize struct {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []any     `json:"loc,omitempty"`
-	Msg   string    `json:"msg,omitzero"`
-	Type  string    `json:"type,omitzero"`
-	Input *struct{} `json:"input,omitempty"`
-	Ctx   *struct{} `json:"ctx,omitempty"`
+	Loc   []CreateUIAssetPiecesItem `json:"loc,omitempty"`
+	Msg   string                    `json:"msg,omitzero"`
+	Type  string                    `json:"type,omitzero"`
+	Input *struct{}                 `json:"input,omitempty"`
+	Ctx   *struct{}                 `json:"ctx,omitempty"`
 }
 
 // VocalAnimationRequest defines a model

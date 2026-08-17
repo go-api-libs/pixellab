@@ -115,6 +115,13 @@ type Schema struct {
 	EnumValues  []EnumValue `json:"enumValues,omitempty"`
 	MapKey      string      `json:"mapKey,omitzero"`
 	MapValue    string      `json:"mapValue,omitzero"`
+
+	// UnionVariants is set for SchemaKindUnion: one pointer field per
+	// oneOf/anyOf variant. IsOneOf selects the cardinality rule enforced by
+	// the generated UnmarshalJSONFrom: exactly one variant must match for
+	// oneOf, at least one for anyOf.
+	UnionVariants []UnionVariant `json:"unionVariants,omitempty"`
+	IsOneOf       bool           `json:"isOneOf,omitzero"`
 }
 
 // SchemaKind categorizes a schema into struct, enum, or array alias.
@@ -126,7 +133,17 @@ const (
 	SchemaKindArrayAlias                   // array type alias
 	SchemaKindAllOf                        // allOf composition (struct with embedded types)
 	SchemaKindMap
+	SchemaKindUnion // untagged oneOf/anyOf composition (pointer-bag struct)
 )
+
+// UnionVariant is one member of a SchemaKindUnion's pointer bag.
+type UnionVariant struct {
+	// FieldName is the exported Go field name, derived from the variant's
+	// resolved type name (e.g. "Card" for a field of type *Card).
+	FieldName string `json:"fieldName,omitzero"`
+	// Type is the variant's own Go type, without the pointer the field adds.
+	Type string `json:"type,omitzero"`
+}
 
 // Field is a named field within a struct schema.
 type Field struct {
