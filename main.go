@@ -18,8 +18,10 @@ import (
 //go:generate go tool openapi-enrich
 //go:generate go tool openapi-codegen -client
 
-const rawPath = "/Users/mark/Downloads/openapi.json"
-const path = "api/openapi.json"
+const (
+	rawPath = "/Users/mark/Downloads/openapi.json"
+	path    = "api/openapi.json"
+)
 
 var reDirection = regexp.MustCompile(`","default":"(east|high top-down)"`)
 
