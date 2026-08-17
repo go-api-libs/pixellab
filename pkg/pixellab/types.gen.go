@@ -239,6 +239,9 @@ type AnimateWithSkeletonImages []Base64Image
 // Initial images to start the generation from
 type AnimateWithSkeletonInitImages []Base64Image
 
+// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
+type AnimateWithSkeletonMaskImages []Base64Image
+
 // Request model for animation using skeleton endpoint
 type AnimateWithSkeletonRequest struct {
 	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
@@ -261,14 +264,17 @@ type AnimateWithSkeletonRequest struct {
 	// Reference image
 	ReferenceImage Base64Image `json:"reference_image"`
 	// Images used for showing the model with connected skeleton
-	InpaintingImages []Base64Image `json:"inpainting_images,omitempty"`
+	InpaintingImages AnimateWithSkeletonRequestInpaintingImages `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages []Base64Image `json:"mask_images,omitempty"`
+	MaskImages AnimateWithSkeletonMaskImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
+
+// Images used for showing the model with connected skeleton
+type AnimateWithSkeletonRequestInpaintingImages []Base64Image
 
 // AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
@@ -307,14 +313,17 @@ type AnimateWithTextRequest struct {
 	// Reference image
 	ReferenceImage Base64Image `json:"reference_image"`
 	// Existing animation frames to guide the generation
-	InpaintingImages []Base64Image `json:"inpainting_images,omitempty"`
+	InpaintingImages AnimateWithTextRequestInpaintingImages `json:"inpainting_images,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages []Base64Image `json:"mask_images,omitempty"`
+	MaskImages AnimateWithSkeletonMaskImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *Base64Image `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
 	Seed *int `json:"seed,omitempty"`
 }
+
+// Existing animation frames to guide the generation
+type AnimateWithTextRequestInpaintingImages []Base64Image
 
 // AnimateWithTextResponse defines a model
 type AnimateWithTextResponse struct {
@@ -1157,15 +1166,15 @@ type CreateImageBitforgeRequest struct {
 	// Strength of the style transfer (0-100). 50 = balanced.
 	StyleStrength *int `json:"style_strength,omitempty"`
 	// Outline style reference
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading *Shading `json:"shading,omitempty"`
+	Shading Shading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
@@ -1233,13 +1242,13 @@ type CreateImagePixenRequest struct {
 	Description string                                                      `json:"description,omitzero"`
 	ImageSize   app__endpoints__external__v2__create_image_pixen__ImageSize `json:"image_size"`
 	// Outline style
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Detail level (default: highly detailed)
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// Generate with transparent background
 	NoBackground bool `json:"no_background,omitempty"`
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
@@ -1285,15 +1294,15 @@ type CreateImagePixfluxRequest struct {
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style reference (weakly guiding)
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference (weakly guiding)
-	Shading *Shading `json:"shading,omitempty"`
+	Shading Shading `json:"shading,omitzero"`
 	// Detail style reference (weakly guiding)
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle (weakly guiding)
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Subject direction (weakly guiding)
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view (weakly guiding)
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate with transparent background, (blank background over 200x200 area)
@@ -1841,11 +1850,11 @@ type CreateTilesetRequest struct {
 	// How closely to follow the text descriptions (default: 8.0)
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style reference
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading *Shading `json:"shading,omitempty"`
+	Shading Shading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle for tileset (default: "high top-down")
 	View TilesetCameraView `json:"view,omitzero"`
 	// Strength of tile pattern adherence
@@ -1929,11 +1938,11 @@ type CreateTilesetSidescrollerRequest struct {
 	// How closely to follow the text descriptions (default: 8.0)
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style reference
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading *Shading `json:"shading,omitempty"`
+	Shading Shading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Strength of tile pattern adherence
 	TileStrength *float64 `json:"tile_strength,omitempty"`
 	// How flexible it will be when following tileset structure, higher values means more flexibility
@@ -2403,13 +2412,13 @@ type EnhancePixenPromptRequest struct {
 	// Target image size. Prompt complexity scales with size.
 	ImageSize app__endpoints__external__v2__create_image_pixen__ImageSize `json:"image_size"`
 	// Outline style hint.
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Detail level hint.
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle.
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Subject direction the enhanced description should describe.
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// If true, the enhanced description will describe the subject on a plain background (no scene).
 	NoBackground bool `json:"no_background,omitempty"`
 }
@@ -2805,15 +2814,15 @@ type InpaintRequest struct {
 	// (Deprecated)
 	ExtraGuidanceScale *float64 `json:"extra_guidance_scale,omitempty"`
 	// Outline style reference
-	Outline *Outline `json:"outline,omitempty"`
+	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading *Shading `json:"shading,omitempty"`
+	Shading Shading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail *Detail `json:"detail,omitempty"`
+	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
@@ -3326,9 +3335,9 @@ type ResizeRequest struct {
 	// Desired output size
 	TargetSize app__endpoints__external__v2__resize__ImageSize `json:"target_size"`
 	// Camera view angle
-	View *CameraView `json:"view,omitempty"`
+	View CameraView `json:"view,omitzero"`
 	// Directional view
-	Direction *Direction `json:"direction,omitempty"`
+	Direction Direction `json:"direction,omitzero"`
 	// Isometric perspective
 	Isometric bool `json:"isometric,omitempty"`
 	// Oblique projection (beta)
@@ -3367,13 +3376,13 @@ type RotateRequest struct {
 	// How many degrees to rotate the subject
 	DirectionChange *int `json:"direction_change,omitempty"`
 	// From camera view angle
-	FromView *CameraView `json:"from_view,omitempty"`
+	FromView CameraView `json:"from_view,omitzero"`
 	// To camera view angle
-	ToView *CameraView `json:"to_view,omitempty"`
+	ToView CameraView `json:"to_view,omitzero"`
 	// From subject direction
-	FromDirection *Direction `json:"from_direction,omitempty"`
+	FromDirection Direction `json:"from_direction,omitzero"`
 	// From subject direction (default: "east")
-	ToDirection *Direction `json:"to_direction,omitempty"`
+	ToDirection Direction `json:"to_direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
