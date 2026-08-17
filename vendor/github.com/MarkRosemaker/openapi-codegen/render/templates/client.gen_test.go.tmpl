@@ -115,6 +115,7 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		{{ if not .RawBytesSuccess -}}
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
@@ -143,7 +144,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
 			}
 		})
-		{{- end}}
+		{{- end }}{{ end }}
 	})
 {{end -}}
 }
