@@ -71,6 +71,11 @@ type Operation struct {
 	Responses       []Response `json:"responses,omitempty"`
 	SuccessReturn   *GoType    `json:"successReturn,omitempty"`
 	Deprecated      bool       `json:"deprecated,omitzero"`
+	// RawBytesSuccess is true when the operation's success response has no
+	// JSON media type, so SuccessReturn is a raw []byte read directly from
+	// the response body rather than a JSON-decoded type. Such operations
+	// are generated as a single concrete method, not a generic function.
+	RawBytesSuccess bool `json:"rawBytesSuccess,omitzero"`
 }
 
 func (op Operation) ParamsInStruct() Params {
@@ -269,6 +274,10 @@ type Response struct {
 	ContentType string  `json:"contentType,omitzero"`
 	GoType      *GoType `json:"goType,omitempty"`
 	IsSuccess   bool    `json:"isSuccess,omitzero"`
+	// IsRawBytes is true when ContentType has no JSON media type declared for
+	// it, so GoType is a raw []byte read directly from the response body
+	// rather than something to json.Unmarshal into.
+	IsRawBytes bool `json:"isRawBytes,omitzero"`
 }
 
 // ReqBody is the IR representation of an operation request body.

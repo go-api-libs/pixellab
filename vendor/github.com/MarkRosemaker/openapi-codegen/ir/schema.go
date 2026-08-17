@@ -18,10 +18,20 @@ import (
 // this function extracts the component name from the identifier or maps the inline type.
 func SchemaRefGoType(ref *openapi.SchemaRef) (*GoType, error) {
 	if ref.Ref != nil {
-		// A date-time-or-int oneOf collapses to time.Time even when reached via
-		// $ref, so no synthetic component type name leaks into the generated code.
-		if ref.Value != nil && isDateTimeOrIntegerOneOf(ref.Value) {
-			return &GoType{Name: "time.Time"}, nil
+		if ref.Value != nil {
+			// A date-time-or-int oneOf collapses to time.Time even when reached
+			// via $ref, so no synthetic component type name leaks into the
+			// generated code.
+			if isDateTimeOrIntegerOneOf(ref.Value) {
+				return &GoType{Name: "time.Time"}, nil
+			}
+			// An untagged anyOf union has no single Go type that represents
+			// every variant; fromSchema never emits a named type for it (see
+			// below), so resolve straight to `any` instead of a dangling
+			// reference to a type that doesn't exist in the generated code.
+			if isAnyOfOnly(ref.Value) {
+				return &GoType{Name: "any"}, nil
+			}
 		}
 		// "#/components/schemas/Name" → "Name"
 		parts := strings.Split(ref.Ref.Identifier, "/")
@@ -49,6 +59,9 @@ func SchemaGoType(s *openapi.Schema) (*GoType, error) {
 	case "":
 		if isDateTimeOrIntegerOneOf(s) {
 			return &GoType{Name: "time.Time"}, nil
+		}
+		if isAnyOfOnly(s) {
+			return &GoType{Name: "any"}, nil
 		}
 		return nil, fmt.Errorf("unsupported schema type: %q", s.Type)
 	default:
@@ -81,6 +94,14 @@ func isDateTimeOrIntegerOneOf(s *openapi.Schema) bool {
 		}
 	}
 	return hasDateTime && hasInteger
+}
+
+// isAnyOfOnly reports whether s is an untagged union expressed purely via
+// anyOf (no type, allOf, or oneOf of its own). Such a composition has no
+// single Go type that can represent every variant, so callers should fall
+// back to `any` rather than a discriminated-union type.
+func isAnyOfOnly(s *openapi.Schema) bool {
+	return s.Type == "" && len(s.AnyOf) > 0 && len(s.AllOf) == 0 && len(s.OneOf) == 0
 }
 
 func integerGoType(f openapi.Format) (*GoType, error) {

@@ -74,7 +74,7 @@ func FromOperation(
 		}
 	}
 
-	responses, successReturn, err := fromResponses(op.Responses)
+	responses, successReturn, rawBytesSuccess, err := fromResponses(op.Responses)
 	if err != nil {
 		return nil, fmt.Errorf("responses: %w", err)
 	}
@@ -95,6 +95,7 @@ func FromOperation(
 		Responses:       responses,
 		SuccessReturn:   successReturn,
 		Deprecated:      op.Deprecated,
+		RawBytesSuccess: rawBytesSuccess,
 	}, nil
 }
 
@@ -335,9 +336,10 @@ func fromRequestBody(rb *openapi.RequestBody) (*ReqBody, error) {
 	return nil, nil
 }
 
-func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, error) {
+func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, bool, error) {
 	var result []Response
 	var successReturn *GoType
+	var rawBytesSuccess bool
 
 	for code, rRef := range responses.ByIndex() {
 		r := rRef.Value
@@ -345,22 +347,41 @@ func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, e
 		isSuccess := code.IsSuccess()
 		goConst := statusCodeToConst(code)
 
+		// Prefer a JSON media type; if the response declares content but none
+		// of it is JSON (e.g. text/plain), fall back to the first declared
+		// media type and treat the body as an opaque byte stream.
+		var jsonContentType string
+		var jsonSchema *openapi.SchemaRef
+		var firstContentType string
+		for mr, mt := range r.Content.ByIndex() {
+			if firstContentType == "" {
+				firstContentType = string(mr)
+			}
+			if strings.Contains(string(mr), "json") {
+				jsonContentType = string(mr)
+				jsonSchema = mt.Schema
+				break
+			}
+		}
+
 		var goType *GoType
 		var contentType string
+		var isRawBytes bool
 
-		for mr, mt := range r.Content.ByIndex() {
-			if !strings.Contains(string(mr), "json") {
-				continue
-			}
-			contentType = string(mr)
-			if mt.Schema != nil {
+		switch {
+		case jsonContentType != "":
+			contentType = jsonContentType
+			if jsonSchema != nil {
 				var err error
-				goType, err = SchemaRefGoType(mt.Schema)
+				goType, err = SchemaRefGoType(jsonSchema)
 				if err != nil {
-					return nil, nil, fmt.Errorf("response %s: %w", code, err)
+					return nil, nil, false, fmt.Errorf("response %s: %w", code, err)
 				}
 			}
-			break
+		case firstContentType != "":
+			contentType = firstContentType
+			goType = &GoType{Name: "byte", IsSlice: true}
+			isRawBytes = true
 		}
 
 		result = append(result, Response{
@@ -370,14 +391,16 @@ func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, e
 			ContentType: contentType,
 			GoType:      goType,
 			IsSuccess:   isSuccess,
+			IsRawBytes:  isRawBytes,
 		})
 
 		if isSuccess && goType != nil && successReturn == nil {
 			successReturn = goType
+			rawBytesSuccess = isRawBytes
 		}
 	}
 
-	return result, successReturn, nil
+	return result, successReturn, rawBytesSuccess, nil
 }
 
 // statusCodeToConst converts an OpenAPI status code to its net/http constant name.

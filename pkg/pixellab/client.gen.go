@@ -10493,7 +10493,6 @@ func (c *Client) GetLlmsTxtLlmsTxtGet(ctx context.Context) ([]byte, error) {
 			}
 
 			return out, nil
-
 		default:
 			return nil, api.NewErrUnknownContentType(rsp)
 		}

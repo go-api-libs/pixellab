@@ -13,7 +13,7 @@ github.com/MarkRosemaker/jsonutil
 # github.com/MarkRosemaker/openapi v0.0.0-20260816160214-339f6866f4df
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi
-# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260816235223-b20b28a6e508
+# github.com/MarkRosemaker/openapi-codegen v0.0.0-20260817004324-302a0156ebc3
 ## explicit; go 1.26.3
 github.com/MarkRosemaker/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/cmd/openapi-codegen
@@ -49,6 +49,9 @@ github.com/MarkRosemaker/yaml2json
 # github.com/ettle/strcase v0.2.0
 ## explicit; go 1.12
 github.com/ettle/strcase
+# github.com/go-api-libs/api v0.0.0-20260705004954-dad48fbb4ab2
+## explicit; go 1.26
+github.com/go-api-libs/api
 # github.com/go-api-libs/types v0.0.0-20251210072721-82754f56609d
 ## explicit; go 1.23.2
 github.com/go-api-libs/types
