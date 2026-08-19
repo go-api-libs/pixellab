@@ -7,6 +7,10 @@
 
 </div>
 
+<p align="center">
+  <img alt="A gopher watching envelopes fly past through binoculars while sketching in a notebook" src=openapi-enrich.jpg width=500>
+</p>
+
 <h3 align="center">
   Build an API spec out of the traffic you already have.
 </h3>
