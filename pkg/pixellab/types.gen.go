@@ -89,12 +89,32 @@ type DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteParams struct
 	Direction string
 }
 
+// Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.
+//
+// **Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).
+type AnimateObjectMode string
+
+const (
+	AnimateObjectModePro AnimateObjectMode = "pro"
+	AnimateObjectModeV3  AnimateObjectMode = "v3"
+)
+
+// Valid indicates whether the value is a known member of the AnimateObjectMode enum.
+func (e AnimateObjectMode) Valid() bool {
+	switch e {
+	case AnimateObjectModePro, AnimateObjectModeV3:
+		return true
+	default:
+		return false
+	}
+}
+
 // Request to add an animation to an existing object.
 type AnimateObjectRequest struct {
 	// Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.
 	//
 	// **Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).
-	Mode AnimateObjectRequestMode `json:"mode,omitzero"`
+	Mode AnimateObjectMode `json:"mode,omitzero"`
 	// Describe the animation, e.g. 'walking cheerfully'. Required when creating a new animation; can be omitted when adding directions to an existing animation via animation_group_id (the existing description is inherited).
 	AnimationDescription string `json:"animation_description,omitzero"`
 	// Which directions to animate.
@@ -128,7 +148,7 @@ type AnimateObjectRequest struct {
 	// - 1-direction objects: do not pass `directions` at all; the single internal direction is auto-resolved.
 	//
 	// Not compatible with `mode='pro'`.
-	CustomStartFrame *Base64Image `json:"custom_start_frame,omitempty"`
+	CustomStartFrame *BaseImage `json:"custom_start_frame,omitempty"`
 	// Optional target pose to interpolate toward (`mode='v3'` only). Providing this enables **interpolation mode**: the model animates between the start frame (idle or `custom_start_frame`) and this end frame. Dimensions must match the start frame.
 	//
 	// **Requires exactly one direction.**
@@ -136,7 +156,7 @@ type AnimateObjectRequest struct {
 	// - 1-direction objects: do not pass `directions` at all; the single internal direction is auto-resolved.
 	//
 	// Not compatible with `mode='pro'`.
-	EndFrame *Base64Image `json:"end_frame,omitempty"`
+	EndFrame *BaseImage `json:"end_frame,omitempty"`
 	// Keep the input reference frame as frame 0 of the stored animation (`mode='v3'` only). Set `false` to store exactly `frame_count` generated frames — the reference start frame is stripped, so `frame_count=8` stores 8 frames instead of 9. Not compatible with `mode='pro'`.
 	KeepFirstFrame bool `json:"keep_first_frame,omitempty"`
 	// If true, automatically expand `animation_description` into a richer motion description before generating (mode='v3' only) — equivalent to calling /v2/enhance-animation-v3-prompt first. Grounded on `custom_start_frame`/`end_frame` when provided, otherwise on the object's idle frame. The same enhanced description is reused across all requested directions. Requires `animation_description` (cannot enhance an inherited description). Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
@@ -176,71 +196,39 @@ func (e AnimateObjectRequestDirectionsItem) Valid() bool {
 	}
 }
 
-// Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.
-//
-// **Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).
-type AnimateObjectRequestMode string
-
-const (
-	AnimateObjectRequestModePro AnimateObjectRequestMode = "pro"
-	AnimateObjectRequestModeV3  AnimateObjectRequestMode = "v3"
-)
-
-// Valid indicates whether the value is a known member of the AnimateObjectRequestMode enum.
-func (e AnimateObjectRequestMode) Valid() bool {
-	switch e {
-	case AnimateObjectRequestModePro, AnimateObjectRequestModeV3:
-		return true
-	default:
-		return false
-	}
-}
-
 // AnimateObjectResponse defines a model
 type AnimateObjectResponse struct {
-	Usage            *Usage                           `json:"usage,omitempty"`
-	AnimationGroupID string                           `json:"animation_group_id,omitzero"`
-	Mode             AnimateObjectResponseMode        `json:"mode,omitzero"`
-	FrameCount       int                              `json:"frame_count,omitzero"`
-	DisplayName      string                           `json:"display_name,omitzero"`
-	Description      string                           `json:"description,omitzero"`
-	ObjectID         string                           `json:"object_id,omitzero"`
-	Submissions      AnimateObjectResponseSubmissions `json:"submissions,omitempty"`
+	Usage            *Usage `json:"usage,omitempty"`
+	AnimationGroupID string `json:"animation_group_id,omitzero"`
+	// Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.
+	//
+	// **Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).
+	Mode        AnimateObjectMode                `json:"mode,omitzero"`
+	FrameCount  int                              `json:"frame_count,omitzero"`
+	DisplayName string                           `json:"display_name,omitzero"`
+	Description string                           `json:"description,omitzero"`
+	ObjectID    string                           `json:"object_id,omitzero"`
+	Submissions AnimateObjectResponseSubmissions `json:"submissions,omitempty"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitempty"`
 }
 
-// AnimateObjectResponseMode defines a model
-type AnimateObjectResponseMode string
-
-const (
-	AnimateObjectResponseModePro AnimateObjectResponseMode = "pro"
-	AnimateObjectResponseModeV3  AnimateObjectResponseMode = "v3"
-)
-
-// Valid indicates whether the value is a known member of the AnimateObjectResponseMode enum.
-func (e AnimateObjectResponseMode) Valid() bool {
-	switch e {
-	case AnimateObjectResponseModePro, AnimateObjectResponseModeV3:
-		return true
-	default:
-		return false
-	}
-}
-
 // AnimateObjectResponseSubmissions defines a model
 type AnimateObjectResponseSubmissions []DirectionSubmission
 
+// AnimateWithSkeleton defines a model
+type AnimateWithSkeleton struct {
+	Usage  *Usage                    `json:"usage,omitempty"`
+	Images AnimateWithSkeletonImages `json:"images,omitempty"`
+}
+
 // AnimateWithSkeletonImages defines a model
-type AnimateWithSkeletonImages []Base64Image
+type AnimateWithSkeletonImages []BaseImage
 
-// Initial images to start the generation from
-type AnimateWithSkeletonInitImages []Base64Image
-
-// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-type AnimateWithSkeletonMaskImages []Base64Image
+// AnimateWithSkeletonKeypointsItem defines a model
+type AnimateWithSkeletonKeypointsItem []Point
 
 // Request model for animation using skeleton endpoint
 type AnimateWithSkeletonRequest struct {
@@ -254,35 +242,29 @@ type AnimateWithSkeletonRequest struct {
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
-	ObliqueProjection bool `json:"oblique_projection,omitempty"`
-	// Initial images to start the generation from
-	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitempty"`
+	ObliqueProjection bool                      `json:"oblique_projection,omitempty"`
+	InitImages        AnimateWithSkeletonImages `json:"init_images,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-	SkeletonKeypoints []AnimateWithSkeletonRequestSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints []AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
 	// Reference image
-	ReferenceImage Base64Image `json:"reference_image"`
-	// Images used for showing the model with connected skeleton
-	InpaintingImages AnimateWithSkeletonRequestInpaintingImages `json:"inpainting_images,omitempty"`
-	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages AnimateWithSkeletonMaskImages `json:"mask_images,omitempty"`
+	ReferenceImage   BaseImage                 `json:"reference_image"`
+	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitempty"`
+	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Images used for showing the model with connected skeleton
-type AnimateWithSkeletonRequestInpaintingImages []Base64Image
-
-// AnimateWithSkeletonRequestSkeletonKeypointsItem defines a model
-type AnimateWithSkeletonRequestSkeletonKeypointsItem []Point
-
-// AnimateWithSkeletonResponse defines a model
-type AnimateWithSkeletonResponse struct {
-	Usage  *Usage                    `json:"usage,omitempty"`
-	Images AnimateWithSkeletonImages `json:"images,omitempty"`
+// Response model for text-to-animation endpoint (background job)
+type AnimateWithText struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Background job ID for polling status
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	// Job status
+	Status string `json:"status,omitzero"`
 }
 
 // Request model for animation using text endpoint
@@ -305,42 +287,30 @@ type AnimateWithTextRequest struct {
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Subject direction (default: "east")
-	Direction Direction `json:"direction,omitzero"`
-	// Initial images to start the generation from
-	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitempty"`
+	Direction  Direction                 `json:"direction,omitzero"`
+	InitImages AnimateWithSkeletonImages `json:"init_images,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
-	ReferenceImage Base64Image `json:"reference_image"`
-	// Existing animation frames to guide the generation
-	InpaintingImages AnimateWithTextRequestInpaintingImages `json:"inpainting_images,omitempty"`
-	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImages AnimateWithSkeletonMaskImages `json:"mask_images,omitempty"`
+	ReferenceImage   BaseImage                 `json:"reference_image"`
+	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitempty"`
+	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Existing animation frames to guide the generation
-type AnimateWithTextRequestInpaintingImages []Base64Image
-
-// AnimateWithTextResponse defines a model
-type AnimateWithTextResponse struct {
-	Usage  *Usage                    `json:"usage,omitempty"`
-	Images AnimateWithSkeletonImages `json:"images,omitempty"`
 }
 
 // Request model for text-to-animation endpoint
 type AnimateWithTextV2Request struct {
 	// Reference image (character/object to animate) as base64 PNG/JPEG
-	ReferenceImage Base64Image `json:"reference_image"`
+	ReferenceImage BaseImage `json:"reference_image"`
 	// Size of the reference image
-	ReferenceImageSize app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize `json:"reference_image_size"`
+	ReferenceImageSize FrameSize `json:"reference_image_size"`
 	// Action description (e.g., 'walk', 'jump', 'attack')
 	Action string `json:"action,omitzero"`
 	// Size of each animation frame
-	ImageSize app__endpoints__external__v2__animate_with_text_v2__ImageSize `json:"image_size"`
+	ImageSize FrameSize `json:"image_size"`
 	// Seed for reproducible generation (0 for random)
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated frames
@@ -396,21 +366,12 @@ func (e AnimateWithTextV2RequestView) Valid() bool {
 	}
 }
 
-// Response model for text-to-animation endpoint (background job)
-type AnimateWithTextV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for animate with text v3 endpoint
 type AnimateWithTextV3Request struct {
 	// First frame to animate (PNG/JPEG base64, max 256x256 pixels)
-	FirstFrame Base64Image `json:"first_frame"`
+	FirstFrame BaseImage `json:"first_frame"`
 	// Optional last frame to guide the animation endpoint (PNG/JPEG base64, max 256x256 pixels)
-	LastFrame *Base64Image `json:"last_frame,omitempty"`
+	LastFrame *BaseImage `json:"last_frame,omitempty"`
 	// Action description (e.g., 'walking', 'jumping', 'attacking')
 	Action string `json:"action,omitzero"`
 	// Number of animation frames (4-16, must be even)
@@ -488,7 +449,7 @@ type BalanceResponse struct {
 //	type (Literal["base64"]): Always "base64" to indicate the image encoding type
 //	base64 (str): The base64 encoded image data
 //	format (str): The image format (e.g., "png", "jpeg")
-type Base64Image struct {
+type BaseImage struct {
 	// Image data type
 	Type string `json:"type,omitzero"`
 	// Base64 encoded image data
@@ -699,9 +660,9 @@ type CharactersListResponseCharacters []CharacterSummary
 // Optional concept image for UI generation guidance.
 type ConceptImage struct {
 	// Concept image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Size of the concept image
-	Size app__endpoints__external__v__generate_image_v__ReferenceImageSize `json:"size"`
+	Size app__endpoints__external__v__inpaint_v__ImageSize `json:"size"`
 }
 
 // Request to create a 1-direction object.
@@ -710,15 +671,11 @@ type Create1DirectionObjectRequest struct {
 	// Square image size in pixels (32-256). Defaults to 64 when omitted. Cannot be set together with `style_images` — when style_images are provided, the largest style image determines the output size. The effective size also determines how many candidate objects the generator produces in one shot (≤42→64, ≤85→16, ≤170→4, else 1). When >1, the resulting object enters 'review' status — call POST /v2/objects/{id}/select-frames (or use the review UI) to pick which to keep.
 	Size *int `json:"size,omitempty"`
 	// View.
-	View Create1DirectionObjectRequestView `json:"view,omitzero"`
-	// Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.
-	StyleImages Create1DirectionObjectRequestStyleImages `json:"style_images,omitempty"`
+	View        Create1DirectionObjectRequestView `json:"view,omitzero"`
+	StyleImages AnimateWithSkeletonImages         `json:"style_images,omitempty"`
 	// Per-object descriptions when the effective size produces multiple objects. Length must not exceed the object count derived from size.
 	ItemDescriptions []string `json:"item_descriptions,omitempty"`
 }
-
-// Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.
-type Create1DirectionObjectRequestStyleImages []StyleReferenceImage
 
 // View.
 type Create1DirectionObjectRequestView string
@@ -754,40 +711,13 @@ type Create8DirectionObjectRequest struct {
 	// Square image size in pixels (32-168 — the 8-rotation pipeline rejects anything larger). Defaults to 64 when omitted. Cannot be set together with `reference_image` or `style_image` — in those cases the image dimensions determine the output size.
 	Size *int `json:"size,omitempty"`
 	// Camera angle.
-	View Create8DirectionObjectRequestView `json:"view,omitzero"`
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Reference image of the object — generates 8 rotations of this exact image. Mutually exclusive with `style_image` and `size`.
-	ReferenceImage *Base64Image `json:"reference_image,omitempty"`
+	ReferenceImage *BaseImage `json:"reference_image,omitempty"`
 	// Style reference — generates a new object matching the description with the style of this image. Mutually exclusive with `reference_image` and `size`.
-	StyleImage *Base64Image `json:"style_image,omitempty"`
+	StyleImage *BaseImage `json:"style_image,omitempty"`
 	// ID of one of your existing 8-direction objects to use as the style reference. Its 8 directional sprites guide the new object's style in every direction; its south sprite becomes the center style reference unless `reference_image` or `style_image` is also provided. The object must be completed with 8 directions, and the output size must be at least its sprite content size (cropped to visible pixels) — the job fails fast with the required size otherwise.
 	StyleObjectID string `json:"style_object_id,omitzero"`
-}
-
-// Camera angle.
-type Create8DirectionObjectRequestView string
-
-const (
-	Create8DirectionObjectRequestViewLowTopDown  Create8DirectionObjectRequestView = "low top-down"
-	Create8DirectionObjectRequestViewHighTopDown Create8DirectionObjectRequestView = "high top-down"
-	Create8DirectionObjectRequestViewSide        Create8DirectionObjectRequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the Create8DirectionObjectRequestView enum.
-func (e Create8DirectionObjectRequestView) Valid() bool {
-	switch e {
-	case Create8DirectionObjectRequestViewLowTopDown, Create8DirectionObjectRequestViewHighTopDown, Create8DirectionObjectRequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// Response model for 8-direction object creation.
-type Create8DirectionObjectResponse struct {
-	Usage           *Usage `json:"usage,omitempty"`
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	ObjectID        string `json:"object_id,omitzero"`
-	Status          string `json:"status,omitzero"`
 }
 
 // Request model for character animation endpoint
@@ -809,9 +739,9 @@ type CreateCharacterAnimationRequest struct {
 	// Number of animation frames (4-16, must be even). Only used in v3 mode.
 	FrameCount *int `json:"frame_count,omitempty"`
 	// Optional custom starting pose for the animation (`mode='v3'` only). When omitted, the character's rotation image for the chosen direction is used as the start. Subject to v3's 256x256 maximum. Requires exactly one direction (pass e.g. `directions=['south']`). Not compatible with `mode='template'` or `mode='pro'`.
-	CustomStartFrame *Base64Image `json:"custom_start_frame,omitempty"`
+	CustomStartFrame *BaseImage `json:"custom_start_frame,omitempty"`
 	// Optional target pose to interpolate toward (`mode='v3'` only). Providing this enables interpolation mode: the model animates between the start frame (rotation image or `custom_start_frame`) and this end frame. Dimensions must match the start frame. Requires exactly one direction. Not compatible with `mode='template'` or `mode='pro'`.
-	EndFrame *Base64Image `json:"end_frame,omitempty"`
+	EndFrame *BaseImage `json:"end_frame,omitempty"`
 	// Keep the reference frame as frame 0 of the stored animation (`mode='v3'` only). Set `false` to store exactly `frame_count` generated frames — the reference start frame is stripped, so `frame_count=8` stores 8 frames instead of 9. Not compatible with `mode='template'` or `mode='pro'`.
 	KeepFirstFrame bool `json:"keep_first_frame,omitempty"`
 	// How closely to follow the text description (higher = more faithful). Template mode only.
@@ -827,7 +757,7 @@ type CreateCharacterAnimationRequest struct {
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Color palette reference image
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Force the use of colors from color_image
 	ForceColors bool `json:"force_colors,omitempty"`
 	// Seed for reproducible generation
@@ -869,6 +799,17 @@ type CreateCharacterAnimationResponse struct {
 	EnhanceUsage *Usage `json:"enhance_usage,omitempty"`
 }
 
+// Response — async; poll `/v2/background-jobs/{id}` for results.
+type CreateCharacterPro struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Background job ID for tracking generation progress.
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
+	CharacterID string `json:"character_id,omitzero"`
+	// Job status (processing, completed, failed).
+	Status string `json:"status,omitzero"`
+}
+
 // Request model for /v2/create-character-pro.
 type CreateCharacterProRequest struct {
 	// Description of the character or object to generate.
@@ -880,14 +821,14 @@ type CreateCharacterProRequest struct {
 	// - `create_from_concept`: `concept_image` (required) seeds the design; `reference_image` (optional) provides additional style guidance.
 	// - `rotate_character`: `reference_image` (required) is an existing character to rotate into 8 directions. `description` is still used as guidance.
 	Method CreateCharacterProRequestMethod `json:"method,omitzero"`
-	// Camera view angle.
-	View CreateCharacterProRequestView `json:"view,omitzero"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Quadruped templates also append ", on all fours" to the description so generated frames match the chosen skeleton.
 	TemplateID string `json:"template_id,omitzero"`
 	// Optional concept image (max 1024x1024). Used with `method=create_from_concept`.
-	ConceptImage *Base64Image `json:"concept_image,omitempty"`
+	ConceptImage *BaseImage `json:"concept_image,omitempty"`
 	// Optional reference image (max 168x168). Used as style reference for `create_with_style` / `create_from_concept`, or as the character to rotate for `rotate_character`.
-	ReferenceImage *Base64Image `json:"reference_image,omitempty"`
+	ReferenceImage *BaseImage `json:"reference_image,omitempty"`
 	// ID of one of your existing 8-direction characters to use as the style reference. Its 8 directional sprites guide the new character's style in every direction; its south sprite becomes the center style image unless `reference_image` is also provided. The character must be completed with 8 directions, and `image_size` must be at least its sprite content size (cropped to visible pixels) — the job fails fast with the required size otherwise. Not supported with `method=rotate_character`.
 	StyleCharacterID string `json:"style_character_id,omitzero"`
 	// Free-text style hint to layer on top of the description.
@@ -920,36 +861,6 @@ func (e CreateCharacterProRequestMethod) Valid() bool {
 	}
 }
 
-// Camera view angle.
-type CreateCharacterProRequestView string
-
-const (
-	CreateCharacterProRequestViewLowTopDown  CreateCharacterProRequestView = "low top-down"
-	CreateCharacterProRequestViewHighTopDown CreateCharacterProRequestView = "high top-down"
-	CreateCharacterProRequestViewSide        CreateCharacterProRequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateCharacterProRequestView enum.
-func (e CreateCharacterProRequestView) Valid() bool {
-	switch e {
-	case CreateCharacterProRequestViewLowTopDown, CreateCharacterProRequestViewHighTopDown, CreateCharacterProRequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// Response — async; poll `/v2/background-jobs/{id}` for results.
-type CreateCharacterProResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress.
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
-	CharacterID string `json:"character_id,omitzero"`
-	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
-}
-
 // Request to produce a state (variant) of an existing character.
 type CreateCharacterStateRequest struct {
 	// ID of the source character
@@ -965,14 +876,6 @@ type CreateCharacterStateRequest struct {
 	UseColorPaletteFromReference bool `json:"use_color_palette_from_reference,omitempty"`
 }
 
-// CreateCharacterStateResponse defines a model
-type CreateCharacterStateResponse struct {
-	Usage           *Usage `json:"usage,omitempty"`
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	CharacterID     string `json:"character_id,omitzero"`
-	Status          string `json:"status,omitzero"`
-}
-
 // Request model for /v2/create-character-v3.
 //
 // Two modes:
@@ -983,11 +886,11 @@ type CreateCharacterV3Request struct {
 	// Description of the character (used as prompt + display name).
 	Description string `json:"description,omitzero"`
 	// South-facing reference image (PNG/JPEG base64). If provided, the v3 model rotates it into 8 directions. If omitted, a sprite is generated from `description` using Pixen first. Max 256x256 pixels.
-	ReferenceImage *Base64Image `json:"reference_image,omitempty"`
+	ReferenceImage *BaseImage `json:"reference_image,omitempty"`
 	// Output frame size. For reference mode this is advisory (model picks its own size). For from-scratch mode this controls the pixen generation size (16-256, default 64x64). Final canvas is padded ~2x for animation room.
-	ImageSize *V3OutputImageSize `json:"image_size,omitempty"`
-	// Camera view angle. Used by both generation and skeleton reconstruction.
-	View CreateCharacterV3RequestView `json:"view,omitzero"`
+	ImageSize *FrameSize `json:"image_size,omitempty"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`.
 	TemplateID string `json:"template_id,omitzero"`
 	// Display name. Defaults to first 50 chars of `description`.
@@ -1002,25 +905,6 @@ type CreateCharacterV3Request struct {
 	Detail string `json:"detail,omitzero"`
 	// If true, automatically expand `description` into a richer prompt before generating — equivalent to calling /v2/enhance-character-v3-prompt first. Only valid in from-scratch mode (omit `reference_image`); passing both returns 422. Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
 	EnhancePrompt bool `json:"enhance_prompt,omitempty"`
-}
-
-// Camera view angle. Used by both generation and skeleton reconstruction.
-type CreateCharacterV3RequestView string
-
-const (
-	CreateCharacterV3RequestViewLowTopDown  CreateCharacterV3RequestView = "low top-down"
-	CreateCharacterV3RequestViewHighTopDown CreateCharacterV3RequestView = "high top-down"
-	CreateCharacterV3RequestViewSide        CreateCharacterV3RequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateCharacterV3RequestView enum.
-func (e CreateCharacterV3RequestView) Valid() bool {
-	switch e {
-	case CreateCharacterV3RequestViewLowTopDown, CreateCharacterV3RequestViewHighTopDown, CreateCharacterV3RequestViewSide:
-		return true
-	default:
-		return false
-	}
 }
 
 // Response — async; poll `/v2/background-jobs/{id}` for results.
@@ -1043,7 +927,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize app__endpoints__external__v__create_character_with__directions__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
 	// Process asynchronously (always true for character creation)
 	AsyncMode bool `json:"async_mode,omitempty"`
 	// How closely to follow the text description (higher = more faithful)
@@ -1059,7 +943,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Color palette reference image
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Force the use of colors from color_image
 	ForceColors bool `json:"force_colors,omitempty"`
 	// Character body proportions (preset or custom values). Only applies to humanoid characters.
@@ -1069,20 +953,9 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Optional reference images per direction. Allowed keys: 'south', 'east', 'north', 'west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'; oblique view requires all 4 cardinals.
-	Directions *map[string]Base64Image `json:"directions,omitempty"`
+	Directions *map[string]BaseImage `json:"directions,omitempty"`
 	// Output format (always dict for external API)
 	OutputType string `json:"output_type,omitzero"`
-}
-
-// Response model for 4-directions character creation (background job)
-type CreateCharacterWith4DirectionsResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Character ID that will be created (available immediately)
-	CharacterID string `json:"character_id,omitzero"`
-	// Current job status (pending, processing, running, completed, failed)
-	Status string `json:"status,omitzero"`
 }
 
 // Request model for 8-directions character creation endpoint
@@ -1090,9 +963,9 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize app__endpoints__external__v__create_character_with__directions__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
 	// Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 20-40 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
-	Mode CreateCharacterWith8DirectionsRequestMode `json:"mode,omitzero"`
+	Mode CreateCharacterWithDirectionsMode `json:"mode,omitzero"`
 	// Process asynchronously (always true - no synchronous processing yet)
 	AsyncMode bool `json:"async_mode,omitempty"`
 	// How closely to follow the text description (higher = more faithful)
@@ -1108,7 +981,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Color palette reference image
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Force the use of colors from color_image
 	ForceColors bool `json:"force_colors,omitempty"`
 	// Character body proportions (preset or custom values). Only applies to humanoid characters.
@@ -1118,38 +991,66 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Optional reference images per direction. Allowed keys: 'south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'.
-	Directions *map[string]Base64Image `json:"directions,omitempty"`
+	Directions *map[string]BaseImage `json:"directions,omitempty"`
 	// Output format (always dict for external API)
 	OutputType string `json:"output_type,omitzero"`
 }
 
 // Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 20-40 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
-type CreateCharacterWith8DirectionsRequestMode string
+type CreateCharacterWithDirectionsMode string
 
 const (
-	CreateCharacterWith8DirectionsRequestModeStandard CreateCharacterWith8DirectionsRequestMode = "standard"
-	CreateCharacterWith8DirectionsRequestModePro      CreateCharacterWith8DirectionsRequestMode = "pro"
+	CreateCharacterWithDirectionsModeStandard CreateCharacterWithDirectionsMode = "standard"
+	CreateCharacterWithDirectionsModePro      CreateCharacterWithDirectionsMode = "pro"
 )
 
-// Valid indicates whether the value is a known member of the CreateCharacterWith8DirectionsRequestMode enum.
-func (e CreateCharacterWith8DirectionsRequestMode) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateCharacterWithDirectionsMode enum.
+func (e CreateCharacterWithDirectionsMode) Valid() bool {
 	switch e {
-	case CreateCharacterWith8DirectionsRequestModeStandard, CreateCharacterWith8DirectionsRequestModePro:
+	case CreateCharacterWithDirectionsModeStandard, CreateCharacterWithDirectionsModePro:
 		return true
 	default:
 		return false
 	}
 }
 
-// Response model for 8-directions character creation (background job)
-type CreateCharacterWith8DirectionsResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress
+// Response model for 8-direction object creation.
+type CreateDirectionObject struct {
+	Usage           *Usage `json:"usage,omitempty"`
 	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Character ID that will be created (available immediately)
-	CharacterID string `json:"character_id,omitzero"`
-	// Current job status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
+	ObjectID        string `json:"object_id,omitzero"`
+	Status          string `json:"status,omitzero"`
+}
+
+// Camera angle.
+type CreateDirectionObjectView string
+
+const (
+	CreateDirectionObjectViewLowTopDown  CreateDirectionObjectView = "low top-down"
+	CreateDirectionObjectViewHighTopDown CreateDirectionObjectView = "high top-down"
+	CreateDirectionObjectViewSide        CreateDirectionObjectView = "side"
+)
+
+// Valid indicates whether the value is a known member of the CreateDirectionObjectView enum.
+func (e CreateDirectionObjectView) Valid() bool {
+	switch e {
+	case CreateDirectionObjectViewLowTopDown, CreateDirectionObjectViewHighTopDown, CreateDirectionObjectViewSide:
+		return true
+	default:
+		return false
+	}
+}
+
+// CreateImageBitforge defines a model
+type CreateImageBitforge struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// A base64 encoded image.
+	//
+	// Attributes:
+	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
+	//     base64 (str): The base64 encoded image data
+	//     format (str): The image format (e.g., "png", "jpeg")
+	Image BaseImage `json:"image"`
 }
 
 // Request model for image generation endpoint
@@ -1157,8 +1058,9 @@ type CreateImageBitforgeRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string                                                        `json:"negative_description,omitzero"`
-	ImageSize           app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
+	NegativeDescription string `json:"negative_description,omitzero"`
+	// Image dimensions
+	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -1168,9 +1070,9 @@ type CreateImageBitforgeRequest struct {
 	// Outline style reference
 	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading Shading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
@@ -1184,38 +1086,22 @@ type CreateImageBitforgeRequest struct {
 	// Percentage of the canvas to cover
 	CoveragePercentage *float64 `json:"coverage_percentage,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image for style transfer
-	StyleImage *Base64Image `json:"style_image,omitempty"`
+	StyleImage *BaseImage `json:"style_image,omitempty"`
 	// Reference image which is inpainted
-	InpaintingImage *Base64Image `json:"inpainting_image,omitempty"`
+	InpaintingImage *BaseImage `json:"inpainting_image,omitempty"`
 	// Inpainting / mask image (black and white image, where the white is where the model should inpaint)
-	MaskImage *Base64Image `json:"mask_image,omitempty"`
+	MaskImage *BaseImage `json:"mask_image,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// How closely to follow the skeleton keypoints
-	SkeletonGuidanceScale *float64 `json:"skeleton_guidance_scale,omitempty"`
-	// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
-	SkeletonKeypoints CreateImageBitforgeRequestSkeletonKeypoints `json:"skeleton_keypoints,omitempty"`
+	SkeletonGuidanceScale *float64                         `json:"skeleton_guidance_scale,omitempty"`
+	SkeletonKeypoints     AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
-type CreateImageBitforgeRequestSkeletonKeypoints []Point
-
-// CreateImageBitforgeResponse defines a model
-type CreateImageBitforgeResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
 }
 
 // Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
@@ -1244,7 +1130,7 @@ type CreateImagePixenRequest struct {
 	// Outline style
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level (default: highly detailed)
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
@@ -1268,20 +1154,11 @@ type CreateImagePixenResponse struct {
 	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
 	//     base64 (str): The base64 encoded image data
 	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// The expanded prompt used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitempty"`
-}
-
-// Response model for the background pixflux endpoint
-type CreateImagePixfluxBackgroundResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
 }
 
 // Request model for pixflux image generation endpoint
@@ -1289,16 +1166,16 @@ type CreateImagePixfluxRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// (Deprecated)
-	NegativeDescription string                                                        `json:"negative_description,omitzero"`
-	ImageSize           app__endpoints__external__v2__create_image_pixflux__ImageSize `json:"image_size"`
+	NegativeDescription string                                                       `json:"negative_description,omitzero"`
+	ImageSize           app__endpoints__external__v__create_image_pixflux__ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style reference (weakly guiding)
 	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference (weakly guiding)
-	Shading Shading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Detail style reference (weakly guiding)
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle (weakly guiding)
 	View CameraView `json:"view,omitzero"`
 	// Subject direction (weakly guiding)
@@ -1310,29 +1187,17 @@ type CreateImagePixfluxRequest struct {
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
 	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask `json:"background_removal_task,omitzero"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
 
-// CreateImagePixfluxResponse defines a model
-type CreateImagePixfluxResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
-}
-
 // Response for background isometric tile generation (async-only)
-type CreateIsometricTileBackgroundResponse struct {
+type CreateIsometricTileBackground struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Background job ID for tracking generation progress
 	BackgroundJobID string `json:"background_job_id,omitzero"`
@@ -1340,6 +1205,44 @@ type CreateIsometricTileBackgroundResponse struct {
 	TileID string `json:"tile_id,omitzero"`
 	// Always 'processing' - check status with background job ID
 	Status string `json:"status,omitzero"`
+}
+
+// Level of detail in the tile
+type CreateIsometricTileDetail string
+
+const (
+	CreateIsometricTileDetailLowDetail      CreateIsometricTileDetail = "low detail"
+	CreateIsometricTileDetailMediumDetail   CreateIsometricTileDetail = "medium detail"
+	CreateIsometricTileDetailHighlyDetailed CreateIsometricTileDetail = "highly detailed"
+)
+
+// Valid indicates whether the value is a known member of the CreateIsometricTileDetail enum.
+func (e CreateIsometricTileDetail) Valid() bool {
+	switch e {
+	case CreateIsometricTileDetailLowDetail, CreateIsometricTileDetailMediumDetail, CreateIsometricTileDetailHighlyDetailed:
+		return true
+	default:
+		return false
+	}
+}
+
+// Outline style for the tile
+type CreateIsometricTileOutline string
+
+const (
+	CreateIsometricTileOutlineSingleColorOutline CreateIsometricTileOutline = "single color outline"
+	CreateIsometricTileOutlineSelectiveOutline   CreateIsometricTileOutline = "selective outline"
+	CreateIsometricTileOutlineLineless           CreateIsometricTileOutline = "lineless"
+)
+
+// Valid indicates whether the value is a known member of the CreateIsometricTileOutline enum.
+func (e CreateIsometricTileOutline) Valid() bool {
+	switch e {
+	case CreateIsometricTileOutlineSingleColorOutline, CreateIsometricTileOutlineSelectiveOutline, CreateIsometricTileOutlineLineless:
+		return true
+	default:
+		return false
+	}
 }
 
 // Request model for pixflux image generation endpoint
@@ -1350,13 +1253,13 @@ type CreateIsometricTileRequest struct {
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style for the tile
-	Outline CreateIsometricTileRequestOutline `json:"outline,omitzero"`
+	Outline CreateIsometricTileOutline `json:"outline,omitzero"`
 	// Shading complexity
-	Shading CreateIsometricTileRequestShading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Level of detail in the tile
-	Detail CreateIsometricTileRequestDetail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Size of the isometric tile. Recommended sizes: 16, 32. Can be omitted for default.
@@ -1364,28 +1267,9 @@ type CreateIsometricTileRequest struct {
 	// Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
 	IsometricTileShape CreateIsometricTileRequestIsometricTileShape `json:"isometric_tile_shape,omitzero"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Level of detail in the tile
-type CreateIsometricTileRequestDetail string
-
-const (
-	CreateIsometricTileRequestDetailLowDetail      CreateIsometricTileRequestDetail = "low detail"
-	CreateIsometricTileRequestDetailMediumDetail   CreateIsometricTileRequestDetail = "medium detail"
-	CreateIsometricTileRequestDetailHighlyDetailed CreateIsometricTileRequestDetail = "highly detailed"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileRequestDetail enum.
-func (e CreateIsometricTileRequestDetail) Valid() bool {
-	switch e {
-	case CreateIsometricTileRequestDetailLowDetail, CreateIsometricTileRequestDetailMediumDetail, CreateIsometricTileRequestDetailHighlyDetailed:
-		return true
-	default:
-		return false
-	}
 }
 
 // Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
@@ -1407,56 +1291,25 @@ func (e CreateIsometricTileRequestIsometricTileShape) Valid() bool {
 	}
 }
 
-// Outline style for the tile
-type CreateIsometricTileRequestOutline string
-
-const (
-	CreateIsometricTileRequestOutlineSingleColorOutline CreateIsometricTileRequestOutline = "single color outline"
-	CreateIsometricTileRequestOutlineSelectiveOutline   CreateIsometricTileRequestOutline = "selective outline"
-	CreateIsometricTileRequestOutlineLineless           CreateIsometricTileRequestOutline = "lineless"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileRequestOutline enum.
-func (e CreateIsometricTileRequestOutline) Valid() bool {
-	switch e {
-	case CreateIsometricTileRequestOutlineSingleColorOutline, CreateIsometricTileRequestOutlineSelectiveOutline, CreateIsometricTileRequestOutlineLineless:
-		return true
-	default:
-		return false
-	}
-}
-
 // Shading complexity
-type CreateIsometricTileRequestShading string
+type CreateIsometricTileShading string
 
 const (
-	CreateIsometricTileRequestShadingFlatShading           CreateIsometricTileRequestShading = "flat shading"
-	CreateIsometricTileRequestShadingBasicShading          CreateIsometricTileRequestShading = "basic shading"
-	CreateIsometricTileRequestShadingMediumShading         CreateIsometricTileRequestShading = "medium shading"
-	CreateIsometricTileRequestShadingDetailedShading       CreateIsometricTileRequestShading = "detailed shading"
-	CreateIsometricTileRequestShadingHighlyDetailedShading CreateIsometricTileRequestShading = "highly detailed shading"
+	CreateIsometricTileShadingFlatShading           CreateIsometricTileShading = "flat shading"
+	CreateIsometricTileShadingBasicShading          CreateIsometricTileShading = "basic shading"
+	CreateIsometricTileShadingMediumShading         CreateIsometricTileShading = "medium shading"
+	CreateIsometricTileShadingDetailedShading       CreateIsometricTileShading = "detailed shading"
+	CreateIsometricTileShadingHighlyDetailedShading CreateIsometricTileShading = "highly detailed shading"
 )
 
-// Valid indicates whether the value is a known member of the CreateIsometricTileRequestShading enum.
-func (e CreateIsometricTileRequestShading) Valid() bool {
+// Valid indicates whether the value is a known member of the CreateIsometricTileShading enum.
+func (e CreateIsometricTileShading) Valid() bool {
 	switch e {
-	case CreateIsometricTileRequestShadingFlatShading, CreateIsometricTileRequestShadingBasicShading, CreateIsometricTileRequestShadingMediumShading, CreateIsometricTileRequestShadingDetailedShading, CreateIsometricTileRequestShadingHighlyDetailedShading:
+	case CreateIsometricTileShadingFlatShading, CreateIsometricTileShadingBasicShading, CreateIsometricTileShadingMediumShading, CreateIsometricTileShadingDetailedShading, CreateIsometricTileShadingHighlyDetailedShading:
 		return true
 	default:
 		return false
 	}
-}
-
-// CreateIsometricTileResponse defines a model
-type CreateIsometricTileResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
 }
 
 // Request for creating a map object with transparent background
@@ -1465,10 +1318,10 @@ type CreateMapObjectRequest struct {
 	Description string `json:"description,omitzero"`
 	// Object dimensions
 	ImageSize *app__endpoints__external__v2__create_map_object__ImageSize `json:"image_size,omitempty"`
-	// Camera angle (default: "high top-down")
-	View CreateMapObjectRequestView `json:"view,omitzero"`
-	// Outline style
-	Outline CreateMapObjectRequestOutline `json:"outline,omitzero"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
+	// Outline style for the tile
+	Outline CreateIsometricTileOutline `json:"outline,omitzero"`
 	// Shading complexity
 	Shading CreateMapObjectRequestShading `json:"shading,omitzero"`
 	// Level of detail
@@ -1476,13 +1329,13 @@ type CreateMapObjectRequest struct {
 	// How closely to follow the description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Image containing colors for forced palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Background/map image for style matching. Required when using inpainting.
-	BackgroundImage *Base64Image `json:"background_image,omitempty"`
+	BackgroundImage *BaseImage `json:"background_image,omitempty"`
 	// Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
 	Inpainting *CreateMapObjectRequestInpainting `json:"inpainting,omitempty"`
 	// Seed for reproducible generation
@@ -1570,25 +1423,6 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 	return fmt.Errorf("CreateMapObjectRequestInpainting: no variant set")
 }
 
-// Outline style
-type CreateMapObjectRequestOutline string
-
-const (
-	CreateMapObjectRequestOutlineSingleColorOutline CreateMapObjectRequestOutline = "single color outline"
-	CreateMapObjectRequestOutlineSelectiveOutline   CreateMapObjectRequestOutline = "selective outline"
-	CreateMapObjectRequestOutlineLineless           CreateMapObjectRequestOutline = "lineless"
-)
-
-// Valid indicates whether the value is a known member of the CreateMapObjectRequestOutline enum.
-func (e CreateMapObjectRequestOutline) Valid() bool {
-	switch e {
-	case CreateMapObjectRequestOutlineSingleColorOutline, CreateMapObjectRequestOutlineSelectiveOutline, CreateMapObjectRequestOutlineLineless:
-		return true
-	default:
-		return false
-	}
-}
-
 // Shading complexity
 type CreateMapObjectRequestShading string
 
@@ -1609,61 +1443,12 @@ func (e CreateMapObjectRequestShading) Valid() bool {
 	}
 }
 
-// Camera angle (default: "high top-down")
-type CreateMapObjectRequestView string
-
-const (
-	CreateMapObjectRequestViewLowTopDown  CreateMapObjectRequestView = "low top-down"
-	CreateMapObjectRequestViewHighTopDown CreateMapObjectRequestView = "high top-down"
-	CreateMapObjectRequestViewSide        CreateMapObjectRequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateMapObjectRequestView enum.
-func (e CreateMapObjectRequestView) Valid() bool {
-	switch e {
-	case CreateMapObjectRequestViewLowTopDown, CreateMapObjectRequestViewHighTopDown, CreateMapObjectRequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// Response model for map object creation (background job)
-type CreateMapObjectResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Object ID that will be created (available immediately)
-	ObjectID string `json:"object_id,omitzero"`
-	// Current job status (pending, processing, running, completed, failed)
-	Status string `json:"status,omitzero"`
-}
-
 // Request to produce a state (variant) of an existing object.
 type CreateObjectStateRequest struct {
 	EditDescription string `json:"edit_description,omitzero"`
 	Seed            *int   `json:"seed,omitempty"`
 	// Name for the new state. Defaults to the edit description truncated to 20 characters.
 	StateName string `json:"state_name,omitzero"`
-}
-
-// CreateObjectStateResponse defines a model
-type CreateObjectStateResponse struct {
-	Usage           *Usage `json:"usage,omitempty"`
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	ObjectID        string `json:"object_id,omitzero"`
-	Status          string `json:"status,omitzero"`
-}
-
-// Response for background tiles pro generation (async-only)
-type CreateTilesProBackgroundResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Tile ID that will be created (available immediately)
-	TileID string `json:"tile_id,omitzero"`
-	// Always 'processing' - check status with tile ID
-	Status string `json:"status,omitzero"`
 }
 
 // Request model for tiles pro generation endpoint
@@ -1707,7 +1492,7 @@ type CreateTilesProRequest struct {
 	// Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.
 	StyleImages CreateTilesProRequestStyleImages `json:"style_images,omitempty"`
 	// Options for what to copy from the style images. Only used when style_images is provided.
-	StyleOptions *TilesProStyleOptions `json:"style_options,omitempty"`
+	StyleOptions *Style `json:"style_options,omitempty"`
 }
 
 // Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).
@@ -1835,8 +1620,8 @@ type CreateTilesetRequest struct {
 	UpperBaseTileID string `json:"upper_base_tile_id,omitzero"`
 	// Size of individual tiles within the tileset
 	TileSize *TileSize `json:"tile_size,omitempty"`
-	// Generation pipeline. "standard": classic Wang tileset (16 or 32px tiles). "pro": newer corner-pair pipeline supporting 16/32/64px tiles plus shape controls (spread_x, slope_size, raggedness). Experimental.
-	Mode CreateTilesetRequestMode `json:"mode,omitzero"`
+	// Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 20-40 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
+	Mode CreateCharacterWithDirectionsMode `json:"mode,omitzero"`
 	// Optional procedural boundary geometry. Omit it to keep the selected standard/pro generation mode; set 'square' or 'round' to generate with that exact tileset layout. Supports square 16px or 32px tiles.
 	ShapeStyle CreateTilesetRequestShapeStyle `json:"shape_style,omitzero"`
 	// shape_style tilesets only (ignored otherwise). AI-enhances the terrain descriptions at the chosen detail/shading levels and picks matching base colours before generation. The stored tileset keeps the enhanced text (so chained tilesets reuse the prompt that made the pixels); your original prompts are kept in its metadata.
@@ -1852,9 +1637,9 @@ type CreateTilesetRequest struct {
 	// Outline style reference
 	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading Shading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle for tileset (default: "high top-down")
 	View TilesetCameraView `json:"view,omitzero"`
 	// Strength of tile pattern adherence
@@ -1866,33 +1651,15 @@ type CreateTilesetRequest struct {
 	// Size of transition area. Standard/pro accept 0, 0.25, 0.5, or 1.0. A request with shape_style accepts any value from 0 to 1; values above 0.5 use the extended 4x8 layout.
 	TransitionSize *float64 `json:"transition_size,omitempty"`
 	// Reference image for lower terrain style
-	LowerReferenceImage *Base64Image `json:"lower_reference_image,omitempty"`
+	LowerReferenceImage *BaseImage `json:"lower_reference_image,omitempty"`
 	// Reference image for upper terrain style
-	UpperReferenceImage *Base64Image `json:"upper_reference_image,omitempty"`
+	UpperReferenceImage *BaseImage `json:"upper_reference_image,omitempty"`
 	// Reference image for transition area style
-	TransitionReferenceImage *Base64Image `json:"transition_reference_image,omitempty"`
+	TransitionReferenceImage *BaseImage `json:"transition_reference_image,omitempty"`
 	// Reference image for color palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Generation pipeline. "standard": classic Wang tileset (16 or 32px tiles). "pro": newer corner-pair pipeline supporting 16/32/64px tiles plus shape controls (spread_x, slope_size, raggedness). Experimental.
-type CreateTilesetRequestMode string
-
-const (
-	CreateTilesetRequestModeStandard CreateTilesetRequestMode = "standard"
-	CreateTilesetRequestModePro      CreateTilesetRequestMode = "pro"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesetRequestMode enum.
-func (e CreateTilesetRequestMode) Valid() bool {
-	switch e {
-	case CreateTilesetRequestModeStandard, CreateTilesetRequestModePro:
-		return true
-	default:
-		return false
-	}
 }
 
 // Optional procedural boundary geometry. Omit it to keep the selected standard/pro generation mode; set 'square' or 'round' to generate with that exact tileset layout. Supports square 16px or 32px tiles.
@@ -1940,9 +1707,9 @@ type CreateTilesetSidescrollerRequest struct {
 	// Outline style reference
 	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading Shading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Strength of tile pattern adherence
 	TileStrength *float64 `json:"tile_strength,omitempty"`
 	// How flexible it will be when following tileset structure, higher values means more flexibility
@@ -1952,11 +1719,11 @@ type CreateTilesetSidescrollerRequest struct {
 	// Size of transition area (0 = no transition, 0.25 = quarter tile, 0.5 = half tile, 1.0 = full tile)
 	TransitionSize *float64 `json:"transition_size,omitempty"`
 	// Reference image for platform terrain style
-	LowerReferenceImage *Base64Image `json:"lower_reference_image,omitempty"`
+	LowerReferenceImage *BaseImage `json:"lower_reference_image,omitempty"`
 	// Reference image for transition area style
-	TransitionReferenceImage *Base64Image `json:"transition_reference_image,omitempty"`
+	TransitionReferenceImage *BaseImage `json:"transition_reference_image,omitempty"`
 	// Reference image for color palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 }
@@ -2034,7 +1801,7 @@ type CreateUIAssetRequest struct {
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
 	Elements []string `json:"elements,omitempty"`
 	// Optional style reference image (PNG/JPEG base64)
-	StyleImage *Base64Image `json:"style_image,omitempty"`
+	StyleImage *BaseImage `json:"style_image,omitempty"`
 	// Optional palette specification (e.g. 'brown and gold')
 	ColorPalette string `json:"color_palette,omitzero"`
 	// Remove background after generation
@@ -2094,17 +1861,6 @@ type DeleteCharacterResponse struct {
 	Err string `json:"error,omitzero"`
 }
 
-// Response for isometric tile deletion.
-type DeleteIsometricTileResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success,omitzero"`
-	// ID of the deleted tile
-	TileID string `json:"tile_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
-}
-
 // Response for object deletion
 type DeleteObjectResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
@@ -2116,63 +1872,11 @@ type DeleteObjectResponse struct {
 	Err string `json:"error,omitzero"`
 }
 
-// Response for sidescroller tileset deletion.
-type DeleteSidescrollerTilesetResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success,omitzero"`
-	// ID of the deleted tileset
-	TilesetID string `json:"tileset_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
-}
-
-// Response for tiles-pro deletion.
-type DeleteTilesProResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success,omitzero"`
-	// ID of the deleted tile
-	TileID string `json:"tile_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
-}
-
-// Response for tileset deletion.
-type DeleteTilesetResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success,omitzero"`
-	// ID of the deleted tileset
-	TilesetID string `json:"tileset_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
-}
-
 // DeleteUIAssetResponse defines a model
 type DeleteUIAssetResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Whether the asset was deleted
 	Success bool `json:"success,omitzero"`
-}
-
-// Detail defines a model
-type Detail string
-
-const (
-	DetailLowDetail      Detail = "low detail"
-	DetailMediumDetail   Detail = "medium detail"
-	DetailHighlyDetailed Detail = "highly detailed"
-)
-
-// Valid indicates whether the value is a known member of the Detail enum.
-func (e Detail) Valid() bool {
-	switch e {
-	case DetailLowDetail, DetailMediumDetail, DetailHighlyDetailed:
-		return true
-	default:
-		return false
-	}
 }
 
 // Direction defines a model
@@ -2233,12 +1937,15 @@ type DismissReviewResponse struct {
 // DownloadCharacterCharactersCharacterIDZip defines a model
 type DownloadCharacterCharactersCharacterIDZip struct{}
 
+// Animation frames to edit (2-16 frames)
+type EditAnimationFrames []app__endpoints__external__v__edit_animation_v__FrameImage
+
 // Request model for edit-animation-v2 endpoint
 type EditAnimationV2Request struct {
 	// Description of the edit to apply (e.g., 'add a red cape', 'make it glow blue')
 	Description string `json:"description,omitzero"`
 	// Animation frames to edit (2-16 frames)
-	Frames EditAnimationV2RequestFrames `json:"frames,omitempty"`
+	Frames EditAnimationFrames `json:"frames,omitempty"`
 	// Size of the output frames
 	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -2247,22 +1954,10 @@ type EditAnimationV2Request struct {
 	NoBackground bool `json:"no_background,omitempty"`
 }
 
-// Animation frames to edit (2-16 frames)
-type EditAnimationV2RequestFrames []app__endpoints__external__v2__edit_animation_v2__FrameImage
-
-// Response model for edit-animation-v2 endpoint (background job)
-type EditAnimationV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // An image to edit with its dimensions.
 type EditImage struct {
 	// Image to edit as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Image width in pixels
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
@@ -2272,9 +1967,9 @@ type EditImage struct {
 // Request model for image editing endpoint
 type EditImageRequest struct {
 	// Reference image to edit as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Size of the reference image
-	ImageSize app__endpoints__external__v2__edit_image__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__create_image_pixflux__ImageSize `json:"image_size"`
 	// Text description of the edit to apply
 	Description string `json:"description,omitzero"`
 	// Target canvas width in pixels (16-400)
@@ -2288,16 +1983,7 @@ type EditImageRequest struct {
 	// How closely to follow the text description (1.0-10.0)
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Color reference image for style guidance
-	ColorImage *Base64Image `json:"color_image,omitempty"`
-}
-
-// Response model for image editing endpoint (background job)
-type EditImageResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 }
 
 // Request model for edit-images endpoint
@@ -2311,7 +1997,7 @@ type EditImagesV2Request struct {
 	// Edit description (required for edit_with_text method)
 	Description string `json:"description,omitzero"`
 	// Reference image (required for edit_with_reference method)
-	ReferenceImage *app__endpoints__external__v2__edit_images_v2__ReferenceImage `json:"reference_image,omitempty"`
+	ReferenceImage *EditImage `json:"reference_image,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from edited images
@@ -2339,30 +2025,21 @@ func (e EditImagesV2RequestMethod) Valid() bool {
 	}
 }
 
-// Response model for edit-images endpoint (background job)
-type EditImagesV2Response struct {
+// EnhanceAnimationPrompt defines a model
+type EnhanceAnimationPrompt struct {
 	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
+	// Enhanced motion description.
+	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 }
 
 // EnhanceAnimationV3PromptRequest defines a model
 type EnhanceAnimationV3PromptRequest struct {
 	// First frame as base64 PNG/JPEG. Becomes the basis of the motion description.
-	FirstFrame Base64Image `json:"first_frame"`
+	FirstFrame BaseImage `json:"first_frame"`
 	// Optional end frame. When provided, the enhanced prompt describes the interpolated motion between first_frame and last_frame.
-	LastFrame *Base64Image `json:"last_frame,omitempty"`
+	LastFrame *BaseImage `json:"last_frame,omitempty"`
 	// User's action description (e.g., 'walking', 'jumping', 'sword swing').
 	Action string `json:"action,omitzero"`
-}
-
-// EnhanceAnimationV3PromptResponse defines a model
-type EnhanceAnimationV3PromptResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Enhanced motion description.
-	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 }
 
 // EnhanceCharacterV3PromptRequest defines a model
@@ -2370,39 +2047,13 @@ type EnhanceCharacterV3PromptRequest struct {
 	// User's character description to enhance.
 	Description string `json:"description,omitzero"`
 	// Target frame size. Prompt complexity scales with size.
-	ImageSize V3OutputImageSize `json:"image_size"`
-	// Camera view / tilt.
-	View EnhanceCharacterV3PromptRequestView `json:"view,omitzero"`
+	ImageSize FrameSize `json:"image_size"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Outline style hint (soft guidance — same as create-character-v3).
 	Outline string `json:"outline,omitzero"`
 	// Detail level hint (soft guidance — same as create-character-v3).
 	Detail string `json:"detail,omitzero"`
-}
-
-// Camera view / tilt.
-type EnhanceCharacterV3PromptRequestView string
-
-const (
-	EnhanceCharacterV3PromptRequestViewLowTopDown  EnhanceCharacterV3PromptRequestView = "low top-down"
-	EnhanceCharacterV3PromptRequestViewHighTopDown EnhanceCharacterV3PromptRequestView = "high top-down"
-	EnhanceCharacterV3PromptRequestViewSide        EnhanceCharacterV3PromptRequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the EnhanceCharacterV3PromptRequestView enum.
-func (e EnhanceCharacterV3PromptRequestView) Valid() bool {
-	switch e {
-	case EnhanceCharacterV3PromptRequestViewLowTopDown, EnhanceCharacterV3PromptRequestViewHighTopDown, EnhanceCharacterV3PromptRequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// EnhanceCharacterV3PromptResponse defines a model
-type EnhanceCharacterV3PromptResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Enhanced character description.
-	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 }
 
 // EnhancePixenPromptRequest defines a model
@@ -2414,7 +2065,7 @@ type EnhancePixenPromptRequest struct {
 	// Outline style hint.
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level hint.
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle.
 	View CameraView `json:"view,omitzero"`
 	// Subject direction the enhanced description should describe.
@@ -2423,17 +2074,10 @@ type EnhancePixenPromptRequest struct {
 	NoBackground bool `json:"no_background,omitempty"`
 }
 
-// EnhancePixenPromptResponse defines a model
-type EnhancePixenPromptResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Enhanced image description.
-	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
-}
-
 // Request model for estimate skeleton endpoint
 type EstimateSkeletonRequest struct {
 	// Image for which to estimate the skeleton
-	Image *Base64Image `json:"image,omitempty"`
+	Image *BaseImage `json:"image,omitempty"`
 }
 
 // EstimateSkeletonResponse defines a model
@@ -2456,7 +2100,7 @@ type Generate8RotationsV2Request struct {
 	// Generation method: 'rotate_character' rotates an existing character, 'create_with_style' creates new character matching style, 'create_from_concept' creates from concept art
 	Method Generate8RotationsV2RequestMethod `json:"method,omitzero"`
 	// Size of the output images
-	ImageSize app__endpoints__external__v2__generate_8_rotations_v2__ImageSize `json:"image_size"`
+	ImageSize ProImageSize `json:"image_size"`
 	// Image to rotate (rotate_character) or style reference
 	ReferenceImage *app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage `json:"reference_image,omitempty"`
 	// Concept art image (only for create_from_concept method)
@@ -2465,8 +2109,8 @@ type Generate8RotationsV2Request struct {
 	Description string `json:"description,omitzero"`
 	// Description of the visual style
 	StyleDescription string `json:"style_description,omitzero"`
-	// Camera perspective angle
-	View Generate8RotationsV2RequestView `json:"view,omitzero"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated images
@@ -2492,53 +2136,16 @@ func (e Generate8RotationsV2RequestMethod) Valid() bool {
 	}
 }
 
-// Camera perspective angle
-type Generate8RotationsV2RequestView string
-
-const (
-	Generate8RotationsV2RequestViewLowTopDown  Generate8RotationsV2RequestView = "low top-down"
-	Generate8RotationsV2RequestViewHighTopDown Generate8RotationsV2RequestView = "high top-down"
-	Generate8RotationsV2RequestViewSide        Generate8RotationsV2RequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the Generate8RotationsV2RequestView enum.
-func (e Generate8RotationsV2RequestView) Valid() bool {
-	switch e {
-	case Generate8RotationsV2RequestViewLowTopDown, Generate8RotationsV2RequestViewHighTopDown, Generate8RotationsV2RequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// Response model for generate-8-rotations-v2 endpoint (background job)
-type Generate8RotationsV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for generate-8-rotations-v3 endpoint
 type Generate8RotationsV3Request struct {
 	// Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels)
-	FirstFrame Base64Image `json:"first_frame"`
+	FirstFrame BaseImage `json:"first_frame"`
 	// Optional description of the subject in the reference frame, used to improve rotation consistency. The subject is always analyzed from the reference frame; this text is taken into account as an extra hint.
 	Description string `json:"description,omitzero"`
 	// Remove background from generated frames
 	NoBackground bool `json:"no_background,omitempty"`
 	// Seed for reproducible generation (0 for random)
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Background job response. Poll GET /v2/background-jobs/{id} for results.
-type Generate8RotationsV3Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling generation progress
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Current job status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
 }
 
 // Request model for the generate-font-pro endpoint.
@@ -2576,15 +2183,6 @@ func (e GenerateFontProRequestWeight) Valid() bool {
 	}
 }
 
-// Response model for the generate-font-pro endpoint (background job).
-type GenerateFontProResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for generate-image-v2 endpoint
 type GenerateImageV2Request struct {
 	// Description of the image to generate
@@ -2600,20 +2198,11 @@ type GenerateImageV2Request struct {
 	// Optional style image for pixel size and style reference
 	StyleImage *app__endpoints__external__v2__generate_image_v2__ReferenceImage `json:"style_image,omitempty"`
 	// Options for what to copy from the style image
-	StyleOptions *StyleOptions `json:"style_options,omitempty"`
+	StyleOptions *Style `json:"style_options,omitempty"`
 }
 
 // Optional reference images for subject guidance (up to 4)
 type GenerateImageV2RequestReferenceImages []app__endpoints__external__v2__generate_image_v2__ReferenceImage
-
-// Response model for generate-image-v2 endpoint (background job)
-type GenerateImageV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
 
 // Request model for generate-ui-v2 endpoint
 type GenerateUIV2Request struct {
@@ -2629,15 +2218,6 @@ type GenerateUIV2Request struct {
 	ConceptImage *ConceptImage `json:"concept_image,omitempty"`
 	// Optional color palette specification (e.g., 'brown and gold', 'blue and silver')
 	ColorPalette string `json:"color_palette,omitzero"`
-}
-
-// Response model for generate-ui-v2 endpoint (background job)
-type GenerateUIV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
 }
 
 // Request model for generate-with-style-v2 endpoint
@@ -2657,16 +2237,7 @@ type GenerateWithStyleV2Request struct {
 }
 
 // Style reference images (1-4 images)
-type GenerateWithStyleV2RequestStyleImages []StyleImage
-
-// Response model for generate-with-style-v2 endpoint (background job)
-type GenerateWithStyleV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
+type GenerateWithStyleV2RequestStyleImages []EditImage
 
 // GetFontResponse defines a model
 type GetFontResponse struct {
@@ -2732,7 +2303,7 @@ type GetVocalAnimationResponse struct {
 	// Mouth positions produced so far.
 	CompletedVisemes []string `json:"completed_visemes,omitempty"`
 	// The mouth positions, keyed by id. Only returned for the stateless (`portrait`) form — for `character_id` jobs they are saved onto the character instead.
-	Visemes *map[string]Base64Image `json:"visemes,omitempty"`
+	Visemes *map[string]BaseImage `json:"visemes,omitempty"`
 	// Every expression now stored on the character.
 	MoodsOnCharacter []string `json:"moods_on_character,omitempty"`
 	// URL of the character's stored mouth-position spritesheet. Slice it into equal cells: one column per mouth position in `viseme_order`, one row per expression in `moods_on_character` order.
@@ -2752,26 +2323,17 @@ type HTTPValidationErrorDetail []ValidationError
 // Request model for image to pixel art (pro) endpoint
 type ImageToPixelartProRequest struct {
 	// Image to convert to pixel art (base64 PNG/JPEG)
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Optional extra style instructions
 	Description string `json:"description,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Response model for image to pixel art (pro) endpoint (background job)
-type ImageToPixelartProResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for image to pixel art endpoint
 type ImageToPixelartRequest struct {
 	// Image to convert to pixel art
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Size of the input image
 	ImageSize app__endpoints__external__v2__image_to_pixelart__ImageSize `json:"image_size"`
 	// Desired output size
@@ -2782,33 +2344,14 @@ type ImageToPixelartRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Response for completed image to pixel art conversion
-type ImageToPixelartResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
-}
-
-// Image with size for inpainting.
-type InpaintImage struct {
-	// Image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Size of the image
-	Size app__endpoints__external__v2__inpaint_v3__ImageSize `json:"size"`
-}
-
 // Request model for image generation endpoint
 type InpaintRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string                                                        `json:"negative_description,omitzero"`
-	ImageSize           app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
+	NegativeDescription string `json:"negative_description,omitzero"`
+	// Image dimensions
+	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -2816,9 +2359,9 @@ type InpaintRequest struct {
 	// Outline style reference
 	Outline Outline `json:"outline,omitzero"`
 	// Shading style reference
-	Shading Shading `json:"shading,omitzero"`
+	Shading CreateIsometricTileShading `json:"shading,omitzero"`
 	// Detail style reference
-	Detail Detail `json:"detail,omitzero"`
+	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
@@ -2830,29 +2373,17 @@ type InpaintRequest struct {
 	// Generate with transparent background
 	NoBackground bool `json:"no_background,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image which is inpainted
-	InpaintingImage Base64Image `json:"inpainting_image"`
+	InpaintingImage BaseImage `json:"inpainting_image"`
 	// Inpainting / mask image. (black and white image, where the white is where the model should inpaint).
-	MaskImage Base64Image `json:"mask_image"`
+	MaskImage BaseImage `json:"mask_image"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// InpaintResponse defines a model
-type InpaintResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
 }
 
 // Request model for inpaint-v3 endpoint
@@ -2860,11 +2391,11 @@ type InpaintV3Request struct {
 	// Description of what to generate in the masked area
 	Description string `json:"description,omitzero"`
 	// Image to inpaint (32x32 to 512x512)
-	InpaintingImage InpaintImage `json:"inpainting_image"`
+	InpaintingImage ConceptImage `json:"inpainting_image"`
 	// Mask for the image (same dimensions as inpainting_image). White = generate, Black = preserve
-	MaskImage InpaintImage `json:"mask_image"`
+	MaskImage ConceptImage `json:"mask_image"`
 	// Context image (deprecated)
-	ContextImage *InpaintImage `json:"context_image,omitempty"`
+	ContextImage *ConceptImage `json:"context_image,omitempty"`
 	// Bounding box (deprecated)
 	BoundingBox *BoundingBox `json:"bounding_box,omitempty"`
 	// Seed for reproducible generation
@@ -2875,38 +2406,31 @@ type InpaintV3Request struct {
 	CropToMask bool `json:"crop_to_mask,omitempty"`
 }
 
-// Response model for inpaint-v3 endpoint (background job)
-type InpaintV3Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for interpolation-v2 endpoint
 type InterpolationV2Request struct {
 	// Starting keyframe image
-	StartImage KeyframeImage `json:"start_image"`
+	StartImage ConceptImage `json:"start_image"`
 	// Ending keyframe image
-	EndImage KeyframeImage `json:"end_image"`
+	EndImage ConceptImage `json:"end_image"`
 	// Description of the transition (e.g., 'morphing', 'transforming', 'powering up')
 	Action string `json:"action,omitzero"`
 	// Size of the output frames
-	ImageSize app__endpoints__external__v2__interpolation_v2__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
 	NoBackground bool `json:"no_background,omitempty"`
 }
 
-// Response model for interpolation-v2 endpoint (background job)
-type InterpolationV2Response struct {
+// Response for isometric tile deletion.
+type IsometricTile struct {
 	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
+	// Whether the deletion succeeded
+	Success bool `json:"success,omitzero"`
+	// ID of the deleted tile
+	TileID string `json:"tile_id,omitzero"`
+	// Error message if deletion failed
+	Err string `json:"error,omitzero"`
 }
 
 // Summary of an isometric tile for listing
@@ -2939,14 +2463,6 @@ type IsometricTilesListResponse struct {
 // List of user's isometric tiles
 type IsometricTilesListResponseTiles []IsometricTileSummary
 
-// Keyframe image for interpolation.
-type KeyframeImage struct {
-	// Keyframe image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Size of the keyframe image
-	Size app__endpoints__external__v2__interpolation_v2__FrameImageSize `json:"size"`
-}
-
 // Keypoint defines a model
 type Keypoint struct {
 	X      float64 `json:"x"`
@@ -2967,6 +2483,27 @@ type LipSyncFrameOut struct {
 	TextOffset int `json:"text_offset,omitzero"`
 }
 
+// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
+type LipSyncMood string
+
+const (
+	LipSyncMoodNeutral   LipSyncMood = "neutral"
+	LipSyncMoodHappy     LipSyncMood = "happy"
+	LipSyncMoodAngry     LipSyncMood = "angry"
+	LipSyncMoodSad       LipSyncMood = "sad"
+	LipSyncMoodSurprised LipSyncMood = "surprised"
+)
+
+// Valid indicates whether the value is a known member of the LipSyncMood enum.
+func (e LipSyncMood) Valid() bool {
+	switch e {
+	case LipSyncMoodNeutral, LipSyncMoodHappy, LipSyncMoodAngry, LipSyncMoodSad, LipSyncMoodSurprised:
+		return true
+	default:
+		return false
+	}
+}
+
 // LipSyncRequest defines a model
 type LipSyncRequest struct {
 	// The line of dialogue to lip-sync.
@@ -2974,34 +2511,13 @@ type LipSyncRequest struct {
 	// Use the mouth positions stored on this character; the response then also carries the spritesheet URL and the row to read. Mutually exclusive with `viseme_count`.
 	CharacterID string `json:"character_id,omitzero"`
 	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
-	Mood LipSyncRequestMood `json:"mood,omitzero"`
+	Mood LipSyncMood `json:"mood,omitzero"`
 	// Plan against a preset without touching a character — useful if you hold the frames yourself. Mutually exclusive with `character_id`.
 	VisemeCount *int `json:"viseme_count,omitempty"`
 	// Milliseconds to hold each mouth position.
 	FrameMs *int `json:"frame_ms,omitempty"`
 	// Extra time on the final closed mouth.
 	HoldMs *int `json:"hold_ms,omitempty"`
-}
-
-// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
-type LipSyncRequestMood string
-
-const (
-	LipSyncRequestMoodNeutral   LipSyncRequestMood = "neutral"
-	LipSyncRequestMoodHappy     LipSyncRequestMood = "happy"
-	LipSyncRequestMoodAngry     LipSyncRequestMood = "angry"
-	LipSyncRequestMoodSad       LipSyncRequestMood = "sad"
-	LipSyncRequestMoodSurprised LipSyncRequestMood = "surprised"
-)
-
-// Valid indicates whether the value is a known member of the LipSyncRequestMood enum.
-func (e LipSyncRequestMood) Valid() bool {
-	switch e {
-	case LipSyncRequestMoodNeutral, LipSyncRequestMoodHappy, LipSyncRequestMoodAngry, LipSyncRequestMoodSad, LipSyncRequestMoodSurprised:
-		return true
-	default:
-		return false
-	}
 }
 
 // LipSyncResponse defines a model
@@ -3028,7 +2544,7 @@ type LipSyncResponseFrames []LipSyncFrameOut
 type MaskInpainting struct {
 	Type string `json:"type,omitzero"`
 	// Mask image: black (0,0,0)=frozen context, white (255,255,255)=generate area
-	MaskImage Base64Image `json:"mask_image"`
+	MaskImage BaseImage `json:"mask_image"`
 }
 
 // One direction within an animation group.
@@ -3073,7 +2589,7 @@ type ObjectDetail struct {
 	// Object creation prompt
 	Prompt string `json:"prompt,omitzero"`
 	// Object image dimensions
-	Size ObjectSize `json:"size"`
+	Size CharacterSize `json:"size"`
 	// Number of directional rotations (1, 4, or 8). Review-status objects are always 1-direction outputs awaiting selection.
 	Directions int `json:"directions,omitzero"`
 	// ISO timestamp of object creation
@@ -3126,14 +2642,6 @@ type ObjectRotationUrls struct {
 	NorthWest string `json:"north-west,omitzero"`
 }
 
-// Object sprite dimensions
-type ObjectSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
 // Summary of an object for listing
 type ObjectSummary struct {
 	// Unique object identifier
@@ -3145,7 +2653,7 @@ type ObjectSummary struct {
 	// Object creation prompt
 	Prompt string `json:"prompt,omitzero"`
 	// Object image dimensions
-	Size ObjectSize `json:"size"`
+	Size CharacterSize `json:"size"`
 	// Number of directional rotations (1, 4, or 8)
 	Directions int `json:"directions,omitzero"`
 	// ISO timestamp of object creation
@@ -3228,9 +2736,9 @@ type PortraitCharacterProRequest struct {
 	// portrait_to_character: input is a bust portrait, output a full-body character sprite. character_to_portrait: input is a full-body character, output a bust portrait.
 	Direction PortraitCharacterProRequestDirection `json:"direction,omitzero"`
 	// Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`).
-	Image Base64Image `json:"image"`
-	// Camera angle of the character.
-	View PortraitCharacterProRequestView `json:"view,omitzero"`
+	Image BaseImage `json:"image"`
+	// Camera angle.
+	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Output sprite size in pixels. 128/160 render at 2K for extra detail (and cost more generations).
 	ResultSize *int `json:"result_size,omitempty"`
 	// Seed for reproducible generation.
@@ -3255,34 +2763,6 @@ func (e PortraitCharacterProRequestDirection) Valid() bool {
 	}
 }
 
-// Camera angle of the character.
-type PortraitCharacterProRequestView string
-
-const (
-	PortraitCharacterProRequestViewLowTopDown  PortraitCharacterProRequestView = "low top-down"
-	PortraitCharacterProRequestViewHighTopDown PortraitCharacterProRequestView = "high top-down"
-	PortraitCharacterProRequestViewSide        PortraitCharacterProRequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the PortraitCharacterProRequestView enum.
-func (e PortraitCharacterProRequestView) Valid() bool {
-	switch e {
-	case PortraitCharacterProRequestViewLowTopDown, PortraitCharacterProRequestViewHighTopDown, PortraitCharacterProRequestViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
-// Response model for portrait-character-pro endpoint (background job).
-type PortraitCharacterProResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // ProImageSize defines a model
 type ProImageSize struct {
 	// Output frame width in pixels (32-168).
@@ -3301,7 +2781,7 @@ type RectangleInpainting struct {
 // Request model for remove-background endpoint
 type RemoveBackgroundRequest struct {
 	// The image to remove the background from (PNG or JPEG base64)
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Size of the input image
 	ImageSize app__endpoints__external__v2__remove_background__ImageSize `json:"image_size"`
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
@@ -3312,28 +2792,16 @@ type RemoveBackgroundRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Response for completed background removal
-type RemoveBackgroundResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
-}
-
 // Request model for resize endpoint
 type ResizeRequest struct {
 	// Description of your character
 	Description string `json:"description,omitzero"`
 	// Image to resize
-	ReferenceImage Base64Image `json:"reference_image"`
+	ReferenceImage BaseImage `json:"reference_image"`
 	// Original size of the reference image
-	ReferenceImageSize app__endpoints__external__v2__resize__ImageSize `json:"reference_image_size"`
+	ReferenceImageSize app__endpoints__external__v__resize__ImageSize `json:"reference_image_size"`
 	// Desired output size
-	TargetSize app__endpoints__external__v2__resize__ImageSize `json:"target_size"`
+	TargetSize app__endpoints__external__v__resize__ImageSize `json:"target_size"`
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Directional view
@@ -3345,30 +2813,19 @@ type ResizeRequest struct {
 	// Remove background
 	NoBackground bool `json:"no_background,omitempty"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of initial image influence
 	InitImageStrength *float64 `json:"init_image_strength,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Response for completed resize
-type ResizeResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
-}
-
 // Request model for image generation endpoint
 type RotateRequest struct {
-	ImageSize app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
+	// Image dimensions
+	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
 	// How closely to follow the reference image
 	ImageGuidanceScale *float64 `json:"image_guidance_scale,omitempty"`
 	// How many degrees to tilt the subject
@@ -3388,29 +2845,17 @@ type RotateRequest struct {
 	// Generate in oblique projection
 	ObliqueProjection bool `json:"oblique_projection,omitempty"`
 	// Initial image to start from
-	InitImage *Base64Image `json:"init_image,omitempty"`
+	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)
-	MaskImage *Base64Image `json:"mask_image,omitempty"`
+	MaskImage *BaseImage `json:"mask_image,omitempty"`
 	// Reference image to rotate
-	FromImage Base64Image `json:"from_image"`
+	FromImage BaseImage `json:"from_image"`
 	// Forced color palette, image containing colors used for palette
-	ColorImage *Base64Image `json:"color_image,omitempty"`
+	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// RotateResponse defines a model
-type RotateResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image Base64Image `json:"image"`
 }
 
 // SelectObjectFramesRequest defines a model
@@ -3430,7 +2875,7 @@ type SelectObjectFramesResponse struct {
 // SetPortraitRequest defines a model
 type SetPortraitRequest struct {
 	// Portrait as base64 PNG/JPEG, 16-256px. A non-square image is centred on a transparent square canvas.
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 }
 
 // SetPortraitResponse defines a model
@@ -3443,33 +2888,23 @@ type SetPortraitResponse struct {
 	URL string `json:"url,omitzero"`
 }
 
-// Shading defines a model
-type Shading string
-
-const (
-	ShadingFlatShading           Shading = "flat shading"
-	ShadingBasicShading          Shading = "basic shading"
-	ShadingMediumShading         Shading = "medium shading"
-	ShadingDetailedShading       Shading = "detailed shading"
-	ShadingHighlyDetailedShading Shading = "highly detailed shading"
-)
-
-// Valid indicates whether the value is a known member of the Shading enum.
-func (e Shading) Valid() bool {
-	switch e {
-	case ShadingFlatShading, ShadingBasicShading, ShadingMediumShading, ShadingDetailedShading, ShadingHighlyDetailedShading:
-		return true
-	default:
-		return false
-	}
-}
-
 // SidescrollerTileSize defines a model
 type SidescrollerTileSize struct {
 	// Individual tile width in pixels (16 or 32)
 	Width *int `json:"width,omitempty"`
 	// Individual tile height in pixels (16 or 32)
 	Height *int `json:"height,omitempty"`
+}
+
+// Response for sidescroller tileset deletion.
+type SidescrollerTileset struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Whether the deletion succeeded
+	Success bool `json:"success,omitzero"`
+	// ID of the deleted tileset
+	TilesetID string `json:"tileset_id,omitzero"`
+	// Error message if deletion failed
+	Err string `json:"error,omitzero"`
 }
 
 // SidescrollerTilesetSummary defines a model
@@ -3528,18 +2963,8 @@ func (e SkeletonLabel) Valid() bool {
 	}
 }
 
-// Style reference image with dimensions.
-type StyleImage struct {
-	// Style image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Image width in pixels (max 512, matches model)
-	Width int `json:"width,omitzero"`
-	// Image height in pixels (max 512, matches model)
-	Height int `json:"height,omitzero"`
-}
-
 // Options for what to copy from the style image.
-type StyleOptions struct {
+type Style struct {
 	// Copy color palette from style image
 	ColorPalette bool `json:"color_palette,omitempty"`
 	// Copy outline style
@@ -3548,16 +2973,6 @@ type StyleOptions struct {
 	Detail bool `json:"detail,omitempty"`
 	// Copy shading style
 	Shading bool `json:"shading,omitempty"`
-}
-
-// StyleReferenceImage defines a model
-type StyleReferenceImage struct {
-	// Image data type
-	Type string `json:"type,omitzero"`
-	// Base64 encoded image data
-	Base64 string `json:"base64,omitzero"`
-	// Image format
-	Format string `json:"format,omitzero"`
 }
 
 // Subscription generation balance
@@ -3579,35 +2994,14 @@ type TalkingGifRequest struct {
 	Text string `json:"text,omitzero"`
 	// Use the mouth positions stored on this character. Mutually exclusive with `visemes`.
 	CharacterID string `json:"character_id,omitzero"`
-	// Which stored expression to talk with. Defaults to the character's first. Only valid with `character_id`.
-	Mood TalkingGifRequestMood `json:"mood,omitzero"`
+	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
+	Mood LipSyncMood `json:"mood,omitzero"`
 	// Supply the mouth positions directly, as returned by GET /v2/vocal-animation/{job_id}. Mutually exclusive with `character_id`.
-	Visemes *map[string]Base64Image `json:"visemes,omitempty"`
+	Visemes *map[string]BaseImage `json:"visemes,omitempty"`
 	// Milliseconds per mouth position.
 	FrameMs *int `json:"frame_ms,omitempty"`
 	// Pause held on the closed mouth at the end, so a looping GIF has a beat between takes.
 	HoldMs *int `json:"hold_ms,omitempty"`
-}
-
-// Which stored expression to talk with. Defaults to the character's first. Only valid with `character_id`.
-type TalkingGifRequestMood string
-
-const (
-	TalkingGifRequestMoodNeutral   TalkingGifRequestMood = "neutral"
-	TalkingGifRequestMoodHappy     TalkingGifRequestMood = "happy"
-	TalkingGifRequestMoodAngry     TalkingGifRequestMood = "angry"
-	TalkingGifRequestMoodSad       TalkingGifRequestMood = "sad"
-	TalkingGifRequestMoodSurprised TalkingGifRequestMood = "surprised"
-)
-
-// Valid indicates whether the value is a known member of the TalkingGifRequestMood enum.
-func (e TalkingGifRequestMood) Valid() bool {
-	switch e {
-	case TalkingGifRequestMoodNeutral, TalkingGifRequestMoodHappy, TalkingGifRequestMoodAngry, TalkingGifRequestMoodSad, TalkingGifRequestMoodSurprised:
-		return true
-	default:
-		return false
-	}
 }
 
 // TalkingGifResponse defines a model
@@ -3634,7 +3028,7 @@ type Tile struct {
 	// Corner-based name (e.g., 'NW+SE', 'none')
 	Name string `json:"name,omitzero"`
 	// Tile image data
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Terrain type for each corner
 	Corners TileCorners `json:"corners"`
 	// 4x4 pattern for tile matching
@@ -3661,14 +3055,14 @@ type TileConnections struct {
 
 // Corner terrain types for a tile
 type TileCorners struct {
-	// Northwest corner terrain type
-	Nw TileCornersNw `json:"NW,omitzero"`
+	// Northeast corner terrain type
+	Nw TileCornersNe `json:"NW,omitzero"`
 	// Northeast corner terrain type
 	Ne TileCornersNe `json:"NE,omitzero"`
-	// Southwest corner terrain type
-	Sw TileCornersSw `json:"SW,omitzero"`
-	// Southeast corner terrain type
-	Se TileCornersSe `json:"SE,omitzero"`
+	// Northeast corner terrain type
+	Sw TileCornersNe `json:"SW,omitzero"`
+	// Northeast corner terrain type
+	Se TileCornersNe `json:"SE,omitzero"`
 }
 
 // Northeast corner terrain type
@@ -3684,63 +3078,6 @@ const (
 func (e TileCornersNe) Valid() bool {
 	switch e {
 	case TileCornersNeLower, TileCornersNeUpper, TileCornersNeTransition:
-		return true
-	default:
-		return false
-	}
-}
-
-// Northwest corner terrain type
-type TileCornersNw string
-
-const (
-	TileCornersNwLower      TileCornersNw = "lower"
-	TileCornersNwUpper      TileCornersNw = "upper"
-	TileCornersNwTransition TileCornersNw = "transition"
-)
-
-// Valid indicates whether the value is a known member of the TileCornersNw enum.
-func (e TileCornersNw) Valid() bool {
-	switch e {
-	case TileCornersNwLower, TileCornersNwUpper, TileCornersNwTransition:
-		return true
-	default:
-		return false
-	}
-}
-
-// Southeast corner terrain type
-type TileCornersSe string
-
-const (
-	TileCornersSeLower      TileCornersSe = "lower"
-	TileCornersSeUpper      TileCornersSe = "upper"
-	TileCornersSeTransition TileCornersSe = "transition"
-)
-
-// Valid indicates whether the value is a known member of the TileCornersSe enum.
-func (e TileCornersSe) Valid() bool {
-	switch e {
-	case TileCornersSeLower, TileCornersSeUpper, TileCornersSeTransition:
-		return true
-	default:
-		return false
-	}
-}
-
-// Southwest corner terrain type
-type TileCornersSw string
-
-const (
-	TileCornersSwLower      TileCornersSw = "lower"
-	TileCornersSwUpper      TileCornersSw = "upper"
-	TileCornersSwTransition TileCornersSw = "transition"
-)
-
-// Valid indicates whether the value is a known member of the TileCornersSw enum.
-func (e TileCornersSw) Valid() bool {
-	switch e {
-	case TileCornersSwLower, TileCornersSwUpper, TileCornersSwTransition:
 		return true
 	default:
 		return false
@@ -3786,18 +3123,6 @@ type TilesProStyleImage struct {
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
 	Height int `json:"height,omitzero"`
-}
-
-// Options for what to copy from the style images.
-type TilesProStyleOptions struct {
-	// Match color palette from style tiles
-	ColorPalette bool `json:"color_palette,omitempty"`
-	// Match outline style from style tiles
-	Outline bool `json:"outline,omitempty"`
-	// Match detail level from style tiles
-	Detail bool `json:"detail,omitempty"`
-	// Match shading style from style tiles
-	Shading bool `json:"shading,omitempty"`
 }
 
 // TilesProSummary defines a model
@@ -3899,29 +3224,17 @@ type TilesetsListResponseTilesets []TilesetSummary
 // Request model for transfer-outfit-v2 endpoint
 type TransferOutfitV2Request struct {
 	// Reference image containing the outfit/appearance to transfer
-	ReferenceImage app__endpoints__external__v2__transfer_outfit_v2__ReferenceImage `json:"reference_image"`
-	// Animation frames to apply the outfit to (2-16 frames)
-	Frames TransferOutfitV2RequestFrames `json:"frames,omitempty"`
+	ReferenceImage app__endpoints__external__v__edit_animation_v__FrameImage `json:"reference_image"`
+	// Animation frames to edit (2-16 frames)
+	Frames EditAnimationFrames `json:"frames,omitempty"`
 	// Size of the output frames
-	ImageSize app__endpoints__external__v2__transfer_outfit_v2__ImageSize `json:"image_size"`
+	ImageSize FrameSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
 	NoBackground bool `json:"no_background,omitempty"`
 	// Optional free-text instructions to guide the transfer (e.g. view/direction hints like 'frames show the character from behind')
 	AdditionalInstructions string `json:"additional_instructions,omitzero"`
-}
-
-// Animation frames to apply the outfit to (2-16 frames)
-type TransferOutfitV2RequestFrames []app__endpoints__external__v2__transfer_outfit_v2__FrameImage
-
-// Response model for transfer-outfit-v2 endpoint (background job)
-type TransferOutfitV2Response struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
 }
 
 // UIAssetDetail defines a model
@@ -3933,7 +3246,7 @@ type UIAssetDetail struct {
 	// Style description used to generate the panel
 	Prompt string `json:"prompt,omitzero"`
 	// Image dimensions
-	Size UIAssetSize `json:"size"`
+	Size CharacterSize `json:"size"`
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
@@ -3946,14 +3259,6 @@ type UIAssetDetail struct {
 	EtaSeconds *int `json:"eta_seconds,omitempty"`
 }
 
-// UIAssetSize defines a model
-type UIAssetSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
 // UIAssetSummary defines a model
 type UIAssetSummary struct {
 	// UI asset UUID
@@ -3963,7 +3268,7 @@ type UIAssetSummary struct {
 	// Style description used to generate the panel
 	Prompt string `json:"prompt,omitzero"`
 	// Image dimensions
-	Size UIAssetSize `json:"size"`
+	Size CharacterSize `json:"size"`
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
@@ -4020,26 +3325,13 @@ type UiPieceRect struct {
 }
 
 // Request to update object tags
-type UpdateObjectTagsRequest struct {
+type UpdateObjectTags struct {
 	// List of tags to assign to the object
 	Tags []string `json:"tags,omitempty"`
 }
 
 // Response after updating tags
-type UpdateObjectTagsResponse struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Updated list of tags
-	Tags []string `json:"tags,omitempty"`
-}
-
-// Request to update character tags
-type UpdateTagsRequest struct {
-	// List of tags to assign to the character
-	Tags []string `json:"tags,omitempty"`
-}
-
-// Response after updating tags
-type UpdateTagsResponse struct {
+type UpdateObjectTags2 struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Updated list of tags
 	Tags []string `json:"tags,omitempty"`
@@ -4071,16 +3363,6 @@ func (e UsageType) Valid() bool {
 	}
 }
 
-// Output frame size. The model derives output size from the input; this
-// is advisory and used as the initial canvas size on the character row
-// before pad-for-animation runs.
-type V3OutputImageSize struct {
-	// Frame width in pixels (32-256).
-	Width int `json:"width,omitzero"`
-	// Frame height in pixels (32-256).
-	Height int `json:"height,omitzero"`
-}
-
 // ValidationError defines a model
 type ValidationError struct {
 	Loc   []CreateUIAssetPiecesItem `json:"loc,omitempty"`
@@ -4095,36 +3377,15 @@ type VocalAnimationRequest struct {
 	// Generate from this character's stored portrait and save the result onto it. Required if you want to use `character_id` with /v2/talking-gif. Mutually exclusive with `portrait`.
 	CharacterID string `json:"character_id,omitzero"`
 	// Generate from this image instead and store nothing — the mouth positions come back inline. Max 256x256. Mutually exclusive with `character_id`.
-	Portrait *Base64Image `json:"portrait,omitempty"`
-	// Expression held on the face throughout. The mouth positions are the same across moods; call once per expression you want.
-	Mood VocalAnimationRequestMood `json:"mood,omitzero"`
+	Portrait *BaseImage `json:"portrait,omitempty"`
+	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
+	Mood LipSyncMood `json:"mood,omitzero"`
 	// How many mouth positions to generate. 3 for tiny portraits, 7 recommended, 12 for large close-ups. Must be the same for every expression on one character.
 	VisemeCount *int `json:"viseme_count,omitempty"`
 	// Return frames with a transparent background.
 	NoBackground bool `json:"no_background,omitempty"`
 	// Seed for reproducible generation.
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Expression held on the face throughout. The mouth positions are the same across moods; call once per expression you want.
-type VocalAnimationRequestMood string
-
-const (
-	VocalAnimationRequestMoodNeutral   VocalAnimationRequestMood = "neutral"
-	VocalAnimationRequestMoodHappy     VocalAnimationRequestMood = "happy"
-	VocalAnimationRequestMoodAngry     VocalAnimationRequestMood = "angry"
-	VocalAnimationRequestMoodSad       VocalAnimationRequestMood = "sad"
-	VocalAnimationRequestMoodSurprised VocalAnimationRequestMood = "surprised"
-)
-
-// Valid indicates whether the value is a known member of the VocalAnimationRequestMood enum.
-func (e VocalAnimationRequestMood) Valid() bool {
-	switch e {
-	case VocalAnimationRequestMoodNeutral, VocalAnimationRequestMoodHappy, VocalAnimationRequestMoodAngry, VocalAnimationRequestMoodSad, VocalAnimationRequestMoodSurprised:
-		return true
-	default:
-		return false
-	}
 }
 
 // VocalAnimationResponse defines a model
@@ -4145,35 +3406,11 @@ type app__endpoints__external__v2__animate_with_text__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v2__animate_with_text_v2__ImageSize defines a model
-type app__endpoints__external__v2__animate_with_text_v2__ImageSize struct {
-	// Image width in pixels (32-256)
-	Width int `json:"width,omitzero"`
-	// Image height in pixels (32-256)
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize defines a model
-type app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize struct {
-	// Reference image width in pixels (32-256)
-	Width int `json:"width,omitzero"`
-	// Reference image height in pixels (32-256)
-	Height int `json:"height,omitzero"`
-}
-
 // app__endpoints__external__v2__create_image_pixen__ImageSize defines a model
 type app__endpoints__external__v2__create_image_pixen__ImageSize struct {
 	// Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32)
 	Width int `json:"width,omitzero"`
 	// Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__create_image_pixflux__ImageSize defines a model
-type app__endpoints__external__v2__create_image_pixflux__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
 	Height int `json:"height,omitzero"`
 }
 
@@ -4207,25 +3444,6 @@ type app__endpoints__external__v2__create_ui_asset__ImageSize struct {
 	Height *int `json:"height,omitempty"`
 }
 
-// Animation frame image with size.
-//
-// Nested `size` object matches the animation-frame v2 subfamily
-// (transfer-outfit-v2, interpolation-v2), which share this backend family.
-type app__endpoints__external__v2__edit_animation_v2__FrameImage struct {
-	// Frame image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Size of the frame image
-	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
-}
-
-// app__endpoints__external__v2__edit_image__ImageSize defines a model
-type app__endpoints__external__v2__edit_image__ImageSize struct {
-	// Image width in pixels (16-400)
-	Width int `json:"width,omitzero"`
-	// Image height in pixels (16-400)
-	Height int `json:"height,omitzero"`
-}
-
 // app__endpoints__external__v2__edit_images_v2__ImageSize defines a model
 type app__endpoints__external__v2__edit_images_v2__ImageSize struct {
 	// Image width in pixels
@@ -4234,28 +3452,10 @@ type app__endpoints__external__v2__edit_images_v2__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// Reference image for edit_with_reference method.
-type app__endpoints__external__v2__edit_images_v2__ReferenceImage struct {
-	// Reference image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__generate_8_rotations_v2__ImageSize defines a model
-type app__endpoints__external__v2__generate_8_rotations_v2__ImageSize struct {
-	// Image width (32-168 pixels, matches reference_to_8_rotations)
-	Width int `json:"width,omitzero"`
-	// Image height (32-168 pixels, matches reference_to_8_rotations)
-	Height int `json:"height,omitzero"`
-}
-
 // Reference image with dimensions.
 type app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage struct {
 	// Reference image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Image width (reference max 168, concept max 1024)
 	Width int `json:"width,omitzero"`
 	// Image height (reference max 168, concept max 1024)
@@ -4276,9 +3476,9 @@ type app__endpoints__external__v2__generate_image_v2__ImageSize struct {
 // padded to square with transparent pixels before processing.
 type app__endpoints__external__v2__generate_image_v2__ReferenceImage struct {
 	// Reference image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
+	Image BaseImage `json:"image"`
 	// Size of the reference image. Images larger than 1024x1024 will be downscaled.
-	Size app__endpoints__external__v__generate_image_v__ReferenceImageSize `json:"size"`
+	Size app__endpoints__external__v__inpaint_v__ImageSize `json:"size"`
 	// Optional description of how this reference should be used
 	UsageDescription string `json:"usage_description,omitzero"`
 }
@@ -4299,68 +3499,12 @@ type app__endpoints__external__v2__image_to_pixelart__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v2__inpaint_v3__ImageSize defines a model
-type app__endpoints__external__v2__inpaint_v3__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__interpolation_v2__FrameImageSize defines a model
-type app__endpoints__external__v2__interpolation_v2__FrameImageSize struct {
-	// Frame image width
-	Width int `json:"width,omitzero"`
-	// Frame image height
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__interpolation_v2__ImageSize defines a model
-type app__endpoints__external__v2__interpolation_v2__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
 // app__endpoints__external__v2__remove_background__ImageSize defines a model
 type app__endpoints__external__v2__remove_background__ImageSize struct {
 	// Image width in pixels
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
 	Height int `json:"height,omitzero"`
-}
-
-// Image dimensions
-type app__endpoints__external__v2__resize__ImageSize struct {
-	// Width in pixels
-	Width int `json:"width,omitzero"`
-	// Height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// Animation frame image to apply the outfit to.
-type app__endpoints__external__v2__transfer_outfit_v2__FrameImage struct {
-	// Frame image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Size of the frame image
-	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
-}
-
-// app__endpoints__external__v2__transfer_outfit_v2__ImageSize defines a model
-type app__endpoints__external__v2__transfer_outfit_v2__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// Reference image with the outfit to transfer.
-type app__endpoints__external__v2__transfer_outfit_v2__ReferenceImage struct {
-	// Reference image as base64 PNG/JPEG
-	Image Base64Image `json:"image"`
-	// Size of the reference image
-	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
 }
 
 // app__endpoints__external__v__animate_with_skeleton__ImageSize defines a model
@@ -4371,20 +3515,23 @@ type app__endpoints__external__v__animate_with_skeleton__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v__create_character_with__directions__ImageSize defines a model
-type app__endpoints__external__v__create_character_with__directions__ImageSize struct {
-	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
-	Width int `json:"width,omitzero"`
-	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v__create_image_bitforge__ImageSize defines a model
-type app__endpoints__external__v__create_image_bitforge__ImageSize struct {
+// app__endpoints__external__v__create_image_pixflux__ImageSize defines a model
+type app__endpoints__external__v__create_image_pixflux__ImageSize struct {
 	// Image width in pixels
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
 	Height int `json:"height,omitzero"`
+}
+
+// Animation frame image with size.
+//
+// Nested `size` object matches the animation-frame v2 subfamily
+// (transfer-outfit-v2, interpolation-v2), which share this backend family.
+type app__endpoints__external__v__edit_animation_v__FrameImage struct {
+	// Frame image as base64 PNG/JPEG
+	Image BaseImage `json:"image"`
+	// Size of the frame image
+	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
 }
 
 // app__endpoints__external__v__edit_animation_v__FrameImageSize defines a model
@@ -4395,10 +3542,26 @@ type app__endpoints__external__v__edit_animation_v__FrameImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v__generate_image_v__ReferenceImageSize defines a model
-type app__endpoints__external__v__generate_image_v__ReferenceImageSize struct {
-	// Reference image width
+// app__endpoints__external__v__inpaint_v__ImageSize defines a model
+type app__endpoints__external__v__inpaint_v__ImageSize struct {
+	// Image width in pixels
 	Width int `json:"width,omitzero"`
-	// Reference image height
+	// Image height in pixels
+	Height int `json:"height,omitzero"`
+}
+
+// app__endpoints__external__v__interpolation_v__ImageSize defines a model
+type app__endpoints__external__v__interpolation_v__ImageSize struct {
+	// Image width in pixels
+	Width int `json:"width,omitzero"`
+	// Image height in pixels
+	Height int `json:"height,omitzero"`
+}
+
+// Image dimensions
+type app__endpoints__external__v__resize__ImageSize struct {
+	// Width in pixels
+	Width int `json:"width,omitzero"`
+	// Height in pixels
 	Height int `json:"height,omitzero"`
 }
