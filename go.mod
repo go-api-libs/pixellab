@@ -1,6 +1,6 @@
 module github.com/go-api-libs/pixellab
 
-go 1.26.5
+go 1.27
 
 tool (
 	github.com/MarkRosemaker/openapi-codegen/cmd/openapi-codegen
@@ -22,7 +22,7 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/MarkRosemaker/errpath v0.0.0-20260425165607-bbd4959d04d9 // indirect
 	github.com/MarkRosemaker/json2yaml v0.0.0-20260507220148-d6cc0d01bff0 // indirect
-	github.com/MarkRosemaker/jsonutil v0.0.0-20260718153618-78b5039427a4 // indirect
+	github.com/MarkRosemaker/jsonutil v0.0.0-20260820212410-12ba6685df41 // indirect
 	github.com/MarkRosemaker/openapi-compare v0.0.0-20260820160232-bb2bacb1ba6e // indirect
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260819161509-4f330f849f38 // indirect
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260820160336-c4c88aa56e6a // indirect
