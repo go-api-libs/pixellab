@@ -7,6 +7,10 @@
 
 </div>
 
+<p align="center">
+  <img alt="A gopher pressing a tall stack of identical boxes down into a single box" src=openapi-compress.jpg width=500>
+</p>
+
 <h3 align="center">
   One type, one name, one definition.
 </h3>
@@ -102,11 +106,12 @@ err := compress.Document(doc, compress.Config{
 | `SimilarityStep` | `0.05` | How far the threshold drops between rounds. |
 | `SkipNameShortening` | `false` | Keep the original names instead of shortening merged ones. |
 
-The package also exposes schema renaming directly:
+Renaming a schema on its own — without compressing anything — is
+[`openapi-edit`](https://github.com/MarkRosemaker/openapi-edit)'s job, and this
+module uses it internally to shorten the names of merged schemas:
 
 ```go
-// Renames the schema and updates every $ref pointing at it.
-err := compress.RenameSchema(doc, "OldName", "NewName")
+err := edit.RenameSchema(doc, "OldName", "NewName")
 ```
 
 ### Command line

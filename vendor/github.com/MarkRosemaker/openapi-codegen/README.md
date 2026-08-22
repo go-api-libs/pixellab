@@ -7,6 +7,10 @@
 
 </div>
 
+<p align="center">
+  <img alt="A gopher cranking a machine that turns a rolled-up scroll into a stack of printed pages" src=openapi-codegen.jpg width=500>
+</p>
+
 <h3 align="center">
   From API spec to Go code you'd have written yourself.
 </h3>

@@ -157,7 +157,9 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 			if p.In == openapi.ParameterLocationHeader &&
 				strings.HasSuffix(p.Name, "Version") {
 				param.GlobalType = GlobalVersion
-				param.Value = p.Schema.Example.String()
+				if p.Schema.Example != nil {
+					param.Value = p.Schema.Example.String()
+				}
 			}
 		}
 	}
@@ -170,7 +172,9 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 		}
 	}
 
-	if param.GlobalType != "" {
+	// A nil example renders as the literal "null", which would reach the
+	// templates as a bare identifier rather than a Go string.
+	if param.GlobalType != "" && p.Schema.Example != nil {
 		param.Example = p.Schema.Example.String()
 	}
 
