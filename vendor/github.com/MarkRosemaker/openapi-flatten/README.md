@@ -7,6 +7,10 @@
 
 </div>
 
+<p align="center">
+  <img alt="A gopher flattening a stack of nested spec pages with a rolling pin, beside a tidy row of separate named cards" src=openapi-flatten.jpg width=500>
+</p>
+
 <h3 align="center">
   Give every type in your API spec a name and a home.
 </h3>
