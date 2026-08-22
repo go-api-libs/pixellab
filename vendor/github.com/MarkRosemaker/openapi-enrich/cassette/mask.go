@@ -87,7 +87,8 @@ func DefaultMasker() Masker {
 			"Authorization", "Proxy-Authorization",
 			"Cookie", "Set-Cookie",
 			"X-Api-Key", "X-Api-User", "X-Api-Token",
-			"X-Auth-Token", "X-Client", "X-Csrf-Token", "X-Session-Id",
+			"X-Auth-Token", "X-Client", "X-Csrf-Token",
+			"X-Rd-Token", "X-Session-Id",
 		},
 		BodyKeys: []string{
 			"access_token", "accessToken",

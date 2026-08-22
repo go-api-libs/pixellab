@@ -52,10 +52,11 @@ func decodeSchema(dec *jsontext.Decoder) (*openapi.Schema, error) {
 		return &openapi.Schema{Type: openapi.TypeNumber, Format: openapi.FormatDouble, Example: jsontext.Value(str)}, nil
 
 	case 't': // true
-		return &openapi.Schema{Type: openapi.TypeBoolean, Example: jsontext.Value(jsontext.True.String())}, nil
+		return &openapi.Schema{Type: openapi.TypeBoolean}, nil
 	case 'f': // false
-		return &openapi.Schema{Type: openapi.TypeBoolean, Example: jsontext.Value(jsontext.False.String())}, nil
+		return &openapi.Schema{Type: openapi.TypeBoolean}, nil
 	case 'n': // null → object placeholder; isGeneratedFromNull in openapi-merge checks Example=="null"
+		// TODO: perhaps it would be better to actually set TypeNull here
 		return &openapi.Schema{Type: openapi.TypeObject, Example: jsontext.Value("null")}, nil
 	case '{': // begin object
 		return decodeObjectSchema(dec)

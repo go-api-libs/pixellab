@@ -144,7 +144,11 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 
 	if p.Required {
 		switch p.Name {
-		case "X-Api-Key":
+		// X-Rd-Token is an API token, so it gets the same treatment: a client
+		// field, a ClientOption, and a value read from the environment. It
+		// shares VarName with X-Api-Key because only one of the two can be
+		// rendered -- Document.APIKey returns a single parameter.
+		case "X-Api-Key", "X-Rd-Token":
 			param.GlobalType = GlobalAPIKey
 			param.VarName = "apiKey"
 			if apiTitle != "" {

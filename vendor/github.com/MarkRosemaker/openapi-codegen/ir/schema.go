@@ -564,17 +564,19 @@ func fieldGoName(jsonName string) string {
 	return name
 }
 
+var replInvalidChars = strings.NewReplacer(
+	"#", " Sharp ",
+	"/", " ",
+	"+", " Plus ",
+	".", " Dot ",
+	"(", "",
+	")", "",
+	":", "",
+)
+
 // enumConstName builds the Go constant name for an enum value, e.g. MyEnum + "foo_bar" → MyEnumFooBar.
 func enumConstName(typeName, value string) string {
-	r := strings.NewReplacer(
-		"#", " Sharp ",
-		"/", " ",
-		"+", " Plus ",
-		".", " Dot ",
-		"(", "",
-		")", "",
-	)
-	sanitized := r.Replace(value)
+	sanitized := replInvalidChars.Replace(value)
 	sanitized = replaceLeadingDigits(sanitized)
 
 	if len(sanitized) <= 3 && sanitized == strings.ToUpper(sanitized) {
