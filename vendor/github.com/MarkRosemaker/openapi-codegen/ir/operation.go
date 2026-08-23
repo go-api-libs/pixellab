@@ -378,8 +378,8 @@ func fromRequestBody(rb *openapi.RequestBody) (*ReqBody, error) {
 	return nil, nil
 }
 
-func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, bool, error) {
-	var result []Response
+func fromResponses(responses openapi.OperationResponses) (Responses, *GoType, bool, error) {
+	var result Responses
 	var successReturn *GoType
 	var rawBytesSuccess bool
 
