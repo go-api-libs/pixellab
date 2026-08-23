@@ -35,6 +35,8 @@ func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func TestClient_Error(t *testing.T) {
 	t.Run("GenerateImageV2GenerateImageV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -127,6 +129,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateWithStyleV2GenerateWithStyleV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -219,6 +223,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateUiv2GenerateUiv2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -311,6 +317,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateImagePixfluxCreateImagePixfluxPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -403,6 +411,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -495,6 +505,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateImagePixenCreateImagePixenPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -587,6 +599,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateImageBitforgeCreateImageBitforgePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -679,6 +693,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ImageToPixelartImageToPixelartPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -771,6 +787,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ImageToPixelartProImageToPixelartProPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -863,6 +881,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ResizeImageResizePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -955,6 +975,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("RemoveBackgroundEndpointRemoveBackgroundPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1047,6 +1069,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EditAnimationV2EditAnimationV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1139,6 +1163,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("InterpolationV2InterpolationV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1231,6 +1257,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("TransferOutfitV2TransferOutfitV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1323,6 +1351,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("PortraitCharacterProPortraitCharacterProPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1415,6 +1445,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetPortraitCharacterPortraitCharacterProJobIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1507,6 +1539,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("SetPortraitCharactersCharacterIDPortraitPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1599,6 +1633,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateVocalAnimationVocalAnimationPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1691,6 +1727,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetVocalAnimationVocalAnimationJobIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1783,6 +1821,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateTalkingGifTalkingGifPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1875,6 +1915,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetLipSyncLipSyncPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -1967,6 +2009,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateFontProGenerateFontProPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2059,6 +2103,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetFontGenerateFontProJobIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2151,6 +2197,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("AnimateWithSkeletonAnimateWithSkeletonPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2243,6 +2291,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("AnimateWithTextAnimateWithTextPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2335,6 +2385,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("AnimateWithTextV2AnimateWithTextV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2427,6 +2479,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("AnimateWithTextV3AnimateWithTextV3Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2519,6 +2573,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EstimateSkeletonEstimateSkeletonPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2611,6 +2667,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("Generate8RotationsV2Generate8RotationsV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2703,6 +2761,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("Generate8RotationsV3Generate8RotationsV3Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2795,6 +2855,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateRotationRotatePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2887,6 +2949,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("InpaintV3InpaintV3Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -2979,6 +3043,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateInpaintingInpaintPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3071,6 +3137,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EditImagesV2EditImagesV2Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3163,6 +3231,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EditImageEditImagePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3255,6 +3325,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListTilesetsTilesetsGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3347,6 +3419,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateTilesetTilesetsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3439,6 +3513,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateTilesetCreateTilesetPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3531,6 +3607,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetTilesetTilesetsTilesetIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3623,6 +3701,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteTopdownTilesetTilesetsTilesetIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3715,6 +3795,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListSidescrollerTilesetsTilesetsSidescrollerGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3807,6 +3889,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateTilesetSidescrollerTilesetsSidescrollerPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3899,6 +3983,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -3991,6 +4077,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4083,6 +4171,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4175,6 +4265,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GenerateIsometricTileCreateIsometricTilePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4267,6 +4359,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetIsometricTileIsometricTilesTileIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4359,6 +4453,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteIsometricTileIsometricTilesTileIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4451,6 +4547,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListIsometricTilesIsometricTilesGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4543,6 +4641,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateTilesProCreateTilesProPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4635,6 +4735,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetTilesProTilesProTileIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4727,6 +4829,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteTilesProTilesProTileIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4819,6 +4923,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListTilesProTilesProGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -4911,6 +5017,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateMapObjectMapObjectsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5003,6 +5111,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetMapObjectMapObjectsObjectIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5095,6 +5205,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateUIAssetCreateUIAssetPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5187,6 +5299,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListUIAssetsUIAssetsGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5279,6 +5393,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetUIAssetUIAssetsUIAssetIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5371,6 +5487,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteUIAssetUIAssetsUIAssetIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5463,6 +5581,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetBalanceBalanceGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5555,6 +5675,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5647,6 +5769,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5739,6 +5863,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterProCreateCharacterProPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5831,6 +5957,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterV3CreateCharacterV3Post", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -5923,6 +6051,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterAnimationCharactersAnimationsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6015,6 +6145,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterAnimationAnimateCharacterPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6107,6 +6239,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateCharacterStateCreateCharacterStatePost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6199,6 +6333,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListCharactersCharactersGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6291,6 +6427,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetCharacterCharactersCharacterIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6383,6 +6521,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteCharacterV2CharactersCharacterIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6475,6 +6615,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DownloadCharacterCharactersCharacterIDZipGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6567,6 +6709,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("UpdateCharacterTagsCharactersCharacterIDTagsPatch", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6659,6 +6803,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetBackgroundJobStatusBackgroundJobsJobIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6751,6 +6897,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("Create1DirectionObjectCreate1DirectionObjectPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6843,6 +6991,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("Create8DirectionObjectCreate8DirectionObjectPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -6935,6 +7085,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("AnimateObjectObjectsObjectIDAnimationsPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7027,6 +7179,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteObjectAnimationsObjectsObjectIDAnimationsDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7119,6 +7273,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("CreateObjectStateObjectsObjectIDStatesPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7211,6 +7367,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("SelectObjectFramesObjectsObjectIDSelectFramesPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7303,6 +7461,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DismissReviewObjectsObjectIDDismissReviewPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7395,6 +7555,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("ListObjectsObjectsGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7487,6 +7649,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetObjectObjectsObjectIDGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7579,6 +7743,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteObjectObjectsObjectIDDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7671,6 +7837,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("UpdateObjectTagsObjectsObjectIDTagsPatch", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7763,6 +7931,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7855,6 +8025,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EnhancePixenPromptEnhancePixenPromptPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -7947,6 +8119,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -8039,6 +8213,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
@@ -8131,6 +8307,8 @@ func TestClient_Error(t *testing.T) {
 	})
 
 	t.Run("GetLlmsTxtLlmsTxtGet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
 		t.Run("transport error", func(t *testing.T) {
 			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
