@@ -43,9 +43,14 @@ func schemasSimilarity(a, b *openapi.Schema) float64 {
 		refA, okA := a.Properties[name]
 		refB, okB := b.Properties[name]
 		if okA && okB {
-			if schemaRefSameShape(refA, refB) {
+			switch {
+			case schemaRefSameShape(refA, refB):
 				score += 1.0
-			} else {
+			case !reconcilable(refA, refB):
+				// No widening covers both, so no amount of agreement
+				// elsewhere makes these two schemas mergeable.
+				return 0.0
+			default:
 				score += 0.5 // same name, different shape — partial credit
 			}
 		}
@@ -142,6 +147,36 @@ func reconcileInlineSchemas(a, b *openapi.Schema) *openapi.Schema {
 	// }
 
 	return &result
+}
+
+// reconcilable reports whether merging would produce a property that still
+// describes both sides.
+//
+// It almost never does. reconcileSchemaRef keeps a's reference and drops b's,
+// and for two inline schemas reconcileInlineSchemas widens integer to number
+// and otherwise returns a copy of a. So unless that one widening applies, the
+// merged schema quietly claims a shape b's data does not have -- and nothing
+// downstream re-checks it against the recording it came from.
+//
+// Properties present on only one side are a different matter: mergeSchemas
+// carries those across as optional, which does describe both.
+func reconcilable(a, b *openapi.SchemaRef) bool {
+	if a == nil || b == nil || a.Value == nil || b.Value == nil {
+		return true // nothing to judge it on
+	}
+
+	if a.Ref != nil || b.Ref != nil {
+		// The references disagree -- schemaRefSameShape has already said so --
+		// and merging keeps a's. If the schemas they point at are themselves
+		// mergeable, an earlier or later pass merges them and the references
+		// become equal, at which point this pair scores full credit instead.
+		return false
+	}
+
+	ta, tb := a.Value.Type, b.Value.Type
+
+	return (ta == openapi.TypeInteger && tb == openapi.TypeNumber) ||
+		(ta == openapi.TypeNumber && tb == openapi.TypeInteger)
 }
 
 // propertyNameUnion returns the union of property names from two SchemaRefs maps.
