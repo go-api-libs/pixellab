@@ -100,6 +100,19 @@ func WithClient({{ .VarName }} string) ClientOption {
 }
 {{ end }}
 
+{{ if .HasServerOverrides }}
+// serverURL returns the base URL for an operation whose path item names a
+// server of its own: that server, unless the caller overrode the client's base
+// URL, which has to win so the client can be pointed at a test server.
+func (c *Client) serverURL(server *url.URL) *url.URL {
+	if c.baseURL != defaultBaseURL {
+		return c.baseURL
+	}
+
+	return server
+}
+{{ end }}
+
 // NewClient creates a new Client{{ with .Auth.Bearer.Name }}, reading the bearer token from [os.Getenv]("{{ . }}"){{ end }}.
 func NewClient(opts ...ClientOption) (*Client, error) {
 	c := &Client{
@@ -166,7 +179,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // Deprecated.
 {{- end}}
 func (c *Client) {{.Name}}(ctx context.Context{{range .PathParams}}, {{.GoName}} {{.Type}}{{end}}{{if .ParamsInStruct}}, params {{ if not .ParamsInStruct.Required }}*{{ end }}{{.ParamStructName}}{{end}}{{if .RequestBody}}, body {{if .RequestBody.Required}}{{.RequestBody.TypeName}}{{else}}*{{.RequestBody.TypeName}}{{end}}{{end}}) ({{.SuccessReturn.Nilable}}, error) {
-	return {{.Name}}[{{.SuccessReturn}}](ctx, c{{range .PathParams}}, {{.GoName}}{{end}}{{if .ParamsInStruct}}, params{{end}}{{if .RequestBody}}, body{{end}})
+	return c.{{.Name}}WithResult[{{.SuccessReturn}}](ctx{{range .PathParams}}, {{.GoName}}{{end}}{{if .ParamsInStruct}}, params{{end}}{{if .RequestBody}}, body{{end}})
 }
 {{ end }}
 
@@ -188,12 +201,17 @@ func (c *Client) {{.Name}}(ctx context.Context{{range .PathParams}}, {{.GoName}}
 {{- end}}
 {{ if .RawBytesSuccess -}}
 func (c *Client) {{.Name}}(ctx context.Context{{range .PathParams}}, {{.GoName}} {{.Type}}{{end}}{{if .ParamsInStruct}}, params {{ if not .ParamsInStruct.Required }}*{{ end }}{{.ParamStructName}}{{end}}{{if .RequestBody}}, body {{if .RequestBody.Required}}{{.RequestBody.TypeName}}{{else}}*{{.RequestBody.TypeName}}{{end}}{{end}}) ({{.SuccessReturn}}, error) {
+{{- else if .SuccessReturn -}}
+func (c *Client) {{.Name}}WithResult[R any](ctx context.Context{{range .PathParams}}, {{.GoName}} {{.Type}}{{end}}{{if .ParamsInStruct}}, params {{ if not .ParamsInStruct.Required }}*{{ end }}{{.ParamStructName}}{{end}}{{if .RequestBody}}, body {{if .RequestBody.Required}}{{.RequestBody.TypeName}}{{else}}*{{.RequestBody.TypeName}}{{end}}{{end}}) (*R, error) {
 {{- else -}}
-func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Client{{range .PathParams}}, {{.GoName}} {{.Type}}{{end}}{{if .ParamsInStruct}}, params {{ if not .ParamsInStruct.Required }}*{{ end }}{{.ParamStructName}}{{end}}{{if .RequestBody}}, body {{if .RequestBody.Required}}{{.RequestBody.TypeName}}{{else}}*{{.RequestBody.TypeName}}{{end}}{{end}}) ({{if .SuccessReturn}}*R, {{end}}error) {
+func (c *Client) {{.Name}}(ctx context.Context{{range .PathParams}}, {{.GoName}} {{.Type}}{{end}}{{if .ParamsInStruct}}, params {{ if not .ParamsInStruct.Required }}*{{ end }}{{.ParamStructName}}{{end}}{{if .RequestBody}}, body {{if .RequestBody.Required}}{{.RequestBody.TypeName}}{{else}}*{{.RequestBody.TypeName}}{{end}}{{end}}) error {
 {{- end }}
-{{- if .JoinPathArgs -}}
-	u := c.baseURL.JoinPath({{range $i, $a := .JoinPathArgs}}{{if $i}}, {{end}}{{$a}}{{end}})
-{{- end -}}
+{{/* Always declared: the request below uses u whether or not the operation
+     adds path segments. JoinPath returns a copy, so assigning c.baseURL
+     directly would let a query string mutate the client's base URL. */}}
+{{- "" }}
+	u := {{ .BaseURLExpr }}.JoinPath({{range $i, $a := .JoinPathArgs}}{{if $i}}, {{end}}{{$a}}{{end}})
+{{- "" -}}
 {{ if .QueryParams}}
 	{{ if not .ParamsInStruct.Required -}}
 	if params != nil {
@@ -257,8 +275,13 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 	defer rsp.Body.Close()
 
 	switch rsp.StatusCode {
-{{- range .Responses}}
-	case {{.GoConstant}}:
+{{- $hasDefault := false -}}
+{{- range .Responses }}
+	{{ if eq .GoConstant "default" -}}
+		{{- $hasDefault = true -}}
+	{{ else -}}
+		case {{ end -}}
+	{{ .GoConstant }}:
 		{{ with .Description }}{{ toGoComment . }}{{ end }}
 {{- if or .IsSuccess .GoType }}
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -283,9 +306,14 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 			{{ if .IsSuccess -}}
 			return out, nil
 			{{ else -}}
-			return {{if $op.SuccessReturn}}nil, {{end}}api.NewErrCustom(rsp, &out)
+			return {{if $op.SuccessReturn}}nil, {{end}}api.NewErrBody(rsp, out)
 			{{ end -}}
-		{{- end -}}
+			{{- else }}
+			{{/* The response declares a content type with nothing to decode
+			     from it, so there is no body to hand back -- but the case
+			     still has to return, or the method falls out of the switch. */}}
+			return {{if $op.SuccessReturn}}nil, {{end}}nil
+			{{ end -}}
 		default:
 			return {{if $op.SuccessReturn}}nil, {{end}}api.NewErrUnknownContentType(rsp)
 		}
@@ -293,8 +321,10 @@ func {{.Name}}{{ if .SuccessReturn }}[R any]{{ end }}(ctx context.Context, c *Cl
 		return {{if $op.SuccessReturn}}nil, {{end}}fmt.Errorf("{{$op.Name}}: status %s", rsp.Status)
 {{- end}}
 {{- end}}
+	{{ if not $hasDefault -}}
 	default:
 		return {{if .SuccessReturn}}nil, {{end}}api.NewErrUnknownStatusCode(rsp)
+	{{ end -}}
 	}
 }
 {{end}}

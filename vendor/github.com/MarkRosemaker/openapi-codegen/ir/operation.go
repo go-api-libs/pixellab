@@ -238,19 +238,53 @@ func buildJoinPathArgs(parsed openapi.ParsedPath, params map[string]Param) []str
 			continue
 		}
 
-		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
-			paramName := seg[1 : len(seg)-1]
-			if p, ok := params[paramName]; ok {
-				args = append(args, p.FormatExpr())
-			} else {
-				args = append(args, strconv.Quote(paramName))
-			}
-		} else {
-			args = append(args, strconv.Quote(seg))
-		}
+		args = append(args, segmentExpr(seg, params))
 	}
 
 	return args
+}
+
+// segmentExpr returns the Go expression for one path segment, substituting
+// every {param} placeholder in it.
+//
+// A segment is usually a placeholder and nothing else, but it can also carry
+// one: sec's /api/xbrl/companyfacts/CIK{cik}.json wraps the parameter in a
+// prefix and a suffix. Such a segment used to be quoted whole, leaving the
+// braces in the request path.
+func segmentExpr(seg string, params map[string]Param) string {
+	var parts []string
+
+	for {
+		open := strings.IndexByte(seg, '{')
+		if open < 0 {
+			break
+		}
+
+		close := strings.IndexByte(seg[open:], '}')
+		if close < 0 {
+			break
+		}
+		close += open
+
+		if open > 0 {
+			parts = append(parts, strconv.Quote(seg[:open]))
+		}
+
+		name := seg[open+1 : close]
+		if p, ok := params[name]; ok {
+			parts = append(parts, p.FormatExpr())
+		} else {
+			parts = append(parts, strconv.Quote(name))
+		}
+
+		seg = seg[close+1:]
+	}
+
+	if seg != "" || len(parts) == 0 {
+		parts = append(parts, strconv.Quote(seg))
+	}
+
+	return strings.Join(parts, " + ")
 }
 
 // NotZero returns the Go boolean expression that is true when param is not the zero value.
@@ -414,8 +448,9 @@ func fromResponses(responses openapi.OperationResponses) ([]Response, *GoType, b
 // statusCodeToConst converts an OpenAPI status code to its net/http constant name.
 func statusCodeToConst(code openapi.StatusCode) string {
 	if code == openapi.StatusCodeDefault {
-		return "0"
+		return "default"
 	}
+	
 	n, err := strconv.Atoi(string(code))
 	if err != nil {
 		return string(code)

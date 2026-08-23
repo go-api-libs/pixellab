@@ -219,10 +219,9 @@ func fromSchema(name string, s *openapi.Schema) (*Schema, error) {
 				return nil, err
 			}
 
-			if mapValueType.Name == "string" {
-				return nil, nil
-			}
-
+			// A map of strings gets a named type like any other map: a
+			// property referencing this component resolves to the component's
+			// name, so declining to declare it leaves that name undefined.
 			return &Schema{
 				Name:        name,
 				Description: getDescription(s, name),
@@ -237,7 +236,8 @@ func fromSchema(name string, s *openapi.Schema) (*Schema, error) {
 		if len(s.Enum) > 0 {
 			return fromEnumSchema(name, s)
 		}
-		return nil, nil // plain scalars don't produce named schemas
+
+		return fromScalarSchema(name, s)
 	case openapi.TypeArray:
 		return fromArraySchema(name, s)
 	case "":
@@ -522,7 +522,26 @@ func fromArraySchema(name string, s *openapi.Schema) (*Schema, error) {
 	return &Schema{
 		Name:        name,
 		Description: getDescription(s, name),
-		Kind:        SchemaKindArrayAlias,
+		Kind:        SchemaKindAlias,
+		Type:        aliasType.String(),
+	}, nil
+}
+
+// fromScalarSchema declares a named component that is a plain scalar.
+//
+// The declaration is what makes the name usable: a $ref to this component
+// resolves to its name, and a response body decoded into it can carry an Error
+// method, which a bare string or int cannot.
+func fromScalarSchema(name string, s *openapi.Schema) (*Schema, error) {
+	aliasType, err := SchemaGoType(s)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Schema{
+		Name:        name,
+		Description: getDescription(s, name),
+		Kind:        SchemaKindAlias,
 		Type:        aliasType.String(),
 	}, nil
 }

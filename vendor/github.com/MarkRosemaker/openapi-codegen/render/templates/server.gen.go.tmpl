@@ -38,12 +38,18 @@ func RegisterService(svc Service, mux *http.ServeMux, pathPrefix string) {
 		ctx := r.Context()
 		l.DebugContext(ctx, "called")
 
+{{/* s and rawParam are shared temporaries: the parse expressions name s, and
+     a handler with two path parameters would otherwise redeclare both in the
+     same scope. Each is declared by the first parameter that needs it and
+     assigned by the rest. */}}
+{{- $sDeclared := false }}
+{{- $rawDeclared := false }}
 {{ range .PathParams}}
-		{{ if eq .ParseExpr "s"}}{{.GoName}}{{else}}s{{end}} := r.PathValue({{printf "%q" .JSONName}})
+		{{ if eq .ParseExpr "s"}}{{.GoName}} :={{else}}s {{ if $sDeclared }}={{ else }}:={{ end }}{{ $sDeclared = true }}{{end}} r.PathValue({{printf "%q" .JSONName}})
 {{- if .ParseErrFree}}{{ if ne .ParseExpr "s"}}
 		{{.GoName}} := {{.ParseExpr}}
 {{- end}}{{else}}
-		{{ if .ParseCast}}rawParam{{ else }}{{.GoName}}{{ end }}, err := {{.ParseExpr}}
+		{{ if .ParseCast}}rawParam, err {{ if $rawDeclared }}={{ else }}:={{ end }}{{ $rawDeclared = true }}{{ else }}{{.GoName}}, err :={{ end }} {{.ParseExpr}}
 		if err != nil {
 			msg := fmt.Sprintf("invalid {{.JSONName}}: %v", err)
 			l.DebugContext(ctx, "Bad Request", slog.String("msg", msg))

@@ -69,7 +69,13 @@ func matchInteractions(doc *ir.Document, interactions cassette.Interactions) err
 
 		if r := findResponse(op, ia.Response.StatusCode); r != nil {
 			call.IsSuccess = r.IsSuccess
-			if !r.IsSuccess && r.GoType != nil {
+			switch {
+			case r.IsSuccess:
+			case r.IsRawBytes:
+				// Nothing was decoded, so there is no generated type to match
+				// on: the client hands the body back as an api.ErrorBody.
+				call.ErrorType = "api.ErrorBody"
+			case r.GoType != nil:
 				call.ErrorType = r.GoType.String()
 			}
 		} else {

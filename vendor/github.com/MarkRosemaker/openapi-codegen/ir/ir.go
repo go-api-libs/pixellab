@@ -1,6 +1,7 @@
 package ir
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -21,6 +22,10 @@ type Document struct {
 	HasDurationFields      bool        `json:"hasDurationFields,omitzero"`
 	HasDateFields          bool        `json:"hasDateFields,omitzero"`
 	HasDateTimeOrIntFields bool        `json:"hasDateTimeOrIntFields,omitzero"`
+
+	// HasServerOverrides is true when any path item names a server of its own,
+	// which is what the generated serverURL helper is for.
+	HasServerOverrides bool `json:"hasServerOverrides,omitzero"`
 
 	// InteractionCalls holds one entry per matched interaction.
 	// Populated at code-gen time; not serialized to ir.json (too noisy).
@@ -56,6 +61,9 @@ type URLParts struct {
 
 // Operation represents a single API operation.
 type Operation struct {
+	// BaseURL is set when the path item names a server of its own, overriding
+	// the document's for this operation only.
+	BaseURL         *URLParts  `json:"baseURL,omitzero"`
 	Name            string     `json:"name,omitzero"`
 	Description     string     `json:"description,omitzero"`
 	Summary         string     `json:"summary,omitzero"`
@@ -128,10 +136,10 @@ type Schema struct {
 type SchemaKind int
 
 const (
-	SchemaKindStruct     SchemaKind = iota // object with properties
-	SchemaKindEnum                         // string with enum values
-	SchemaKindArrayAlias                   // array type alias
-	SchemaKindAllOf                        // allOf composition (struct with embedded types)
+	SchemaKindStruct SchemaKind = iota // object with properties
+	SchemaKindEnum                     // string with enum values
+	SchemaKindAlias                    // named type alias: array or plain scalar
+	SchemaKindAllOf                    // allOf composition (struct with embedded types)
 	SchemaKindMap
 	SchemaKindUnion // untagged oneOf/anyOf composition (pointer-bag struct)
 )
@@ -310,4 +318,17 @@ type Auth struct {
 
 type Bearer struct {
 	Name string `json:"name,omitzero"`
+}
+
+// BaseURLExpr returns the Go expression for the URL an operation builds its
+// request path on: the client's, or serverURL with the server the path item
+// named for itself. The latter stays overridable -- WithBaseURL has to reach
+// every operation, or a caller cannot point the client at a test server.
+func (op Operation) BaseURLExpr() string {
+	if op.BaseURL == nil {
+		return "c.baseURL"
+	}
+
+	return fmt.Sprintf("c.serverURL(&url.URL{Scheme: %q, Host: %q, Path: %q})",
+		op.BaseURL.Scheme, op.BaseURL.Host, cmp.Or(op.BaseURL.Path, "/"))
 }
