@@ -450,7 +450,7 @@ func statusCodeToConst(code openapi.StatusCode) string {
 	if code == openapi.StatusCodeDefault {
 		return "default"
 	}
-	
+
 	n, err := strconv.Atoi(string(code))
 	if err != nil {
 		return string(code)
