@@ -208,7 +208,7 @@ type AnimateObjectResponse struct {
 	DisplayName string                           `json:"display_name,omitzero"`
 	Description string                           `json:"description,omitzero"`
 	ObjectID    string                           `json:"object_id,omitzero"`
-	Submissions AnimateObjectResponseSubmissions `json:"submissions,omitempty"`
+	Submissions AnimateObjectResponseSubmissions `json:"submissions,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -221,7 +221,7 @@ type AnimateObjectResponseSubmissions []DirectionSubmission
 // AnimateWithSkeleton defines a model
 type AnimateWithSkeleton struct {
 	Usage  *Usage                    `json:"usage,omitempty"`
-	Images AnimateWithSkeletonImages `json:"images,omitempty"`
+	Images AnimateWithSkeletonImages `json:"images,omitzero"`
 }
 
 // AnimateWithSkeletonImages defines a model
@@ -404,7 +404,7 @@ type AnimationDirection struct {
 	Direction  string `json:"direction,omitzero"`
 	FrameCount int    `json:"frame_count,omitzero"`
 	// Public URLs for each frame in order
-	Frames []string `json:"frames,omitempty"`
+	Frames []string `json:"frames,omitzero"`
 }
 
 // AnimationGroup defines a model
@@ -415,7 +415,7 @@ type AnimationGroup struct {
 	DisplayName string `json:"display_name,omitzero"`
 	// Shared ID grouping all directions of this animation
 	AnimationGroupID string                   `json:"animation_group_id,omitzero"`
-	Directions       AnimationGroupDirections `json:"directions,omitempty"`
+	Directions       AnimationGroupDirections `json:"directions,omitzero"`
 }
 
 // AnimationGroupDirections defines a model
@@ -649,7 +649,7 @@ type CharacterSummary struct {
 type CharactersListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's characters
-	Characters CharactersListResponseCharacters `json:"characters,omitempty"`
+	Characters CharactersListResponseCharacters `json:"characters,omitzero"`
 	// Total number of characters (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -788,9 +788,9 @@ func (e CreateCharacterAnimationRequestMode) Valid() bool {
 // Response model for character animation (background jobs)
 type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
-	BackgroundJobIds []string `json:"background_job_ids,omitempty"`
+	BackgroundJobIds []string `json:"background_job_ids,omitzero"`
 	// List of directions being animated
-	Directions []string `json:"directions,omitempty"`
+	Directions []string `json:"directions,omitzero"`
 	// Overall status (processing, completed, failed)
 	Status string `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').
@@ -1945,7 +1945,7 @@ type EditAnimationV2Request struct {
 	// Description of the edit to apply (e.g., 'add a red cape', 'make it glow blue')
 	Description string `json:"description,omitzero"`
 	// Animation frames to edit (2-16 frames)
-	Frames EditAnimationFrames `json:"frames,omitempty"`
+	Frames EditAnimationFrames `json:"frames,omitzero"`
 	// Size of the output frames
 	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -1991,7 +1991,7 @@ type EditImagesV2Request struct {
 	// Edit method: 'edit_with_text' or 'edit_with_reference'
 	Method EditImagesV2RequestMethod `json:"method,omitzero"`
 	// Images to edit (1-16 images depending on size)
-	EditImages EditImagesV2RequestEditImages `json:"edit_images,omitempty"`
+	EditImages EditImagesV2RequestEditImages `json:"edit_images,omitzero"`
 	// Size of output images
 	ImageSize app__endpoints__external__v2__edit_images_v2__ImageSize `json:"image_size"`
 	// Edit description (required for edit_with_text method)
@@ -2083,7 +2083,7 @@ type EstimateSkeletonRequest struct {
 // EstimateSkeletonResponse defines a model
 type EstimateSkeletonResponse struct {
 	Usage     *Usage                            `json:"usage,omitempty"`
-	Keypoints EstimateSkeletonResponseKeypoints `json:"keypoints,omitempty"`
+	Keypoints EstimateSkeletonResponseKeypoints `json:"keypoints,omitzero"`
 }
 
 // EstimateSkeletonResponseKeypoints defines a model
@@ -2223,7 +2223,7 @@ type GenerateUIV2Request struct {
 // Request model for generate-with-style-v2 endpoint
 type GenerateWithStyleV2Request struct {
 	// Style reference images (1-4 images)
-	StyleImages GenerateWithStyleV2RequestStyleImages `json:"style_images,omitempty"`
+	StyleImages GenerateWithStyleV2RequestStyleImages `json:"style_images,omitzero"`
 	// Description of what to generate
 	Description string `json:"description,omitzero"`
 	// Description of the style to match
@@ -2458,7 +2458,7 @@ type IsometricTileSummary struct {
 type IsometricTilesListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's isometric tiles
-	Tiles IsometricTilesListResponseTiles `json:"tiles,omitempty"`
+	Tiles IsometricTilesListResponseTiles `json:"tiles,omitzero"`
 	// Total number of isometric tiles (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -2529,8 +2529,8 @@ type LipSyncResponse struct {
 	Text    string `json:"text,omitzero"`
 	TotalMs int    `json:"total_ms,omitzero"`
 	// Spritesheet column order.
-	VisemeOrder []string              `json:"viseme_order,omitempty"`
-	Frames      LipSyncResponseFrames `json:"frames,omitempty"`
+	VisemeOrder []string              `json:"viseme_order,omitzero"`
+	Frames      LipSyncResponseFrames `json:"frames,omitzero"`
 	Mood        string                `json:"mood,omitzero"`
 	// Spritesheet to read frames from (character form only).
 	GridURL string `json:"grid_url,omitzero"`
@@ -2575,7 +2575,7 @@ type ObjectAnimationGroup struct {
 	// Frame count from the latest row in the group
 	FrameCount int `json:"frame_count,omitzero"`
 	// One entry per distinct direction (deduped by MAX(created_at))
-	Directions ObjectAnimationGroupDirections `json:"directions,omitempty"`
+	Directions ObjectAnimationGroupDirections `json:"directions,omitzero"`
 }
 
 // One entry per distinct direction (deduped by MAX(created_at))
@@ -2675,7 +2675,7 @@ type ObjectSummary struct {
 type ObjectsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's objects
-	Objects ObjectsListResponseObjects `json:"objects,omitempty"`
+	Objects ObjectsListResponseObjects `json:"objects,omitzero"`
 	// Total number of objects (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -2864,7 +2864,7 @@ type RotateRequest struct {
 // SelectObjectFramesRequest defines a model
 type SelectObjectFramesRequest struct {
 	// Frame indices (0-based) to keep as completed individual objects.
-	Indices []int `json:"indices,omitempty"`
+	Indices []int `json:"indices,omitzero"`
 	// Optional tag applied to every newly-created object.
 	CommonTag string `json:"common_tag,omitzero"`
 }
@@ -2872,7 +2872,7 @@ type SelectObjectFramesRequest struct {
 // SelectObjectFramesResponse defines a model
 type SelectObjectFramesResponse struct {
 	Usage            *Usage   `json:"usage,omitempty"`
-	CreatedObjectIds []string `json:"created_object_ids,omitempty"`
+	CreatedObjectIds []string `json:"created_object_ids,omitzero"`
 }
 
 // SetPortraitRequest defines a model
@@ -2924,7 +2924,7 @@ type SidescrollerTilesetSummary struct {
 // SidescrollerTilesetsListResponse defines a model
 type SidescrollerTilesetsListResponse struct {
 	Usage    *Usage                                   `json:"usage,omitempty"`
-	Tilesets SidescrollerTilesetsListResponseTilesets `json:"tilesets,omitempty"`
+	Tilesets SidescrollerTilesetsListResponseTilesets `json:"tilesets,omitzero"`
 	// Total number of sidescroller tilesets the user owns (unpaginated)
 	Total int `json:"total,omitzero"`
 }
@@ -3047,13 +3047,13 @@ type Tile struct {
 // Deprecated. Valid tile connections in each cardinal direction.
 type TileConnections struct {
 	// IDs of tiles that can be placed above this tile
-	North []string `json:"north,omitempty"`
+	North []string `json:"north,omitzero"`
 	// IDs of tiles that can be placed below this tile
-	South []string `json:"south,omitempty"`
+	South []string `json:"south,omitzero"`
 	// IDs of tiles that can be placed to the right of this tile
-	East []string `json:"east,omitempty"`
+	East []string `json:"east,omitzero"`
 	// IDs of tiles that can be placed to the left of this tile
-	West []string `json:"west,omitempty"`
+	West []string `json:"west,omitzero"`
 }
 
 // Corner terrain types for a tile
@@ -3090,13 +3090,13 @@ func (e TileCornersNe) Valid() bool {
 // 4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)
 type TilePattern4x4 struct {
 	// Top row with wildcards
-	Row0 []int `json:"row_0,omitempty"`
+	Row0 []int `json:"row_0,omitzero"`
 	// Second row with NW, NE corners
-	Row1 []int `json:"row_1,omitempty"`
+	Row1 []int `json:"row_1,omitzero"`
 	// Third row with SW, SE corners
-	Row2 []int `json:"row_2,omitempty"`
+	Row2 []int `json:"row_2,omitzero"`
 	// Bottom row with wildcards
-	Row3 []int `json:"row_3,omitempty"`
+	Row3 []int `json:"row_3,omitzero"`
 }
 
 // TileSize defines a model
@@ -3110,7 +3110,7 @@ type TileSize struct {
 // TilesProListResponse defines a model
 type TilesProListResponse struct {
 	Usage *Usage                    `json:"usage,omitempty"`
-	Tiles TilesProListResponseTiles `json:"tiles,omitempty"`
+	Tiles TilesProListResponseTiles `json:"tiles,omitzero"`
 	// Total number of tiles the user owns (unpaginated)
 	Total int `json:"total,omitzero"`
 }
@@ -3166,9 +3166,9 @@ type TilesetData struct {
 	// Size of each individual tile in pixels
 	TileSize map[string]int `json:"tile_size"`
 	// Available terrain types
-	TerrainTypes []string `json:"terrain_types,omitempty"`
+	TerrainTypes []string `json:"terrain_types,omitzero"`
 	// List of individual tiles with metadata
-	Tiles TilesetDataTiles `json:"tiles,omitempty"`
+	Tiles TilesetDataTiles `json:"tiles,omitzero"`
 }
 
 // List of individual tiles with metadata
@@ -3177,7 +3177,7 @@ type TilesetDataTiles []Tile
 // Metadata about the tileset generation
 type TilesetMetadata struct {
 	// Available edge/terrain types
-	EdgeTypes []string `json:"edge_types,omitempty"`
+	EdgeTypes []string `json:"edge_types,omitzero"`
 	// Prompts used for each terrain type
 	TerrainPrompts map[string]string `json:"terrain_prompts"`
 	// Optional IDs for terrain types
@@ -3216,7 +3216,7 @@ type TilesetSummary struct {
 type TilesetsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's tilesets
-	Tilesets TilesetsListResponseTilesets `json:"tilesets,omitempty"`
+	Tilesets TilesetsListResponseTilesets `json:"tilesets,omitzero"`
 	// Total number of tilesets (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -3229,7 +3229,7 @@ type TransferOutfitV2Request struct {
 	// Reference image containing the outfit/appearance to transfer
 	ReferenceImage app__endpoints__external__v__edit_animation_v__FrameImage `json:"reference_image"`
 	// Animation frames to edit (2-16 frames)
-	Frames EditAnimationFrames `json:"frames,omitempty"`
+	Frames EditAnimationFrames `json:"frames,omitzero"`
 	// Size of the output frames
 	ImageSize FrameSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -3284,7 +3284,7 @@ type UIAssetSummary struct {
 type UIAssetsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// The user's UI assets (templates), newest first
-	UIAssets UIAssetsListResponseUIAssets `json:"ui_assets,omitempty"`
+	UIAssets UIAssetsListResponseUIAssets `json:"ui_assets,omitzero"`
 	// Total template assets (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -3330,14 +3330,14 @@ type UiPieceRect struct {
 // Request to update object tags
 type UpdateObjectTags struct {
 	// List of tags to assign to the object
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 }
 
 // Response after updating tags
 type UpdateObjectTags2 struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Updated list of tags
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 }
 
 // Usage defines a model
@@ -3368,7 +3368,7 @@ func (e UsageType) Valid() bool {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []CreateUIAssetPiecesItem `json:"loc,omitempty"`
+	Loc   []CreateUIAssetPiecesItem `json:"loc,omitzero"`
 	Msg   string                    `json:"msg,omitzero"`
 	Type  string                    `json:"type,omitzero"`
 	Input *struct{}                 `json:"input,omitempty"`
