@@ -675,10 +675,9 @@ func buildJSONTag(jsonName string, tp openapi.DataType, format openapi.Format, r
 		// omitempty would drop an initialised-but-empty slice, so a required
 		// array could never be sent as []. omitzero drops only a nil slice,
 		// leaving the sender to choose: nil omits the field, []T{} sends [].
-		if required {
+		// If the array is required, we do not have any tags.
+		if !required {
 			opts = ",omitzero"
-		} else {
-			opts = ",omitempty"
 		}
 	case openapi.TypeBoolean, openapi.TypeInteger:
 		// NOTE: copied from legacy code, might not make sense
