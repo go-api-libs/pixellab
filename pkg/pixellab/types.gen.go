@@ -124,7 +124,7 @@ type AnimateObjectRequest struct {
 	//   - **New animation**: omit `directions` to animate all 8 cardinals.
 	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-	Directions AnimateObjectRequestDirections `json:"directions,omitempty"`
+	Directions AnimateObjectRequestDirections `json:"directions,omitzero"`
 	// Mostly only relevant for 8-direction objects: pass the animation_group_id of an existing animation on this object to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it.
 	AnimationGroupID *uuid.UUID `json:"animation_group_id,omitempty"`
 	// Optional name for the animation, shown in the UI and used when exporting.
@@ -208,7 +208,7 @@ type AnimateObjectResponse struct {
 	DisplayName string                           `json:"display_name,omitzero"`
 	Description string                           `json:"description,omitzero"`
 	ObjectID    string                           `json:"object_id,omitzero"`
-	Submissions AnimateObjectResponseSubmissions `json:"submissions,omitzero"`
+	Submissions AnimateObjectResponseSubmissions `json:"submissions"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -221,7 +221,7 @@ type AnimateObjectResponseSubmissions []DirectionSubmission
 // AnimateWithSkeleton defines a model
 type AnimateWithSkeleton struct {
 	Usage  *Usage                    `json:"usage,omitempty"`
-	Images AnimateWithSkeletonImages `json:"images,omitzero"`
+	Images AnimateWithSkeletonImages `json:"images"`
 }
 
 // AnimateWithSkeletonImages defines a model
@@ -243,15 +243,15 @@ type AnimateWithSkeletonRequest struct {
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
 	ObliqueProjection bool                      `json:"oblique_projection,omitempty"`
-	InitImages        AnimateWithSkeletonImages `json:"init_images,omitempty"`
+	InitImages        AnimateWithSkeletonImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-	SkeletonKeypoints []AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints []AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitzero"`
 	// Reference image
 	ReferenceImage   BaseImage                 `json:"reference_image"`
-	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitempty"`
-	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitempty"`
+	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitzero"`
+	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitzero"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
@@ -288,13 +288,13 @@ type AnimateWithTextRequest struct {
 	View CameraView `json:"view,omitzero"`
 	// Subject direction (default: "east")
 	Direction  Direction                 `json:"direction,omitzero"`
-	InitImages AnimateWithSkeletonImages `json:"init_images,omitempty"`
+	InitImages AnimateWithSkeletonImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
 	ReferenceImage   BaseImage                 `json:"reference_image"`
-	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitempty"`
-	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitempty"`
+	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitzero"`
+	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitzero"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
@@ -404,7 +404,7 @@ type AnimationDirection struct {
 	Direction  string `json:"direction,omitzero"`
 	FrameCount int    `json:"frame_count,omitzero"`
 	// Public URLs for each frame in order
-	Frames []string `json:"frames,omitzero"`
+	Frames []string `json:"frames"`
 }
 
 // AnimationGroup defines a model
@@ -415,7 +415,7 @@ type AnimationGroup struct {
 	DisplayName string `json:"display_name,omitzero"`
 	// Shared ID grouping all directions of this animation
 	AnimationGroupID string                   `json:"animation_group_id,omitzero"`
-	Directions       AnimationGroupDirections `json:"directions,omitzero"`
+	Directions       AnimationGroupDirections `json:"directions"`
 }
 
 // AnimationGroupDirections defines a model
@@ -524,13 +524,13 @@ type CharacterDetail struct {
 	// AI freedom parameter used
 	AiFreedom *int `json:"ai_freedom,omitempty"`
 	// User-defined tags for filtering
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
 	GroupID string `json:"group_id,omitzero"`
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 	Skeletons *map[string]struct{} `json:"skeletons,omitempty"`
 	// All animations grouped by type and direction
-	Animations CharacterDetailAnimations `json:"animations,omitempty"`
+	Animations CharacterDetailAnimations `json:"animations,omitzero"`
 }
 
 // All animations grouped by type and direction
@@ -640,7 +640,7 @@ type CharacterSummary struct {
 	// Public URL to the south direction sprite (null unless status == 'completed')
 	PreviewURL string `json:"preview_url,omitzero"`
 	// User-defined tags for filtering
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
 	GroupID string `json:"group_id,omitzero"`
 }
@@ -649,7 +649,7 @@ type CharacterSummary struct {
 type CharactersListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's characters
-	Characters CharactersListResponseCharacters `json:"characters,omitzero"`
+	Characters CharactersListResponseCharacters `json:"characters"`
 	// Total number of characters (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -672,9 +672,9 @@ type Create1DirectionObjectRequest struct {
 	Size *int `json:"size,omitempty"`
 	// View.
 	View        Create1DirectionObjectRequestView `json:"view,omitzero"`
-	StyleImages AnimateWithSkeletonImages         `json:"style_images,omitempty"`
+	StyleImages AnimateWithSkeletonImages         `json:"style_images,omitzero"`
 	// Per-object descriptions when the effective size produces multiple objects. Length must not exceed the object count derived from size.
-	ItemDescriptions []string `json:"item_descriptions,omitempty"`
+	ItemDescriptions []string `json:"item_descriptions,omitzero"`
 }
 
 // View.
@@ -753,7 +753,7 @@ type CreateCharacterAnimationRequest struct {
 	// Detail level (uses character's original if not specified). Template mode only.
 	Detail string `json:"detail,omitzero"`
 	// List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
-	Directions []string `json:"directions,omitempty"`
+	Directions []string `json:"directions,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Color palette reference image
@@ -788,9 +788,9 @@ func (e CreateCharacterAnimationRequestMode) Valid() bool {
 // Response model for character animation (background jobs)
 type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
-	BackgroundJobIds []string `json:"background_job_ids,omitzero"`
+	BackgroundJobIds []string `json:"background_job_ids"`
 	// List of directions being animated
-	Directions []string `json:"directions,omitzero"`
+	Directions []string `json:"directions"`
 	// Overall status (processing, completed, failed)
 	Status string `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').
@@ -1099,7 +1099,7 @@ type CreateImageBitforgeRequest struct {
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// How closely to follow the skeleton keypoints
 	SkeletonGuidanceScale *float64                         `json:"skeleton_guidance_scale,omitempty"`
-	SkeletonKeypoints     AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitempty"`
+	SkeletonKeypoints     AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
 }
@@ -1490,7 +1490,7 @@ type CreateTilesProRequest struct {
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.
-	StyleImages CreateTilesProRequestStyleImages `json:"style_images,omitempty"`
+	StyleImages CreateTilesProRequestStyleImages `json:"style_images,omitzero"`
 	// Options for what to copy from the style images. Only used when style_images is provided.
 	StyleOptions *Style `json:"style_options,omitempty"`
 }
@@ -1797,9 +1797,9 @@ type CreateUIAssetRequest struct {
 	// Output image size in pixels (192–688; max per axis depends on aspect)
 	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
-	Pieces []CreateUIAssetPiecesItem `json:"pieces,omitempty"`
+	Pieces []CreateUIAssetPiecesItem `json:"pieces,omitzero"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
-	Elements []string `json:"elements,omitempty"`
+	Elements []string `json:"elements,omitzero"`
 	// Optional style reference image (PNG/JPEG base64)
 	StyleImage *BaseImage `json:"style_image,omitempty"`
 	// Optional palette specification (e.g. 'brown and gold')
@@ -1945,7 +1945,7 @@ type EditAnimationV2Request struct {
 	// Description of the edit to apply (e.g., 'add a red cape', 'make it glow blue')
 	Description string `json:"description,omitzero"`
 	// Animation frames to edit (2-16 frames)
-	Frames EditAnimationFrames `json:"frames,omitzero"`
+	Frames EditAnimationFrames `json:"frames"`
 	// Size of the output frames
 	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -1991,7 +1991,7 @@ type EditImagesV2Request struct {
 	// Edit method: 'edit_with_text' or 'edit_with_reference'
 	Method EditImagesV2RequestMethod `json:"method,omitzero"`
 	// Images to edit (1-16 images depending on size)
-	EditImages EditImagesV2RequestEditImages `json:"edit_images,omitzero"`
+	EditImages EditImagesV2RequestEditImages `json:"edit_images"`
 	// Size of output images
 	ImageSize app__endpoints__external__v2__edit_images_v2__ImageSize `json:"image_size"`
 	// Edit description (required for edit_with_text method)
@@ -2083,7 +2083,7 @@ type EstimateSkeletonRequest struct {
 // EstimateSkeletonResponse defines a model
 type EstimateSkeletonResponse struct {
 	Usage     *Usage                            `json:"usage,omitempty"`
-	Keypoints EstimateSkeletonResponseKeypoints `json:"keypoints,omitzero"`
+	Keypoints EstimateSkeletonResponseKeypoints `json:"keypoints"`
 }
 
 // EstimateSkeletonResponseKeypoints defines a model
@@ -2194,7 +2194,7 @@ type GenerateImageV2Request struct {
 	// Remove background from generated images
 	NoBackground bool `json:"no_background,omitempty"`
 	// Optional reference images for subject guidance (up to 4)
-	ReferenceImages GenerateImageV2RequestReferenceImages `json:"reference_images,omitempty"`
+	ReferenceImages GenerateImageV2RequestReferenceImages `json:"reference_images,omitzero"`
 	// Optional style image for pixel size and style reference
 	StyleImage *app__endpoints__external__v2__generate_image_v2__ReferenceImage `json:"style_image,omitempty"`
 	// Options for what to copy from the style image
@@ -2223,7 +2223,7 @@ type GenerateUIV2Request struct {
 // Request model for generate-with-style-v2 endpoint
 type GenerateWithStyleV2Request struct {
 	// Style reference images (1-4 images)
-	StyleImages GenerateWithStyleV2RequestStyleImages `json:"style_images,omitzero"`
+	StyleImages GenerateWithStyleV2RequestStyleImages `json:"style_images"`
 	// Description of what to generate
 	Description string `json:"description,omitzero"`
 	// Description of the style to match
@@ -2304,20 +2304,20 @@ type GetVocalAnimationResponse struct {
 	VisemeCount int    `json:"viseme_count,omitzero"`
 	CharacterID string `json:"character_id,omitzero"`
 	// Mouth positions produced so far.
-	CompletedVisemes []string `json:"completed_visemes,omitempty"`
+	CompletedVisemes []string `json:"completed_visemes,omitzero"`
 	// The mouth positions, keyed by id. Only returned for the stateless (`portrait`) form — for `character_id` jobs they are saved onto the character instead.
 	Visemes *map[string]BaseImage `json:"visemes,omitempty"`
 	// Every expression now stored on the character.
-	MoodsOnCharacter []string `json:"moods_on_character,omitempty"`
+	MoodsOnCharacter []string `json:"moods_on_character,omitzero"`
 	// URL of the character's stored mouth-position spritesheet. Slice it into equal cells: one column per mouth position in `viseme_order`, one row per expression in `moods_on_character` order.
 	GridURL string `json:"grid_url,omitzero"`
 	// Column order of the spritesheet at `grid_url`.
-	VisemeOrder []string `json:"viseme_order,omitempty"`
+	VisemeOrder []string `json:"viseme_order,omitzero"`
 }
 
 // HTTPValidationError defines a model
 type HTTPValidationError struct {
-	Detail HTTPValidationErrorDetail `json:"detail,omitempty"`
+	Detail HTTPValidationErrorDetail `json:"detail,omitzero"`
 }
 
 // HTTPValidationErrorDetail defines a model
@@ -2458,7 +2458,7 @@ type IsometricTileSummary struct {
 type IsometricTilesListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's isometric tiles
-	Tiles IsometricTilesListResponseTiles `json:"tiles,omitzero"`
+	Tiles IsometricTilesListResponseTiles `json:"tiles"`
 	// Total number of isometric tiles (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -2529,8 +2529,8 @@ type LipSyncResponse struct {
 	Text    string `json:"text,omitzero"`
 	TotalMs int    `json:"total_ms,omitzero"`
 	// Spritesheet column order.
-	VisemeOrder []string              `json:"viseme_order,omitzero"`
-	Frames      LipSyncResponseFrames `json:"frames,omitzero"`
+	VisemeOrder []string              `json:"viseme_order"`
+	Frames      LipSyncResponseFrames `json:"frames"`
 	Mood        string                `json:"mood,omitzero"`
 	// Spritesheet to read frames from (character form only).
 	GridURL string `json:"grid_url,omitzero"`
@@ -2575,7 +2575,7 @@ type ObjectAnimationGroup struct {
 	// Frame count from the latest row in the group
 	FrameCount int `json:"frame_count,omitzero"`
 	// One entry per distinct direction (deduped by MAX(created_at))
-	Directions ObjectAnimationGroupDirections `json:"directions,omitzero"`
+	Directions ObjectAnimationGroupDirections `json:"directions"`
 }
 
 // One entry per distinct direction (deduped by MAX(created_at))
@@ -2604,11 +2604,11 @@ type ObjectDetail struct {
 	// Raw storage_urls map (frame_N keys when status='review')
 	StorageUrls *map[string]string `json:"storage_urls,omitempty"`
 	// Candidate frame URLs when status='review' — pass indices to POST /v2/objects/{id}/select-frames
-	FrameUrls []string `json:"frame_urls,omitempty"`
+	FrameUrls []string `json:"frame_urls,omitzero"`
 	// Style settings used during generation
 	StyleSettings *map[string]struct{} `json:"style_settings,omitempty"`
 	// User-defined tags for filtering
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 	// Object status (pending, processing, completed, review, failed)
 	Status string `json:"status,omitzero"`
 	// State group this object belongs to
@@ -2618,7 +2618,7 @@ type ObjectDetail struct {
 	// Estimated seconds remaining when not yet completed
 	EtaSeconds *int `json:"eta_seconds,omitempty"`
 	// Animations on this object, grouped by animation_group_id
-	Animations ObjectDetailAnimations `json:"animations,omitempty"`
+	Animations ObjectDetailAnimations `json:"animations,omitzero"`
 }
 
 // Animations on this object, grouped by animation_group_id
@@ -2666,7 +2666,7 @@ type ObjectSummary struct {
 	// Public URL to the south direction sprite (or unknown for 1-direction objects)
 	PreviewURL string `json:"preview_url,omitzero"`
 	// User-defined tags for filtering
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitzero"`
 	// Object status (pending, completed, failed)
 	Status string `json:"status,omitzero"`
 }
@@ -2675,7 +2675,7 @@ type ObjectSummary struct {
 type ObjectsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's objects
-	Objects ObjectsListResponseObjects `json:"objects,omitzero"`
+	Objects ObjectsListResponseObjects `json:"objects"`
 	// Total number of objects (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -2864,7 +2864,7 @@ type RotateRequest struct {
 // SelectObjectFramesRequest defines a model
 type SelectObjectFramesRequest struct {
 	// Frame indices (0-based) to keep as completed individual objects.
-	Indices []int `json:"indices,omitzero"`
+	Indices []int `json:"indices"`
 	// Optional tag applied to every newly-created object.
 	CommonTag string `json:"common_tag,omitzero"`
 }
@@ -2872,7 +2872,7 @@ type SelectObjectFramesRequest struct {
 // SelectObjectFramesResponse defines a model
 type SelectObjectFramesResponse struct {
 	Usage            *Usage   `json:"usage,omitempty"`
-	CreatedObjectIds []string `json:"created_object_ids,omitzero"`
+	CreatedObjectIds []string `json:"created_object_ids"`
 }
 
 // SetPortraitRequest defines a model
@@ -2924,7 +2924,7 @@ type SidescrollerTilesetSummary struct {
 // SidescrollerTilesetsListResponse defines a model
 type SidescrollerTilesetsListResponse struct {
 	Usage    *Usage                                   `json:"usage,omitempty"`
-	Tilesets SidescrollerTilesetsListResponseTilesets `json:"tilesets,omitzero"`
+	Tilesets SidescrollerTilesetsListResponseTilesets `json:"tilesets"`
 	// Total number of sidescroller tilesets the user owns (unpaginated)
 	Total int `json:"total,omitzero"`
 }
@@ -3047,13 +3047,13 @@ type Tile struct {
 // Deprecated. Valid tile connections in each cardinal direction.
 type TileConnections struct {
 	// IDs of tiles that can be placed above this tile
-	North []string `json:"north,omitzero"`
+	North []string `json:"north"`
 	// IDs of tiles that can be placed below this tile
-	South []string `json:"south,omitzero"`
+	South []string `json:"south"`
 	// IDs of tiles that can be placed to the right of this tile
-	East []string `json:"east,omitzero"`
+	East []string `json:"east"`
 	// IDs of tiles that can be placed to the left of this tile
-	West []string `json:"west,omitzero"`
+	West []string `json:"west"`
 }
 
 // Corner terrain types for a tile
@@ -3090,13 +3090,13 @@ func (e TileCornersNe) Valid() bool {
 // 4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)
 type TilePattern4x4 struct {
 	// Top row with wildcards
-	Row0 []int `json:"row_0,omitzero"`
+	Row0 []int `json:"row_0"`
 	// Second row with NW, NE corners
-	Row1 []int `json:"row_1,omitzero"`
+	Row1 []int `json:"row_1"`
 	// Third row with SW, SE corners
-	Row2 []int `json:"row_2,omitzero"`
+	Row2 []int `json:"row_2"`
 	// Bottom row with wildcards
-	Row3 []int `json:"row_3,omitzero"`
+	Row3 []int `json:"row_3"`
 }
 
 // TileSize defines a model
@@ -3110,7 +3110,7 @@ type TileSize struct {
 // TilesProListResponse defines a model
 type TilesProListResponse struct {
 	Usage *Usage                    `json:"usage,omitempty"`
-	Tiles TilesProListResponseTiles `json:"tiles,omitzero"`
+	Tiles TilesProListResponseTiles `json:"tiles"`
 	// Total number of tiles the user owns (unpaginated)
 	Total int `json:"total,omitzero"`
 }
@@ -3166,9 +3166,9 @@ type TilesetData struct {
 	// Size of each individual tile in pixels
 	TileSize map[string]int `json:"tile_size"`
 	// Available terrain types
-	TerrainTypes []string `json:"terrain_types,omitzero"`
+	TerrainTypes []string `json:"terrain_types"`
 	// List of individual tiles with metadata
-	Tiles TilesetDataTiles `json:"tiles,omitzero"`
+	Tiles TilesetDataTiles `json:"tiles"`
 }
 
 // List of individual tiles with metadata
@@ -3177,7 +3177,7 @@ type TilesetDataTiles []Tile
 // Metadata about the tileset generation
 type TilesetMetadata struct {
 	// Available edge/terrain types
-	EdgeTypes []string `json:"edge_types,omitzero"`
+	EdgeTypes []string `json:"edge_types"`
 	// Prompts used for each terrain type
 	TerrainPrompts map[string]string `json:"terrain_prompts"`
 	// Optional IDs for terrain types
@@ -3216,7 +3216,7 @@ type TilesetSummary struct {
 type TilesetsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// List of user's tilesets
-	Tilesets TilesetsListResponseTilesets `json:"tilesets,omitzero"`
+	Tilesets TilesetsListResponseTilesets `json:"tilesets"`
 	// Total number of tilesets (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -3229,7 +3229,7 @@ type TransferOutfitV2Request struct {
 	// Reference image containing the outfit/appearance to transfer
 	ReferenceImage app__endpoints__external__v__edit_animation_v__FrameImage `json:"reference_image"`
 	// Animation frames to edit (2-16 frames)
-	Frames EditAnimationFrames `json:"frames,omitzero"`
+	Frames EditAnimationFrames `json:"frames"`
 	// Size of the output frames
 	ImageSize FrameSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -3284,7 +3284,7 @@ type UIAssetSummary struct {
 type UIAssetsListResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// The user's UI assets (templates), newest first
-	UIAssets UIAssetsListResponseUIAssets `json:"ui_assets,omitzero"`
+	UIAssets UIAssetsListResponseUIAssets `json:"ui_assets"`
 	// Total template assets (for pagination)
 	Total int `json:"total,omitzero"`
 }
@@ -3330,14 +3330,14 @@ type UiPieceRect struct {
 // Request to update object tags
 type UpdateObjectTags struct {
 	// List of tags to assign to the object
-	Tags []string `json:"tags,omitzero"`
+	Tags []string `json:"tags"`
 }
 
 // Response after updating tags
 type UpdateObjectTags2 struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Updated list of tags
-	Tags []string `json:"tags,omitzero"`
+	Tags []string `json:"tags"`
 }
 
 // Usage defines a model
@@ -3368,7 +3368,7 @@ func (e UsageType) Valid() bool {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []CreateUIAssetPiecesItem `json:"loc,omitzero"`
+	Loc   []CreateUIAssetPiecesItem `json:"loc"`
 	Msg   string                    `json:"msg,omitzero"`
 	Type  string                    `json:"type,omitzero"`
 	Input *struct{}                 `json:"input,omitempty"`
