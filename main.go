@@ -19,8 +19,8 @@ import (
 //go:generate go tool openapi-codegen -client
 
 const (
-	rawPath = "/Users/mark/Downloads/openapi.json"
-	path    = "api/openapi.json"
+	rawPath  = "/Users/mark/Downloads/openapi.json"
+	specPath = "api/openapi.json"
 )
 
 var reDirection = regexp.MustCompile(`","default":"(east|high top-down)"`)
@@ -53,7 +53,7 @@ func main() {
 				continue
 			}
 
-			improveSchema(&openapi.SchemaRef{Value: s})
+			improveSchema(s)
 		}
 
 		for _, op := range p.Operations {
@@ -65,7 +65,7 @@ func main() {
 					continue
 				}
 
-				improveSchema(&openapi.SchemaRef{Value: s})
+				improveSchema(s)
 			}
 
 			for _, r := range op.Responses {
@@ -131,7 +131,7 @@ func main() {
 	// 	log.Fatalf("compress: %v", err)
 	// }
 
-	if err := doc.WriteToFile(path); err != nil {
+	if err := doc.WriteToFile(specPath); err != nil {
 		log.Fatal(err)
 	}
 
@@ -151,6 +151,9 @@ type dim struct {
 
 func improveSchema(ss *openapi.SchemaRef) {
 	s := ss.Value
+
+	// TODO: rename via openapi-edit
+
 	for _, p := range s.Properties {
 		improveSchema(p)
 	}
