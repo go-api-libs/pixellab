@@ -13,6 +13,7 @@ import (
 	codegen "github.com/MarkRosemaker/openapi-codegen"
 	edit "github.com/MarkRosemaker/openapi-edit"
 	enrich "github.com/MarkRosemaker/openapi-enrich"
+	flatten "github.com/MarkRosemaker/openapi-flatten"
 	"github.com/ettle/strcase"
 )
 
@@ -150,9 +151,9 @@ func main() {
 	}
 	doc.Components.SortMaps()
 
-	// if err := flatten.Document(doc); err != nil {
-	// 	log.Fatalf("flatten: %v", err)
-	// }
+	if err := flatten.Document(doc); err != nil {
+		log.Fatalf("flatten: %v", err)
+	}
 
 	// if err := compress.Document(doc, compress.Config{}); err != nil {
 	// 	log.Fatalf("compress: %v", err)
