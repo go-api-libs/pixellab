@@ -9,6 +9,8 @@ import (
 
 // Document is the top-level IR type passed to templates.
 type Document struct {
+	// If enabled, debug mode will record responses that failed to unmarshal.
+	Debug                  bool        `json:"debug,omitzero"`
 	Title                  string      `json:"title,omitzero"`
 	Production             bool        `json:"production,omitzero"`
 	PackageName            string      `json:"packageName,omitzero"`
