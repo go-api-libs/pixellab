@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/json/jsontext"
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -102,7 +103,7 @@ func main() {
 		}
 	}
 
-	for name, s := range doc.Components.Schemas {
+	for name, s := range doc.Components.Schemas.ByIndex() {
 		improveSchema(&openapi.SchemaRef{Value: s})
 
 		switch name {
@@ -135,14 +136,28 @@ func main() {
 		log.Fatalf("enrich: %v", err)
 	}
 
-	for _, v := range []struct{ old, new string }{
-		{"app__endpoints__external__v2__animate_with_skeleton__ImageSize", "ImageSize"},
-		{"app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize", "ReferenceImageSize"},
-		{"app__endpoints__external__v2__edit_animation_v2__FrameImage", "FrameImage"},
-	} {
-		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
-			log.Fatal(err)
+	if err := flatten.Document(doc); err != nil {
+		log.Fatalf("flatten: %v", err)
+	}
+
+	if err := compress.Document(doc, compress.Config{}); err != nil {
+		log.Fatalf("compress: %v", err)
+	}
+
+	i := 0
+	for name, s := range doc.Components.Schemas.ByIndex() {
+		switch s.Title {
+		case "ImageSize":
+			i++
+			newName := s.Title
+			if i > 1 {
+				newName = fmt.Sprintf("%s%d", s.Title, i)
+			}
+			if err := edit.RenameSchema(doc, name, newName); err != nil {
+				log.Fatal(err)
+			}
 		}
+
 	}
 
 	for _, path := range doc.Paths {
@@ -152,13 +167,16 @@ func main() {
 	}
 	doc.Components.SortMaps()
 
-	if err := flatten.Document(doc); err != nil {
-		log.Fatalf("flatten: %v", err)
+	for _, v := range []struct{ old, new string }{
+		// {"app__endpoints__external__v2__animate_with_skeleton__ImageSize", "ImageSize"},
+		// {"app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize", "ReferenceImageSize"},
+		// {"app__endpoints__external__v2__edit_animation_v2__FrameImage", "FrameImage"},
+	} {
+		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
+			log.Fatal(err)
+		}
 	}
-
-	if err := compress.Document(doc, compress.Config{}); err != nil {
-		log.Fatalf("compress: %v", err)
-	}
+	// app__endpoints__external__v2__image_to_pixelart__ImageSize
 
 	if err := doc.WriteToFile(specPath); err != nil {
 		log.Fatal(err)
