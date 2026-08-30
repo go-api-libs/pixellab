@@ -11,6 +11,7 @@ import (
 
 	"github.com/MarkRosemaker/openapi"
 	codegen "github.com/MarkRosemaker/openapi-codegen"
+	compress "github.com/MarkRosemaker/openapi-compress"
 	edit "github.com/MarkRosemaker/openapi-edit"
 	enrich "github.com/MarkRosemaker/openapi-enrich"
 	flatten "github.com/MarkRosemaker/openapi-flatten"
@@ -155,9 +156,9 @@ func main() {
 		log.Fatalf("flatten: %v", err)
 	}
 
-	// if err := compress.Document(doc, compress.Config{}); err != nil {
-	// 	log.Fatalf("compress: %v", err)
-	// }
+	if err := compress.Document(doc, compress.Config{}); err != nil {
+		log.Fatalf("compress: %v", err)
+	}
 
 	if err := doc.WriteToFile(specPath); err != nil {
 		log.Fatal(err)
