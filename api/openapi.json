@@ -3392,15 +3392,16 @@
             "$ref": "#/components/schemas/Usage"
           },
           "images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           }
         },
         "required": [
           "images"
         ]
       },
-      "AnimateWithSkeletonImages": {
-        "title": "Images",
+      "AnimateWithSkeletonInitImages": {
+        "title": "Init Images",
+        "description": "Initial images to start the generation from",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/BaseImage"
@@ -3449,7 +3450,7 @@
             "default": false
           },
           "init_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -3472,10 +3473,10 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "mask_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "color_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -3590,7 +3591,7 @@
             "description": "Subject direction (default: \"east\")"
           },
           "init_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -3605,10 +3606,10 @@
             "description": "Reference image"
           },
           "inpainting_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "mask_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "color_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -4582,7 +4583,7 @@
             "description": "Concept image as base64 PNG/JPEG"
           },
           "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__inpaint_v__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
             "description": "Size of the concept image"
           }
         },
@@ -4622,7 +4623,7 @@
             "$ref": "#/components/schemas/Create1DirectionObjectRequestView"
           },
           "style_images": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonImages"
+            "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
           },
           "item_descriptions": {
             "title": "Item Descriptions",
@@ -5250,7 +5251,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__interpolation_v__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_character_with__directions__ImageSize",
             "description": "Size of each rotation image"
           },
           "async_mode": {
@@ -5383,7 +5384,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__interpolation_v__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_character_with__directions__ImageSize",
             "description": "Size of each rotation image"
           },
           "mode": {
@@ -5584,7 +5585,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__resize__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_image_bitforge__ImageSize"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6820,19 +6821,6 @@
           "transition_size": 0.25
         }
       },
-      "CreateUIAssetPiecesItem": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/UiPieceRect"
-          },
-          {
-            "$ref": "#/components/schemas/UiPieceCircle"
-          },
-          {
-            "$ref": "#/components/schemas/UiPiecePolygon"
-          }
-        ]
-      },
       "CreateUIAssetRequest": {
         "title": "CreateUIAssetRequest",
         "description": "Request for POST /v2/ui-assets (shape-based UI panel generation).",
@@ -6854,7 +6842,7 @@
             "description": "Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateUIAssetPiecesItem"
+              "$ref": "#/components/schemas/CreateUIAssetRequestPiecesItem"
             }
           },
           "elements": {
@@ -6910,6 +6898,19 @@
           },
           "no_background": true
         }
+      },
+      "CreateUIAssetRequestPiecesItem": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UiPieceRect"
+          },
+          {
+            "$ref": "#/components/schemas/UiPieceCircle"
+          },
+          {
+            "$ref": "#/components/schemas/UiPiecePolygon"
+          }
+        ]
       },
       "CreateUIAssetResponse": {
         "title": "CreateUIAssetResponse",
@@ -8335,7 +8336,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__resize__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_image_bitforge__ImageSize"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -8531,7 +8532,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__interpolation_v__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_character_with__directions__ImageSize",
             "description": "Size of the output frames"
           },
           "seed": {
@@ -9583,11 +9584,11 @@
             "description": "Image to resize"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__resize__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_image_bitforge__ImageSize",
             "description": "Original size of the reference image"
           },
           "target_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__resize__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_image_bitforge__ImageSize",
             "description": "Desired output size"
           },
           "view": {
@@ -9662,7 +9663,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__resize__ImageSize"
+            "$ref": "#/components/schemas/app__endpoints__external__v__create_image_bitforge__ImageSize"
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
@@ -11186,7 +11187,7 @@
             "title": "Location",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateUIAssetPiecesItem"
+              "$ref": "#/components/schemas/ValidationErrorLocItem"
             }
           },
           "msg": {
@@ -11210,6 +11211,16 @@
           "loc",
           "msg",
           "type"
+        ]
+      },
+      "ValidationErrorLocItem": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          }
         ]
       },
       "VocalAnimationRequest": {
@@ -11539,7 +11550,7 @@
             "description": "Reference image as base64 PNG/JPEG"
           },
           "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__inpaint_v__ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
             "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
           },
           "usage_description": {
@@ -11675,6 +11686,62 @@
           "width": 128
         }
       },
+      "app__endpoints__external__v__create_character_with__directions__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 128
+          },
+          "height": {
+            "title": "Height",
+            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 128
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 96,
+          "width": 96
+        }
+      },
+      "app__endpoints__external__v__create_image_bitforge__ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 200
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 128,
+          "width": 128
+        }
+      },
       "app__endpoints__external__v__create_image_pixflux__ImageSize": {
         "title": "ImageSize",
         "type": "object",
@@ -11759,78 +11826,21 @@
           "width": 64
         }
       },
-      "app__endpoints__external__v__inpaint_v__ImageSize": {
-        "title": "ImageSize",
+      "app__endpoints__external__v__generate_image_v__ReferenceImageSize": {
+        "title": "ReferenceImageSize",
         "type": "object",
         "properties": {
           "width": {
             "title": "Width",
-            "description": "Image width in pixels",
+            "description": "Reference image width",
             "type": "integer",
             "minimum": 1
           },
           "height": {
             "title": "Height",
-            "description": "Image height in pixels",
+            "description": "Reference image height",
             "type": "integer",
             "minimum": 1
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v__interpolation_v__ImageSize": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v__resize__ImageSize": {
-        "title": "ImageSize",
-        "description": "Image dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
           }
         },
         "required": [

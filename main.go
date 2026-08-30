@@ -22,6 +22,10 @@ const (
 
 var reDirection = regexp.MustCompile(`","default":"(east|high top-down)"`)
 
+var opIDMapping = map[string]string{
+	// "GenerateImageV2GenerateImageV2Post": "GenerateImage",
+}
+
 func main() {
 	data, err := os.ReadFile(rawPath)
 	if err != nil {
@@ -55,6 +59,9 @@ func main() {
 
 		for _, op := range p.Operations {
 			op.OperationID = strcase.ToGoPascal(op.OperationID)
+			if opID, ok := opIDMapping[op.OperationID]; ok {
+				op.OperationID = strcase.ToGoPascal(opID)
+			}
 
 			for _, p := range op.Parameters {
 				s := p.Value.Schema
@@ -120,6 +127,9 @@ func main() {
 		log.Fatalf("enrich: %v", err)
 	}
 
+	// edit.RenameSchema(doc, "")
+	// TODO: rename via openapi-edit
+
 	// if err := flatten.Document(doc); err != nil {
 	// 	log.Fatalf("flatten: %v", err)
 	// }
@@ -133,6 +143,7 @@ func main() {
 	}
 
 	if err := codegen.Generate(codegen.Config{
+		Debug:       true,
 		Spec:        doc,
 		PackageName: "pixellab",
 		OutputDir:   "pkg/pixellab",
@@ -148,8 +159,7 @@ type dim struct {
 
 func improveSchema(ss *openapi.SchemaRef) {
 	s := ss.Value
-
-	// TODO: rename via openapi-edit
+	// s.Title = ""
 
 	for _, p := range s.Properties {
 		improveSchema(p)

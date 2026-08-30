@@ -220,12 +220,13 @@ type AnimateObjectResponseSubmissions []DirectionSubmission
 
 // AnimateWithSkeleton defines a model
 type AnimateWithSkeleton struct {
-	Usage  *Usage                    `json:"usage,omitempty"`
-	Images AnimateWithSkeletonImages `json:"images"`
+	Usage *Usage `json:"usage,omitempty"`
+	// Initial images to start the generation from
+	Images AnimateWithSkeletonInitImages `json:"images"`
 }
 
-// AnimateWithSkeletonImages defines a model
-type AnimateWithSkeletonImages []BaseImage
+// Initial images to start the generation from
+type AnimateWithSkeletonInitImages []BaseImage
 
 // AnimateWithSkeletonKeypointsItem defines a model
 type AnimateWithSkeletonKeypointsItem []Point
@@ -242,16 +243,19 @@ type AnimateWithSkeletonRequest struct {
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
 	// Generate in oblique projection
-	ObliqueProjection bool                      `json:"oblique_projection,omitempty"`
-	InitImages        AnimateWithSkeletonImages `json:"init_images,omitzero"`
+	ObliqueProjection bool `json:"oblique_projection,omitempty"`
+	// Initial images to start the generation from
+	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
 	SkeletonKeypoints []AnimateWithSkeletonKeypointsItem `json:"skeleton_keypoints,omitzero"`
 	// Reference image
-	ReferenceImage   BaseImage                 `json:"reference_image"`
-	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitzero"`
-	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitzero"`
+	ReferenceImage BaseImage `json:"reference_image"`
+	// Initial images to start the generation from
+	InpaintingImages AnimateWithSkeletonInitImages `json:"inpainting_images,omitzero"`
+	// Initial images to start the generation from
+	MaskImages AnimateWithSkeletonInitImages `json:"mask_images,omitzero"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
@@ -287,14 +291,17 @@ type AnimateWithTextRequest struct {
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Subject direction (default: "east")
-	Direction  Direction                 `json:"direction,omitzero"`
-	InitImages AnimateWithSkeletonImages `json:"init_images,omitzero"`
+	Direction Direction `json:"direction,omitzero"`
+	// Initial images to start the generation from
+	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength *int `json:"init_image_strength,omitempty"`
 	// Reference image
-	ReferenceImage   BaseImage                 `json:"reference_image"`
-	InpaintingImages AnimateWithSkeletonImages `json:"inpainting_images,omitzero"`
-	MaskImages       AnimateWithSkeletonImages `json:"mask_images,omitzero"`
+	ReferenceImage BaseImage `json:"reference_image"`
+	// Initial images to start the generation from
+	InpaintingImages AnimateWithSkeletonInitImages `json:"inpainting_images,omitzero"`
+	// Initial images to start the generation from
+	MaskImages AnimateWithSkeletonInitImages `json:"mask_images,omitzero"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed for reproducible results (0 for random)
@@ -662,7 +669,7 @@ type ConceptImage struct {
 	// Concept image as base64 PNG/JPEG
 	Image BaseImage `json:"image"`
 	// Size of the concept image
-	Size app__endpoints__external__v__inpaint_v__ImageSize `json:"size"`
+	Size app__endpoints__external__v__generate_image_v__ReferenceImageSize `json:"size"`
 }
 
 // Request to create a 1-direction object.
@@ -671,8 +678,9 @@ type Create1DirectionObjectRequest struct {
 	// Square image size in pixels (32-256). Defaults to 64 when omitted. Cannot be set together with `style_images` — when style_images are provided, the largest style image determines the output size. The effective size also determines how many candidate objects the generator produces in one shot (≤42→64, ≤85→16, ≤170→4, else 1). When >1, the resulting object enters 'review' status — call POST /v2/objects/{id}/select-frames (or use the review UI) to pick which to keep.
 	Size *int `json:"size,omitempty"`
 	// View.
-	View        Create1DirectionObjectRequestView `json:"view,omitzero"`
-	StyleImages AnimateWithSkeletonImages         `json:"style_images,omitzero"`
+	View Create1DirectionObjectRequestView `json:"view,omitzero"`
+	// Initial images to start the generation from
+	StyleImages AnimateWithSkeletonInitImages `json:"style_images,omitzero"`
 	// Per-object descriptions when the effective size produces multiple objects. Length must not exceed the object count derived from size.
 	ItemDescriptions []string `json:"item_descriptions,omitzero"`
 }
@@ -927,7 +935,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__create_character_with__directions__ImageSize `json:"image_size"`
 	// Process asynchronously (always true for character creation)
 	AsyncMode bool `json:"async_mode,omitempty"`
 	// How closely to follow the text description (higher = more faithful)
@@ -963,7 +971,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__create_character_with__directions__ImageSize `json:"image_size"`
 	// Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 20-40 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
 	Mode CreateCharacterWithDirectionsMode `json:"mode,omitzero"`
 	// Process asynchronously (always true - no synchronous processing yet)
@@ -1058,9 +1066,8 @@ type CreateImageBitforgeRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string `json:"negative_description,omitzero"`
-	// Image dimensions
-	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
+	NegativeDescription string                                                        `json:"negative_description,omitzero"`
+	ImageSize           app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -1728,16 +1735,40 @@ type CreateTilesetSidescrollerRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// CreateUIAssetPiecesItem defines a model
-// CreateUIAssetPiecesItem is an untagged anyOf union: at least one field is set after unmarshaling.
-type CreateUIAssetPiecesItem struct {
+// Request for POST /v2/ui-assets (shape-based UI panel generation).
+type CreateUIAssetRequest struct {
+	// Style description for the UI panel (e.g. 'wooden RPG panel with gold trim')
+	Description string `json:"description,omitzero"`
+	// Output image size in pixels (192–688; max per axis depends on aspect)
+	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
+	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
+	Pieces []CreateUIAssetRequestPiecesItem `json:"pieces,omitzero"`
+	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
+	Elements []string `json:"elements,omitzero"`
+	// Optional style reference image (PNG/JPEG base64)
+	StyleImage *BaseImage `json:"style_image,omitempty"`
+	// Optional palette specification (e.g. 'brown and gold')
+	ColorPalette string `json:"color_palette,omitzero"`
+	// Remove background after generation
+	NoBackground bool `json:"no_background,omitempty"`
+	// Seed for reproducible generation
+	Seed *int `json:"seed,omitempty"`
+	// Friendly name for the saved asset
+	Name string `json:"name,omitzero"`
+	// If set, assign the finished asset to this project
+	ProjectID string `json:"project_id,omitzero"`
+}
+
+// CreateUIAssetRequestPiecesItem defines a model
+// CreateUIAssetRequestPiecesItem is an untagged anyOf union: at least one field is set after unmarshaling.
+type CreateUIAssetRequestPiecesItem struct {
 	UIPieceRect    *UiPieceRect
 	UIPieceCircle  *UiPieceCircle
 	UIPiecePolygon *UiPiecePolygon
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom].
-func (v *CreateUIAssetPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+func (v *CreateUIAssetRequestPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	raw, err := dec.ReadValue()
 	if err != nil {
 		return err
@@ -1770,14 +1801,14 @@ func (v *CreateUIAssetPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error
 	}
 
 	if matched == 0 {
-		return fmt.Errorf("CreateUIAssetPiecesItem: expected at least one matching variant, got 0")
+		return fmt.Errorf("CreateUIAssetRequestPiecesItem: expected at least one matching variant, got 0")
 	}
 
 	return nil
 }
 
 // MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
-func (v *CreateUIAssetPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) error {
+func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.UIPieceRect != nil:
 		return json.MarshalEncode(enc, v.UIPieceRect, jsonOpts)
@@ -1787,31 +1818,7 @@ func (v *CreateUIAssetPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 		return json.MarshalEncode(enc, v.UIPiecePolygon, jsonOpts)
 	}
 
-	return fmt.Errorf("CreateUIAssetPiecesItem: no variant set")
-}
-
-// Request for POST /v2/ui-assets (shape-based UI panel generation).
-type CreateUIAssetRequest struct {
-	// Style description for the UI panel (e.g. 'wooden RPG panel with gold trim')
-	Description string `json:"description,omitzero"`
-	// Output image size in pixels (192–688; max per axis depends on aspect)
-	ImageSize *app__endpoints__external__v2__create_ui_asset__ImageSize `json:"image_size,omitempty"`
-	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
-	Pieces []CreateUIAssetPiecesItem `json:"pieces,omitzero"`
-	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
-	Elements []string `json:"elements,omitzero"`
-	// Optional style reference image (PNG/JPEG base64)
-	StyleImage *BaseImage `json:"style_image,omitempty"`
-	// Optional palette specification (e.g. 'brown and gold')
-	ColorPalette string `json:"color_palette,omitzero"`
-	// Remove background after generation
-	NoBackground bool `json:"no_background,omitempty"`
-	// Seed for reproducible generation
-	Seed *int `json:"seed,omitempty"`
-	// Friendly name for the saved asset
-	Name string `json:"name,omitzero"`
-	// If set, assign the finished asset to this project
-	ProjectID string `json:"project_id,omitzero"`
+	return fmt.Errorf("CreateUIAssetRequestPiecesItem: no variant set")
 }
 
 // CreateUIAssetResponse defines a model
@@ -2352,9 +2359,8 @@ type InpaintRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string `json:"negative_description,omitzero"`
-	// Image dimensions
-	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
+	NegativeDescription string                                                        `json:"negative_description,omitzero"`
+	ImageSize           app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -2418,7 +2424,7 @@ type InterpolationV2Request struct {
 	// Description of the transition (e.g., 'morphing', 'transforming', 'powering up')
 	Action string `json:"action,omitzero"`
 	// Size of the output frames
-	ImageSize app__endpoints__external__v__interpolation_v__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__create_character_with__directions__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
@@ -2802,9 +2808,9 @@ type ResizeRequest struct {
 	// Image to resize
 	ReferenceImage BaseImage `json:"reference_image"`
 	// Original size of the reference image
-	ReferenceImageSize app__endpoints__external__v__resize__ImageSize `json:"reference_image_size"`
+	ReferenceImageSize app__endpoints__external__v__create_image_bitforge__ImageSize `json:"reference_image_size"`
 	// Desired output size
-	TargetSize app__endpoints__external__v__resize__ImageSize `json:"target_size"`
+	TargetSize app__endpoints__external__v__create_image_bitforge__ImageSize `json:"target_size"`
 	// Camera view angle
 	View CameraView `json:"view,omitzero"`
 	// Directional view
@@ -2827,8 +2833,7 @@ type ResizeRequest struct {
 
 // Request model for image generation endpoint
 type RotateRequest struct {
-	// Image dimensions
-	ImageSize app__endpoints__external__v__resize__ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v__create_image_bitforge__ImageSize `json:"image_size"`
 	// How closely to follow the reference image
 	ImageGuidanceScale *float64 `json:"image_guidance_scale,omitempty"`
 	// How many degrees to tilt the subject
@@ -3368,11 +3373,62 @@ func (e UsageType) Valid() bool {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []CreateUIAssetPiecesItem `json:"loc"`
-	Msg   string                    `json:"msg,omitzero"`
-	Type  string                    `json:"type,omitzero"`
-	Input *struct{}                 `json:"input,omitempty"`
-	Ctx   *struct{}                 `json:"ctx,omitempty"`
+	Loc   []ValidationErrorLocItem `json:"loc"`
+	Msg   string                   `json:"msg,omitzero"`
+	Type  string                   `json:"type,omitzero"`
+	Input *struct{}                `json:"input,omitempty"`
+	Ctx   *struct{}                `json:"ctx,omitempty"`
+}
+
+// ValidationErrorLocItem defines a model
+// ValidationErrorLocItem is an untagged anyOf union: at least one field is set after unmarshaling.
+type ValidationErrorLocItem struct {
+	String *string
+	Int    *int
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *ValidationErrorLocItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	{
+		var vv string
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.String = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv int
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.Int = &vv
+			matched++
+		}
+	}
+
+	if matched == 0 {
+		return fmt.Errorf("ValidationErrorLocItem: expected at least one matching variant, got 0")
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.String != nil:
+		return json.MarshalEncode(enc, v.String, jsonOpts)
+	case v.Int != nil:
+		return json.MarshalEncode(enc, v.Int, jsonOpts)
+	}
+
+	return fmt.Errorf("ValidationErrorLocItem: no variant set")
 }
 
 // VocalAnimationRequest defines a model
@@ -3481,7 +3537,7 @@ type app__endpoints__external__v2__generate_image_v2__ReferenceImage struct {
 	// Reference image as base64 PNG/JPEG
 	Image BaseImage `json:"image"`
 	// Size of the reference image. Images larger than 1024x1024 will be downscaled.
-	Size app__endpoints__external__v__inpaint_v__ImageSize `json:"size"`
+	Size app__endpoints__external__v__generate_image_v__ReferenceImageSize `json:"size"`
 	// Optional description of how this reference should be used
 	UsageDescription string `json:"usage_description,omitzero"`
 }
@@ -3518,6 +3574,22 @@ type app__endpoints__external__v__animate_with_skeleton__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
+// app__endpoints__external__v__create_character_with__directions__ImageSize defines a model
+type app__endpoints__external__v__create_character_with__directions__ImageSize struct {
+	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
+	Width int `json:"width,omitzero"`
+	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
+	Height int `json:"height,omitzero"`
+}
+
+// app__endpoints__external__v__create_image_bitforge__ImageSize defines a model
+type app__endpoints__external__v__create_image_bitforge__ImageSize struct {
+	// Image width in pixels
+	Width int `json:"width,omitzero"`
+	// Image height in pixels
+	Height int `json:"height,omitzero"`
+}
+
 // app__endpoints__external__v__create_image_pixflux__ImageSize defines a model
 type app__endpoints__external__v__create_image_pixflux__ImageSize struct {
 	// Image width in pixels
@@ -3545,26 +3617,10 @@ type app__endpoints__external__v__edit_animation_v__FrameImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v__inpaint_v__ImageSize defines a model
-type app__endpoints__external__v__inpaint_v__ImageSize struct {
-	// Image width in pixels
+// app__endpoints__external__v__generate_image_v__ReferenceImageSize defines a model
+type app__endpoints__external__v__generate_image_v__ReferenceImageSize struct {
+	// Reference image width
 	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v__interpolation_v__ImageSize defines a model
-type app__endpoints__external__v__interpolation_v__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// Image dimensions
-type app__endpoints__external__v__resize__ImageSize struct {
-	// Width in pixels
-	Width int `json:"width,omitzero"`
-	// Height in pixels
+	// Reference image height
 	Height int `json:"height,omitzero"`
 }
