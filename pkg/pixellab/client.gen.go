@@ -138,8 +138,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // ```
 //
 //	POST /generate-image-v2
-func (c *Client) GenerateImageV2GenerateImageV2Post(ctx context.Context, body GenerateImageV2Request) (*AnimateWithText, error) {
-	return c.GenerateImageV2GenerateImageV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request) (*AnimateWithText, error) {
+	return c.GenerateImageWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate pixel art images from text description.
@@ -192,7 +192,7 @@ func (c *Client) GenerateImageV2GenerateImageV2Post(ctx context.Context, body Ge
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-image-v2
-func (c *Client) GenerateImageV2GenerateImageV2PostWithResult[R any](ctx context.Context, body GenerateImageV2Request) (*R, error) {
+func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body GenerateImageV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-image-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -253,16 +253,16 @@ func (c *Client) GenerateImageV2GenerateImageV2PostWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImageV2GenerateImageV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImageV2GenerateImageV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImageV2GenerateImageV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateImageV2GenerateImageV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -311,8 +311,8 @@ func (c *Client) GenerateImageV2GenerateImageV2PostWithResult[R any](ctx context
 // ```
 //
 //	POST /generate-with-style-v2
-func (c *Client) GenerateWithStyleV2GenerateWithStyleV2Post(ctx context.Context, body GenerateWithStyleV2Request) (*AnimateWithText, error) {
-	return c.GenerateWithStyleV2GenerateWithStyleV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2Request) (*AnimateWithText, error) {
+	return c.GenerateWithStyleWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate new pixel art images that match the style of reference images.
@@ -359,7 +359,7 @@ func (c *Client) GenerateWithStyleV2GenerateWithStyleV2Post(ctx context.Context,
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-with-style-v2
-func (c *Client) GenerateWithStyleV2GenerateWithStyleV2PostWithResult[R any](ctx context.Context, body GenerateWithStyleV2Request) (*R, error) {
+func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body GenerateWithStyleV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-with-style-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -420,16 +420,16 @@ func (c *Client) GenerateWithStyleV2GenerateWithStyleV2PostWithResult[R any](ctx
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateWithStyleV2GenerateWithStyleV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateWithStyleV2GenerateWithStyleV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateWithStyleV2GenerateWithStyleV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateWithStyleV2GenerateWithStyleV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -482,8 +482,8 @@ func (c *Client) GenerateWithStyleV2GenerateWithStyleV2PostWithResult[R any](ctx
 // ```
 //
 //	POST /generate-ui-v2
-func (c *Client) GenerateUiv2GenerateUiv2Post(ctx context.Context, body GenerateUIV2Request) (*AnimateWithText, error) {
-	return c.GenerateUiv2GenerateUiv2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*AnimateWithText, error) {
+	return c.GenerateUIWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate pixel art UI elements from text description.
@@ -534,7 +534,7 @@ func (c *Client) GenerateUiv2GenerateUiv2Post(ctx context.Context, body Generate
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-ui-v2
-func (c *Client) GenerateUiv2GenerateUiv2PostWithResult[R any](ctx context.Context, body GenerateUIV2Request) (*R, error) {
+func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateUIV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-ui-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -595,16 +595,16 @@ func (c *Client) GenerateUiv2GenerateUiv2PostWithResult[R any](ctx context.Conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateUiv2GenerateUiv2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateUiv2GenerateUiv2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateUiv2GenerateUiv2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateUiv2GenerateUiv2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -636,8 +636,8 @@ func (c *Client) GenerateUiv2GenerateUiv2PostWithResult[R any](ctx context.Conte
 // ```
 //
 //	POST /create-image-pixflux
-func (c *Client) GenerateImagePixfluxCreateImagePixfluxPost(ctx context.Context, body CreateImagePixfluxRequest) (*CreateImageBitforge, error) {
-	return c.GenerateImagePixfluxCreateImagePixfluxPostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*CreateImageBitforge, error) {
+	return c.CreateImagePixfluxWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
@@ -667,7 +667,7 @@ func (c *Client) GenerateImagePixfluxCreateImagePixfluxPost(ctx context.Context,
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-image-pixflux
-func (c *Client) GenerateImagePixfluxCreateImagePixfluxPostWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
+func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixflux")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -728,19 +728,19 @@ func (c *Client) GenerateImagePixfluxCreateImagePixfluxPostWithResult[R any](ctx
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImagePixfluxCreateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImagePixfluxCreateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImagePixfluxCreateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateImagePixfluxCreateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateImagePixfluxCreateImagePixfluxPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -765,8 +765,8 @@ func (c *Client) GenerateImagePixfluxCreateImagePixfluxPostWithResult[R any](ctx
 // 3. When `status` is `completed`, the image is in `last_response.image.base64`
 //
 //	POST /create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost(ctx context.Context, body CreateImagePixfluxRequest) (*AnimateWithText, error) {
-	return c.CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPostWithResult[AnimateWithText](ctx, body)
+func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*AnimateWithText, error) {
+	return c.CreateImagePixfluxBackgroundWithResult[AnimateWithText](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters, as a background job.
@@ -789,7 +789,7 @@ func (c *Client) CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost(ct
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPostWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
+func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixflux-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -850,16 +850,16 @@ func (c *Client) CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPostWit
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -894,8 +894,8 @@ func (c *Client) CreateImagePixfluxBackgroundCreateImagePixfluxBackgroundPostWit
 // ```
 //
 //	POST /create-image-pixen
-func (c *Client) GenerateImagePixenCreateImagePixenPost(ctx context.Context, body CreateImagePixenRequest) (*CreateImagePixenResponse, error) {
-	return c.GenerateImagePixenCreateImagePixenPostWithResult[CreateImagePixenResponse](ctx, body)
+func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequest) (*CreateImagePixenResponse, error) {
+	return c.CreateImagePixenWithResult[CreateImagePixenResponse](ctx, body)
 }
 
 // Generates a pixel art image using the Pixen model.
@@ -928,7 +928,7 @@ func (c *Client) GenerateImagePixenCreateImagePixenPost(ctx context.Context, bod
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-image-pixen
-func (c *Client) GenerateImagePixenCreateImagePixenPostWithResult[R any](ctx context.Context, body CreateImagePixenRequest) (*R, error) {
+func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body CreateImagePixenRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixen")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -989,19 +989,19 @@ func (c *Client) GenerateImagePixenCreateImagePixenPostWithResult[R any](ctx con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImagePixenCreateImagePixenPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImagePixenCreateImagePixenPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImagePixenCreateImagePixenPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateImagePixenCreateImagePixenPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateImagePixenCreateImagePixenPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1035,8 +1035,8 @@ func (c *Client) GenerateImagePixenCreateImagePixenPostWithResult[R any](ctx con
 // ```
 //
 //	POST /create-image-bitforge
-func (c *Client) GenerateImageBitforgeCreateImageBitforgePost(ctx context.Context, body CreateImageBitforgeRequest) (*CreateImageBitforge, error) {
-	return c.GenerateImageBitforgeCreateImageBitforgePostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*CreateImageBitforge, error) {
+	return c.CreateImageBitforgeWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Generates a pixel art image based on the provided parameters. Called "Create S-M image" in the plugin.
@@ -1068,7 +1068,7 @@ func (c *Client) GenerateImageBitforgeCreateImageBitforgePost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-image-bitforge
-func (c *Client) GenerateImageBitforgeCreateImageBitforgePostWithResult[R any](ctx context.Context, body CreateImageBitforgeRequest) (*R, error) {
+func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body CreateImageBitforgeRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-bitforge")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1129,19 +1129,19 @@ func (c *Client) GenerateImageBitforgeCreateImageBitforgePostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImageBitforgeCreateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImageBitforgeCreateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImageBitforgeCreateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateImageBitforgeCreateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateImageBitforgeCreateImageBitforgePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1177,8 +1177,8 @@ func (c *Client) GenerateImageBitforgeCreateImageBitforgePostWithResult[R any](c
 // ```
 //
 //	POST /image-to-pixelart
-func (c *Client) ImageToPixelartImageToPixelartPost(ctx context.Context, body ImageToPixelartRequest) (*CreateImageBitforge, error) {
-	return c.ImageToPixelartImageToPixelartPostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelartRequest) (*CreateImageBitforge, error) {
+	return c.ConvertImageToPixelArtWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Convert regular images to pixel art style.
@@ -1212,7 +1212,7 @@ func (c *Client) ImageToPixelartImageToPixelartPost(ctx context.Context, body Im
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /image-to-pixelart
-func (c *Client) ImageToPixelartImageToPixelartPostWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
+func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1273,19 +1273,19 @@ func (c *Client) ImageToPixelartImageToPixelartPostWithResult[R any](ctx context
 		}
 	case http.StatusBadRequest:
 		// Invalid image size constraints
-		return nil, fmt.Errorf("ImageToPixelartImageToPixelartPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ImageToPixelartImageToPixelartPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ImageToPixelartImageToPixelartPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ImageToPixelartImageToPixelartPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("ImageToPixelartImageToPixelartPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1327,8 +1327,8 @@ func (c *Client) ImageToPixelartImageToPixelartPostWithResult[R any](ctx context
 // ```
 //
 //	POST /image-to-pixelart-pro
-func (c *Client) ImageToPixelartProImageToPixelartProPost(ctx context.Context, body ImageToPixelartProRequest) (*AnimateWithText, error) {
-	return c.ImageToPixelartProImageToPixelartProPostWithResult[AnimateWithText](ctx, body)
+func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixelartProRequest) (*AnimateWithText, error) {
+	return c.ConvertImageToPixelArtProWithResult[AnimateWithText](ctx, body)
 }
 
 // Convert an arbitrary image into high-quality pixel art.
@@ -1368,7 +1368,7 @@ func (c *Client) ImageToPixelartProImageToPixelartProPost(ctx context.Context, b
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /image-to-pixelart-pro
-func (c *Client) ImageToPixelartProImageToPixelartProPostWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
+func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1429,16 +1429,16 @@ func (c *Client) ImageToPixelartProImageToPixelartProPostWithResult[R any](ctx c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ImageToPixelartProImageToPixelartProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ImageToPixelartProImageToPixelartProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ImageToPixelartProImageToPixelartProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("ImageToPixelartProImageToPixelartProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1480,8 +1480,8 @@ func (c *Client) ImageToPixelartProImageToPixelartProPostWithResult[R any](ctx c
 // ```
 //
 //	POST /resize
-func (c *Client) ResizeImageResizePost(ctx context.Context, body ResizeRequest) (*CreateImageBitforge, error) {
-	return c.ResizeImageResizePostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*CreateImageBitforge, error) {
+	return c.ResizePixelArtImageWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Intelligently resize pixel art images while maintaining pixel art aesthetics.
@@ -1521,7 +1521,7 @@ func (c *Client) ResizeImageResizePost(ctx context.Context, body ResizeRequest) 
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /resize
-func (c *Client) ResizeImageResizePostWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
+func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
 	u := c.baseURL.JoinPath("resize")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1582,19 +1582,19 @@ func (c *Client) ResizeImageResizePostWithResult[R any](ctx context.Context, bod
 		}
 	case http.StatusBadRequest:
 		// Invalid image size constraints
-		return nil, fmt.Errorf("ResizeImageResizePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ResizeImageResizePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ResizeImageResizePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ResizeImageResizePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("ResizeImageResizePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1630,8 +1630,8 @@ func (c *Client) ResizeImageResizePostWithResult[R any](ctx context.Context, bod
 // ```
 //
 //	POST /remove-background
-func (c *Client) RemoveBackgroundEndpointRemoveBackgroundPost(ctx context.Context, body RemoveBackgroundRequest) (*CreateImageBitforge, error) {
-	return c.RemoveBackgroundEndpointRemoveBackgroundPostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*CreateImageBitforge, error) {
+	return c.RemoveBackgroundWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Remove the background from a pixel art image, producing a transparent PNG.
@@ -1665,7 +1665,7 @@ func (c *Client) RemoveBackgroundEndpointRemoveBackgroundPost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /remove-background
-func (c *Client) RemoveBackgroundEndpointRemoveBackgroundPostWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
+func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
 	u := c.baseURL.JoinPath("remove-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1726,16 +1726,16 @@ func (c *Client) RemoveBackgroundEndpointRemoveBackgroundPostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("RemoveBackgroundEndpointRemoveBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("RemoveBackgroundEndpointRemoveBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("RemoveBackgroundEndpointRemoveBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("RemoveBackgroundEndpointRemoveBackgroundPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1802,8 +1802,8 @@ func (c *Client) RemoveBackgroundEndpointRemoveBackgroundPostWithResult[R any](c
 // ```
 //
 //	POST /edit-animation-v2
-func (c *Client) EditAnimationV2EditAnimationV2Post(ctx context.Context, body EditAnimationV2Request) (*AnimateWithText, error) {
-	return c.EditAnimationV2EditAnimationV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request) (*AnimateWithText, error) {
+	return c.EditAnimationWithResult[AnimateWithText](ctx, body)
 }
 
 // Edit multiple animation frames with a text description.
@@ -1868,7 +1868,7 @@ func (c *Client) EditAnimationV2EditAnimationV2Post(ctx context.Context, body Ed
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /edit-animation-v2
-func (c *Client) EditAnimationV2EditAnimationV2PostWithResult[R any](ctx context.Context, body EditAnimationV2Request) (*R, error) {
+func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAnimationV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("edit-animation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1929,16 +1929,16 @@ func (c *Client) EditAnimationV2EditAnimationV2PostWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EditAnimationV2EditAnimationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditAnimationV2EditAnimationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditAnimationV2EditAnimationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditAnimationV2EditAnimationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -1999,8 +1999,8 @@ func (c *Client) EditAnimationV2EditAnimationV2PostWithResult[R any](ctx context
 // ```
 //
 //	POST /interpolation-v2
-func (c *Client) InterpolationV2InterpolationV2Post(ctx context.Context, body InterpolationV2Request) (*AnimateWithText, error) {
-	return c.InterpolationV2InterpolationV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (*AnimateWithText, error) {
+	return c.InterpolateWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate intermediate animation frames between two keyframe images.
@@ -2059,7 +2059,7 @@ func (c *Client) InterpolationV2InterpolationV2Post(ctx context.Context, body In
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /interpolation-v2
-func (c *Client) InterpolationV2InterpolationV2PostWithResult[R any](ctx context.Context, body InterpolationV2Request) (*R, error) {
+func (c *Client) InterpolateWithResult[R any](ctx context.Context, body InterpolationV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("interpolation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2120,16 +2120,16 @@ func (c *Client) InterpolationV2InterpolationV2PostWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("InterpolationV2InterpolationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("InterpolationV2InterpolationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("InterpolationV2InterpolationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("InterpolationV2InterpolationV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2194,8 +2194,8 @@ func (c *Client) InterpolationV2InterpolationV2PostWithResult[R any](ctx context
 // ```
 //
 //	POST /transfer-outfit-v2
-func (c *Client) TransferOutfitV2TransferOutfitV2Post(ctx context.Context, body TransferOutfitV2Request) (*AnimateWithText, error) {
-	return c.TransferOutfitV2TransferOutfitV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Request) (*AnimateWithText, error) {
+	return c.TransferOutfitWithResult[AnimateWithText](ctx, body)
 }
 
 // Transfer an outfit/appearance from a reference image to animation frames.
@@ -2258,7 +2258,7 @@ func (c *Client) TransferOutfitV2TransferOutfitV2Post(ctx context.Context, body 
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /transfer-outfit-v2
-func (c *Client) TransferOutfitV2TransferOutfitV2PostWithResult[R any](ctx context.Context, body TransferOutfitV2Request) (*R, error) {
+func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body TransferOutfitV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("transfer-outfit-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2319,16 +2319,16 @@ func (c *Client) TransferOutfitV2TransferOutfitV2PostWithResult[R any](ctx conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("TransferOutfitV2TransferOutfitV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("TransferOutfitV2TransferOutfitV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("TransferOutfitV2TransferOutfitV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("TransferOutfitV2TransferOutfitV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2369,8 +2369,8 @@ func (c *Client) TransferOutfitV2TransferOutfitV2PostWithResult[R any](ctx conte
 // ```
 //
 //	POST /portrait-character-pro
-func (c *Client) PortraitCharacterProPortraitCharacterProPost(ctx context.Context, body PortraitCharacterProRequest) (*AnimateWithText, error) {
-	return c.PortraitCharacterProPortraitCharacterProPostWithResult[AnimateWithText](ctx, body)
+func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterProRequest) (*AnimateWithText, error) {
+	return c.PortraitCharacterWithResult[AnimateWithText](ctx, body)
 }
 
 // Convert between a bust portrait and a full-body character sprite.
@@ -2409,7 +2409,7 @@ func (c *Client) PortraitCharacterProPortraitCharacterProPost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /portrait-character-pro
-func (c *Client) PortraitCharacterProPortraitCharacterProPostWithResult[R any](ctx context.Context, body PortraitCharacterProRequest) (*R, error) {
+func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body PortraitCharacterProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("portrait-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2470,19 +2470,19 @@ func (c *Client) PortraitCharacterProPortraitCharacterProPostWithResult[R any](c
 		}
 	case http.StatusBadRequest:
 		// No internal style for this size/view
-		return nil, fmt.Errorf("PortraitCharacterProPortraitCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("PortraitCharacterProPortraitCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("PortraitCharacterProPortraitCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("PortraitCharacterProPortraitCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("PortraitCharacterProPortraitCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2491,15 +2491,15 @@ func (c *Client) PortraitCharacterProPortraitCharacterProPostWithResult[R any](c
 // Get portrait ↔ character job status + result
 //
 //	GET /portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterPortraitCharacterProJobIDGet(ctx context.Context, jobID string) (*GetPortraitCharacterResponse, error) {
-	return c.GetPortraitCharacterPortraitCharacterProJobIDGetWithResult[GetPortraitCharacterResponse](ctx, jobID)
+func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID string) (*GetPortraitCharacterResponse, error) {
+	return c.GetPortraitCharacterJobStatusWithResult[GetPortraitCharacterResponse](ctx, jobID)
 }
 
 // Get portrait ↔ character job status + result
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterPortraitCharacterProJobIDGetWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
 	u := c.baseURL.JoinPath("portrait-character-pro", jobID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -2553,13 +2553,13 @@ func (c *Client) GetPortraitCharacterPortraitCharacterProJobIDGetWithResult[R an
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetPortraitCharacterPortraitCharacterProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetPortraitCharacterPortraitCharacterProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	case http.StatusGone:
 		// Generation failed permanently
-		return nil, fmt.Errorf("GetPortraitCharacterPortraitCharacterProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -2579,7 +2579,7 @@ func (c *Client) GetPortraitCharacterPortraitCharacterProJobIDGetWithResult[R an
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetPortraitCharacterPortraitCharacterProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2594,8 +2594,8 @@ func (c *Client) GetPortraitCharacterPortraitCharacterProJobIDGetWithResult[R an
 // `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
 //
 //	POST /characters/{character_id}/portrait
-func (c *Client) SetPortraitCharactersCharacterIDPortraitPost(ctx context.Context, characterID string, body SetPortraitRequest) (*SetPortraitResponse, error) {
-	return c.SetPortraitCharactersCharacterIDPortraitPostWithResult[SetPortraitResponse](ctx, characterID, body)
+func (c *Client) SetCharactersPortrait(ctx context.Context, characterID string, body SetPortraitRequest) (*SetPortraitResponse, error) {
+	return c.SetCharactersPortraitWithResult[SetPortraitResponse](ctx, characterID, body)
 }
 
 // Attach a bust portrait to a character. Free — no generation runs.
@@ -2608,7 +2608,7 @@ func (c *Client) SetPortraitCharactersCharacterIDPortraitPost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /characters/{character_id}/portrait
-func (c *Client) SetPortraitCharactersCharacterIDPortraitPostWithResult[R any](ctx context.Context, characterID string, body SetPortraitRequest) (*R, error) {
+func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, characterID string, body SetPortraitRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID, "portrait")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2669,13 +2669,13 @@ func (c *Client) SetPortraitCharactersCharacterIDPortraitPostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetPortraitCharactersCharacterIDPortraitPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("SetPortraitCharactersCharacterIDPortraitPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Image is not a valid PNG, or outside 16-256px
-		return nil, fmt.Errorf("SetPortraitCharactersCharacterIDPortraitPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2709,8 +2709,8 @@ func (c *Client) SetPortraitCharactersCharacterIDPortraitPostWithResult[R any](c
 //     frames are in `visemes`
 //
 //     POST /vocal-animation
-func (c *Client) CreateVocalAnimationVocalAnimationPost(ctx context.Context, body VocalAnimationRequest) (*VocalAnimationResponse, error) {
-	return c.CreateVocalAnimationVocalAnimationPostWithResult[VocalAnimationResponse](ctx, body)
+func (c *Client) GenerateTalkingMouthPositionsForPortrait(ctx context.Context, body VocalAnimationRequest) (*VocalAnimationResponse, error) {
+	return c.GenerateTalkingMouthPositionsForPortraitWithResult[VocalAnimationResponse](ctx, body)
 }
 
 // Generate the set of mouth positions ("visemes") that lets a
@@ -2740,7 +2740,7 @@ func (c *Client) CreateVocalAnimationVocalAnimationPost(ctx context.Context, bod
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /vocal-animation
-func (c *Client) CreateVocalAnimationVocalAnimationPostWithResult[R any](ctx context.Context, body VocalAnimationRequest) (*R, error) {
+func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx context.Context, body VocalAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("vocal-animation")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2801,25 +2801,25 @@ func (c *Client) CreateVocalAnimationVocalAnimationPostWithResult[R any](ctx con
 		}
 	case http.StatusBadRequest:
 		// Character has no portrait, or viseme_count mismatch
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient resources
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Requires a paid plan
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateVocalAnimationVocalAnimationPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -2832,8 +2832,8 @@ func (c *Client) CreateVocalAnimationVocalAnimationPostWithResult[R any](ctx con
 // character; a `portrait` job returns the frames in `visemes`.
 //
 //	GET /vocal-animation/{job_id}
-func (c *Client) GetVocalAnimationVocalAnimationJobIDGet(ctx context.Context, jobID string) (*GetVocalAnimationResponse, error) {
-	return c.GetVocalAnimationVocalAnimationJobIDGetWithResult[GetVocalAnimationResponse](ctx, jobID)
+func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID string) (*GetVocalAnimationResponse, error) {
+	return c.GetMouthPositionJobStatusWithResult[GetVocalAnimationResponse](ctx, jobID)
 }
 
 // Poll a `/v2/vocal-animation` job.
@@ -2844,7 +2844,7 @@ func (c *Client) GetVocalAnimationVocalAnimationJobIDGet(ctx context.Context, jo
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /vocal-animation/{job_id}
-func (c *Client) GetVocalAnimationVocalAnimationJobIDGetWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
 	u := c.baseURL.JoinPath("vocal-animation", jobID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -2898,13 +2898,13 @@ func (c *Client) GetVocalAnimationVocalAnimationJobIDGetWithResult[R any](ctx co
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetVocalAnimationVocalAnimationJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetVocalAnimationVocalAnimationJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
 	case http.StatusGone:
 		// Generation failed
-		return nil, fmt.Errorf("GetVocalAnimationVocalAnimationJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -2940,8 +2940,8 @@ func (c *Client) GetVocalAnimationVocalAnimationJobIDGetWithResult[R any](ctx co
 // Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
 //
 //	POST /talking-gif
-func (c *Client) CreateTalkingGifTalkingGifPost(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
-	return c.CreateTalkingGifTalkingGifPostWithResult[TalkingGifResponse](ctx, body)
+func (c *Client) LipSyncTextToTalkingGifFree(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
+	return c.LipSyncTextToTalkingGifFreeWithResult[TalkingGifResponse](ctx, body)
 }
 
 // Turn a line of text into an animated GIF of the character speaking it.
@@ -2958,7 +2958,7 @@ func (c *Client) CreateTalkingGifTalkingGifPost(ctx context.Context, body Talkin
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /talking-gif
-func (c *Client) CreateTalkingGifTalkingGifPostWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
+func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
 	u := c.baseURL.JoinPath("talking-gif")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3019,16 +3019,16 @@ func (c *Client) CreateTalkingGifTalkingGifPostWithResult[R any](ctx context.Con
 		}
 	case http.StatusBadRequest:
 		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("CreateTalkingGifTalkingGifPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateTalkingGifTalkingGifPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("CreateTalkingGifTalkingGifPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error, or the line is too long to encode
-		return nil, fmt.Errorf("CreateTalkingGifTalkingGifPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3048,8 +3048,8 @@ func (c *Client) CreateTalkingGifTalkingGifPostWithResult[R any](ctx context.Con
 // Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
 //
 //	POST /lip-sync
-func (c *Client) GetLipSyncLipSyncPost(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
-	return c.GetLipSyncLipSyncPostWithResult[LipSyncResponse](ctx, body)
+func (c *Client) GetTheLipSyncFramePlanForTextFree(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
+	return c.GetTheLipSyncFramePlanForTextFreeWithResult[LipSyncResponse](ctx, body)
 }
 
 // Return the frame-by-frame plan for speaking a line — which mouth
@@ -3067,7 +3067,7 @@ func (c *Client) GetLipSyncLipSyncPost(ctx context.Context, body LipSyncRequest)
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /lip-sync
-func (c *Client) GetLipSyncLipSyncPostWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
+func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
 	u := c.baseURL.JoinPath("lip-sync")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3128,16 +3128,16 @@ func (c *Client) GetLipSyncLipSyncPostWithResult[R any](ctx context.Context, bod
 		}
 	case http.StatusBadRequest:
 		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("GetLipSyncLipSyncPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetLipSyncLipSyncPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("GetLipSyncLipSyncPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GetLipSyncLipSyncPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3175,8 +3175,8 @@ func (c *Client) GetLipSyncLipSyncPostWithResult[R any](ctx context.Context, bod
 // ```
 //
 //	POST /generate-font-pro
-func (c *Client) GenerateFontProGenerateFontProPost(ctx context.Context, body GenerateFontProRequest) (*AnimateWithText, error) {
-	return c.GenerateFontProGenerateFontProPostWithResult[AnimateWithText](ctx, body)
+func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequest) (*AnimateWithText, error) {
+	return c.GeneratePixelFontWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate a styled pixel-art font from a text description.
@@ -3212,7 +3212,7 @@ func (c *Client) GenerateFontProGenerateFontProPost(ctx context.Context, body Ge
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-font-pro
-func (c *Client) GenerateFontProGenerateFontProPostWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
+func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-font-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3273,16 +3273,16 @@ func (c *Client) GenerateFontProGenerateFontProPostWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateFontProGenerateFontProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateFontProGenerateFontProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateFontProGenerateFontProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateFontProGenerateFontProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3291,15 +3291,15 @@ func (c *Client) GenerateFontProGenerateFontProPostWithResult[R any](ctx context
 // Get font-pro job status + result
 //
 //	GET /generate-font-pro/{job_id}
-func (c *Client) GetFontGenerateFontProJobIDGet(ctx context.Context, jobID string) (*GetFontResponse, error) {
-	return c.GetFontGenerateFontProJobIDGetWithResult[GetFontResponse](ctx, jobID)
+func (c *Client) GetFontProJobStatus(ctx context.Context, jobID string) (*GetFontResponse, error) {
+	return c.GetFontProJobStatusWithResult[GetFontResponse](ctx, jobID)
 }
 
 // Get font-pro job status + result
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /generate-font-pro/{job_id}
-func (c *Client) GetFontGenerateFontProJobIDGetWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
 	u := c.baseURL.JoinPath("generate-font-pro", jobID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -3353,13 +3353,13 @@ func (c *Client) GetFontGenerateFontProJobIDGetWithResult[R any](ctx context.Con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetFontGenerateFontProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetFontGenerateFontProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	case http.StatusGone:
 		// Generation failed permanently
-		return nil, fmt.Errorf("GetFontGenerateFontProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -3379,7 +3379,7 @@ func (c *Client) GetFontGenerateFontProJobIDGetWithResult[R any](ctx context.Con
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetFontGenerateFontProJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3420,8 +3420,8 @@ func (c *Client) GetFontGenerateFontProJobIDGetWithResult[R any](ctx context.Con
 // ```
 //
 //	POST /animate-with-skeleton
-func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPost(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeleton, error) {
-	return c.AnimateWithSkeletonAnimateWithSkeletonPostWithResult[AnimateWithSkeleton](ctx, body)
+func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeleton, error) {
+	return c.AnimateWithSkeletonWithResult[AnimateWithSkeleton](ctx, body)
 }
 
 // Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
@@ -3460,7 +3460,7 @@ func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPost(ctx context.Context,
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-skeleton
-func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPostWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
+func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3521,19 +3521,19 @@ func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPostWithResult[R any](ctx
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithSkeletonAnimateWithSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3572,8 +3572,8 @@ func (c *Client) AnimateWithSkeletonAnimateWithSkeletonPostWithResult[R any](ctx
 // ```
 //
 //	POST /animate-with-text
-func (c *Client) AnimateWithTextAnimateWithTextPost(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithSkeleton, error) {
-	return c.AnimateWithTextAnimateWithTextPostWithResult[AnimateWithSkeleton](ctx, body)
+func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithSkeleton, error) {
+	return c.AnimateWithTextWithResult[AnimateWithSkeleton](ctx, body)
 }
 
 // Creates a pixel art animation based on text description and parameters.
@@ -3610,7 +3610,7 @@ func (c *Client) AnimateWithTextAnimateWithTextPost(ctx context.Context, body An
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-text
-func (c *Client) AnimateWithTextAnimateWithTextPostWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
+func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3671,19 +3671,19 @@ func (c *Client) AnimateWithTextAnimateWithTextPostWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithTextAnimateWithTextPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3758,8 +3758,8 @@ func (c *Client) AnimateWithTextAnimateWithTextPostWithResult[R any](ctx context
 // ```
 //
 //	POST /animate-with-text-v2
-func (c *Client) AnimateWithTextV2AnimateWithTextV2Post(ctx context.Context, body AnimateWithTextV2Request) (*AnimateWithText, error) {
-	return c.AnimateWithTextV2AnimateWithTextV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2Request) (*AnimateWithText, error) {
+	return c.AnimateWithTextProWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate pixel art animation from text.
@@ -3832,7 +3832,7 @@ func (c *Client) AnimateWithTextV2AnimateWithTextV2Post(ctx context.Context, bod
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-text-v2
-func (c *Client) AnimateWithTextV2AnimateWithTextV2PostWithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
+func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3893,16 +3893,16 @@ func (c *Client) AnimateWithTextV2AnimateWithTextV2PostWithResult[R any](ctx con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextV2AnimateWithTextV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextV2AnimateWithTextV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextV2AnimateWithTextV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("AnimateWithTextV2AnimateWithTextV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -3956,8 +3956,8 @@ func (c *Client) AnimateWithTextV2AnimateWithTextV2PostWithResult[R any](ctx con
 // ```
 //
 //	POST /animate-with-text-v3
-func (c *Client) AnimateWithTextV3AnimateWithTextV3Post(ctx context.Context, body AnimateWithTextV3Request) (*AnimateWithTextV3Response, error) {
-	return c.AnimateWithTextV3AnimateWithTextV3PostWithResult[AnimateWithTextV3Response](ctx, body)
+func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Request) (*AnimateWithTextV3Response, error) {
+	return c.AnimateWithTextV3WithResult[AnimateWithTextV3Response](ctx, body)
 }
 
 // Generate an animation from a reference frame and a text action description.
@@ -4009,7 +4009,7 @@ func (c *Client) AnimateWithTextV3AnimateWithTextV3Post(ctx context.Context, bod
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-with-text-v3
-func (c *Client) AnimateWithTextV3AnimateWithTextV3PostWithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
+func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4070,16 +4070,16 @@ func (c *Client) AnimateWithTextV3AnimateWithTextV3PostWithResult[R any](ctx con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextV3AnimateWithTextV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextV3AnimateWithTextV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextV3AnimateWithTextV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
-		return nil, fmt.Errorf("AnimateWithTextV3AnimateWithTextV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4109,8 +4109,8 @@ func (c *Client) AnimateWithTextV3AnimateWithTextV3PostWithResult[R any](ctx con
 // ```
 //
 //	POST /estimate-skeleton
-func (c *Client) EstimateSkeletonEstimateSkeletonPost(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
-	return c.EstimateSkeletonEstimateSkeletonPostWithResult[EstimateSkeletonResponse](ctx, body)
+func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
+	return c.EstimateSkeletonWithResult[EstimateSkeletonResponse](ctx, body)
 }
 
 // Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
@@ -4138,7 +4138,7 @@ func (c *Client) EstimateSkeletonEstimateSkeletonPost(ctx context.Context, body 
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /estimate-skeleton
-func (c *Client) EstimateSkeletonEstimateSkeletonPostWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
+func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("estimate-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4199,19 +4199,19 @@ func (c *Client) EstimateSkeletonEstimateSkeletonPostWithResult[R any](ctx conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("EstimateSkeletonEstimateSkeletonPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4270,8 +4270,8 @@ func (c *Client) EstimateSkeletonEstimateSkeletonPostWithResult[R any](ctx conte
 // ```
 //
 //	POST /generate-8-rotations-v2
-func (c *Client) Generate8RotationsV2Generate8RotationsV2Post(ctx context.Context, body Generate8RotationsV2Request) (*AnimateWithText, error) {
-	return c.Generate8RotationsV2Generate8RotationsV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) Generate8Rotations(ctx context.Context, body Generate8RotationsV2Request) (*AnimateWithText, error) {
+	return c.Generate8RotationsWithResult[AnimateWithText](ctx, body)
 }
 
 // Generate 8 rotational views of a character or object.
@@ -4328,7 +4328,7 @@ func (c *Client) Generate8RotationsV2Generate8RotationsV2Post(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-8-rotations-v2
-func (c *Client) Generate8RotationsV2Generate8RotationsV2PostWithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
+func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-8-rotations-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4389,16 +4389,16 @@ func (c *Client) Generate8RotationsV2Generate8RotationsV2PostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("Generate8RotationsV2Generate8RotationsV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Generate8RotationsV2Generate8RotationsV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Generate8RotationsV2Generate8RotationsV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("Generate8RotationsV2Generate8RotationsV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4444,8 +4444,8 @@ func (c *Client) Generate8RotationsV2Generate8RotationsV2PostWithResult[R any](c
 // ```
 //
 //	POST /generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3Generate8RotationsV3Post(ctx context.Context, body Generate8RotationsV3Request) (*AnimateWithText, error) {
-	return c.Generate8RotationsV3Generate8RotationsV3PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*AnimateWithText, error) {
+	return c.Generate8RotationsV3WithResult[AnimateWithText](ctx, body)
 }
 
 // Generate 8 directional rotations from a reference frame.
@@ -4489,7 +4489,7 @@ func (c *Client) Generate8RotationsV3Generate8RotationsV3Post(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3Generate8RotationsV3PostWithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
+func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-8-rotations-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4550,16 +4550,16 @@ func (c *Client) Generate8RotationsV3Generate8RotationsV3PostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("Generate8RotationsV3Generate8RotationsV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Generate8RotationsV3Generate8RotationsV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Generate8RotationsV3Generate8RotationsV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
-		return nil, fmt.Errorf("Generate8RotationsV3Generate8RotationsV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4597,8 +4597,8 @@ func (c *Client) Generate8RotationsV3Generate8RotationsV3PostWithResult[R any](c
 // ```
 //
 //	POST /rotate
-func (c *Client) GenerateRotationRotatePost(ctx context.Context, body RotateRequest) (*CreateImageBitforge, error) {
-	return c.GenerateRotationRotatePostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest) (*CreateImageBitforge, error) {
+	return c.RotateCharacterOrObjectWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
@@ -4634,7 +4634,7 @@ func (c *Client) GenerateRotationRotatePost(ctx context.Context, body RotateRequ
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /rotate
-func (c *Client) GenerateRotationRotatePostWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
+func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("rotate")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4695,19 +4695,19 @@ func (c *Client) GenerateRotationRotatePostWithResult[R any](ctx context.Context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateRotationRotatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4760,8 +4760,8 @@ func (c *Client) GenerateRotationRotatePostWithResult[R any](ctx context.Context
 // ```
 //
 //	POST /inpaint-v3
-func (c *Client) InpaintV3InpaintV3Post(ctx context.Context, body InpaintV3Request) (*AnimateWithText, error) {
-	return c.InpaintV3InpaintV3PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*AnimateWithText, error) {
+	return c.InpaintImageV3WithResult[AnimateWithText](ctx, body)
 }
 
 // Inpaint/edit pixel art images using AI.
@@ -4812,7 +4812,7 @@ func (c *Client) InpaintV3InpaintV3Post(ctx context.Context, body InpaintV3Reque
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /inpaint-v3
-func (c *Client) InpaintV3InpaintV3PostWithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
+func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4873,16 +4873,16 @@ func (c *Client) InpaintV3InpaintV3PostWithResult[R any](ctx context.Context, bo
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("InpaintV3InpaintV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("InpaintV3InpaintV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("InpaintV3InpaintV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("InpaintV3InpaintV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -4917,8 +4917,8 @@ func (c *Client) InpaintV3InpaintV3PostWithResult[R any](ctx context.Context, bo
 // ```
 //
 //	POST /inpaint
-func (c *Client) GenerateInpaintingInpaintPost(ctx context.Context, body InpaintRequest) (*CreateImageBitforge, error) {
-	return c.GenerateInpaintingInpaintPostWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*CreateImageBitforge, error) {
+	return c.InpaintImageWithResult[CreateImageBitforge](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
@@ -4951,7 +4951,7 @@ func (c *Client) GenerateInpaintingInpaintPost(ctx context.Context, body Inpaint
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /inpaint
-func (c *Client) GenerateInpaintingInpaintPostWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
+func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5012,19 +5012,19 @@ func (c *Client) GenerateInpaintingInpaintPostWithResult[R any](ctx context.Cont
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateInpaintingInpaintPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5086,8 +5086,8 @@ func (c *Client) GenerateInpaintingInpaintPostWithResult[R any](ctx context.Cont
 // ```
 //
 //	POST /edit-images-v2
-func (c *Client) EditImagesV2EditImagesV2Post(ctx context.Context, body EditImagesV2Request) (*AnimateWithText, error) {
-	return c.EditImagesV2EditImagesV2PostWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*AnimateWithText, error) {
+	return c.EditImagesWithResult[AnimateWithText](ctx, body)
 }
 
 // Edit pixel art images using text or reference image.
@@ -5147,7 +5147,7 @@ func (c *Client) EditImagesV2EditImagesV2Post(ctx context.Context, body EditImag
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /edit-images-v2
-func (c *Client) EditImagesV2EditImagesV2PostWithResult[R any](ctx context.Context, body EditImagesV2Request) (*R, error) {
+func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImagesV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("edit-images-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5208,16 +5208,16 @@ func (c *Client) EditImagesV2EditImagesV2PostWithResult[R any](ctx context.Conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EditImagesV2EditImagesV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditImagesV2EditImagesV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditImagesV2EditImagesV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditImagesV2EditImagesV2Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5242,8 +5242,8 @@ func (c *Client) EditImagesV2EditImagesV2PostWithResult[R any](ctx context.Conte
 // 3. When `status` is `completed`, edited image is in `last_response`
 //
 //	POST /edit-image
-func (c *Client) EditImageEditImagePost(ctx context.Context, body EditImageRequest) (*AnimateWithText, error) {
-	return c.EditImageEditImagePostWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AnimateWithText, error) {
+	return c.EditImageWithResult[AnimateWithText](ctx, body)
 }
 
 // Edit an existing pixel art image based on a text description.
@@ -5266,7 +5266,7 @@ func (c *Client) EditImageEditImagePost(ctx context.Context, body EditImageReque
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /edit-image
-func (c *Client) EditImageEditImagePostWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
+func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-image")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5327,16 +5327,16 @@ func (c *Client) EditImageEditImagePostWithResult[R any](ctx context.Context, bo
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EditImageEditImagePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditImageEditImagePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditImageEditImagePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditImageEditImagePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5352,8 +5352,8 @@ func (c *Client) EditImageEditImagePostWithResult[R any](ctx context.Context, bo
 // - Total count is included in response for pagination UI
 //
 //	GET /tilesets
-func (c *Client) ListTilesetsTilesetsGet(ctx context.Context, params *ListTilesetsTilesetsGetParams) (*TilesetsListResponse, error) {
-	return c.ListTilesetsTilesetsGetWithResult[TilesetsListResponse](ctx, params)
+func (c *Client) ListUsersTilesets(ctx context.Context, params *ListUsersTilesetsParams) (*TilesetsListResponse, error) {
+	return c.ListUsersTilesetsWithResult[TilesetsListResponse](ctx, params)
 }
 
 // List all tilesets (top-down and sidescroller) created by the authenticated user.
@@ -5367,7 +5367,7 @@ func (c *Client) ListTilesetsTilesetsGet(ctx context.Context, params *ListTilese
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tilesets
-func (c *Client) ListTilesetsTilesetsGetWithResult[R any](ctx context.Context, params *ListTilesetsTilesetsGetParams) (*R, error) {
+func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params *ListUsersTilesetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -5435,10 +5435,10 @@ func (c *Client) ListTilesetsTilesetsGetWithResult[R any](ctx context.Context, p
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListTilesetsTilesetsGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListTilesetsTilesetsGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5447,15 +5447,15 @@ func (c *Client) ListTilesetsTilesetsGetWithResult[R any](ctx context.Context, p
 // Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
 //
 //	POST /tilesets
-func (c *Client) GenerateTilesetTilesetsPost(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.GenerateTilesetTilesetsPostWithResult[CreateTilesetBackgroundResponse](ctx, body)
+func (c *Client) CreateTilesetAsynchronously(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
+	return c.CreateTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
 
 // Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /tilesets
-func (c *Client) GenerateTilesetTilesetsPostWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
+func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5516,19 +5516,19 @@ func (c *Client) GenerateTilesetTilesetsPostWithResult[R any](ctx context.Contex
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateTilesetTilesetsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateTilesetTilesetsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateTilesetTilesetsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateTilesetTilesetsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateTilesetTilesetsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5621,8 +5621,8 @@ func (c *Client) GenerateTilesetTilesetsPostWithResult[R any](ctx context.Contex
 // ```
 //
 //	POST /create-tileset
-func (c *Client) GenerateTilesetCreateTilesetPost(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.GenerateTilesetCreateTilesetPostWithResult[CreateTilesetBackgroundResponse](ctx, body)
+func (c *Client) CreateTopDownTilesetAsyncProcessing(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
+	return c.CreateTopDownTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
 
 // Creates a complete tileset for game development with seamlessly connecting tiles.
@@ -5713,7 +5713,7 @@ func (c *Client) GenerateTilesetCreateTilesetPost(ctx context.Context, body Crea
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-tileset
-func (c *Client) GenerateTilesetCreateTilesetPostWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
+func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tileset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5791,19 +5791,19 @@ func (c *Client) GenerateTilesetCreateTilesetPostWithResult[R any](ctx context.C
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateTilesetCreateTilesetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateTilesetCreateTilesetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateTilesetCreateTilesetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateTilesetCreateTilesetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateTilesetCreateTilesetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5851,8 +5851,8 @@ func (c *Client) GenerateTilesetCreateTilesetPostWithResult[R any](ctx context.C
 // ```
 //
 //	GET /tilesets/{tileset_id}
-func (c *Client) GetTilesetTilesetsTilesetIDGet(ctx context.Context, tilesetID string) (*CreateTilesetResponse, error) {
-	return c.GetTilesetTilesetsTilesetIDGetWithResult[CreateTilesetResponse](ctx, tilesetID)
+func (c *Client) GetGeneratedTilesetByID(ctx context.Context, tilesetID string) (*CreateTilesetResponse, error) {
+	return c.GetGeneratedTilesetByIDWithResult[CreateTilesetResponse](ctx, tilesetID)
 }
 
 // Retrieve a completed tileset by its UUID.
@@ -5898,7 +5898,7 @@ func (c *Client) GetTilesetTilesetsTilesetIDGet(ctx context.Context, tilesetID s
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tilesets/{tileset_id}
-func (c *Client) GetTilesetTilesetsTilesetIDGetWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
+func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -5952,10 +5952,10 @@ func (c *Client) GetTilesetTilesetsTilesetIDGetWithResult[R any](ctx context.Con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetTilesetTilesetsTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tileset not found
-		return nil, fmt.Errorf("GetTilesetTilesetsTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -5975,7 +5975,7 @@ func (c *Client) GetTilesetTilesetsTilesetIDGetWithResult[R any](ctx context.Con
 		}
 	case http.StatusLocked:
 		// Tileset is still being generated
-		return nil, fmt.Errorf("GetTilesetTilesetsTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -5984,15 +5984,15 @@ func (c *Client) GetTilesetTilesetsTilesetIDGetWithResult[R any](ctx context.Con
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 //
 //	DELETE /tilesets/{tileset_id}
-func (c *Client) DeleteTopdownTilesetTilesetsTilesetIDDelete(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
-	return c.DeleteTopdownTilesetTilesetsTilesetIDDeleteWithResult[SidescrollerTileset](ctx, tilesetID)
+func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
+	return c.DeleteTopDownTilesetWithResult[SidescrollerTileset](ctx, tilesetID)
 }
 
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /tilesets/{tileset_id}
-func (c *Client) DeleteTopdownTilesetTilesetsTilesetIDDeleteWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
+func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -6046,13 +6046,13 @@ func (c *Client) DeleteTopdownTilesetTilesetsTilesetIDDeleteWithResult[R any](ct
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteTopdownTilesetTilesetsTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteTopdownTilesetTilesetsTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tileset not found
-		return nil, fmt.Errorf("DeleteTopdownTilesetTilesetsTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6078,15 +6078,15 @@ func (c *Client) DeleteTopdownTilesetTilesetsTilesetIDDeleteWithResult[R any](ct
 // List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 //
 //	GET /tilesets-sidescroller
-func (c *Client) ListSidescrollerTilesetsTilesetsSidescrollerGet(ctx context.Context, params *ListSidescrollerTilesetsTilesetsSidescrollerGetParams) (*SidescrollerTilesetsListResponse, error) {
-	return c.ListSidescrollerTilesetsTilesetsSidescrollerGetWithResult[SidescrollerTilesetsListResponse](ctx, params)
+func (c *Client) ListYourSidescrollerTilesets(ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*SidescrollerTilesetsListResponse, error) {
+	return c.ListYourSidescrollerTilesetsWithResult[SidescrollerTilesetsListResponse](ctx, params)
 }
 
 // List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tilesets-sidescroller
-func (c *Client) ListSidescrollerTilesetsTilesetsSidescrollerGetWithResult[R any](ctx context.Context, params *ListSidescrollerTilesetsTilesetsSidescrollerGetParams) (*R, error) {
+func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -6154,7 +6154,7 @@ func (c *Client) ListSidescrollerTilesetsTilesetsSidescrollerGetWithResult[R any
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListSidescrollerTilesetsTilesetsSidescrollerGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListYourSidescrollerTilesets: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6180,15 +6180,15 @@ func (c *Client) ListSidescrollerTilesetsTilesetsSidescrollerGetWithResult[R any
 // Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
 //
 //	POST /tilesets-sidescroller
-func (c *Client) GenerateTilesetSidescrollerTilesetsSidescrollerPost(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.GenerateTilesetSidescrollerTilesetsSidescrollerPostWithResult[CreateTilesetBackgroundResponse](ctx, body)
+func (c *Client) CreateSidescrollerTilesetAsynchronously(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
+	return c.CreateSidescrollerTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
 
 // Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /tilesets-sidescroller
-func (c *Client) GenerateTilesetSidescrollerTilesetsSidescrollerPostWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
+func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6249,19 +6249,19 @@ func (c *Client) GenerateTilesetSidescrollerTilesetsSidescrollerPostWithResult[R
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerTilesetsSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerTilesetsSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerTilesetsSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerTilesetsSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerTilesetsSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -6327,8 +6327,8 @@ func (c *Client) GenerateTilesetSidescrollerTilesetsSidescrollerPostWithResult[R
 // ```
 //
 //	POST /create-tileset-sidescroller
-func (c *Client) GenerateTilesetSidescrollerCreateTilesetSidescrollerPost(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.GenerateTilesetSidescrollerCreateTilesetSidescrollerPostWithResult[CreateTilesetBackgroundResponse](ctx, body)
+func (c *Client) CreateSidescrollerTilesetAsyncProcessing(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
+	return c.CreateSidescrollerTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
 
 // Creates a complete sidescroller tileset for 2D platformer game development.
@@ -6392,7 +6392,7 @@ func (c *Client) GenerateTilesetSidescrollerCreateTilesetSidescrollerPost(ctx co
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-tileset-sidescroller
-func (c *Client) GenerateTilesetSidescrollerCreateTilesetSidescrollerPostWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
+func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tileset-sidescroller")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6453,19 +6453,19 @@ func (c *Client) GenerateTilesetSidescrollerCreateTilesetSidescrollerPostWithRes
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateTilesetSidescrollerCreateTilesetSidescrollerPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -6474,15 +6474,15 @@ func (c *Client) GenerateTilesetSidescrollerCreateTilesetSidescrollerPostWithRes
 // Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
 //
 //	GET /tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGet(ctx context.Context, tilesetID string) (*DownloadCharacterCharactersCharacterIDZip, error) {
-	return c.GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGetWithResult[DownloadCharacterCharactersCharacterIDZip](ctx, tilesetID)
+func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID string) (*ExportCharacterAsZip, error) {
+	return c.GetSidescrollerTilesetByIDWithResult[ExportCharacterAsZip](ctx, tilesetID)
 }
 
 // Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGetWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
+func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -6536,10 +6536,10 @@ func (c *Client) GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGetWithResul
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Sidescroller tileset not found
-		return nil, fmt.Errorf("GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6559,7 +6559,7 @@ func (c *Client) GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGetWithResul
 		}
 	case http.StatusLocked:
 		// Still being generated; see Retry-After header
-		return nil, fmt.Errorf("GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -6568,15 +6568,15 @@ func (c *Client) GetSidescrollerTilesetTilesetsSidescrollerTilesetIDGetWithResul
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 //
 //	DELETE /tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDelete(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
-	return c.DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDeleteWithResult[SidescrollerTileset](ctx, tilesetID)
+func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
+	return c.DeleteSidescrollerTilesetWithResult[SidescrollerTileset](ctx, tilesetID)
 }
 
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDeleteWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
+func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -6630,13 +6630,13 @@ func (c *Client) DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDeleteWit
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tileset not found
-		return nil, fmt.Errorf("DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6685,8 +6685,8 @@ func (c *Client) DeleteSidescrollerTilesetTilesetsSidescrollerTilesetIDDeleteWit
 // ```
 //
 //	POST /create-isometric-tile
-func (c *Client) GenerateIsometricTileCreateIsometricTilePost(ctx context.Context, body CreateIsometricTileRequest) (*CreateIsometricTileBackground, error) {
-	return c.GenerateIsometricTileCreateIsometricTilePostWithResult[CreateIsometricTileBackground](ctx, body)
+func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body CreateIsometricTileRequest) (*CreateIsometricTileBackground, error) {
+	return c.CreateIsometricTileAsyncProcessingWithResult[CreateIsometricTileBackground](ctx, body)
 }
 
 // Creates a isometric tile based on the provided parameters.
@@ -6716,7 +6716,7 @@ func (c *Client) GenerateIsometricTileCreateIsometricTilePost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-isometric-tile
-func (c *Client) GenerateIsometricTileCreateIsometricTilePostWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
+func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-isometric-tile")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6794,19 +6794,19 @@ func (c *Client) GenerateIsometricTileCreateIsometricTilePostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateIsometricTileCreateIsometricTilePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateIsometricTileCreateIsometricTilePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateIsometricTileCreateIsometricTilePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GenerateIsometricTileCreateIsometricTilePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	case 529:
 		// Rate limit exceeded
-		return nil, fmt.Errorf("GenerateIsometricTileCreateIsometricTilePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -6838,8 +6838,8 @@ func (c *Client) GenerateIsometricTileCreateIsometricTilePostWithResult[R any](c
 // ```
 //
 //	GET /isometric-tiles/{tile_id}
-func (c *Client) GetIsometricTileIsometricTilesTileIDGet(ctx context.Context, tileID string) (*CreateImageBitforge, error) {
-	return c.GetIsometricTileIsometricTilesTileIDGetWithResult[CreateImageBitforge](ctx, tileID)
+func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID string) (*CreateImageBitforge, error) {
+	return c.GetGeneratedIsometricTileByIDWithResult[CreateImageBitforge](ctx, tileID)
 }
 
 // Retrieve a completed isometric tile by its UUID.
@@ -6869,7 +6869,7 @@ func (c *Client) GetIsometricTileIsometricTilesTileIDGet(ctx context.Context, ti
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /isometric-tiles/{tile_id}
-func (c *Client) GetIsometricTileIsometricTilesTileIDGetWithResult[R any](ctx context.Context, tileID string) (*R, error) {
+func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles", tileID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -6923,10 +6923,10 @@ func (c *Client) GetIsometricTileIsometricTilesTileIDGetWithResult[R any](ctx co
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetIsometricTileIsometricTilesTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tile not found
-		return nil, fmt.Errorf("GetIsometricTileIsometricTilesTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6946,7 +6946,7 @@ func (c *Client) GetIsometricTileIsometricTilesTileIDGetWithResult[R any](ctx co
 		}
 	case http.StatusLocked:
 		// Tile still processing
-		return nil, fmt.Errorf("GetIsometricTileIsometricTilesTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -6955,15 +6955,15 @@ func (c *Client) GetIsometricTileIsometricTilesTileIDGetWithResult[R any](ctx co
 // Permanently delete an isometric tile you own. Cannot be undone.
 //
 //	DELETE /isometric-tiles/{tile_id}
-func (c *Client) DeleteIsometricTileIsometricTilesTileIDDelete(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
-	return c.DeleteIsometricTileIsometricTilesTileIDDeleteWithResult[IsometricTile](ctx, tileID)
+func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
+	return c.DeleteAnIsometricTileWithResult[IsometricTile](ctx, tileID)
 }
 
 // Permanently delete an isometric tile you own. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /isometric-tiles/{tile_id}
-func (c *Client) DeleteIsometricTileIsometricTilesTileIDDeleteWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
+func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -7017,13 +7017,13 @@ func (c *Client) DeleteIsometricTileIsometricTilesTileIDDeleteWithResult[R any](
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteIsometricTileIsometricTilesTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteIsometricTileIsometricTilesTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tile not found
-		return nil, fmt.Errorf("DeleteIsometricTileIsometricTilesTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7056,8 +7056,8 @@ func (c *Client) DeleteIsometricTileIsometricTilesTileIDDeleteWithResult[R any](
 // - Total count is included in response for pagination UI
 //
 //	GET /isometric-tiles
-func (c *Client) ListIsometricTilesIsometricTilesGet(ctx context.Context, params *ListIsometricTilesIsometricTilesGetParams) (*IsometricTilesListResponse, error) {
-	return c.ListIsometricTilesIsometricTilesGetWithResult[IsometricTilesListResponse](ctx, params)
+func (c *Client) ListUsersIsometricTiles(ctx context.Context, params *ListUsersIsometricTilesParams) (*IsometricTilesListResponse, error) {
+	return c.ListUsersIsometricTilesWithResult[IsometricTilesListResponse](ctx, params)
 }
 
 // List all isometric tiles created by the authenticated user.
@@ -7071,7 +7071,7 @@ func (c *Client) ListIsometricTilesIsometricTilesGet(ctx context.Context, params
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /isometric-tiles
-func (c *Client) ListIsometricTilesIsometricTilesGetWithResult[R any](ctx context.Context, params *ListIsometricTilesIsometricTilesGetParams) (*R, error) {
+func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, params *ListUsersIsometricTilesParams) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -7139,10 +7139,10 @@ func (c *Client) ListIsometricTilesIsometricTilesGetWithResult[R any](ctx contex
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListIsometricTilesIsometricTilesGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListIsometricTilesIsometricTilesGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -7218,8 +7218,8 @@ func (c *Client) ListIsometricTilesIsometricTilesGetWithResult[R any](ctx contex
 // ```
 //
 //	POST /create-tiles-pro
-func (c *Client) CreateTilesProCreateTilesProPost(ctx context.Context, body CreateTilesProRequest) (*CreateIsometricTileBackground, error) {
-	return c.CreateTilesProCreateTilesProPostWithResult[CreateIsometricTileBackground](ctx, body)
+func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateTilesProRequest) (*CreateIsometricTileBackground, error) {
+	return c.CreateTilesProAsyncProcessingWithResult[CreateIsometricTileBackground](ctx, body)
 }
 
 // Creates pixel art tiles based on the provided parameters.
@@ -7293,7 +7293,7 @@ func (c *Client) CreateTilesProCreateTilesProPost(ctx context.Context, body Crea
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-tiles-pro
-func (c *Client) CreateTilesProCreateTilesProPostWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
+func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tiles-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7354,16 +7354,16 @@ func (c *Client) CreateTilesProCreateTilesProPostWithResult[R any](ctx context.C
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateTilesProCreateTilesProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateTilesProCreateTilesProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateTilesProCreateTilesProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateTilesProCreateTilesProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -7397,8 +7397,8 @@ func (c *Client) CreateTilesProCreateTilesProPostWithResult[R any](ctx context.C
 // ```
 //
 //	GET /tiles-pro/{tile_id}
-func (c *Client) GetTilesProTilesProTileIDGet(ctx context.Context, tileID string) (*GetTilesProResponse, error) {
-	return c.GetTilesProTilesProTileIDGetWithResult[GetTilesProResponse](ctx, tileID)
+func (c *Client) GetGeneratedTilesProByID(ctx context.Context, tileID string) (*GetTilesProResponse, error) {
+	return c.GetGeneratedTilesProByIDWithResult[GetTilesProResponse](ctx, tileID)
 }
 
 // Retrieve completed tiles pro by their UUID.
@@ -7430,7 +7430,7 @@ func (c *Client) GetTilesProTilesProTileIDGet(ctx context.Context, tileID string
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tiles-pro/{tile_id}
-func (c *Client) GetTilesProTilesProTileIDGetWithResult[R any](ctx context.Context, tileID string) (*R, error) {
+func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro", tileID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -7484,10 +7484,10 @@ func (c *Client) GetTilesProTilesProTileIDGetWithResult[R any](ctx context.Conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetTilesProTilesProTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tiles not found
-		return nil, fmt.Errorf("GetTilesProTilesProTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7507,7 +7507,7 @@ func (c *Client) GetTilesProTilesProTileIDGetWithResult[R any](ctx context.Conte
 		}
 	case http.StatusLocked:
 		// Tiles still processing
-		return nil, fmt.Errorf("GetTilesProTilesProTileIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -7516,15 +7516,15 @@ func (c *Client) GetTilesProTilesProTileIDGetWithResult[R any](ctx context.Conte
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
 //
 //	DELETE /tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProTilesProTileIDDelete(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
-	return c.DeleteTilesProTilesProTileIDDeleteWithResult[IsometricTile](ctx, tileID)
+func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
+	return c.DeleteTilesProTileWithResult[IsometricTile](ctx, tileID)
 }
 
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProTilesProTileIDDeleteWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
+func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -7578,16 +7578,16 @@ func (c *Client) DeleteTilesProTilesProTileIDDeleteWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteTilesProTilesProTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteTilesProTilesProTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Tile not found
-		return nil, fmt.Errorf("DeleteTilesProTilesProTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
 	case http.StatusConflict:
 		// Tile is still generating
-		return nil, fmt.Errorf("DeleteTilesProTilesProTileIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7613,15 +7613,15 @@ func (c *Client) DeleteTilesProTilesProTileIDDeleteWithResult[R any](ctx context
 // List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 //
 //	GET /tiles-pro
-func (c *Client) ListTilesProTilesProGet(ctx context.Context, params *ListTilesProTilesProGetParams) (*TilesProListResponse, error) {
-	return c.ListTilesProTilesProGetWithResult[TilesProListResponse](ctx, params)
+func (c *Client) ListYourTilesProTiles(ctx context.Context, params *ListYourTilesProTilesParams) (*TilesProListResponse, error) {
+	return c.ListYourTilesProTilesWithResult[TilesProListResponse](ctx, params)
 }
 
 // List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tiles-pro
-func (c *Client) ListTilesProTilesProGetWithResult[R any](ctx context.Context, params *ListTilesProTilesProGetParams) (*R, error) {
+func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, params *ListYourTilesProTilesParams) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -7689,7 +7689,7 @@ func (c *Client) ListTilesProTilesProGetWithResult[R any](ctx context.Context, p
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListTilesProTilesProGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListYourTilesProTiles: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7731,8 +7731,8 @@ func (c *Client) ListTilesProTilesProGetWithResult[R any](ctx context.Context, p
 // ```
 //
 //	POST /map-objects
-func (c *Client) CreateMapObjectMapObjectsPost(ctx context.Context, body CreateMapObjectRequest) (*CreateDirectionObject, error) {
-	return c.CreateMapObjectMapObjectsPostWithResult[CreateDirectionObject](ctx, body)
+func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*CreateDirectionObject, error) {
+	return c.CreateMapObjectWithResult[CreateDirectionObject](ctx, body)
 }
 
 // Creates a pixel art object with transparent background for game maps.
@@ -7755,7 +7755,7 @@ func (c *Client) CreateMapObjectMapObjectsPost(ctx context.Context, body CreateM
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /map-objects
-func (c *Client) CreateMapObjectMapObjectsPostWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
+func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("map-objects")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7816,16 +7816,16 @@ func (c *Client) CreateMapObjectMapObjectsPostWithResult[R any](ctx context.Cont
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateMapObjectMapObjectsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateMapObjectMapObjectsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateMapObjectMapObjectsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateMapObjectMapObjectsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -7840,8 +7840,8 @@ func (c *Client) CreateMapObjectMapObjectsPostWithResult[R any](ctx context.Cont
 // Map objects auto-delete 8h after creation — grab the PNG promptly.
 //
 //	GET /map-objects/{object_id}
-func (c *Client) GetMapObjectMapObjectsObjectIDGet(ctx context.Context, objectID string) (*GetMapObjectResponse, error) {
-	return c.GetMapObjectMapObjectsObjectIDGetWithResult[GetMapObjectResponse](ctx, objectID)
+func (c *Client) GetMapObjectStatusMetadata(ctx context.Context, objectID string) (*GetMapObjectResponse, error) {
+	return c.GetMapObjectStatusMetadataWithResult[GetMapObjectResponse](ctx, objectID)
 }
 
 // Poll a map object's status. Returns:
@@ -7854,7 +7854,7 @@ func (c *Client) GetMapObjectMapObjectsObjectIDGet(ctx context.Context, objectID
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /map-objects/{object_id}
-func (c *Client) GetMapObjectMapObjectsObjectIDGetWithResult[R any](ctx context.Context, objectID string) (*R, error) {
+func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context, objectID string) (*R, error) {
 	u := c.baseURL.JoinPath("map-objects", objectID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -7908,13 +7908,13 @@ func (c *Client) GetMapObjectMapObjectsObjectIDGetWithResult[R any](ctx context.
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetMapObjectMapObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("GetMapObjectMapObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	case http.StatusGone:
 		// Object generation failed permanently
-		return nil, fmt.Errorf("GetMapObjectMapObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7934,7 +7934,7 @@ func (c *Client) GetMapObjectMapObjectsObjectIDGetWithResult[R any](ctx context.
 		}
 	case http.StatusLocked:
 		// Still generating; see Retry-After header
-		return nil, fmt.Errorf("GetMapObjectMapObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -7950,8 +7950,8 @@ func (c *Client) GetMapObjectMapObjectsObjectIDGetWithResult[R any](ctx context.
 // shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
 //
 //	POST /create-ui-asset
-func (c *Client) CreateUIAssetCreateUIAssetPost(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
-	return c.CreateUIAssetCreateUIAssetPostWithResult[CreateUIAssetResponse](ctx, body)
+func (c *Client) CreateUIPanel(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
+	return c.CreateUIPanelWithResult[CreateUIAssetResponse](ctx, body)
 }
 
 // Generate a shape-based pixel-art UI panel from a text description.
@@ -7965,7 +7965,7 @@ func (c *Client) CreateUIAssetCreateUIAssetPost(ctx context.Context, body Create
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-ui-asset
-func (c *Client) CreateUIAssetCreateUIAssetPostWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
+func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-ui-asset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8026,16 +8026,16 @@ func (c *Client) CreateUIAssetCreateUIAssetPostWithResult[R any](ctx context.Con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateUIAssetCreateUIAssetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateUIAssetCreateUIAssetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateUIAssetCreateUIAssetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateUIAssetCreateUIAssetPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -8044,15 +8044,15 @@ func (c *Client) CreateUIAssetCreateUIAssetPostWithResult[R any](ctx context.Con
 // List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
 //
 //	GET /ui-assets
-func (c *Client) ListUIAssetsUIAssetsGet(ctx context.Context, params *ListUIAssetsUIAssetsGetParams) (*UIAssetsListResponse, error) {
-	return c.ListUIAssetsUIAssetsGetWithResult[UIAssetsListResponse](ctx, params)
+func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (*UIAssetsListResponse, error) {
+	return c.ListUIAssetsWithResult[UIAssetsListResponse](ctx, params)
 }
 
 // List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /ui-assets
-func (c *Client) ListUIAssetsUIAssetsGetWithResult[R any](ctx context.Context, params *ListUIAssetsUIAssetsGetParams) (*R, error) {
+func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *ListUIAssetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -8120,7 +8120,7 @@ func (c *Client) ListUIAssetsUIAssetsGetWithResult[R any](ctx context.Context, p
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListUIAssetsUIAssetsGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUIAssets: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -8146,15 +8146,15 @@ func (c *Client) ListUIAssetsUIAssetsGetWithResult[R any](ctx context.Context, p
 // Get a UI panel's details. Reports progress while the panel is still generating.
 //
 //	GET /ui-assets/{ui_asset_id}
-func (c *Client) GetUIAssetUIAssetsUIAssetIDGet(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
-	return c.GetUIAssetUIAssetsUIAssetIDGetWithResult[UIAssetDetail](ctx, uiAssetID)
+func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
+	return c.GetUIAssetWithResult[UIAssetDetail](ctx, uiAssetID)
 }
 
 // Get a UI panel's details. Reports progress while the panel is still generating.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /ui-assets/{ui_asset_id}
-func (c *Client) GetUIAssetUIAssetsUIAssetIDGetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
+func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -8208,10 +8208,10 @@ func (c *Client) GetUIAssetUIAssetsUIAssetIDGetWithResult[R any](ctx context.Con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetUIAssetUIAssetsUIAssetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// UI asset not found
-		return nil, fmt.Errorf("GetUIAssetUIAssetsUIAssetIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -8237,15 +8237,15 @@ func (c *Client) GetUIAssetUIAssetsUIAssetIDGetWithResult[R any](ctx context.Con
 // Permanently delete a UI panel and its backing image files.
 //
 //	DELETE /ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAssetUIAssetsUIAssetIDDelete(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
-	return c.DeleteUIAssetUIAssetsUIAssetIDDeleteWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
+func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
+	return c.DeleteUIAssetWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
 }
 
 // Permanently delete a UI panel and its backing image files.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAssetUIAssetsUIAssetIDDeleteWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
+func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -8299,10 +8299,10 @@ func (c *Client) DeleteUIAssetUIAssetsUIAssetIDDeleteWithResult[R any](ctx conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteUIAssetUIAssetsUIAssetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// UI asset not found
-		return nil, fmt.Errorf("DeleteUIAssetUIAssetsUIAssetIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -8338,8 +8338,8 @@ func (c *Client) DeleteUIAssetUIAssetsUIAssetIDDeleteWithResult[R any](ctx conte
 // ```
 //
 //	GET /balance
-func (c *Client) GetBalanceBalanceGet(ctx context.Context) (*BalanceResponse, error) {
-	return c.GetBalanceBalanceGetWithResult[BalanceResponse](ctx)
+func (c *Client) GetBalance(ctx context.Context) (*BalanceResponse, error) {
+	return c.GetBalanceWithResult[BalanceResponse](ctx)
 }
 
 // Returns the current balance for your account, including both USD credits and remaining subscription generations.
@@ -8356,7 +8356,7 @@ func (c *Client) GetBalanceBalanceGet(ctx context.Context) (*BalanceResponse, er
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /balance
-func (c *Client) GetBalanceBalanceGetWithResult[R any](ctx context.Context) (*R, error) {
+func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 	u := c.baseURL.JoinPath("balance")
 	req := (&http.Request{
 		Header: http.Header{
@@ -8410,7 +8410,7 @@ func (c *Client) GetBalanceBalanceGetWithResult[R any](ctx context.Context) (*R,
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetBalanceBalanceGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -8488,8 +8488,8 @@ func (c *Client) GetBalanceBalanceGetWithResult[R any](ctx context.Context) (*R,
 // ```
 //
 //	POST /create-character-with-4-directions
-func (c *Client) CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPostWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CreateCharacterPro, error) {
+	return c.CreateCharacterWith4DirectionsWithResult[CreateCharacterPro](ctx, body)
 }
 
 // Generate a character or object facing 4 cardinal directions (south, west, east, north).
@@ -8565,7 +8565,7 @@ func (c *Client) CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPos
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-character-with-4-directions
-func (c *Client) CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPostWithResult[R any](ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*R, error) {
+func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-with-4-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8626,16 +8626,16 @@ func (c *Client) CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPos
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -8727,8 +8727,8 @@ func (c *Client) CreateCharacterWith4DirectionsCreateCharacterWith4DirectionsPos
 // ```
 //
 //	POST /create-character-with-8-directions
-func (c *Client) CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPostWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CreateCharacterPro, error) {
+	return c.CreateCharacterWith8DirectionsWithResult[CreateCharacterPro](ctx, body)
 }
 
 // Generate a character or object facing 8 directions (all cardinal and diagonal directions).
@@ -8818,7 +8818,7 @@ func (c *Client) CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPos
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-character-with-8-directions
-func (c *Client) CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPostWithResult[R any](ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*R, error) {
+func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-with-8-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8879,16 +8879,16 @@ func (c *Client) CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPos
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -8946,8 +8946,8 @@ func (c *Client) CreateCharacterWith8DirectionsCreateCharacterWith8DirectionsPos
 // ```
 //
 //	POST /create-character-pro
-func (c *Client) CreateCharacterProCreateCharacterProPost(ctx context.Context, body CreateCharacterProRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterProCreateCharacterProPostWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body CreateCharacterProRequest) (*CreateCharacterPro, error) {
+	return c.CreateCharacterWithProMode8DirectionsWithResult[CreateCharacterPro](ctx, body)
 }
 
 // Create a character with 8 directional rotations using Pro mode.
@@ -9003,7 +9003,7 @@ func (c *Client) CreateCharacterProCreateCharacterProPost(ctx context.Context, b
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-character-pro
-func (c *Client) CreateCharacterProCreateCharacterProPostWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
+func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9064,16 +9064,16 @@ func (c *Client) CreateCharacterProCreateCharacterProPostWithResult[R any](ctx c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterProCreateCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterProCreateCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error (bad dimensions, missing required image)
-		return nil, fmt.Errorf("CreateCharacterProCreateCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Concurrency limit reached
-		return nil, fmt.Errorf("CreateCharacterProCreateCharacterProPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9126,8 +9126,8 @@ func (c *Client) CreateCharacterProCreateCharacterProPostWithResult[R any](ctx c
 // ```
 //
 //	POST /create-character-v3
-func (c *Client) CreateCharacterV3CreateCharacterV3Post(ctx context.Context, body CreateCharacterV3Request) (*CreateCharacterV3Response, error) {
-	return c.CreateCharacterV3CreateCharacterV3PostWithResult[CreateCharacterV3Response](ctx, body)
+func (c *Client) CreateCharacterWithV3Model8Rotations(ctx context.Context, body CreateCharacterV3Request) (*CreateCharacterV3Response, error) {
+	return c.CreateCharacterWithV3Model8RotationsWithResult[CreateCharacterV3Response](ctx, body)
 }
 
 // Create a character with 8 directional rotations using the v3 model.
@@ -9178,7 +9178,7 @@ func (c *Client) CreateCharacterV3CreateCharacterV3Post(ctx context.Context, bod
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-character-v3
-func (c *Client) CreateCharacterV3CreateCharacterV3PostWithResult[R any](ctx context.Context, body CreateCharacterV3Request) (*R, error) {
+func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx context.Context, body CreateCharacterV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9239,16 +9239,16 @@ func (c *Client) CreateCharacterV3CreateCharacterV3PostWithResult[R any](ctx con
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterV3CreateCharacterV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterV3CreateCharacterV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error (bad dimensions, invalid image)
-		return nil, fmt.Errorf("CreateCharacterV3CreateCharacterV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Concurrency limit reached
-		return nil, fmt.Errorf("CreateCharacterV3CreateCharacterV3Post: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9262,8 +9262,8 @@ func (c *Client) CreateCharacterV3CreateCharacterV3PostWithResult[R any](ctx con
 // - **pro**: Custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction).
 //
 //	POST /characters/animations
-func (c *Client) CreateCharacterAnimationCharactersAnimationsPost(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.CreateCharacterAnimationCharactersAnimationsPostWithResult[CreateCharacterAnimationResponse](ctx, body)
+func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
+	return c.CreateCharacterAnimationWithResult[CreateCharacterAnimationResponse](ctx, body)
 }
 
 // Animate an existing character (background processing).
@@ -9275,7 +9275,7 @@ func (c *Client) CreateCharacterAnimationCharactersAnimationsPost(ctx context.Co
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /characters/animations
-func (c *Client) CreateCharacterAnimationCharactersAnimationsPostWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
+func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9415,8 +9415,8 @@ func (c *Client) CreateCharacterAnimationCharactersAnimationsPostWithResult[R an
 // - Directions default to south only if not specified
 //
 //	POST /animate-character
-func (c *Client) CreateCharacterAnimationAnimateCharacterPost(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.CreateCharacterAnimationAnimateCharacterPostWithResult[CreateCharacterAnimationResponse](ctx, body)
+func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
+	return c.AnimateCharacterWithResult[CreateCharacterAnimationResponse](ctx, body)
 }
 
 // Animate an existing character with multiple frames showing movement or action.
@@ -9479,7 +9479,7 @@ func (c *Client) CreateCharacterAnimationAnimateCharacterPost(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /animate-character
-func (c *Client) CreateCharacterAnimationAnimateCharacterPostWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
+func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-character")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9540,19 +9540,19 @@ func (c *Client) CreateCharacterAnimationAnimateCharacterPostWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterAnimationAnimateCharacterPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterAnimationAnimateCharacterPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("CreateCharacterAnimationAnimateCharacterPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateCharacterAnimationAnimateCharacterPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateCharacterAnimationAnimateCharacterPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9561,15 +9561,15 @@ func (c *Client) CreateCharacterAnimationAnimateCharacterPostWithResult[R any](c
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 //
 //	POST /create-character-state
-func (c *Client) CreateCharacterStateCreateCharacterStatePost(ctx context.Context, body CreateCharacterStateRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterStateCreateCharacterStatePostWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body CreateCharacterStateRequest) (*CreateCharacterPro, error) {
+	return c.CreateStateOfAnExistingCharacterWithResult[CreateCharacterPro](ctx, body)
 }
 
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-character-state
-func (c *Client) CreateCharacterStateCreateCharacterStatePostWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
+func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-state")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9630,16 +9630,16 @@ func (c *Client) CreateCharacterStateCreateCharacterStatePostWithResult[R any](c
 		}
 	case http.StatusBadRequest:
 		// Source character is not completed
-		return nil, fmt.Errorf("CreateCharacterStateCreateCharacterStatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterStateCreateCharacterStatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateCharacterStateCreateCharacterStatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Source character not found
-		return nil, fmt.Errorf("CreateCharacterStateCreateCharacterStatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -9659,7 +9659,7 @@ func (c *Client) CreateCharacterStateCreateCharacterStatePostWithResult[R any](c
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateCharacterStateCreateCharacterStatePost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9691,8 +9691,8 @@ func (c *Client) CreateCharacterStateCreateCharacterStatePostWithResult[R any](c
 // - Total count is included in response for pagination UI
 //
 //	GET /characters
-func (c *Client) ListCharactersCharactersGet(ctx context.Context, params *ListCharactersCharactersGetParams) (*CharactersListResponse, error) {
-	return c.ListCharactersCharactersGetWithResult[CharactersListResponse](ctx, params)
+func (c *Client) ListUsersCharacters(ctx context.Context, params *ListUsersCharactersParams) (*CharactersListResponse, error) {
+	return c.ListUsersCharactersWithResult[CharactersListResponse](ctx, params)
 }
 
 // List all characters created by the authenticated user.
@@ -9722,7 +9722,7 @@ func (c *Client) ListCharactersCharactersGet(ctx context.Context, params *ListCh
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /characters
-func (c *Client) ListCharactersCharactersGetWithResult[R any](ctx context.Context, params *ListCharactersCharactersGetParams) (*R, error) {
+func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, params *ListUsersCharactersParams) (*R, error) {
 	u := c.baseURL.JoinPath("characters")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -9790,13 +9790,13 @@ func (c *Client) ListCharactersCharactersGetWithResult[R any](ctx context.Contex
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListCharactersCharactersGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListCharactersCharactersGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("ListCharactersCharactersGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9828,8 +9828,8 @@ func (c *Client) ListCharactersCharactersGetWithResult[R any](ctx context.Contex
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 //
 //	GET /characters/{character_id}
-func (c *Client) GetCharacterCharactersCharacterIDGet(ctx context.Context, characterID string) (*CharacterDetail, error) {
-	return c.GetCharacterCharactersCharacterIDGetWithResult[CharacterDetail](ctx, characterID)
+func (c *Client) GetCharacterDetails(ctx context.Context, characterID string) (*CharacterDetail, error) {
+	return c.GetCharacterDetailsWithResult[CharacterDetail](ctx, characterID)
 }
 
 // Get detailed information about a specific character.
@@ -9859,7 +9859,7 @@ func (c *Client) GetCharacterCharactersCharacterIDGet(ctx context.Context, chara
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /characters/{character_id}
-func (c *Client) GetCharacterCharactersCharacterIDGetWithResult[R any](ctx context.Context, characterID string) (*R, error) {
+func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, characterID string) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -9913,13 +9913,13 @@ func (c *Client) GetCharacterCharactersCharacterIDGetWithResult[R any](ctx conte
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetCharacterCharactersCharacterIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Character belongs to another user
-		return nil, fmt.Errorf("GetCharacterCharactersCharacterIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("GetCharacterCharactersCharacterIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -9939,7 +9939,7 @@ func (c *Client) GetCharacterCharactersCharacterIDGetWithResult[R any](ctx conte
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GetCharacterCharactersCharacterIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -9952,8 +9952,8 @@ func (c *Client) GetCharacterCharactersCharacterIDGetWithResult[R any](ctx conte
 // the slow storage.search_legacy_v1 function).
 //
 //	DELETE /characters/{character_id}
-func (c *Client) DeleteCharacterV2CharactersCharacterIDDelete(ctx context.Context, characterID string) (*DeleteCharacterResponse, error) {
-	return c.DeleteCharacterV2CharactersCharacterIDDeleteWithResult[DeleteCharacterResponse](ctx, characterID)
+func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, characterID string) (*DeleteCharacterResponse, error) {
+	return c.DeleteCharacterAndAllAssociatedDataWithResult[DeleteCharacterResponse](ctx, characterID)
 }
 
 // Delete a character (v2 API for external customers).
@@ -9964,7 +9964,7 @@ func (c *Client) DeleteCharacterV2CharactersCharacterIDDelete(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /characters/{character_id}
-func (c *Client) DeleteCharacterV2CharactersCharacterIDDeleteWithResult[R any](ctx context.Context, characterID string) (*R, error) {
+func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx context.Context, characterID string) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -10096,8 +10096,8 @@ func (c *Client) DeleteCharacterV2CharactersCharacterIDDeleteWithResult[R any](c
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) DownloadCharacterCharactersCharacterIDZipGet(ctx context.Context, characterID string, params *DownloadCharacterCharactersCharacterIDZipGetParams) (*DownloadCharacterCharactersCharacterIDZip, error) {
-	return c.DownloadCharacterCharactersCharacterIDZipGetWithResult[DownloadCharacterCharactersCharacterIDZip](ctx, characterID, params)
+func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID string, params *ExportCharacterAsZipParams) (*ExportCharacterAsZip, error) {
+	return c.ExportCharacterAsZipWithResult[ExportCharacterAsZip](ctx, characterID, params)
 }
 
 // Download a character with all animations as a ZIP file.
@@ -10159,7 +10159,7 @@ func (c *Client) DownloadCharacterCharactersCharacterIDZipGet(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) DownloadCharacterCharactersCharacterIDZipGetWithResult[R any](ctx context.Context, characterID string, params *DownloadCharacterCharactersCharacterIDZipGetParams) (*R, error) {
+func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, characterID string, params *ExportCharacterAsZipParams) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID, "zip")
 	if params != nil {
 		q := make(url.Values, 1)
@@ -10223,7 +10223,7 @@ func (c *Client) DownloadCharacterCharactersCharacterIDZipGetWithResult[R any](c
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("DownloadCharacterCharactersCharacterIDZipGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10243,7 +10243,7 @@ func (c *Client) DownloadCharacterCharactersCharacterIDZipGetWithResult[R any](c
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return nil, fmt.Errorf("DownloadCharacterCharactersCharacterIDZipGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10277,8 +10277,8 @@ func (c *Client) DownloadCharacterCharactersCharacterIDZipGetWithResult[R any](c
 // Requires a valid API token. You can only update tags for characters you created.
 //
 //	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatch(ctx context.Context, characterID string, body UpdateObjectTags) (*UpdateObjectTags2, error) {
-	return c.UpdateCharacterTagsCharactersCharacterIDTagsPatchWithResult[UpdateObjectTags2](ctx, characterID, body)
+func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, body UpdateObjectTags) (*UpdateObjectTags2, error) {
+	return c.UpdateCharacterTagsWithResult[UpdateObjectTags2](ctx, characterID, body)
 }
 
 // Update the tags for a specific character.
@@ -10310,7 +10310,7 @@ func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatch(ctx context.C
 // You can define a custom result to unmarshal the response into.
 //
 //	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatchWithResult[R any](ctx context.Context, characterID string, body UpdateObjectTags) (*R, error) {
+func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID string, body UpdateObjectTags) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID, "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10371,16 +10371,16 @@ func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatchWithResult[R a
 		}
 	case http.StatusBadRequest:
 		// Invalid tag format or validation error
-		return nil, fmt.Errorf("UpdateCharacterTagsCharactersCharacterIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateCharacterTagsCharactersCharacterIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Character belongs to another user
-		return nil, fmt.Errorf("UpdateCharacterTagsCharactersCharacterIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("UpdateCharacterTagsCharactersCharacterIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10400,7 +10400,7 @@ func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatchWithResult[R a
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("UpdateCharacterTagsCharactersCharacterIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10441,8 +10441,8 @@ func (c *Client) UpdateCharacterTagsCharactersCharacterIDTagsPatchWithResult[R a
 // - Animations may take longer depending on frame count and directions
 //
 //	GET /background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGet(ctx context.Context, jobID string) (*BackgroundJobResponse, error) {
-	return c.GetBackgroundJobStatusBackgroundJobsJobIDGetWithResult[BackgroundJobResponse](ctx, jobID)
+func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID string) (*BackgroundJobResponse, error) {
+	return c.GetBackgroundJobStatusWithResult[BackgroundJobResponse](ctx, jobID)
 }
 
 // Check the status and results of a background job.
@@ -10481,7 +10481,7 @@ func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGet(ctx context.Contex
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGetWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
 	u := c.baseURL.JoinPath("background-jobs", jobID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -10535,10 +10535,10 @@ func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGetWithResult[R any](c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetBackgroundJobStatusBackgroundJobsJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Job not found or doesn't belong to user
-		return nil, fmt.Errorf("GetBackgroundJobStatusBackgroundJobsJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10558,7 +10558,7 @@ func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGetWithResult[R any](c
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GetBackgroundJobStatusBackgroundJobsJobIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10573,8 +10573,8 @@ func (c *Client) GetBackgroundJobStatusBackgroundJobsJobIDGetWithResult[R any](c
 // For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
 //	POST /create-1-direction-object
-func (c *Client) Create1DirectionObjectCreate1DirectionObjectPost(ctx context.Context, body Create1DirectionObjectRequest) (*Create1DirectionObjectResponse, error) {
-	return c.Create1DirectionObjectCreate1DirectionObjectPostWithResult[Create1DirectionObjectResponse](ctx, body)
+func (c *Client) Create1DirectionObject(ctx context.Context, body Create1DirectionObjectRequest) (*Create1DirectionObjectResponse, error) {
+	return c.Create1DirectionObjectWithResult[Create1DirectionObjectResponse](ctx, body)
 }
 
 // Queues a 1-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
@@ -10587,7 +10587,7 @@ func (c *Client) Create1DirectionObjectCreate1DirectionObjectPost(ctx context.Co
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-1-direction-object
-func (c *Client) Create1DirectionObjectCreate1DirectionObjectPostWithResult[R any](ctx context.Context, body Create1DirectionObjectRequest) (*R, error) {
+func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, body Create1DirectionObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-1-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10648,16 +10648,16 @@ func (c *Client) Create1DirectionObjectCreate1DirectionObjectPostWithResult[R an
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("Create1DirectionObjectCreate1DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("Create1DirectionObjectCreate1DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Create1DirectionObjectCreate1DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("Create1DirectionObjectCreate1DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10672,8 +10672,8 @@ func (c *Client) Create1DirectionObjectCreate1DirectionObjectPostWithResult[R an
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
 //	POST /create-8-direction-object
-func (c *Client) Create8DirectionObjectCreate8DirectionObjectPost(ctx context.Context, body Create8DirectionObjectRequest) (*CreateDirectionObject, error) {
-	return c.Create8DirectionObjectCreate8DirectionObjectPostWithResult[CreateDirectionObject](ctx, body)
+func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*CreateDirectionObject, error) {
+	return c.CreateAn8DirectionObjectWithResult[CreateDirectionObject](ctx, body)
 }
 
 // Queues an 8-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
@@ -10686,7 +10686,7 @@ func (c *Client) Create8DirectionObjectCreate8DirectionObjectPost(ctx context.Co
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /create-8-direction-object
-func (c *Client) Create8DirectionObjectCreate8DirectionObjectPostWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
+func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-8-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10747,16 +10747,16 @@ func (c *Client) Create8DirectionObjectCreate8DirectionObjectPostWithResult[R an
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("Create8DirectionObjectCreate8DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("Create8DirectionObjectCreate8DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Create8DirectionObjectCreate8DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("Create8DirectionObjectCreate8DirectionObjectPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10769,8 +10769,8 @@ func (c *Client) Create8DirectionObjectCreate8DirectionObjectPostWithResult[R an
 // **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 //
 //	POST /objects/{object_id}/animations
-func (c *Client) AnimateObjectObjectsObjectIDAnimationsPost(ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*AnimateObjectResponse, error) {
-	return c.AnimateObjectObjectsObjectIDAnimationsPostWithResult[AnimateObjectResponse](ctx, objectID, body)
+func (c *Client) AddAnAnimationToAnExistingObject(ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*AnimateObjectResponse, error) {
+	return c.AddAnAnimationToAnExistingObjectWithResult[AnimateObjectResponse](ctx, objectID, body)
 }
 
 // **Cost warning**: when generating on a subscription, `mode='pro'` costs 20-40 generations per direction (160-320 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
@@ -10781,7 +10781,7 @@ func (c *Client) AnimateObjectObjectsObjectIDAnimationsPost(ctx context.Context,
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/animations
-func (c *Client) AnimateObjectObjectsObjectIDAnimationsPostWithResult[R any](ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*R, error) {
+func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10842,19 +10842,19 @@ func (c *Client) AnimateObjectObjectsObjectIDAnimationsPostWithResult[R any](ctx
 		}
 	case http.StatusBadRequest:
 		// Validation error (object not ready, invalid directions/frame_count, missing description for a new animation)
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object or animation_group_id not found
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	case http.StatusConflict:
 		// Direction already animated (pass replace_existing=true to overwrite)
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10874,7 +10874,7 @@ func (c *Client) AnimateObjectObjectsObjectIDAnimationsPostWithResult[R any](ctx
 		}
 	case http.StatusTooManyRequests:
 		// All directions rate-limited (no jobs queued)
-		return nil, fmt.Errorf("AnimateObjectObjectsObjectIDAnimationsPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -10883,15 +10883,15 @@ func (c *Client) AnimateObjectObjectsObjectIDAnimationsPostWithResult[R any](ctx
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 //
 //	DELETE /objects/{object_id}/animations
-func (c *Client) DeleteObjectAnimationsObjectsObjectIDAnimationsDelete(ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteParams) (*DeleteAnimationResponse, error) {
-	return c.DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteWithResult[DeleteAnimationResponse](ctx, objectID, params)
+func (c *Client) DeleteAnimationsFromAnObject(ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*DeleteAnimationResponse, error) {
+	return c.DeleteAnimationsFromAnObjectWithResult[DeleteAnimationResponse](ctx, objectID, params)
 }
 
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /objects/{object_id}/animations
-func (c *Client) DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteParams) (*R, error) {
+func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
@@ -10963,16 +10963,16 @@ func (c *Client) DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteWithResult
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteObjectAnimationsObjectsObjectIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteObjectAnimationsObjectsObjectIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found or not owned by you
-		return nil, fmt.Errorf("DeleteObjectAnimationsObjectsObjectIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
 	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
-		return nil, fmt.Errorf("DeleteObjectAnimationsObjectsObjectIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10998,15 +10998,15 @@ func (c *Client) DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteWithResult
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 //
 //	POST /objects/{object_id}/states
-func (c *Client) CreateObjectStateObjectsObjectIDStatesPost(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*CreateDirectionObject, error) {
-	return c.CreateObjectStateObjectsObjectIDStatesPostWithResult[CreateDirectionObject](ctx, objectID, body)
+func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*CreateDirectionObject, error) {
+	return c.CreateStateOfAnExistingObjectWithResult[CreateDirectionObject](ctx, objectID, body)
 }
 
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/states
-func (c *Client) CreateObjectStateObjectsObjectIDStatesPostWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
+func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11067,16 +11067,16 @@ func (c *Client) CreateObjectStateObjectsObjectIDStatesPostWithResult[R any](ctx
 		}
 	case http.StatusBadRequest:
 		// Source object is not completed
-		return nil, fmt.Errorf("CreateObjectStateObjectsObjectIDStatesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateObjectStateObjectsObjectIDStatesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateObjectStateObjectsObjectIDStatesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Source object not found
-		return nil, fmt.Errorf("CreateObjectStateObjectsObjectIDStatesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11096,7 +11096,7 @@ func (c *Client) CreateObjectStateObjectsObjectIDStatesPostWithResult[R any](ctx
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateObjectStateObjectsObjectIDStatesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -11105,15 +11105,15 @@ func (c *Client) CreateObjectStateObjectsObjectIDStatesPostWithResult[R any](ctx
 // Promote selected frames of a review object to completed objects
 //
 //	POST /objects/{object_id}/select-frames
-func (c *Client) SelectObjectFramesObjectsObjectIDSelectFramesPost(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
-	return c.SelectObjectFramesObjectsObjectIDSelectFramesPostWithResult[SelectObjectFramesResponse](ctx, objectID, body)
+func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjects(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
+	return c.PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[SelectObjectFramesResponse](ctx, objectID, body)
 }
 
 // Promote selected frames of a review object to completed objects
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/select-frames
-func (c *Client) SelectObjectFramesObjectsObjectIDSelectFramesPostWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
+func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "select-frames")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11174,13 +11174,13 @@ func (c *Client) SelectObjectFramesObjectsObjectIDSelectFramesPostWithResult[R a
 		}
 	case http.StatusBadRequest:
 		// Object not in review status / invalid indices
-		return nil, fmt.Errorf("SelectObjectFramesObjectsObjectIDSelectFramesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SelectObjectFramesObjectsObjectIDSelectFramesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("SelectObjectFramesObjectsObjectIDSelectFramesPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11206,15 +11206,15 @@ func (c *Client) SelectObjectFramesObjectsObjectIDSelectFramesPostWithResult[R a
 // Dismiss a review object without saving any frames
 //
 //	POST /objects/{object_id}/dismiss-review
-func (c *Client) DismissReviewObjectsObjectIDDismissReviewPost(ctx context.Context, objectID uuid.UUID) (*DismissReviewResponse, error) {
-	return c.DismissReviewObjectsObjectIDDismissReviewPostWithResult[DismissReviewResponse](ctx, objectID)
+func (c *Client) DismissReviewObjectWithoutSavingAnyFrames(ctx context.Context, objectID uuid.UUID) (*DismissReviewResponse, error) {
+	return c.DismissReviewObjectWithoutSavingAnyFramesWithResult[DismissReviewResponse](ctx, objectID)
 }
 
 // Dismiss a review object without saving any frames
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/dismiss-review
-func (c *Client) DismissReviewObjectsObjectIDDismissReviewPostWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "dismiss-review")
 	req := (&http.Request{
 		Header: http.Header{
@@ -11268,13 +11268,13 @@ func (c *Client) DismissReviewObjectsObjectIDDismissReviewPostWithResult[R any](
 		}
 	case http.StatusBadRequest:
 		// Object not in review status
-		return nil, fmt.Errorf("DismissReviewObjectsObjectIDDismissReviewPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DismissReviewObjectsObjectIDDismissReviewPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("DismissReviewObjectsObjectIDDismissReviewPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11315,8 +11315,8 @@ func (c *Client) DismissReviewObjectsObjectIDDismissReviewPostWithResult[R any](
 // - Total count is included in response for pagination UI
 //
 //	GET /objects
-func (c *Client) ListObjectsObjectsGet(ctx context.Context, params *ListObjectsObjectsGetParams) (*ObjectsListResponse, error) {
-	return c.ListObjectsObjectsGetWithResult[ObjectsListResponse](ctx, params)
+func (c *Client) ListUsersObjects(ctx context.Context, params *ListUsersObjectsParams) (*ObjectsListResponse, error) {
+	return c.ListUsersObjectsWithResult[ObjectsListResponse](ctx, params)
 }
 
 // List all objects created by the authenticated user.
@@ -11338,7 +11338,7 @@ func (c *Client) ListObjectsObjectsGet(ctx context.Context, params *ListObjectsO
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /objects
-func (c *Client) ListObjectsObjectsGetWithResult[R any](ctx context.Context, params *ListObjectsObjectsGetParams) (*R, error) {
+func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *ListUsersObjectsParams) (*R, error) {
 	u := c.baseURL.JoinPath("objects")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -11406,10 +11406,10 @@ func (c *Client) ListObjectsObjectsGetWithResult[R any](ctx context.Context, par
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListObjectsObjectsGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListObjectsObjectsGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -11429,8 +11429,8 @@ func (c *Client) ListObjectsObjectsGetWithResult[R any](ctx context.Context, par
 // Requires a valid API token. You can only access objects you created.
 //
 //	GET /objects/{object_id}
-func (c *Client) GetObjectObjectsObjectIDGet(ctx context.Context, objectID uuid.UUID) (*ObjectDetail, error) {
-	return c.GetObjectObjectsObjectIDGetWithResult[ObjectDetail](ctx, objectID)
+func (c *Client) GetObjectDetails(ctx context.Context, objectID uuid.UUID) (*ObjectDetail, error) {
+	return c.GetObjectDetailsWithResult[ObjectDetail](ctx, objectID)
 }
 
 // Get detailed information about a specific object.
@@ -11448,7 +11448,7 @@ func (c *Client) GetObjectObjectsObjectIDGet(ctx context.Context, objectID uuid.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /objects/{object_id}
-func (c *Client) GetObjectObjectsObjectIDGetWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -11502,13 +11502,13 @@ func (c *Client) GetObjectObjectsObjectIDGetWithResult[R any](ctx context.Contex
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("GetObjectObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("GetObjectObjectsObjectIDGet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11544,8 +11544,8 @@ func (c *Client) GetObjectObjectsObjectIDGetWithResult[R any](ctx context.Contex
 // **Warning:** This action cannot be undone.
 //
 //	DELETE /objects/{object_id}
-func (c *Client) DeleteObjectObjectsObjectIDDelete(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
-	return c.DeleteObjectObjectsObjectIDDeleteWithResult[DeleteObjectResponse](ctx, objectID)
+func (c *Client) DeleteAnObjectAndAllAssociatedData(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
+	return c.DeleteAnObjectAndAllAssociatedDataWithResult[DeleteObjectResponse](ctx, objectID)
 }
 
 // Delete an object and all its rotation images.
@@ -11562,7 +11562,7 @@ func (c *Client) DeleteObjectObjectsObjectIDDelete(ctx context.Context, objectID
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /objects/{object_id}
-func (c *Client) DeleteObjectObjectsObjectIDDeleteWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -11616,13 +11616,13 @@ func (c *Client) DeleteObjectObjectsObjectIDDeleteWithResult[R any](ctx context.
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteObjectObjectsObjectIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("DeleteObjectObjectsObjectIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("DeleteObjectObjectsObjectIDDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11661,8 +11661,8 @@ func (c *Client) DeleteObjectObjectsObjectIDDeleteWithResult[R any](ctx context.
 // Requires a valid API token. You can only update tags for objects you created.
 //
 //	PATCH /objects/{object_id}/tags
-func (c *Client) UpdateObjectTagsObjectsObjectIDTagsPatch(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateObjectTags2, error) {
-	return c.UpdateObjectTagsObjectsObjectIDTagsPatchWithResult[UpdateObjectTags2](ctx, objectID, body)
+func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateObjectTags2, error) {
+	return c.UpdateObjectTagsWithResult[UpdateObjectTags2](ctx, objectID, body)
 }
 
 // Update the tags for a specific object.
@@ -11682,7 +11682,7 @@ func (c *Client) UpdateObjectTagsObjectsObjectIDTagsPatch(ctx context.Context, o
 // You can define a custom result to unmarshal the response into.
 //
 //	PATCH /objects/{object_id}/tags
-func (c *Client) UpdateObjectTagsObjectsObjectIDTagsPatchWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*R, error) {
+func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11743,16 +11743,16 @@ func (c *Client) UpdateObjectTagsObjectsObjectIDTagsPatchWithResult[R any](ctx c
 		}
 	case http.StatusBadRequest:
 		// Invalid tag format or validation error
-		return nil, fmt.Errorf("UpdateObjectTagsObjectsObjectIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateObjectTagsObjectsObjectIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("UpdateObjectTagsObjectsObjectIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("UpdateObjectTagsObjectsObjectIDTagsPatch: status %s", rsp.Status)
+		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11780,8 +11780,8 @@ func (c *Client) UpdateObjectTagsObjectsObjectIDTagsPatchWithResult[R any](ctx c
 // Storage cleanup on B2 is best-effort; DB deletion is authoritative.
 //
 //	DELETE /characters/{character_id}/animations
-func (c *Client) DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete(ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteParams) (*DeleteAnimationResponse, error) {
-	return c.DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteWithResult[DeleteAnimationResponse](ctx, characterID, params)
+func (c *Client) DeleteAnimationsFromCharacter(ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*DeleteAnimationResponse, error) {
+	return c.DeleteAnimationsFromCharacterWithResult[DeleteAnimationResponse](ctx, characterID, params)
 }
 
 // Delete character animations by animation_type or animation_group_id, optionally scoped to a single direction. Pass ONE of `animation_type` or `animation_group_id` (group_id is preferred when a name repeats). Omit `direction` to delete all directions at once.
@@ -11790,7 +11790,7 @@ func (c *Client) DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete(
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /characters/{character_id}/animations
-func (c *Client) DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteParams) (*R, error) {
+func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
@@ -11862,16 +11862,16 @@ func (c *Client) DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteW
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found or not owned by you
-		return nil, fmt.Errorf("DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
 	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
-		return nil, fmt.Errorf("DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11902,8 +11902,8 @@ func (c *Client) DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteW
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 //
 //	POST /enhance-pixen-prompt
-func (c *Client) EnhancePixenPromptEnhancePixenPromptPost(ctx context.Context, body EnhancePixenPromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhancePixenPromptEnhancePixenPromptPostWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhanceAnimationPrompt, error) {
+	return c.EnhancePixenPromptWithResult[EnhanceAnimationPrompt](ctx, body)
 }
 
 // Enhance a Pixen image description.
@@ -11915,7 +11915,7 @@ func (c *Client) EnhancePixenPromptEnhancePixenPromptPost(ctx context.Context, b
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /enhance-pixen-prompt
-func (c *Client) EnhancePixenPromptEnhancePixenPromptPostWithResult[R any](ctx context.Context, body EnhancePixenPromptRequest) (*R, error) {
+func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body EnhancePixenPromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-pixen-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11976,13 +11976,13 @@ func (c *Client) EnhancePixenPromptEnhancePixenPromptPostWithResult[R any](ctx c
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhancePixenPromptEnhancePixenPromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhancePixenPromptEnhancePixenPromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EnhancePixenPromptEnhancePixenPromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -11996,8 +11996,8 @@ func (c *Client) EnhancePixenPromptEnhancePixenPromptPostWithResult[R any](ctx c
 // transparent).
 //
 //	POST /enhance-character-v3-prompt
-func (c *Client) EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhanceCharacterV3PromptEnhanceCharacterV3PromptPostWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhanceAnimationPrompt, error) {
+	return c.EnhanceCharacterV3PromptWithResult[EnhanceAnimationPrompt](ctx, body)
 }
 
 // Enhance a v3 character description.
@@ -12009,7 +12009,7 @@ func (c *Client) EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost(ctx contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /enhance-character-v3-prompt
-func (c *Client) EnhanceCharacterV3PromptEnhanceCharacterV3PromptPostWithResult[R any](ctx context.Context, body EnhanceCharacterV3PromptRequest) (*R, error) {
+func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, body EnhanceCharacterV3PromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-character-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -12070,13 +12070,13 @@ func (c *Client) EnhanceCharacterV3PromptEnhanceCharacterV3PromptPostWithResult[
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EnhanceCharacterV3PromptEnhanceCharacterV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -12097,8 +12097,8 @@ func (c *Client) EnhanceCharacterV3PromptEnhanceCharacterV3PromptPostWithResult[
 // unless explicitly requested.
 //
 //	POST /enhance-animation-v3-prompt
-func (c *Client) EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhanceAnimationV3PromptEnhanceAnimationV3PromptPostWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhanceAnimationPrompt, error) {
+	return c.EnhanceAnimationV3PromptWithResult[EnhanceAnimationPrompt](ctx, body)
 }
 
 // Enhance an animation action description.
@@ -12117,7 +12117,7 @@ func (c *Client) EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost(ctx contex
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /enhance-animation-v3-prompt
-func (c *Client) EnhanceAnimationV3PromptEnhanceAnimationV3PromptPostWithResult[R any](ctx context.Context, body EnhanceAnimationV3PromptRequest) (*R, error) {
+func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, body EnhanceAnimationV3PromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-animation-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -12178,13 +12178,13 @@ func (c *Client) EnhanceAnimationV3PromptEnhanceAnimationV3PromptPostWithResult[
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EnhanceAnimationV3PromptEnhanceAnimationV3PromptPost: status %s", rsp.Status)
+		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	default:
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
@@ -12206,7 +12206,7 @@ func (c *Client) EnhanceAnimationV3PromptEnhanceAnimationV3PromptPostWithResult[
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /llms.txt
-func (c *Client) GetLlmsTxtLlmsTxtGet(ctx context.Context) ([]byte, error) {
+func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, error) {
 	u := c.baseURL.JoinPath("llms.txt")
 	req := (&http.Request{
 		Header: http.Header{

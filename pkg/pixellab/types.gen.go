@@ -16,71 +16,71 @@ var jsonOpts = json.JoinOptions(
 	json.RejectUnknownMembers(true),
 )
 
-// ListTilesetsTilesetsGetParams holds the query parameters for ListTilesetsTilesetsGet.
-type ListTilesetsTilesetsGetParams struct {
+// ListUsersTilesetsParams holds the query parameters for ListUsersTilesets.
+type ListUsersTilesetsParams struct {
 	// Maximum number of tilesets to return
 	Limit int
 	// Number of tilesets to skip
 	Offset int
 }
 
-// ListSidescrollerTilesetsTilesetsSidescrollerGetParams holds the query parameters for ListSidescrollerTilesetsTilesetsSidescrollerGet.
-type ListSidescrollerTilesetsTilesetsSidescrollerGetParams struct {
+// ListYourSidescrollerTilesetsParams holds the query parameters for ListYourSidescrollerTilesets.
+type ListYourSidescrollerTilesetsParams struct {
 	Limit  int
 	Offset int
 }
 
-// ListIsometricTilesIsometricTilesGetParams holds the query parameters for ListIsometricTilesIsometricTilesGet.
-type ListIsometricTilesIsometricTilesGetParams struct {
+// ListUsersIsometricTilesParams holds the query parameters for ListUsersIsometricTiles.
+type ListUsersIsometricTilesParams struct {
 	// Maximum number of tiles to return
 	Limit int
 	// Number of tiles to skip
 	Offset int
 }
 
-// ListTilesProTilesProGetParams holds the query parameters for ListTilesProTilesProGet.
-type ListTilesProTilesProGetParams struct {
+// ListYourTilesProTilesParams holds the query parameters for ListYourTilesProTiles.
+type ListYourTilesProTilesParams struct {
 	Limit  int
 	Offset int
 }
 
-// ListUIAssetsUIAssetsGetParams holds the query parameters for ListUIAssetsUIAssetsGet.
-type ListUIAssetsUIAssetsGetParams struct {
+// ListUIAssetsParams holds the query parameters for ListUIAssets.
+type ListUIAssetsParams struct {
 	Limit  int
 	Offset int
 }
 
-// ListCharactersCharactersGetParams holds the query parameters for ListCharactersCharactersGet.
-type ListCharactersCharactersGetParams struct {
+// ListUsersCharactersParams holds the query parameters for ListUsersCharacters.
+type ListUsersCharactersParams struct {
 	// Maximum number of characters to return
 	Limit int
 	// Number of characters to skip
 	Offset int
 }
 
-// DownloadCharacterCharactersCharacterIDZipGetParams holds the query parameters for DownloadCharacterCharactersCharacterIDZipGet.
-type DownloadCharacterCharactersCharacterIDZipGetParams struct {
+// ExportCharacterAsZipParams holds the query parameters for ExportCharacterAsZip.
+type ExportCharacterAsZipParams struct {
 	// Comma-separated state ids to export, all within this character's group. Omit to export every state. Use it to re-pull only the states that changed instead of the whole group.
 	States string
 }
 
-// DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteParams holds the query parameters for DeleteObjectAnimationsObjectsObjectIDAnimationsDelete.
-type DeleteObjectAnimationsObjectsObjectIDAnimationsDeleteParams struct {
+// DeleteAnimationsFromAnObjectParams holds the query parameters for DeleteAnimationsFromAnObject.
+type DeleteAnimationsFromAnObjectParams struct {
 	AnimationType    string
 	AnimationGroupID uuid.UUID
 	Direction        string
 }
 
-// ListObjectsObjectsGetParams holds the query parameters for ListObjectsObjectsGet.
-type ListObjectsObjectsGetParams struct {
+// ListUsersObjectsParams holds the query parameters for ListUsersObjects.
+type ListUsersObjectsParams struct {
 	// Maximum number of objects to return
 	Limit int
 	// Number of objects to skip
 	Offset int
 }
 
-// DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteParams holds the query parameters for DeleteCharacterAnimationsCharactersCharacterIDAnimationsDelete.
-type DeleteCharacterAnimationsCharactersCharacterIDAnimationsDeleteParams struct {
+// DeleteAnimationsFromCharacterParams holds the query parameters for DeleteAnimationsFromCharacter.
+type DeleteAnimationsFromCharacterParams struct {
 	// Animation type shown by get_character (e.g. 'walk', 'idle').
 	AnimationType string
 	// Animation group UUID shown by get_character as [group: ...].
@@ -1938,9 +1938,6 @@ type DismissReviewResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 }
 
-// DownloadCharacterCharactersCharacterIDZip defines a model
-type DownloadCharacterCharactersCharacterIDZip struct{}
-
 // Animation frames to edit (2-16 frames)
 type EditAnimationFrames []app__endpoints__external__v__edit_animation_v__FrameImage
 
@@ -2092,6 +2089,9 @@ type EstimateSkeletonResponse struct {
 
 // EstimateSkeletonResponseKeypoints defines a model
 type EstimateSkeletonResponseKeypoints []Keypoint
+
+// ExportCharacterAsZip defines a model
+type ExportCharacterAsZip struct{}
 
 // A canvas size in pixels. Both sides must be multiples of 4, 32–256.
 type FrameSize struct {
@@ -2256,8 +2256,8 @@ type GetFontResponse struct {
 	DownloadTtfURL string `json:"download_ttf_url,omitzero"`
 }
 
-// GetLlmsTxtLlmsTxtGetOkUnknownResponse defines a model
-type GetLlmsTxtLlmsTxtGetOkUnknownResponse string
+// GetLlmFriendlyAPIDocumentationOkUnknownResponse defines a model
+type GetLlmFriendlyAPIDocumentationOkUnknownResponse string
 
 // GetMapObjectResponse defines a model
 type GetMapObjectResponse struct {
