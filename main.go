@@ -30,7 +30,8 @@ var repl = strings.NewReplacer(
 	" + result", "",
 	"'", "",
 	" a ", " ",
-	"+", "")
+	"+", "",
+)
 
 var opIDMapping = map[string]string{
 	"image_to_pixelart_pro_image_to_pixelart_pro_post": "ConvertImageToPixelArtPro",
