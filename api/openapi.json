@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "/v2"
+      "url": "https://api.pixellab.ai/v2"
     }
   ],
   "paths": {

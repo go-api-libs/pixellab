@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	rawPath  = "/Users/mark/Downloads/openapi.json"
-	specPath = "api/openapi.json"
+	originalPath = "api/openapi-v2_original.json"
+	specPath     = "api/openapi.json"
 )
 
 var reDirection = regexp.MustCompile(`","default":"(east|high top-down)"`)
@@ -37,7 +37,7 @@ var opIDMapping = map[string]string{
 }
 
 func main() {
-	data, err := os.ReadFile(rawPath)
+	data, err := os.ReadFile(originalPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,6 +56,7 @@ func main() {
 	}
 
 	doc.Info.Description = strings.TrimSpace(doc.Info.Description)
+	doc.Servers = openapi.Servers{{URL: "https://api.pixellab.ai/v2"}}
 
 	for _, p := range doc.Paths {
 		for _, p := range p.Parameters {

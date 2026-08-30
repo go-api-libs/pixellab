@@ -24,8 +24,8 @@ import (
 const defaultUserAgent = "Pixel Lab API"
 
 var defaultBaseURL = &url.URL{
-	Scheme: "",
-	Host:   "",
+	Scheme: "https",
+	Host:   "api.pixellab.ai",
 	Path:   "/v2",
 }
 
