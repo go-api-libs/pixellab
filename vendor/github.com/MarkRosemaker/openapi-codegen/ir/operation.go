@@ -129,9 +129,9 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 		return param, fmt.Errorf("schema is required")
 	}
 
-	param.IsEnum = len(p.Schema.Enum) > 0
+	param.IsEnum = len(p.Schema.Value.Enum) > 0
 
-	tp, err := SchemaGoType(p.Schema)
+	tp, err := SchemaGoType(p.Schema.Value)
 	if err != nil {
 		return param, err
 	}
@@ -161,8 +161,8 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 			if p.In == openapi.ParameterLocationHeader &&
 				strings.HasSuffix(p.Name, "Version") {
 				param.GlobalType = GlobalVersion
-				if p.Schema.Example != nil {
-					param.Value = p.Schema.Example.String()
+				if p.Schema.Value.Example != nil {
+					param.Value = p.Schema.Value.Example.String()
 				}
 			}
 		}
@@ -178,8 +178,8 @@ func fromParam(p *openapi.Parameter, apiTitle string) (Param, error) {
 
 	// A nil example renders as the literal "null", which would reach the
 	// templates as a bare identifier rather than a Go string.
-	if param.GlobalType != "" && p.Schema.Example != nil {
-		param.Example = p.Schema.Example.String()
+	if param.GlobalType != "" && p.Schema.Value.Example != nil {
+		param.Example = p.Schema.Value.Example.String()
 	}
 
 	return param, nil
