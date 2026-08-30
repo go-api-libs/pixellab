@@ -22,8 +22,18 @@ const (
 
 var reDirection = regexp.MustCompile(`","default":"(east|high top-down)"`)
 
+var repl = strings.NewReplacer(
+	" (Pro)", "",
+	"(", "", ")", "",
+	",", "", "↔", " ",
+	" + result", "",
+	"'", "",
+	" a ", " ",
+	"+", "")
+
 var opIDMapping = map[string]string{
-	// "GenerateImageV2GenerateImageV2Post": "GenerateImage",
+	"image_to_pixelart_pro_image_to_pixelart_pro_post": "ConvertImageToPixelArtPro",
+	"inpaint_v3_inpaint_v3_post":                       "InpaintImageV3",
 }
 
 func main() {
@@ -58,9 +68,10 @@ func main() {
 		}
 
 		for _, op := range p.Operations {
-			op.OperationID = strcase.ToGoPascal(op.OperationID)
 			if opID, ok := opIDMapping[op.OperationID]; ok {
-				op.OperationID = strcase.ToGoPascal(opID)
+				op.OperationID = opID
+			} else {
+				op.OperationID = strcase.ToGoPascal(repl.Replace(op.Summary))
 			}
 
 			for _, p := range op.Parameters {
@@ -104,7 +115,6 @@ func main() {
 			})
 		}
 
-		// s.Title = ""
 		for _, p := range s.Properties {
 			if p.Value.Type != "" {
 				continue
@@ -159,7 +169,6 @@ type dim struct {
 
 func improveSchema(ss *openapi.SchemaRef) {
 	s := ss.Value
-	// s.Title = ""
 
 	for _, p := range s.Properties {
 		improveSchema(p)
