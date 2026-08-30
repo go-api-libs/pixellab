@@ -2192,7 +2192,7 @@ type GenerateImageV2Request struct {
 	// Description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Size of the output image
-	ImageSize app__endpoints__external__v2__generate_image_v2__ImageSize `json:"image_size"`
+	ImageSize ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated images
@@ -2326,6 +2326,14 @@ type HTTPValidationError struct {
 
 // HTTPValidationErrorDetail defines a model
 type HTTPValidationErrorDetail []ValidationError
+
+// ImageSize defines a model
+type ImageSize struct {
+	// Image width in pixels (16 to aspect-ratio max)
+	Width int `json:"width,omitzero"`
+	// Image height in pixels (16 to aspect-ratio max)
+	Height int `json:"height,omitzero"`
+}
 
 // Request model for image to pixel art (pro) endpoint
 type ImageToPixelartProRequest struct {
@@ -3515,14 +3523,6 @@ type app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage struc
 	// Image width (reference max 168, concept max 1024)
 	Width int `json:"width,omitzero"`
 	// Image height (reference max 168, concept max 1024)
-	Height int `json:"height,omitzero"`
-}
-
-// app__endpoints__external__v2__generate_image_v2__ImageSize defines a model
-type app__endpoints__external__v2__generate_image_v2__ImageSize struct {
-	// Image width in pixels (16 to aspect-ratio max)
-	Width int `json:"width,omitzero"`
-	// Image height in pixels (16 to aspect-ratio max)
 	Height int `json:"height,omitzero"`
 }
 

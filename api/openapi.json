@@ -10746,7 +10746,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ImageSize",
+            "$ref": "#/components/schemas/ImageSize",
             "description": "Size of the output image"
           },
           "seed": {
@@ -15390,7 +15390,7 @@
           "width": 64
         }
       },
-      "app__endpoints__external__v2__generate_image_v2__ImageSize": {
+      "ImageSize": {
         "title": "ImageSize",
         "type": "object",
         "properties": {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/MarkRosemaker/openapi"
 	codegen "github.com/MarkRosemaker/openapi-codegen"
+	edit "github.com/MarkRosemaker/openapi-edit"
 	enrich "github.com/MarkRosemaker/openapi-enrich"
 	"github.com/ettle/strcase"
 )
@@ -138,8 +139,14 @@ func main() {
 		log.Fatalf("enrich: %v", err)
 	}
 
-	// edit.RenameSchema(doc, "")
-	// TODO: rename via openapi-edit
+	for _, v := range []struct{ old, new string }{
+		{"app__endpoints__external__v2__generate_image_v2__ImageSize", "ImageSize"},
+	} {
+		// GenerateWithStyleV2Request
+		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	// if err := flatten.Document(doc); err != nil {
 	// 	log.Fatalf("flatten: %v", err)
