@@ -15,9 +15,6 @@ import (
 	"github.com/ettle/strcase"
 )
 
-//go:generate go tool openapi-enrich
-//go:generate go tool openapi-codegen -client
-
 const (
 	rawPath  = "/Users/mark/Downloads/openapi.json"
 	specPath = "api/openapi.json"
