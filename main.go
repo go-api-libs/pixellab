@@ -149,15 +149,20 @@ func main() {
 		switch s.Title {
 		case "ImageSize":
 			i++
-			newName := s.Title
-			if i > 1 {
-				newName = fmt.Sprintf("%s%d", s.Title, i)
+			newName := fmt.Sprintf("%s%02d", s.Title, i)
+			switch name {
+			case "app__endpoints__external__v__animate_with_skeleton__ImageSize":
+				newName = "ImageSize"
+			case "app__endpoints__external__v2__animate_with_text__ImageSize":
+				newName = "ImageSize64x64"
+			default:
+				s.Title = name
 			}
+
 			if err := edit.RenameSchema(doc, name, newName); err != nil {
 				log.Fatal(err)
 			}
 		}
-
 	}
 
 	for _, path := range doc.Paths {

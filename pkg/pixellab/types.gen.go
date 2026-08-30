@@ -269,7 +269,7 @@ type AnimateWithText struct {
 
 // Request model for animation using text endpoint
 type AnimateWithTextRequest struct {
-	ImageSize ImageSize2 `json:"image_size"`
+	ImageSize ImageSize64x64 `json:"image_size"`
 	// Character description
 	Description string `json:"description,omitzero"`
 	// Negative prompt to guide what not to generate
@@ -931,7 +931,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize ImageSize3 `json:"image_size"`
+	ImageSize ImageSize03 `json:"image_size"`
 	// Process asynchronously (always true for character creation)
 	AsyncMode bool `json:"async_mode,omitempty"`
 	// How closely to follow the text description (higher = more faithful)
@@ -967,7 +967,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description,omitzero"`
 	// Size of each rotation image
-	ImageSize ImageSize3 `json:"image_size"`
+	ImageSize ImageSize03 `json:"image_size"`
 	// Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 20-40 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
 	Mode CreateCharacterWithDirectionsMode `json:"mode,omitzero"`
 	// Process asynchronously (always true - no synchronous processing yet)
@@ -1062,8 +1062,8 @@ type CreateImageBitforgeRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string     `json:"negative_description,omitzero"`
-	ImageSize           ImageSize4 `json:"image_size"`
+	NegativeDescription string      `json:"negative_description,omitzero"`
+	ImageSize           ImageSize04 `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -1129,8 +1129,8 @@ func (e CreateImagePixenBackgroundRemovalTask) Valid() bool {
 // Request model for Pixen image generation endpoint
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
-	Description string     `json:"description,omitzero"`
-	ImageSize   ImageSize5 `json:"image_size"`
+	Description string      `json:"description,omitzero"`
+	ImageSize   ImageSize05 `json:"image_size"`
 	// Outline style
 	Outline *Outline `json:"outline,omitempty"`
 	// Detail level (default: highly detailed)
@@ -1170,8 +1170,8 @@ type CreateImagePixfluxRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// (Deprecated)
-	NegativeDescription string     `json:"negative_description,omitzero"`
-	ImageSize           ImageSize6 `json:"image_size"`
+	NegativeDescription string      `json:"negative_description,omitzero"`
+	ImageSize           ImageSize06 `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style reference (weakly guiding)
@@ -1252,8 +1252,8 @@ func (e CreateIsometricTileOutline) Valid() bool {
 // Request model for pixflux image generation endpoint
 type CreateIsometricTileRequest struct {
 	// Text description of the image to generate
-	Description string     `json:"description,omitzero"`
-	ImageSize   ImageSize7 `json:"image_size"`
+	Description string      `json:"description,omitzero"`
+	ImageSize   ImageSize07 `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style for the tile
@@ -1321,7 +1321,7 @@ type CreateMapObjectRequest struct {
 	// Object description (e.g., 'wooden barrel', 'stone fountain')
 	Description string `json:"description,omitzero"`
 	// Object dimensions
-	ImageSize *ImageSize8 `json:"image_size,omitempty"`
+	ImageSize *ImageSize08 `json:"image_size,omitempty"`
 	// Camera angle (default: "high top-down")
 	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Outline style
@@ -1737,7 +1737,7 @@ type CreateUIAssetRequest struct {
 	// Style description for the UI panel (e.g. 'wooden RPG panel with gold trim')
 	Description string `json:"description,omitzero"`
 	// Output image size in pixels (192–688; max per axis depends on aspect)
-	ImageSize *ImageSize9 `json:"image_size,omitempty"`
+	ImageSize *ImageSize09 `json:"image_size,omitempty"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
 	Pieces []CreateUIAssetRequestPiecesItem `json:"pieces,omitzero"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
@@ -1970,7 +1970,7 @@ type EditImageRequest struct {
 	// Reference image to edit as base64 PNG/JPEG
 	Image BaseImage `json:"image"`
 	// Size of the reference image
-	ImageSize ImageSize6 `json:"image_size"`
+	ImageSize ImageSize06 `json:"image_size"`
 	// Text description of the edit to apply
 	Description string `json:"description,omitzero"`
 	// Target canvas width in pixels (16-400)
@@ -2062,7 +2062,7 @@ type EnhancePixenPromptRequest struct {
 	// User's image description to enhance.
 	Description string `json:"description,omitzero"`
 	// Target image size. Prompt complexity scales with size.
-	ImageSize ImageSize5 `json:"image_size"`
+	ImageSize ImageSize05 `json:"image_size"`
 	// Outline style hint.
 	Outline *Outline `json:"outline,omitempty"`
 	// Detail level hint.
@@ -2335,6 +2335,68 @@ type ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
+// ImageSize03 defines a model
+type ImageSize03 struct {
+	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
+	Width int `json:"width,omitzero"`
+	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
+	Height int `json:"height,omitzero"`
+}
+
+// ImageSize04 defines a model
+type ImageSize04 struct {
+	// Image width in pixels
+	Width int `json:"width,omitzero"`
+	// Image height in pixels
+	Height int `json:"height,omitzero"`
+}
+
+// ImageSize05 defines a model
+type ImageSize05 struct {
+	// Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32)
+	Width int `json:"width,omitzero"`
+	// Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)
+	Height int `json:"height,omitzero"`
+}
+
+// ImageSize06 defines a model
+type ImageSize06 struct {
+	// Image width in pixels
+	Width int `json:"width,omitzero"`
+	// Image height in pixels
+	Height int `json:"height,omitzero"`
+}
+
+// ImageSize07 defines a model
+type ImageSize07 struct {
+	// Image width in pixels. Sizes above 24px often give better results.
+	Width int `json:"width,omitzero"`
+	// Image height in pixels. Sizes above 24px often give better results.
+	Height int `json:"height,omitzero"`
+}
+
+// Image dimensions for map objects.
+//
+// Supports any aspect ratio:
+// - Both width and height: 32px minimum, 400px maximum
+// - Basic mode (no inpainting): max 400×400 total area (160,000 pixels)
+// - Inpainting mode: max 192×192 total area (36,864 pixels)
+// - Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96
+type ImageSize08 struct {
+	// Width in pixels (32-400)
+	Width int `json:"width,omitzero"`
+	// Height in pixels (32-400)
+	Height int `json:"height,omitzero"`
+}
+
+// ImageSize09 defines a model
+type ImageSize09 struct {
+	// Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688)
+	Width *int `json:"width,omitempty"`
+	// Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688)
+	Height *int `json:"height,omitempty"`
+}
+
 // ImageSize10 defines a model
 type ImageSize10 struct {
 	// Image width in pixels
@@ -2375,74 +2437,12 @@ type ImageSize14 struct {
 	Height int `json:"height,omitzero"`
 }
 
-// ImageSize2 defines a model
-type ImageSize2 struct {
+// ImageSize64x64 defines a model
+type ImageSize64x64 struct {
 	// Image width in pixels
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
 	Height int `json:"height,omitzero"`
-}
-
-// ImageSize3 defines a model
-type ImageSize3 struct {
-	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
-	Width int `json:"width,omitzero"`
-	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
-	Height int `json:"height,omitzero"`
-}
-
-// ImageSize4 defines a model
-type ImageSize4 struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// ImageSize5 defines a model
-type ImageSize5 struct {
-	// Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32)
-	Width int `json:"width,omitzero"`
-	// Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)
-	Height int `json:"height,omitzero"`
-}
-
-// ImageSize6 defines a model
-type ImageSize6 struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
-// ImageSize7 defines a model
-type ImageSize7 struct {
-	// Image width in pixels. Sizes above 24px often give better results.
-	Width int `json:"width,omitzero"`
-	// Image height in pixels. Sizes above 24px often give better results.
-	Height int `json:"height,omitzero"`
-}
-
-// Image dimensions for map objects.
-//
-// Supports any aspect ratio:
-// - Both width and height: 32px minimum, 400px maximum
-// - Basic mode (no inpainting): max 400×400 total area (160,000 pixels)
-// - Inpainting mode: max 192×192 total area (36,864 pixels)
-// - Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96
-type ImageSize8 struct {
-	// Width in pixels (32-400)
-	Width int `json:"width,omitzero"`
-	// Height in pixels (32-400)
-	Height int `json:"height,omitzero"`
-}
-
-// ImageSize9 defines a model
-type ImageSize9 struct {
-	// Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688)
-	Width *int `json:"width,omitempty"`
-	// Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688)
-	Height *int `json:"height,omitempty"`
 }
 
 // Request model for image to pixel art (pro) endpoint
@@ -2474,8 +2474,8 @@ type InpaintRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Text description of what to avoid in the generated image
-	NegativeDescription string     `json:"negative_description,omitzero"`
-	ImageSize           ImageSize4 `json:"image_size"`
+	NegativeDescription string      `json:"negative_description,omitzero"`
+	ImageSize           ImageSize04 `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
@@ -2539,7 +2539,7 @@ type InterpolationV2Request struct {
 	// Description of the transition (e.g., 'morphing', 'transforming', 'powering up')
 	Action string `json:"action,omitzero"`
 	// Size of the output frames
-	ImageSize ImageSize3 `json:"image_size"`
+	ImageSize ImageSize03 `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
@@ -2923,9 +2923,9 @@ type ResizeRequest struct {
 	// Image to resize
 	ReferenceImage BaseImage `json:"reference_image"`
 	// Original size of the reference image
-	ReferenceImageSize ImageSize4 `json:"reference_image_size"`
+	ReferenceImageSize ImageSize04 `json:"reference_image_size"`
 	// Desired output size
-	TargetSize ImageSize4 `json:"target_size"`
+	TargetSize ImageSize04 `json:"target_size"`
 	// Camera view angle
 	View *CameraView `json:"view,omitempty"`
 	// Directional view
@@ -2948,7 +2948,7 @@ type ResizeRequest struct {
 
 // Request model for image generation endpoint
 type RotateRequest struct {
-	ImageSize ImageSize4 `json:"image_size"`
+	ImageSize ImageSize04 `json:"image_size"`
 	// How closely to follow the reference image
 	ImageGuidanceScale *float64 `json:"image_guidance_scale,omitempty"`
 	// How many degrees to tilt the subject

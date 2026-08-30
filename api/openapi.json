@@ -3570,7 +3570,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize2"
+            "$ref": "#/components/schemas/ImageSize64x64"
           },
           "description": {
             "title": "Description",
@@ -5300,7 +5300,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize3",
+            "$ref": "#/components/schemas/ImageSize03",
             "description": "Size of each rotation image"
           },
           "async_mode": {
@@ -5433,7 +5433,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize3",
+            "$ref": "#/components/schemas/ImageSize03",
             "description": "Size of each rotation image"
           },
           "mode": {
@@ -5634,7 +5634,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize4"
+            "$ref": "#/components/schemas/ImageSize04"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5787,7 +5787,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize5"
+            "$ref": "#/components/schemas/ImageSize05"
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -5880,7 +5880,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize6"
+            "$ref": "#/components/schemas/ImageSize06"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6022,7 +6022,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize7"
+            "$ref": "#/components/schemas/ImageSize07"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6123,7 +6123,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize8",
+            "$ref": "#/components/schemas/ImageSize08",
             "description": "Object dimensions"
           },
           "view": {
@@ -6883,7 +6883,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize9",
+            "$ref": "#/components/schemas/ImageSize09",
             "description": "Output image size in pixels (192–688; max per axis depends on aspect)"
           },
           "pieces": {
@@ -7319,7 +7319,7 @@
             "description": "Reference image to edit as base64 PNG/JPEG"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize6",
+            "$ref": "#/components/schemas/ImageSize06",
             "description": "Size of the reference image"
           },
           "description": {
@@ -7574,7 +7574,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize5",
+            "$ref": "#/components/schemas/ImageSize05",
             "description": "Target image size. Prompt complexity scales with size."
           },
           "outline": {
@@ -8313,175 +8313,8 @@
           "width": 128
         }
       },
-      "ImageSize10": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize11": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize12": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792,
-            "default": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688,
-            "default": 256
-          }
-        },
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize13": {
-        "title": "ImageSize",
-        "description": "Image dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize14": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize2": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize3": {
-        "title": "ImageSize",
+      "ImageSize03": {
+        "title": "app__endpoints__external__v__create_character_with__directions__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8508,8 +8341,8 @@
           "width": 96
         }
       },
-      "ImageSize4": {
-        "title": "ImageSize",
+      "ImageSize04": {
+        "title": "app__endpoints__external__v__create_image_bitforge__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8536,8 +8369,8 @@
           "width": 128
         }
       },
-      "ImageSize5": {
-        "title": "ImageSize",
+      "ImageSize05": {
+        "title": "app__endpoints__external__v2__create_image_pixen__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8566,8 +8399,8 @@
           "width": 128
         }
       },
-      "ImageSize6": {
-        "title": "ImageSize",
+      "ImageSize06": {
+        "title": "app__endpoints__external__v__create_image_pixflux__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8594,8 +8427,8 @@
           "width": 128
         }
       },
-      "ImageSize7": {
-        "title": "ImageSize",
+      "ImageSize07": {
+        "title": "app__endpoints__external__v2__create_isometric_tile__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8622,8 +8455,8 @@
           "width": 32
         }
       },
-      "ImageSize8": {
-        "title": "ImageSize",
+      "ImageSize08": {
+        "title": "app__endpoints__external__v2__create_map_object__ImageSize",
         "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96",
         "type": "object",
         "properties": {
@@ -8655,8 +8488,8 @@
           "width": 128
         }
       },
-      "ImageSize9": {
-        "title": "ImageSize",
+      "ImageSize09": {
+        "title": "app__endpoints__external__v2__create_ui_asset__ImageSize",
         "type": "object",
         "properties": {
           "width": {
@@ -8679,6 +8512,173 @@
         "example": {
           "height": 256,
           "width": 256
+        }
+      },
+      "ImageSize10": {
+        "title": "app__endpoints__external__v2__edit_images_v2__ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 512
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 512
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
+      },
+      "ImageSize11": {
+        "title": "app__endpoints__external__v2__generate_image_v2__ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels (16 to aspect-ratio max)",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 792
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels (16 to aspect-ratio max)",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 688
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
+      },
+      "ImageSize12": {
+        "title": "app__endpoints__external__v2__generate_ui_v2__ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels (16 to aspect-ratio max)",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 792,
+            "default": 256
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels (16 to aspect-ratio max)",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 688,
+            "default": 256
+          }
+        },
+        "example": {
+          "height": 256,
+          "width": 256
+        }
+      },
+      "ImageSize13": {
+        "title": "app__endpoints__external__v2__image_to_pixelart__ImageSize",
+        "description": "Image dimensions",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 1280
+          },
+          "height": {
+            "title": "Height",
+            "description": "Height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 1280
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 256,
+          "width": 256
+        }
+      },
+      "ImageSize14": {
+        "title": "app__endpoints__external__v2__remove_background__ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 400
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 400
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
+      },
+      "ImageSize64x64": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 64
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
         }
       },
       "ImageToPixelartProRequest": {
@@ -8781,7 +8781,7 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize4"
+            "$ref": "#/components/schemas/ImageSize04"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -8977,7 +8977,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize3",
+            "$ref": "#/components/schemas/ImageSize03",
             "description": "Size of the output frames"
           },
           "seed": {
@@ -10029,11 +10029,11 @@
             "description": "Image to resize"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/ImageSize4",
+            "$ref": "#/components/schemas/ImageSize04",
             "description": "Original size of the reference image"
           },
           "target_size": {
-            "$ref": "#/components/schemas/ImageSize4",
+            "$ref": "#/components/schemas/ImageSize04",
             "description": "Desired output size"
           },
           "view": {
@@ -10108,7 +10108,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize4"
+            "$ref": "#/components/schemas/ImageSize04"
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
