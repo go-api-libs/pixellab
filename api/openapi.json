@@ -5709,7 +5709,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__animate_with_skeleton__ImageSize"
+            "$ref": "#/components/schemas/ImageSize"
           },
           "guidance_scale": {
             "title": "Guidance Scale",
@@ -5988,7 +5988,7 @@
             "description": "Reference image (character/object to animate) as base64 PNG/JPEG"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize",
+            "$ref": "#/components/schemas/ReferenceImageSize",
             "description": "Size of the reference image"
           },
           "action": {
@@ -9879,7 +9879,7 @@
             "minItems": 2,
             "maxItems": 16,
             "items": {
-              "$ref": "#/components/schemas/app__endpoints__external__v2__edit_animation_v2__FrameImage"
+              "$ref": "#/components/schemas/FrameImage"
             }
           },
           "image_size": {
@@ -10437,6 +10437,34 @@
           "keypoints"
         ]
       },
+      "FrameImage": {
+        "title": "FrameImage",
+        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "Frame image as base64 PNG/JPEG"
+          },
+          "size": {
+            "$ref": "#/components/schemas/app__endpoints__external__v2__edit_animation_v2__FrameImageSize",
+            "description": "Size of the frame image"
+          }
+        },
+        "required": [
+          "image",
+          "size"
+        ],
+        "example": {
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "size": {
+            "height": 64,
+            "width": 64
+          }
+        }
+      },
       "FrameSize": {
         "title": "FrameSize",
         "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.",
@@ -10746,7 +10774,7 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize",
+            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ImageSize",
             "description": "Size of the output image"
           },
           "seed": {
@@ -11248,6 +11276,34 @@
               "$ref": "#/components/schemas/ValidationError"
             }
           }
+        }
+      },
+      "ImageSize": {
+        "title": "ImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Image width in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height in pixels",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 256
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 128,
+          "width": 128
         }
       },
       "ImageToPixelartProRequest": {
@@ -12730,6 +12786,34 @@
             "maximum": 0.95,
             "default": 0.3
           }
+        }
+      },
+      "ReferenceImageSize": {
+        "title": "ReferenceImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Reference image width in pixels (32-256)",
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 256
+          },
+          "height": {
+            "title": "Height",
+            "description": "Reference image height in pixels (32-256)",
+            "type": "integer",
+            "minimum": 32,
+            "maximum": 256
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
         }
       },
       "RemoveBackgroundRequest": {
@@ -14807,34 +14891,6 @@
           "viseme_count"
         ]
       },
-      "app__endpoints__external__v2__animate_with_skeleton__ImageSize": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
       "app__endpoints__external__v2__animate_with_text__ImageSize": {
         "title": "ImageSize",
         "type": "object",
@@ -14877,34 +14933,6 @@
           "height": {
             "title": "Height",
             "description": "Image height in pixels (32-256)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize": {
-        "title": "ReferenceImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Reference image width in pixels (32-256)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Reference image height in pixels (32-256)",
             "type": "integer",
             "minimum": 32,
             "maximum": 256
@@ -15148,34 +15176,6 @@
           "width": 256
         }
       },
-      "app__endpoints__external__v2__edit_animation_v2__FrameImage": {
-        "title": "FrameImage",
-        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/Base64Image",
-            "description": "Frame image as base64 PNG/JPEG"
-          },
-          "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__edit_animation_v2__FrameImageSize",
-            "description": "Size of the frame image"
-          }
-        },
-        "required": [
-          "image",
-          "size"
-        ],
-        "example": {
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "size": {
-            "height": 64,
-            "width": 64
-          }
-        }
-      },
       "app__endpoints__external__v2__edit_animation_v2__FrameImageSize": {
         "title": "FrameImageSize",
         "type": "object",
@@ -15390,7 +15390,7 @@
           "width": 64
         }
       },
-      "ImageSize": {
+      "app__endpoints__external__v2__generate_image_v2__ImageSize": {
         "title": "ImageSize",
         "type": "object",
         "properties": {

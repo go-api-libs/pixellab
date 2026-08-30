@@ -229,7 +229,7 @@ type AnimateWithSkeletonKeypointsItem []Point
 
 // Request model for animation using skeleton endpoint
 type AnimateWithSkeletonRequest struct {
-	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
+	ImageSize ImageSize `json:"image_size"`
 	// How closely to follow the reference image and skeleton keypoints
 	GuidanceScale *float64 `json:"guidance_scale,omitempty"`
 	// Camera view angle
@@ -1939,7 +1939,7 @@ type DismissReviewResponse struct {
 }
 
 // Animation frames to edit (2-16 frames)
-type EditAnimationFrames []app__endpoints__external__v__edit_animation_v__FrameImage
+type EditAnimationFrames []FrameImage
 
 // Request model for edit-animation-v2 endpoint
 type EditAnimationV2Request struct {
@@ -1948,7 +1948,7 @@ type EditAnimationV2Request struct {
 	// Animation frames to edit (2-16 frames)
 	Frames EditAnimationFrames `json:"frames"`
 	// Size of the output frames
-	ImageSize app__endpoints__external__v__animate_with_skeleton__ImageSize `json:"image_size"`
+	ImageSize ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from edited frames
@@ -2093,6 +2093,17 @@ type EstimateSkeletonResponseKeypoints []Keypoint
 // ExportCharacterAsZip defines a model
 type ExportCharacterAsZip struct{}
 
+// Animation frame image with size.
+//
+// Nested `size` object matches the animation-frame v2 subfamily
+// (transfer-outfit-v2, interpolation-v2), which share this backend family.
+type FrameImage struct {
+	// Frame image as base64 PNG/JPEG
+	Image BaseImage `json:"image"`
+	// Size of the frame image
+	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
+}
+
 // A canvas size in pixels. Both sides must be multiples of 4, 32–256.
 type FrameSize struct {
 	Width  int `json:"width,omitzero"`
@@ -2192,7 +2203,7 @@ type GenerateImageV2Request struct {
 	// Description of the image to generate
 	Description string `json:"description,omitzero"`
 	// Size of the output image
-	ImageSize ImageSize `json:"image_size"`
+	ImageSize app__endpoints__external__v2__generate_image_v2__ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated images
@@ -2329,9 +2340,9 @@ type HTTPValidationErrorDetail []ValidationError
 
 // ImageSize defines a model
 type ImageSize struct {
-	// Image width in pixels (16 to aspect-ratio max)
+	// Image width in pixels
 	Width int `json:"width,omitzero"`
-	// Image height in pixels (16 to aspect-ratio max)
+	// Image height in pixels
 	Height int `json:"height,omitzero"`
 }
 
@@ -3237,7 +3248,7 @@ type TilesetsListResponseTilesets []TilesetSummary
 // Request model for transfer-outfit-v2 endpoint
 type TransferOutfitV2Request struct {
 	// Reference image containing the outfit/appearance to transfer
-	ReferenceImage app__endpoints__external__v__edit_animation_v__FrameImage `json:"reference_image"`
+	ReferenceImage FrameImage `json:"reference_image"`
 	// Animation frames to apply the outfit to (2-16 frames)
 	Frames EditAnimationFrames `json:"frames"`
 	// Size of the output frames
@@ -3526,6 +3537,14 @@ type app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage struc
 	Height int `json:"height,omitzero"`
 }
 
+// app__endpoints__external__v2__generate_image_v2__ImageSize defines a model
+type app__endpoints__external__v2__generate_image_v2__ImageSize struct {
+	// Image width in pixels (16 to aspect-ratio max)
+	Width int `json:"width,omitzero"`
+	// Image height in pixels (16 to aspect-ratio max)
+	Height int `json:"height,omitzero"`
+}
+
 // Reference image with size and optional description.
 //
 // Images larger than 1024x1024 will be downscaled. Non-square images will be
@@ -3563,14 +3582,6 @@ type app__endpoints__external__v2__remove_background__ImageSize struct {
 	Height int `json:"height,omitzero"`
 }
 
-// app__endpoints__external__v__animate_with_skeleton__ImageSize defines a model
-type app__endpoints__external__v__animate_with_skeleton__ImageSize struct {
-	// Image width in pixels
-	Width int `json:"width,omitzero"`
-	// Image height in pixels
-	Height int `json:"height,omitzero"`
-}
-
 // app__endpoints__external__v__create_character_with__directions__ImageSize defines a model
 type app__endpoints__external__v__create_character_with__directions__ImageSize struct {
 	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
@@ -3593,17 +3604,6 @@ type app__endpoints__external__v__create_image_pixflux__ImageSize struct {
 	Width int `json:"width,omitzero"`
 	// Image height in pixels
 	Height int `json:"height,omitzero"`
-}
-
-// Animation frame image with size.
-//
-// Nested `size` object matches the animation-frame v2 subfamily
-// (transfer-outfit-v2, interpolation-v2), which share this backend family.
-type app__endpoints__external__v__edit_animation_v__FrameImage struct {
-	// Frame image as base64 PNG/JPEG
-	Image BaseImage `json:"image"`
-	// Size of the frame image
-	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
 }
 
 // app__endpoints__external__v__edit_animation_v__FrameImageSize defines a model

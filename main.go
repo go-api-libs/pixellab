@@ -128,25 +128,26 @@ func main() {
 		log.Fatalf("Validation ERROR: %v", err)
 	}
 
+	if err := enrich.Enrich(doc, nil); err != nil {
+		log.Fatalf("enrich: %v", err)
+	}
+
+	for _, v := range []struct{ old, new string }{
+		{"app__endpoints__external__v2__animate_with_skeleton__ImageSize", "ImageSize"},
+		{"app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize", "ReferenceImageSize"},
+		{"app__endpoints__external__v2__edit_animation_v2__FrameImage", "FrameImage"},
+	} {
+		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	for _, path := range doc.Paths {
 		for _, op := range path.Operations {
 			op.Responses.Sort()
 		}
 	}
 	doc.Components.SortMaps()
-
-	if err := enrich.Enrich(doc, nil); err != nil {
-		log.Fatalf("enrich: %v", err)
-	}
-
-	for _, v := range []struct{ old, new string }{
-		{"app__endpoints__external__v2__generate_image_v2__ImageSize", "ImageSize"},
-	} {
-		// GenerateWithStyleV2Request
-		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
-			log.Fatal(err)
-		}
-	}
 
 	// if err := flatten.Document(doc); err != nil {
 	// 	log.Fatalf("flatten: %v", err)
