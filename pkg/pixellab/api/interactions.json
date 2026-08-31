@@ -6166,5 +6166,4117 @@
 			},
 			"body": "invalid json"
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:32839/generate-image-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:27 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45233/generate-with-style-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"style_images": [],
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39665/generate-ui-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43301/create-image-pixflux",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37231/create-image-pixflux-background",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40861/create-image-pixen",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36009/create-image-bitforge",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40803/image-to-pixelart",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"output_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34035/image-to-pixelart-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37245/resize",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {},
+				"reference_image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"target_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36177/remove-background",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41429/edit-animation-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"frames": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35123/interpolation-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"start_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"end_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45195/transfer-outfit-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"frames": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45741/portrait-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45113/portrait-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46613/characters/portrait",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:33687/vocal-animation",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37771/vocal-animation",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45703/talking-gif",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:28 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34165/lip-sync",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45297/generate-font-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:46159/generate-font-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39611/animate-with-skeleton",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"reference_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40609/animate-with-text",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"reference_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41887/animate-with-text-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {},
+				"reference_image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39389/animate-with-text-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {},
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37193/estimate-skeleton",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36445/generate-8-rotations-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38051/generate-8-rotations-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42955/rotate",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"from_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40759/inpaint-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"inpainting_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"mask_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"no_background": false,
+				"crop_to_mask": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40821/inpaint",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false,
+				"inpainting_image": {},
+				"mask_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37445/edit-images-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"edit_images": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36197/edit-image",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"width": 0,
+				"height": 0,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:29 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:40745/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:33707/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"enhance": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46307/create-tileset",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"enhance": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:38719/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:38751/tilesets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:34319/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34245/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40109/create-tileset-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:39223/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:43451/tilesets-sidescroller/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44513/create-isometric-tile",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:40383/isometric-tiles",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:36939/isometric-tiles/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:34937/isometric-tiles",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41161/create-tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:38683/tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:30 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:38185/tiles-pro/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:36745/tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34429/map-objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:39671/map-objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40019/create-ui-asset",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45643/ui-assets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:42031/ui-assets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:34119/ui-assets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37275/balance",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38075/create-character-with-4-directions",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"async_mode": false,
+				"isometric": false,
+				"force_colors": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43581/create-character-with-8-directions",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"async_mode": false,
+				"isometric": false,
+				"force_colors": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41021/create-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36973/create-character-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38297/characters/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"async_mode": false,
+				"keep_first_frame": false,
+				"isometric": false,
+				"force_colors": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41795/animate-character",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"async_mode": false,
+				"keep_first_frame": false,
+				"isometric": false,
+				"force_colors": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38861/create-character-state",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false,
+				"use_color_palette_from_reference": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:31 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:40177/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45795/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:33145/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:36501/characters/zip",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "PATCH",
+			"url": "http://127.0.0.1:39519/characters/tags",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"tags": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:46131/background-jobs",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43549/create-1-direction-object",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44427/create-8-direction-object",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41107/objects/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"replace_existing": false,
+				"keep_first_frame": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:33569/objects/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:32 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45809/objects/00000000-0000-0000-0000-000000000000/states",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37151/objects/00000000-0000-0000-0000-000000000000/select-frames",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"indices": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43361/objects/00000000-0000-0000-0000-000000000000/dismiss-review",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:41747/objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:34819/objects/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:43883/objects/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "PATCH",
+			"url": "http://127.0.0.1:45197/objects/00000000-0000-0000-0000-000000000000/tags",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"tags": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:39363/characters/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45133/enhance-pixen-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:33 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43539/enhance-character-v3-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:34 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38549/enhance-animation-v3-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:34 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46357/generate-image-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:37 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36459/generate-with-style-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"style_images": [],
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:37 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34965/generate-ui-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:37 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42957/create-image-pixflux",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:37 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37549/create-image-pixflux-background",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:37 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36131/create-image-pixen",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38157/create-image-bitforge",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46693/image-to-pixelart",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"output_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44085/image-to-pixelart-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43211/resize",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {},
+				"reference_image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"target_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40307/remove-background",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41797/edit-animation-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"frames": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34603/interpolation-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"start_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"end_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35187/transfer-outfit-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"frames": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:38 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42151/portrait-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:40285/portrait-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35439/characters/portrait",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42787/vocal-animation",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:34463/vocal-animation",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46211/talking-gif",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38471/lip-sync",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38173/generate-font-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:43753/generate-font-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:39 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42947/animate-with-skeleton",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"reference_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39673/animate-with-text",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"reference_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45229/animate-with-text-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"reference_image": {},
+				"reference_image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39027/animate-with-text-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {},
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39627/estimate-skeleton",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37443/generate-8-rotations-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35423/generate-8-rotations-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:41563/rotate",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"from_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:33393/inpaint-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"inpainting_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"mask_image": {
+					"image": {},
+					"size": {
+						"width": 0,
+						"height": 0
+					}
+				},
+				"no_background": false,
+				"crop_to_mask": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44163/inpaint",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"isometric": false,
+				"oblique_projection": false,
+				"no_background": false,
+				"inpainting_image": {},
+				"mask_image": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36931/edit-images-v2",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"edit_images": [],
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:40 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44449/edit-image",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image": {},
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"width": 0,
+				"height": 0,
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:38643/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35029/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"enhance": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37545/create-tileset",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"enhance": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:43427/tilesets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:42277/tilesets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45893/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:34243/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45465/create-tileset-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:41375/tilesets-sidescroller",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:39185/tilesets-sidescroller/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:33385/create-isometric-tile",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:41 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:46853/isometric-tiles",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:34801/isometric-tiles/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37121/isometric-tiles",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46081/create-tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:35653/tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:40189/tiles-pro/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:43701/tiles-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43955/map-objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45041/map-objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43961/create-ui-asset",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 202,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:34793/ui-assets",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:33625/ui-assets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:42 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:43617/ui-assets/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:39059/balance",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:33441/create-character-with-4-directions",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"async_mode": false,
+				"isometric": false,
+				"force_colors": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:46055/create-character-with-8-directions",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"async_mode": false,
+				"isometric": false,
+				"force_colors": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:45747/create-character-pro",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:42153/create-character-v3",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:39243/characters/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"async_mode": false,
+				"keep_first_frame": false,
+				"isometric": false,
+				"force_colors": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37793/animate-character",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"async_mode": false,
+				"keep_first_frame": false,
+				"isometric": false,
+				"force_colors": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:38373/create-character-state",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"no_background": false,
+				"use_color_palette_from_reference": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:41407/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:35939/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:43375/characters",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:43 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37381/characters/zip",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "PATCH",
+			"url": "http://127.0.0.1:36611/characters/tags",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"tags": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:45849/background-jobs",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44915/create-1-direction-object",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:35941/create-8-direction-object",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:44911/objects/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"replace_existing": false,
+				"keep_first_frame": false,
+				"enhance_prompt": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:45061/objects/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40829/objects/00000000-0000-0000-0000-000000000000/states",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:37505/objects/00000000-0000-0000-0000-000000000000/select-frames",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"indices": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:40461/objects/00000000-0000-0000-0000-000000000000/dismiss-review",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37433/objects",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "http://127.0.0.1:37289/objects/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:38357/objects/00000000-0000-0000-0000-000000000000",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "PATCH",
+			"url": "http://127.0.0.1:39625/objects/00000000-0000-0000-0000-000000000000/tags",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"tags": []
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "DELETE",
+			"url": "http://127.0.0.1:45023/characters/00000000-0000-0000-0000-000000000000/animations",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:44 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43157/enhance-pixen-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				},
+				"no_background": false
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:45 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:36317/enhance-character-v3-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"image_size": {
+					"width": 0,
+					"height": 0
+				}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:45 GMT"
+			},
+			"body": "invalid json"
+		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "http://127.0.0.1:43457/enhance-animation-v3-prompt",
+			"header": {
+				"Authorization": "Bearer **************************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"first_frame": {}
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "12",
+				"Content-Type": "application/json",
+				"Date": "Mon, 31 Aug 2026 18:21:45 GMT"
+			},
+			"body": "invalid json"
+		}
 	}
 ]
