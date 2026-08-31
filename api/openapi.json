@@ -2089,6 +2089,11 @@
       }
     },
     "/ui-assets/{ui_asset_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ui_asset_id"
+        }
+      ],
       "get": {
         "tags": [
           "UI Creator"
@@ -2096,11 +2101,6 @@
         "summary": "Get UI asset",
         "description": "Get a UI panel's details. Reports progress while the panel is still generating.",
         "operationId": "GetUIAsset",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ui_asset_id"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetUIAssetOkResponse"
@@ -2128,11 +2128,6 @@
         "summary": "Delete UI asset",
         "description": "Permanently delete a UI panel and its backing image files.",
         "operationId": "DeleteUIAsset",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ui_asset_id"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/DeleteUIAssetOkResponse"
@@ -2460,6 +2455,11 @@
       }
     },
     "/characters/{character_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/character_id"
+        }
+      ],
       "get": {
         "tags": [
           "Character Management"
@@ -2467,11 +2467,6 @@
         "summary": "Get character details",
         "description": "Get detailed information about a specific character.\n\nThis endpoint returns complete character information including all rotation image URLs,\ngeneration settings, and metadata.\n\n**Features:**\n- Complete character information and settings\n- URLs for all rotation images (4 or 8 directions)\n- Animation count and template information\n- Generation parameters used during creation\n\n**Authentication:**\nRequires a valid API token. You can only access characters you created.\n\n**Response includes:**\n- Basic character info (name, prompt, size, directions)\n- All rotation image URLs (publicly accessible)\n- Style settings and generation parameters\n- Template information and view settings\n- Animation count for this character\n\n**URL Format:**\nAll rotation URLs follow the pattern:\n`https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`",
         "operationId": "GetCharacterDetails",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/character_id"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetCharacterDetailsOkResponse"
@@ -2505,11 +2500,6 @@
         "summary": "Delete a character and all associated data",
         "description": "Delete a character (v2 API for external customers).\n\nUses the same internal logic as JWT and MCP endpoints, providing\nfast storage deletion by using service_role internally (avoiding\nthe slow storage.search_legacy_v1 function).",
         "operationId": "DeleteCharacterAndAllAssociatedData",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/character_id"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/DeleteCharacterAndAllAssociatedDataOkResponse"
@@ -2711,6 +2701,11 @@
       }
     },
     "/objects/{object_id}/animations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/object_id2"
+        }
+      ],
       "post": {
         "tags": [
           "Objects"
@@ -2718,11 +2713,6 @@
         "summary": "Add an animation to an existing object",
         "description": "**Cost warning**: when generating on a subscription, `mode='pro'` costs 20-40 generations per direction (160-320 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.\n\nQueues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.\n\n**Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).",
         "operationId": "AddAnAnimationToAnExistingObject",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/object_id2"
-          }
-        ],
         "requestBody": {
           "$ref": "#/components/requestBodies/AddAnAnimationToAnExistingObjectRequestBody"
         },
@@ -2766,9 +2756,6 @@
         "description": "Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.",
         "operationId": "DeleteAnimationsFromAnObject",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/object_id2"
-          },
           {
             "$ref": "#/components/parameters/animation_type"
           },
@@ -2962,6 +2949,11 @@
       }
     },
     "/objects/{object_id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/object_id2"
+        }
+      ],
       "get": {
         "tags": [
           "Object Management"
@@ -2969,11 +2961,6 @@
         "summary": "Get object details",
         "description": "Get detailed information about a specific object.\n\nThis endpoint returns complete object information including all rotation image URLs\nand metadata.\n\n**Features:**\n- Complete object information and settings\n- URLs for all rotation images (4 directions)\n- Generation parameters used during creation\n\n**Authentication:**\nRequires a valid API token. You can only access objects you created.",
         "operationId": "GetObjectDetails",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/object_id2"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetObjectDetailsOkResponse"
@@ -3004,11 +2991,6 @@
         "summary": "Delete an object and all associated data",
         "description": "Delete an object and all its rotation images.\n\nThis permanently deletes:\n- The object record from the database\n- All rotation images from storage\n- All associated tags\n\n**Authentication:**\nRequires a valid API token. You can only delete objects you created.\n\n**Warning:** This action cannot be undone.",
         "operationId": "DeleteAnObjectAndAllAssociatedData",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/object_id2"
-          }
-        ],
         "responses": {
           "200": {
             "$ref": "#/components/responses/DeleteAnObjectAndAllAssociatedDataOkResponse"
