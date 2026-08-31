@@ -11,7 +11,7 @@ tool (
 
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260828173639-2eb9293069d5
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260831175115-eaf984124ada
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260831204342-708356f8bb4b
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260830155010-6a0d8810101d
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260831174706-83a704a7d0d8
 	github.com/ettle/strcase v0.2.0
