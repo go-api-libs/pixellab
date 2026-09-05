@@ -11,7 +11,7 @@ tool (
 
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260828173639-2eb9293069d5
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260831223202-dc1bdcaec4cf
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260905114116-1b908e7a3025
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260904221256-b3fa0e5c0c29
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260830155010-6a0d8810101d
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260831174706-83a704a7d0d8
