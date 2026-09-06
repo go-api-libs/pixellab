@@ -181,7 +181,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	// app__endpoints__external__v2__image_to_pixelart__ImageSize
 
 	if err := doc.WriteToFile(specPath); err != nil {
 		log.Fatal(err)

@@ -2259,8 +2259,8 @@ type GetFontResponse struct {
 	DownloadTtfURL string `json:"download_ttf_url,omitzero"`
 }
 
-// GetLlmFriendlyAPIDocumentationOkUnknownResponse defines a model
-type GetLlmFriendlyAPIDocumentationOkUnknownResponse string
+// GetLlmFriendlyAPIDocumentationOk defines a model
+type GetLlmFriendlyAPIDocumentationOk string
 
 // GetMapObjectResponse defines a model
 type GetMapObjectResponse struct {

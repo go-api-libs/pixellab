@@ -8024,7 +8024,7 @@
           "job_id"
         ]
       },
-      "GetLlmFriendlyAPIDocumentationOkUnknownResponse": {
+      "GetLlmFriendlyAPIDocumentationOk": {
         "type": "string"
       },
       "GetMapObjectResponse": {
@@ -13914,7 +13914,7 @@
         "content": {
           "text/plain": {
             "schema": {
-              "$ref": "#/components/schemas/GetLlmFriendlyAPIDocumentationOkUnknownResponse"
+              "$ref": "#/components/schemas/GetLlmFriendlyAPIDocumentationOk"
             },
             "example": "# PixelLab v2 API Documentation\n\n..."
           }
