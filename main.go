@@ -258,11 +258,17 @@ type imageSizeUsage struct {
 
 // funcName is the name of the constructor generated for this usage.
 func (u imageSizeUsage) funcName() string {
+	return "New" + u.varName()
+}
+
+// varName is the name of the fixed-size global variable generated for this
+// usage when its bounds don't leave room for a constructor to check anything.
+func (u imageSizeUsage) varName() string {
 	base := strings.TrimSuffix(u.typeName, "Request")
 	if u.field == "ImageSize" {
-		return "NewImageSizeFor" + base
+		return "ImageSizeFor" + base
 	}
-	return "New" + u.field + "For" + base
+	return u.field + "For" + base
 }
 
 // imageSizeGroups maps the schema name each distinct ImageSize bound set has
@@ -601,7 +607,11 @@ func writeImageSizeConstructors(path string, specs []imageSizeSpec) error {
 
 	for _, spec := range specs {
 		for _, u := range spec.usages {
-			writeImageSizeConstructor(&b, u, spec)
+			if spec.widthMin == spec.widthMax && spec.heightMin == spec.heightMax {
+				writeImageSizeVar(&b, u, spec)
+			} else {
+				writeImageSizeConstructor(&b, u, spec)
+			}
 		}
 	}
 
@@ -611,6 +621,17 @@ func writeImageSizeConstructors(path string, specs []imageSizeSpec) error {
 	}
 
 	return os.WriteFile(path, formatted, 0o644)
+}
+
+// writeImageSizeVar emits a fixed-value global instead of a constructor when
+// a usage's bounds pin width and height to a single size, since there's
+// nothing left for a constructor to validate.
+func writeImageSizeVar(b *strings.Builder, u imageSizeUsage, spec imageSizeSpec) {
+	name := u.varName()
+
+	fmt.Fprintf(b, "// %s is the fixed ImageSize required by %s.%s (%dx%d px).\n",
+		name, u.typeName, u.field, spec.widthMin, spec.heightMin)
+	fmt.Fprintf(b, "var %s = ImageSize{Width: %d, Height: %d}\n\n", name, spec.widthMin, spec.heightMin)
 }
 
 func writeImageSizeConstructor(b *strings.Builder, u imageSizeUsage, spec imageSizeSpec) {

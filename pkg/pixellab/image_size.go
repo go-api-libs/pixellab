@@ -32,19 +32,8 @@ func NewImageSizeForEditAnimationV2(width, height int) (ImageSize, error) {
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// NewImageSizeForAnimateWithText builds the ImageSize for AnimateWithTextRequest.ImageSize, checking width and height
-// against the bounds that request requires:
-//   - width: exactly 64
-//   - height: exactly 64
-func NewImageSizeForAnimateWithText(width, height int) (ImageSize, error) {
-	if width != 64 {
-		return ImageSize{}, fmt.Errorf("width must be exactly 64 pixels, got %d", width)
-	}
-	if height != 64 {
-		return ImageSize{}, fmt.Errorf("height must be exactly 64 pixels, got %d", height)
-	}
-	return ImageSize{Width: width, Height: height}, nil
-}
+// ImageSizeForAnimateWithText is the fixed ImageSize required by AnimateWithTextRequest.ImageSize (64x64 px).
+var ImageSizeForAnimateWithText = ImageSize{Width: 64, Height: 64}
 
 // NewImageSizeForCreateCharacterWith4Directions builds the ImageSize for CreateCharacterWith4DirectionsRequest.ImageSize, checking width and height
 // against the bounds that request requires:
