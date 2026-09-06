@@ -244,9 +244,6 @@ func mustEncode(v any) jsontext.Value {
 
 func ptr[T any](v T) *T { return &v }
 
-// schemaRefPrefix is the start of every reference to a component schema.
-const schemaRefPrefix = "#/components/schemas/"
-
 // imageSizeUsage identifies one field, on one generated Go request type,
 // that carries an image size.
 type imageSizeUsage struct {
@@ -397,7 +394,9 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 		spec.heightMin, spec.heightMax = intBounds(s.Properties["height"])
 		specs = append(specs, spec)
 
-		mergeSchemaInto(doc, name, "ImageSize", imageSizeUsageDescription(s))
+		if err := edit.MergeSchema(doc, name, "ImageSize", imageSizeUsageDescription(s)); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	return specs
@@ -484,114 +483,6 @@ func imageSizeFormatBound(p *openapi.SchemaRef) string {
 		return fmt.Sprintf("up to %d px", int(*max))
 	default:
 		return ""
-	}
-}
-
-// mergeSchemaInto repoints every reference to oldName at newName and drops
-// oldName from components.schemas, keeping newName's own schema untouched.
-// Every repointed reference gets description as its $ref-level description,
-// which is how the bounds oldName used to carry survive the merge.
-//
-// This differs from openapi-edit's RenameSchema, which refuses to rename a
-// schema onto a name that already exists - here that's exactly the point,
-// since every oldName is merging onto the same canonical newName.
-func mergeSchemaInto(doc *openapi.Document, oldName, newName, description string) {
-	if _, ok := doc.Components.Schemas[oldName]; !ok {
-		log.Fatalf("mergeSchemaInto: schema %q not found", oldName)
-	}
-	if _, ok := doc.Components.Schemas[newName]; !ok {
-		log.Fatalf("mergeSchemaInto: target schema %q not found", newName)
-	}
-
-	old := schemaRefPrefix + oldName
-	walkSchemaRefs(doc, func(r *openapi.SchemaRef) {
-		if r.Ref != nil && r.Ref.Identifier == old {
-			r.Ref.Description = description
-			r.Ref.Identifier = schemaRefPrefix + newName
-		}
-	})
-
-	delete(doc.Components.Schemas, oldName)
-}
-
-// walkSchemaRefs calls fn once for every schema reference reachable from the
-// document: through components.schemas (properties, items, allOf/oneOf/anyOf,
-// additionalProperties) and through every path's parameters, request bodies,
-// and response content.
-func walkSchemaRefs(doc *openapi.Document, fn func(*openapi.SchemaRef)) {
-	visited := map[*openapi.Schema]bool{}
-
-	var walkRef func(r *openapi.SchemaRef)
-	var walkSchema func(s *openapi.Schema)
-
-	walkRef = func(r *openapi.SchemaRef) {
-		if r == nil {
-			return
-		}
-		fn(r)
-		walkSchema(r.Value)
-	}
-
-	walkSchema = func(s *openapi.Schema) {
-		if s == nil || visited[s] {
-			return
-		}
-		visited[s] = true
-
-		for _, r := range s.AllOf {
-			walkRef(r)
-		}
-		for _, r := range s.OneOf {
-			walkRef(r)
-		}
-		for _, r := range s.AnyOf {
-			walkRef(r)
-		}
-		walkRef(s.Not)
-		walkRef(s.Items)
-		walkRef(s.AdditionalProperties)
-		for _, r := range s.Properties {
-			walkRef(r)
-		}
-	}
-
-	for _, s := range doc.Components.Schemas {
-		walkSchema(s)
-	}
-
-	for _, p := range doc.Paths {
-		for _, pr := range p.Parameters {
-			if pr.Value != nil {
-				walkRef(pr.Value.Schema)
-			}
-		}
-
-		for _, op := range p.Operations {
-			for _, pr := range op.Parameters {
-				if pr.Value != nil {
-					walkRef(pr.Value.Schema)
-				}
-			}
-
-			if op.RequestBody != nil && op.RequestBody.Value != nil {
-				for _, c := range op.RequestBody.Value.Content {
-					if c != nil {
-						walkRef(c.Schema)
-					}
-				}
-			}
-
-			for _, r := range op.Responses {
-				if r.Value == nil {
-					continue
-				}
-				for _, c := range r.Value.Content {
-					if c != nil {
-						walkRef(c.Schema)
-					}
-				}
-			}
-		}
 	}
 }
 
