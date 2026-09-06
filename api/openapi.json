@@ -3419,7 +3419,8 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-256 px.\nHeight: 16-256 px."
           },
           "guidance_scale": {
             "title": "Guidance Scale",
@@ -3537,7 +3538,8 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize64x64"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 64 px, fixed.\nHeight: 64 px, fixed."
           },
           "description": {
             "title": "Description",
@@ -4583,7 +4585,7 @@
             "description": "Concept image as base64 PNG/JPEG"
           },
           "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
+            "$ref": "#/components/schemas/ImageSize",
             "description": "Size of the concept image"
           }
         },
@@ -5251,8 +5253,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of each rotation image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "async_mode": {
             "title": "Async Mode",
@@ -5384,8 +5386,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of each rotation image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "mode": {
             "$ref": "#/components/schemas/CreateCharacterWithDirectionsMode"
@@ -5585,7 +5587,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5738,7 +5741,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize05"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).\nHeight: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)."
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -5831,7 +5835,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize06"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-400 px.\nHeight: 16-400 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5973,7 +5978,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize07"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-64 px - Image width in pixels. Sizes above 24px often give better results..\nHeight: 16-64 px - Image height in pixels. Sizes above 24px often give better results.."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6074,8 +6080,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize08",
-            "description": "Object dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96\nWidth: 32-400 px - Width in pixels (32-400).\nHeight: 32-400 px - Height in pixels (32-400).\nDefaults to {\"width\":128,\"height\":128} if omitted."
           },
           "view": {
             "$ref": "#/components/schemas/CreateDirectionObjectView"
@@ -6834,8 +6840,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize09",
-            "description": "Output image size in pixels (192–688; max per axis depends on aspect)"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 192-688 px - Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688) (defaults to 256 if omitted).\nHeight: 192-688 px - Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688) (defaults to 256 if omitted)."
           },
           "pieces": {
             "title": "Pieces",
@@ -7174,7 +7180,7 @@
           },
           "image_size": {
             "$ref": "#/components/schemas/ImageSize",
-            "description": "Size of the output frames"
+            "description": "Width: 16-256 px.\nHeight: 16-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -7270,8 +7276,8 @@
             "description": "Reference image to edit as base64 PNG/JPEG"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize06",
-            "description": "Size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-400 px.\nHeight: 16-400 px."
           },
           "description": {
             "title": "Description",
@@ -7352,8 +7358,8 @@
             "$ref": "#/components/schemas/EditImagesV2RequestEditImages"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize10",
-            "description": "Size of output images"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-512 px.\nHeight: 32-512 px."
           },
           "description": {
             "title": "Description",
@@ -7525,8 +7531,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize05",
-            "description": "Target image size. Prompt complexity scales with size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).\nHeight: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)."
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
@@ -7816,8 +7822,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize11",
-            "description": "Size of the output image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-792 px - Image width in pixels (16 to aspect-ratio max).\nHeight: 16-688 px - Image height in pixels (16 to aspect-ratio max)."
           },
           "seed": {
             "title": "Seed",
@@ -7878,8 +7884,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize12",
-            "description": "Output image size (16 to aspect-ratio max, e.g. 512x512 square)"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-792 px - Image width in pixels (16 to aspect-ratio max) (defaults to 256 if omitted).\nHeight: 16-688 px - Image height in pixels (16 to aspect-ratio max) (defaults to 256 if omitted)."
           },
           "seed": {
             "title": "Seed",
@@ -8238,399 +8244,26 @@
       },
       "ImageSize": {
         "title": "ImageSize",
+        "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
           "width": {
             "title": "Width",
-            "description": "Image width in pixels",
+            "description": "Width in pixels.",
             "type": "integer",
-            "minimum": 16,
-            "maximum": 256
+            "minimum": 1
           },
           "height": {
             "title": "Height",
-            "description": "Image height in pixels",
+            "description": "Height in pixels.",
             "type": "integer",
-            "minimum": 16,
-            "maximum": 256
+            "minimum": 1
           }
         },
         "required": [
           "width",
           "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize03": {
-        "title": "app__endpoints__external__v__create_character_with__directions__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          },
-          "height": {
-            "title": "Height",
-            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 96,
-          "width": 96
-        }
-      },
-      "ImageSize04": {
-        "title": "app__endpoints__external__v__create_image_bitforge__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize05": {
-        "title": "app__endpoints__external__v2__create_image_pixen__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 768,
-            "multipleOf": 4.0
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 768,
-            "multipleOf": 4.0
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize06": {
-        "title": "app__endpoints__external__v__create_image_pixflux__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize07": {
-        "title": "app__endpoints__external__v2__create_isometric_tile__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels. Sizes above 24px often give better results.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 64
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels. Sizes above 24px often give better results.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 64
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 32,
-          "width": 32
-        }
-      },
-      "ImageSize08": {
-        "title": "app__endpoints__external__v2__create_map_object__ImageSize",
-        "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels (32-400)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels (32-400)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "default": {
-          "width": 128,
-          "height": 128
-        },
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize09": {
-        "title": "app__endpoints__external__v2__create_ui_asset__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688)",
-            "type": "integer",
-            "minimum": 192,
-            "maximum": 688,
-            "default": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688)",
-            "type": "integer",
-            "minimum": 192,
-            "maximum": 688,
-            "default": 256
-          }
-        },
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize10": {
-        "title": "app__endpoints__external__v2__edit_images_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize11": {
-        "title": "app__endpoints__external__v2__generate_image_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize12": {
-        "title": "app__endpoints__external__v2__generate_ui_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792,
-            "default": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688,
-            "default": 256
-          }
-        },
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize13": {
-        "title": "app__endpoints__external__v2__image_to_pixelart__ImageSize",
-        "description": "Image dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize14": {
-        "title": "app__endpoints__external__v2__remove_background__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize64x64": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
+        ]
       },
       "ImageToPixelartProRequest": {
         "title": "ImageToPixelartProRequest",
@@ -8676,8 +8309,8 @@
             "description": "Image to convert to pixel art"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize13",
-            "description": "Size of the input image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Image dimensions\nWidth: 16-1280 px.\nHeight: 16-1280 px."
           },
           "output_size": {
             "$ref": "#/components/schemas/OutputSize",
@@ -8732,7 +8365,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -8928,8 +8562,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of the output frames"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "seed": {
             "title": "Seed",
@@ -9929,8 +9563,8 @@
             "description": "The image to remove the background from (PNG or JPEG base64)"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize14",
-            "description": "Size of the input image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 1-400 px.\nHeight: 1-400 px."
           },
           "background_removal_task": {
             "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
@@ -9980,12 +9614,12 @@
             "description": "Image to resize"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/ImageSize04",
-            "description": "Original size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "target_size": {
-            "$ref": "#/components/schemas/ImageSize04",
-            "description": "Desired output size"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
@@ -10059,7 +9693,8 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
@@ -11745,7 +11380,7 @@
             "description": "Reference image as base64 PNG/JPEG"
           },
           "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
+            "$ref": "#/components/schemas/ImageSize",
             "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
           },
           "usage_description": {
@@ -11815,32 +11450,6 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v__generate_image_v__ReferenceImageSize": {
-        "title": "ReferenceImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Reference image width",
-            "type": "integer",
-            "minimum": 1
-          },
-          "height": {
-            "title": "Height",
-            "description": "Reference image height",
-            "type": "integer",
-            "minimum": 1
           }
         },
         "required": [
