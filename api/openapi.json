@@ -8182,15 +8182,15 @@
         "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels.",
-            "type": "integer",
-            "minimum": 1
-          },
           "width": {
             "title": "Width",
             "description": "Width in pixels.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "title": "Height",
+            "description": "Height in pixels.",
             "type": "integer",
             "minimum": 1
           }

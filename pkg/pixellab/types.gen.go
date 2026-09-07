@@ -2264,10 +2264,10 @@ type ImageResponse struct {
 
 // Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.
 type ImageSize struct {
-	// Height in pixels.
-	Height int `json:"height"`
 	// Width in pixels.
 	Width int `json:"width"`
+	// Height in pixels.
+	Height int `json:"height"`
 }
 
 // Request model for image to pixel art (pro) endpoint
