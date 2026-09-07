@@ -7143,7 +7143,7 @@
         "minItems": 2,
         "maxItems": 16,
         "items": {
-          "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImage"
+          "$ref": "#/components/schemas/FrameImage"
         }
       },
       "EditAnimationV2Request": {
@@ -7590,6 +7590,62 @@
       "ExportCharacterAsZip": {
         "type": "object"
       },
+      "FrameImage": {
+        "title": "FrameImage",
+        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Frame image as base64 PNG/JPEG"
+          },
+          "size": {
+            "$ref": "#/components/schemas/FrameImageSize",
+            "description": "Size of the frame image"
+          }
+        },
+        "required": [
+          "image",
+          "size"
+        ],
+        "example": {
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "size": {
+            "height": 64,
+            "width": 64
+          }
+        }
+      },
+      "FrameImageSize": {
+        "title": "FrameImageSize",
+        "type": "object",
+        "properties": {
+          "width": {
+            "title": "Width",
+            "description": "Frame image width",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256
+          },
+          "height": {
+            "title": "Height",
+            "description": "Frame image height",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 256
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
+      },
       "FrameSize": {
         "title": "FrameSize",
         "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.",
@@ -7626,11 +7682,11 @@
             "description": "Size of the output images"
           },
           "reference_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage",
+            "$ref": "#/components/schemas/RotationReferenceImage",
             "description": "Image to rotate (rotate_character) or style reference"
           },
           "concept_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage",
+            "$ref": "#/components/schemas/RotationReferenceImage",
             "description": "Concept art image (only for create_from_concept method)"
           },
           "description": {
@@ -7823,7 +7879,7 @@
             "$ref": "#/components/schemas/GenerateImageV2RequestReferenceImages"
           },
           "style_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ReferenceImage",
+            "$ref": "#/components/schemas/ReferenceImage",
             "description": "Optional style image for pixel size and style reference"
           },
           "style_options": {
@@ -7851,7 +7907,7 @@
         "type": "array",
         "maxItems": 4,
         "items": {
-          "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ReferenceImage"
+          "$ref": "#/components/schemas/ReferenceImage"
         }
       },
       "GenerateUIV2Request": {
@@ -8245,15 +8301,15 @@
         "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels.",
-            "type": "integer",
-            "minimum": 1
-          },
           "width": {
             "title": "Width",
             "description": "Width in pixels.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "title": "Height",
+            "description": "Height in pixels.",
             "type": "integer",
             "minimum": 1
           }
@@ -9550,6 +9606,41 @@
           }
         }
       },
+      "ReferenceImage": {
+        "title": "ReferenceImage",
+        "description": "Reference image with size and optional description.\n\nImages larger than 1024x1024 will be downscaled. Non-square images will be\npadded to square with transparent pixels before processing.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Reference image as base64 PNG/JPEG"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
+          },
+          "usage_description": {
+            "title": "Usage Description",
+            "description": "Optional description of how this reference should be used",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "image",
+          "size"
+        ],
+        "example": {
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "size": {
+            "height": 64,
+            "width": 64
+          },
+          "usage_description": "Use as color reference"
+        }
+      },
       "RemoveBackgroundRequest": {
         "title": "RemoveBackgroundRequest",
         "description": "Request model for remove-background endpoint",
@@ -9788,6 +9879,43 @@
           },
           "to_direction": "east",
           "to_view": "side"
+        }
+      },
+      "RotationReferenceImage": {
+        "title": "ReferenceImage",
+        "description": "Reference image with dimensions.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Reference image as base64 PNG/JPEG"
+          },
+          "width": {
+            "title": "Width",
+            "description": "Image width (reference max 168, concept max 1024)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height (reference max 168, concept max 1024)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+          }
+        },
+        "required": [
+          "image",
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "width": 64
         }
       },
       "SelectObjectFramesRequest": {
@@ -10776,7 +10904,7 @@
         "type": "object",
         "properties": {
           "reference_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImage",
+            "$ref": "#/components/schemas/FrameImage",
             "description": "Reference image containing the outfit/appearance to transfer"
           },
           "frames": {
@@ -11332,134 +11460,6 @@
           "mood",
           "viseme_count"
         ]
-      },
-      "app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage": {
-        "title": "ReferenceImage",
-        "description": "Reference image with dimensions.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Reference image as base64 PNG/JPEG"
-          },
-          "width": {
-            "title": "Width",
-            "description": "Image width (reference max 168, concept max 1024)",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1024
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height (reference max 168, concept max 1024)",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1024
-          }
-        },
-        "required": [
-          "image",
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v2__generate_image_v2__ReferenceImage": {
-        "title": "ReferenceImage",
-        "description": "Reference image with size and optional description.\n\nImages larger than 1024x1024 will be downscaled. Non-square images will be\npadded to square with transparent pixels before processing.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Reference image as base64 PNG/JPEG"
-          },
-          "size": {
-            "$ref": "#/components/schemas/ImageSize",
-            "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
-          },
-          "usage_description": {
-            "title": "Usage Description",
-            "description": "Optional description of how this reference should be used",
-            "type": "string",
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "image",
-          "size"
-        ],
-        "example": {
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "size": {
-            "height": 64,
-            "width": 64
-          },
-          "usage_description": "Use as color reference"
-        }
-      },
-      "app__endpoints__external__v__edit_animation_v__FrameImage": {
-        "title": "FrameImage",
-        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Frame image as base64 PNG/JPEG"
-          },
-          "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImageSize",
-            "description": "Size of the frame image"
-          }
-        },
-        "required": [
-          "image",
-          "size"
-        ],
-        "example": {
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "size": {
-            "height": 64,
-            "width": 64
-          }
-        }
-      },
-      "app__endpoints__external__v__edit_animation_v__FrameImageSize": {
-        "title": "FrameImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Frame image width",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Frame image height",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
       }
     },
     "responses": {

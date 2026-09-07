@@ -171,6 +171,16 @@ func main() {
 		{"SidescrollerTileset", "DeleteTilesetResponse"},
 		{"IsometricTile", "DeleteTileResponse"},
 		{"CreateIsometricTileBackground", "TileJobResponse"},
+
+		// These never got cleaned up: openapi-flatten left the raw FastAPI
+		// operation-path prefix on the component key even though each schema
+		// already carries a clean title. The two "ReferenceImage" schemas
+		// aren't interchangeable (one nests an ImageSize, the other inlines
+		// width/height directly), so they can't share a name.
+		{"app__endpoints__external__v__edit_animation_v__FrameImage", "FrameImage"},
+		{"app__endpoints__external__v__edit_animation_v__FrameImageSize", "FrameImageSize"},
+		{"app__endpoints__external__v2__generate_image_v2__ReferenceImage", "ReferenceImage"},
+		{"app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage", "RotationReferenceImage"},
 	} {
 		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
 			log.Fatal(err)

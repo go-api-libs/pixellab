@@ -1957,7 +1957,7 @@ type DismissReviewResponse struct {
 }
 
 // Animation frames to edit (2-16 frames)
-type EditAnimationFrames []app__endpoints__external__v__edit_animation_v__FrameImage
+type EditAnimationFrames []FrameImage
 
 // Request model for edit-animation-v2 endpoint
 type EditAnimationV2Request struct {
@@ -2115,6 +2115,25 @@ type EstimateSkeletonResponseKeypoints []Keypoint
 // ExportCharacterAsZip defines a model
 type ExportCharacterAsZip struct{}
 
+// Animation frame image with size.
+//
+// Nested `size` object matches the animation-frame v2 subfamily
+// (transfer-outfit-v2, interpolation-v2), which share this backend family.
+type FrameImage struct {
+	// Frame image as base64 PNG/JPEG
+	Image BaseImage `json:"image"`
+	// Size of the frame image
+	Size FrameImageSize `json:"size"`
+}
+
+// FrameImageSize defines a model
+type FrameImageSize struct {
+	// Frame image width
+	Width int `json:"width"`
+	// Frame image height
+	Height int `json:"height"`
+}
+
 // A canvas size in pixels. Both sides must be multiples of 4, 32–256.
 type FrameSize struct {
 	Width  int `json:"width"`
@@ -2128,9 +2147,9 @@ type Generate8RotationsV2Request struct {
 	// Size of the output images
 	ImageSize ProImageSize `json:"image_size"`
 	// Image to rotate (rotate_character) or style reference
-	ReferenceImage *app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage `json:"reference_image,omitempty"`
+	ReferenceImage *RotationReferenceImage `json:"reference_image,omitempty"`
 	// Concept art image (only for create_from_concept method)
-	ConceptImage *app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage `json:"concept_image,omitempty"`
+	ConceptImage *RotationReferenceImage `json:"concept_image,omitempty"`
 	// Description of the character/item
 	Description string `json:"description,omitzero"`
 	// Description of the visual style
@@ -2223,13 +2242,13 @@ type GenerateImageV2Request struct {
 	// Optional reference images for subject guidance (up to 4)
 	ReferenceImages GenerateImageV2RequestReferenceImages `json:"reference_images,omitzero"`
 	// Optional style image for pixel size and style reference
-	StyleImage *app__endpoints__external__v2__generate_image_v2__ReferenceImage `json:"style_image,omitempty"`
+	StyleImage *ReferenceImage `json:"style_image,omitempty"`
 	// Options for what to copy from the style image
 	StyleOptions *Style `json:"style_options,omitempty"`
 }
 
 // Optional reference images for subject guidance (up to 4)
-type GenerateImageV2RequestReferenceImages []app__endpoints__external__v2__generate_image_v2__ReferenceImage
+type GenerateImageV2RequestReferenceImages []ReferenceImage
 
 // Request model for generate-ui-v2 endpoint
 type GenerateUIV2Request struct {
@@ -2365,10 +2384,10 @@ type ImageResponse struct {
 
 // Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.
 type ImageSize struct {
-	// Height in pixels.
-	Height int `json:"height"`
 	// Width in pixels.
 	Width int `json:"width"`
+	// Height in pixels.
+	Height int `json:"height"`
 }
 
 // Request model for image to pixel art (pro) endpoint
@@ -2830,6 +2849,19 @@ type RectangleInpainting struct {
 	Fraction *float64 `json:"fraction,omitempty"`
 }
 
+// Reference image with size and optional description.
+//
+// Images larger than 1024x1024 will be downscaled. Non-square images will be
+// padded to square with transparent pixels before processing.
+type ReferenceImage struct {
+	// Reference image as base64 PNG/JPEG
+	Image BaseImage `json:"image"`
+	// Size of the reference image. Images larger than 1024x1024 will be downscaled.
+	Size ImageSize `json:"size"`
+	// Optional description of how this reference should be used
+	UsageDescription string `json:"usage_description,omitzero"`
+}
+
 // Request model for remove-background endpoint
 type RemoveBackgroundRequest struct {
 	// The image to remove the background from (PNG or JPEG base64)
@@ -2912,6 +2944,16 @@ type RotateRequest struct {
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
+}
+
+// Reference image with dimensions.
+type RotationReferenceImage struct {
+	// Reference image as base64 PNG/JPEG
+	Image BaseImage `json:"image"`
+	// Image width (reference max 168, concept max 1024)
+	Width int `json:"width"`
+	// Image height (reference max 168, concept max 1024)
+	Height int `json:"height"`
 }
 
 // SelectObjectFramesRequest defines a model
@@ -3280,7 +3322,7 @@ type TilesetsListResponseTilesets []TilesetSummary
 // Request model for transfer-outfit-v2 endpoint
 type TransferOutfitV2Request struct {
 	// Reference image containing the outfit/appearance to transfer
-	ReferenceImage app__endpoints__external__v__edit_animation_v__FrameImage `json:"reference_image"`
+	ReferenceImage FrameImage `json:"reference_image"`
 	// Animation frames to edit (2-16 frames)
 	Frames EditAnimationFrames `json:"frames"`
 	// Size of the output frames
@@ -3503,46 +3545,4 @@ type VocalAnimationResponse struct {
 	Status          string `json:"status,omitzero"`
 	Mood            string `json:"mood,omitzero"`
 	VisemeCount     int    `json:"viseme_count"`
-}
-
-// Reference image with dimensions.
-type app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage struct {
-	// Reference image as base64 PNG/JPEG
-	Image BaseImage `json:"image"`
-	// Image width (reference max 168, concept max 1024)
-	Width int `json:"width"`
-	// Image height (reference max 168, concept max 1024)
-	Height int `json:"height"`
-}
-
-// Reference image with size and optional description.
-//
-// Images larger than 1024x1024 will be downscaled. Non-square images will be
-// padded to square with transparent pixels before processing.
-type app__endpoints__external__v2__generate_image_v2__ReferenceImage struct {
-	// Reference image as base64 PNG/JPEG
-	Image BaseImage `json:"image"`
-	// Size of the reference image. Images larger than 1024x1024 will be downscaled.
-	Size ImageSize `json:"size"`
-	// Optional description of how this reference should be used
-	UsageDescription string `json:"usage_description,omitzero"`
-}
-
-// Animation frame image with size.
-//
-// Nested `size` object matches the animation-frame v2 subfamily
-// (transfer-outfit-v2, interpolation-v2), which share this backend family.
-type app__endpoints__external__v__edit_animation_v__FrameImage struct {
-	// Frame image as base64 PNG/JPEG
-	Image BaseImage `json:"image"`
-	// Size of the frame image
-	Size app__endpoints__external__v__edit_animation_v__FrameImageSize `json:"size"`
-}
-
-// app__endpoints__external__v__edit_animation_v__FrameImageSize defines a model
-type app__endpoints__external__v__edit_animation_v__FrameImageSize struct {
-	// Frame image width
-	Width int `json:"width"`
-	// Frame image height
-	Height int `json:"height"`
 }
