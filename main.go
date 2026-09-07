@@ -154,10 +154,23 @@ func main() {
 	}
 	doc.Components.SortMaps()
 
+	// These response schemas are legitimately shared by several unrelated
+	// operations (they really do return the same shape), but the component
+	// key openapi-compress kept for each is an arbitrary endpoint name from
+	// whichever operation was processed first, not the schema's own title -
+	// e.g. RotateCharacterOrObject, RemoveBackground, and 6 other unrelated
+	// operations all returned *CreateImageBitforge. Rename each to a name
+	// that reflects the shared shape instead of one specific endpoint.
 	for _, v := range []struct{ old, new string }{
-		// {"app__endpoints__external__v2__animate_with_skeleton__ImageSize", "ImageSize"},
-		// {"app__endpoints__external__v2__animate_with_text_v2__ReferenceImageSize", "ReferenceImageSize"},
-		// {"app__endpoints__external__v2__edit_animation_v2__FrameImage", "FrameImage"},
+		{"AnimateWithText", "AsyncJobResponse"},
+		{"CreateImageBitforge", "ImageResponse"},
+		{"CreateCharacterPro", "CharacterJobResponse"},
+		{"CreateDirectionObject", "ObjectJobResponse"},
+		{"EnhanceAnimationPrompt", "EnhancedPromptResponse"},
+		{"UpdateObjectTags2", "UpdateTagsResponse"},
+		{"SidescrollerTileset", "DeleteTilesetResponse"},
+		{"IsometricTile", "DeleteTileResponse"},
+		{"CreateIsometricTileBackground", "TileJobResponse"},
 	} {
 		if err := edit.RenameSchema(doc, v.old, v.new); err != nil {
 			log.Fatal(err)

@@ -143,8 +143,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // ```
 //
 //	POST /generate-image-v2
-func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request) (*AnimateWithText, error) {
-	return c.GenerateImageWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request) (*AsyncJobResponse, error) {
+	return c.GenerateImageWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate pixel art images from text description.
@@ -322,8 +322,8 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 // ```
 //
 //	POST /generate-with-style-v2
-func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2Request) (*AnimateWithText, error) {
-	return c.GenerateWithStyleWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2Request) (*AsyncJobResponse, error) {
+	return c.GenerateWithStyleWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate new pixel art images that match the style of reference images.
@@ -499,8 +499,8 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 // ```
 //
 //	POST /generate-ui-v2
-func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*AnimateWithText, error) {
-	return c.GenerateUIWithResult[AnimateWithText](ctx, body)
+func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*AsyncJobResponse, error) {
+	return c.GenerateUIWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate pixel art UI elements from text description.
@@ -659,8 +659,8 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 // ```
 //
 //	POST /create-image-pixflux
-func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*CreateImageBitforge, error) {
-	return c.CreateImagePixfluxWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*ImageResponse, error) {
+	return c.CreateImagePixfluxWithResult[ImageResponse](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
@@ -794,8 +794,8 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 // 3. When `status` is `completed`, the image is in `last_response.image.base64`
 //
 //	POST /create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*AnimateWithText, error) {
-	return c.CreateImagePixfluxBackgroundWithResult[AnimateWithText](ctx, body)
+func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*AsyncJobResponse, error) {
+	return c.CreateImagePixfluxBackgroundWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters, as a background job.
@@ -1076,8 +1076,8 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 // ```
 //
 //	POST /create-image-bitforge
-func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*CreateImageBitforge, error) {
-	return c.CreateImageBitforgeWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*ImageResponse, error) {
+	return c.CreateImageBitforgeWithResult[ImageResponse](ctx, body)
 }
 
 // Generates a pixel art image based on the provided parameters. Called "Create S-M image" in the plugin.
@@ -1224,8 +1224,8 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 // ```
 //
 //	POST /image-to-pixelart
-func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelartRequest) (*CreateImageBitforge, error) {
-	return c.ConvertImageToPixelArtWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
+	return c.ConvertImageToPixelArtWithResult[ImageResponse](ctx, body)
 }
 
 // Convert regular images to pixel art style.
@@ -1380,8 +1380,8 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 // ```
 //
 //	POST /image-to-pixelart-pro
-func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixelartProRequest) (*AnimateWithText, error) {
-	return c.ConvertImageToPixelArtProWithResult[AnimateWithText](ctx, body)
+func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixelartProRequest) (*AsyncJobResponse, error) {
+	return c.ConvertImageToPixelArtProWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Convert an arbitrary image into high-quality pixel art.
@@ -1539,8 +1539,8 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 // ```
 //
 //	POST /resize
-func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*CreateImageBitforge, error) {
-	return c.ResizePixelArtImageWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {
+	return c.ResizePixelArtImageWithResult[ImageResponse](ctx, body)
 }
 
 // Intelligently resize pixel art images while maintaining pixel art aesthetics.
@@ -1695,8 +1695,8 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 // ```
 //
 //	POST /remove-background
-func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*CreateImageBitforge, error) {
-	return c.RemoveBackgroundWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
+	return c.RemoveBackgroundWithResult[ImageResponse](ctx, body)
 }
 
 // Remove the background from a pixel art image, producing a transparent PNG.
@@ -1873,8 +1873,8 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 // ```
 //
 //	POST /edit-animation-v2
-func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request) (*AnimateWithText, error) {
-	return c.EditAnimationWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request) (*AsyncJobResponse, error) {
+	return c.EditAnimationWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Edit multiple animation frames with a text description.
@@ -2076,8 +2076,8 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 // ```
 //
 //	POST /interpolation-v2
-func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (*AnimateWithText, error) {
-	return c.InterpolateWithResult[AnimateWithText](ctx, body)
+func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (*AsyncJobResponse, error) {
+	return c.InterpolateWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate intermediate animation frames between two keyframe images.
@@ -2277,8 +2277,8 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 // ```
 //
 //	POST /transfer-outfit-v2
-func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Request) (*AnimateWithText, error) {
-	return c.TransferOutfitWithResult[AnimateWithText](ctx, body)
+func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Request) (*AsyncJobResponse, error) {
+	return c.TransferOutfitWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Transfer an outfit/appearance from a reference image to animation frames.
@@ -2458,8 +2458,8 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 // ```
 //
 //	POST /portrait-character-pro
-func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterProRequest) (*AnimateWithText, error) {
-	return c.PortraitCharacterWithResult[AnimateWithText](ctx, body)
+func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterProRequest) (*AsyncJobResponse, error) {
+	return c.PortraitCharacterWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Convert between a bust portrait and a full-body character sprite.
@@ -3310,8 +3310,8 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 // ```
 //
 //	POST /generate-font-pro
-func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequest) (*AnimateWithText, error) {
-	return c.GeneratePixelFontWithResult[AnimateWithText](ctx, body)
+func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequest) (*AsyncJobResponse, error) {
+	return c.GeneratePixelFontWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate a styled pixel-art font from a text description.
@@ -3919,8 +3919,8 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 // ```
 //
 //	POST /animate-with-text-v2
-func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2Request) (*AnimateWithText, error) {
-	return c.AnimateWithTextProWithResult[AnimateWithText](ctx, body)
+func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2Request) (*AsyncJobResponse, error) {
+	return c.AnimateWithTextProWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate pixel art animation from text.
@@ -4449,8 +4449,8 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 // ```
 //
 //	POST /generate-8-rotations-v2
-func (c *Client) Generate8Rotations(ctx context.Context, body Generate8RotationsV2Request) (*AnimateWithText, error) {
-	return c.Generate8RotationsWithResult[AnimateWithText](ctx, body)
+func (c *Client) Generate8Rotations(ctx context.Context, body Generate8RotationsV2Request) (*AsyncJobResponse, error) {
+	return c.Generate8RotationsWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate 8 rotational views of a character or object.
@@ -4629,8 +4629,8 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 // ```
 //
 //	POST /generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*AnimateWithText, error) {
-	return c.Generate8RotationsV3WithResult[AnimateWithText](ctx, body)
+func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*AsyncJobResponse, error) {
+	return c.Generate8RotationsV3WithResult[AsyncJobResponse](ctx, body)
 }
 
 // Generate 8 directional rotations from a reference frame.
@@ -4788,8 +4788,8 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 // ```
 //
 //	POST /rotate
-func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest) (*CreateImageBitforge, error) {
-	return c.RotateCharacterOrObjectWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest) (*ImageResponse, error) {
+	return c.RotateCharacterOrObjectWithResult[ImageResponse](ctx, body)
 }
 
 // Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
@@ -4957,8 +4957,8 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 // ```
 //
 //	POST /inpaint-v3
-func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*AnimateWithText, error) {
-	return c.InpaintImageV3WithResult[AnimateWithText](ctx, body)
+func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*AsyncJobResponse, error) {
+	return c.InpaintImageV3WithResult[AsyncJobResponse](ctx, body)
 }
 
 // Inpaint/edit pixel art images using AI.
@@ -5120,8 +5120,8 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 // ```
 //
 //	POST /inpaint
-func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*CreateImageBitforge, error) {
-	return c.InpaintImageWithResult[CreateImageBitforge](ctx, body)
+func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*ImageResponse, error) {
+	return c.InpaintImageWithResult[ImageResponse](ctx, body)
 }
 
 // Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
@@ -5295,8 +5295,8 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 // ```
 //
 //	POST /edit-images-v2
-func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*AnimateWithText, error) {
-	return c.EditImagesWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*AsyncJobResponse, error) {
+	return c.EditImagesWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Edit pixel art images using text or reference image.
@@ -5457,8 +5457,8 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 // 3. When `status` is `completed`, edited image is in `last_response`
 //
 //	POST /edit-image
-func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AnimateWithText, error) {
-	return c.EditImageWithResult[AnimateWithText](ctx, body)
+func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AsyncJobResponse, error) {
+	return c.EditImageWithResult[AsyncJobResponse](ctx, body)
 }
 
 // Edit an existing pixel art image based on a text description.
@@ -6233,8 +6233,8 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 //
 //	DELETE /tilesets/{tileset_id}
-func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
-	return c.DeleteTopDownTilesetWithResult[SidescrollerTileset](ctx, tilesetID)
+func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
+	return c.DeleteTopDownTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
 }
 
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
@@ -6853,8 +6853,8 @@ func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 //
 //	DELETE /tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*SidescrollerTileset, error) {
-	return c.DeleteSidescrollerTilesetWithResult[SidescrollerTileset](ctx, tilesetID)
+func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
+	return c.DeleteSidescrollerTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
 }
 
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
@@ -6978,8 +6978,8 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 // ```
 //
 //	POST /create-isometric-tile
-func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body CreateIsometricTileRequest) (*CreateIsometricTileBackground, error) {
-	return c.CreateIsometricTileAsyncProcessingWithResult[CreateIsometricTileBackground](ctx, body)
+func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
+	return c.CreateIsometricTileAsyncProcessingWithResult[TileJobResponse](ctx, body)
 }
 
 // Creates a isometric tile based on the provided parameters.
@@ -7139,8 +7139,8 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 // ```
 //
 //	GET /isometric-tiles/{tile_id}
-func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID string) (*CreateImageBitforge, error) {
-	return c.GetGeneratedIsometricTileByIDWithResult[CreateImageBitforge](ctx, tileID)
+func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID string) (*ImageResponse, error) {
+	return c.GetGeneratedIsometricTileByIDWithResult[ImageResponse](ctx, tileID)
 }
 
 // Retrieve a completed isometric tile by its UUID.
@@ -7264,8 +7264,8 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 // Permanently delete an isometric tile you own. Cannot be undone.
 //
 //	DELETE /isometric-tiles/{tile_id}
-func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
-	return c.DeleteAnIsometricTileWithResult[IsometricTile](ctx, tileID)
+func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
+	return c.DeleteAnIsometricTileWithResult[DeleteTileResponse](ctx, tileID)
 }
 
 // Permanently delete an isometric tile you own. Cannot be undone.
@@ -7541,8 +7541,8 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 // ```
 //
 //	POST /create-tiles-pro
-func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateTilesProRequest) (*CreateIsometricTileBackground, error) {
-	return c.CreateTilesProAsyncProcessingWithResult[CreateIsometricTileBackground](ctx, body)
+func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
+	return c.CreateTilesProAsyncProcessingWithResult[TileJobResponse](ctx, body)
 }
 
 // Creates pixel art tiles based on the provided parameters.
@@ -7853,8 +7853,8 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
 //
 //	DELETE /tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*IsometricTile, error) {
-	return c.DeleteTilesProTileWithResult[IsometricTile](ctx, tileID)
+func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
+	return c.DeleteTilesProTileWithResult[DeleteTileResponse](ctx, tileID)
 }
 
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
@@ -8084,8 +8084,8 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 // ```
 //
 //	POST /map-objects
-func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*CreateDirectionObject, error) {
-	return c.CreateMapObjectWithResult[CreateDirectionObject](ctx, body)
+func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
+	return c.CreateMapObjectWithResult[ObjectJobResponse](ctx, body)
 }
 
 // Creates a pixel art object with transparent background for game maps.
@@ -8891,8 +8891,8 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 // ```
 //
 //	POST /create-character-with-4-directions
-func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterWith4DirectionsWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CharacterJobResponse, error) {
+	return c.CreateCharacterWith4DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
 
 // Generate a character or object facing 4 cardinal directions (south, west, east, north).
@@ -9136,8 +9136,8 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 // ```
 //
 //	POST /create-character-with-8-directions
-func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterWith8DirectionsWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CharacterJobResponse, error) {
+	return c.CreateCharacterWith8DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
 
 // Generate a character or object facing 8 directions (all cardinal and diagonal directions).
@@ -9361,8 +9361,8 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 // ```
 //
 //	POST /create-character-pro
-func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body CreateCharacterProRequest) (*CreateCharacterPro, error) {
-	return c.CreateCharacterWithProMode8DirectionsWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
+	return c.CreateCharacterWithProMode8DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
 
 // Create a character with 8 directional rotations using Pro mode.
@@ -10002,8 +10002,8 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 //
 //	POST /create-character-state
-func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body CreateCharacterStateRequest) (*CreateCharacterPro, error) {
-	return c.CreateStateOfAnExistingCharacterWithResult[CreateCharacterPro](ctx, body)
+func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
+	return c.CreateStateOfAnExistingCharacterWithResult[CharacterJobResponse](ctx, body)
 }
 
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
@@ -10756,8 +10756,8 @@ func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, char
 // Requires a valid API token. You can only update tags for characters you created.
 //
 //	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, body UpdateObjectTags) (*UpdateObjectTags2, error) {
-	return c.UpdateCharacterTagsWithResult[UpdateObjectTags2](ctx, characterID, body)
+func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, body UpdateObjectTags) (*UpdateTagsResponse, error) {
+	return c.UpdateCharacterTagsWithResult[UpdateTagsResponse](ctx, characterID, body)
 }
 
 // Update the tags for a specific character.
@@ -11173,8 +11173,8 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
 //	POST /create-8-direction-object
-func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*CreateDirectionObject, error) {
-	return c.CreateAn8DirectionObjectWithResult[CreateDirectionObject](ctx, body)
+func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
+	return c.CreateAn8DirectionObjectWithResult[ObjectJobResponse](ctx, body)
 }
 
 // Queues an 8-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
@@ -11521,8 +11521,8 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 //
 //	POST /objects/{object_id}/states
-func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*CreateDirectionObject, error) {
-	return c.CreateStateOfAnExistingObjectWithResult[CreateDirectionObject](ctx, objectID, body)
+func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
+	return c.CreateStateOfAnExistingObjectWithResult[ObjectJobResponse](ctx, objectID, body)
 }
 
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
@@ -12230,8 +12230,8 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 // Requires a valid API token. You can only update tags for objects you created.
 //
 //	PATCH /objects/{object_id}/tags
-func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateObjectTags2, error) {
-	return c.UpdateObjectTagsWithResult[UpdateObjectTags2](ctx, objectID, body)
+func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
+	return c.UpdateObjectTagsWithResult[UpdateTagsResponse](ctx, objectID, body)
 }
 
 // Update the tags for a specific object.
@@ -12487,8 +12487,8 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 //
 //	POST /enhance-pixen-prompt
-func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhancePixenPromptWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhancedPromptResponse, error) {
+	return c.EnhancePixenPromptWithResult[EnhancedPromptResponse](ctx, body)
 }
 
 // Enhance a Pixen image description.
@@ -12587,8 +12587,8 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 // transparent).
 //
 //	POST /enhance-character-v3-prompt
-func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhanceCharacterV3PromptWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhancedPromptResponse, error) {
+	return c.EnhanceCharacterV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
 
 // Enhance a v3 character description.
@@ -12694,8 +12694,8 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 // unless explicitly requested.
 //
 //	POST /enhance-animation-v3-prompt
-func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhanceAnimationPrompt, error) {
-	return c.EnhanceAnimationV3PromptWithResult[EnhanceAnimationPrompt](ctx, body)
+func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhancedPromptResponse, error) {
+	return c.EnhanceAnimationV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
 
 // Enhance an animation action description.

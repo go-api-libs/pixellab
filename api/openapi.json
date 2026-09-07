@@ -3500,38 +3500,6 @@
           }
         }
       },
-      "AnimateWithText": {
-        "title": "AnimateWithTextV2Response",
-        "description": "Response model for text-to-animation endpoint (background job)",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for polling status",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Job status",
-            "type": "string",
-            "default": "processing"
-          }
-        },
-        "required": [
-          "background_job_id"
-        ],
-        "example": {
-          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
-          "status": "processing",
-          "usage": {
-            "type": "usd",
-            "usd": 0.0
-          }
-        }
-      },
       "AnimateWithTextRequest": {
         "title": "AnimateWithTextRequest",
         "description": "Request model for animation using text endpoint",
@@ -3901,6 +3869,38 @@
           "$ref": "#/components/schemas/AnimationDirection"
         }
       },
+      "AsyncJobResponse": {
+        "title": "AnimateWithTextV2Response",
+        "description": "Response model for text-to-animation endpoint (background job)",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for polling status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status",
+            "type": "string",
+            "default": "processing"
+          }
+        },
+        "required": [
+          "background_job_id"
+        ],
+        "example": {
+          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+          "status": "processing",
+          "usage": {
+            "type": "usd",
+            "usd": 0.0
+          }
+        }
+      },
       "BackgroundJobResponse": {
         "title": "BackgroundJobResponse",
         "description": "Response model for background job status",
@@ -4226,6 +4226,41 @@
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/AnimationGroup"
+        }
+      },
+      "CharacterJobResponse": {
+        "title": "CreateCharacterProResponse",
+        "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for tracking generation progress.",
+            "type": "string"
+          },
+          "character_id": {
+            "title": "Character Id",
+            "description": "Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status (processing, completed, failed).",
+            "type": "string",
+            "default": "processing"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "character_id"
+        ],
+        "example": {
+          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+          "character_id": "456e7890-e89b-12d3-a456-426614174001",
+          "status": "processing"
         }
       },
       "CharacterProportions": {
@@ -4932,41 +4967,6 @@
           "status": "processing"
         }
       },
-      "CreateCharacterPro": {
-        "title": "CreateCharacterProResponse",
-        "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for tracking generation progress.",
-            "type": "string"
-          },
-          "character_id": {
-            "title": "Character Id",
-            "description": "Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "character_id"
-        ],
-        "example": {
-          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
-          "character_id": "456e7890-e89b-12d3-a456-426614174001",
-          "status": "processing"
-        }
-      },
       "CreateCharacterProRequest": {
         "title": "CreateCharacterProRequest",
         "description": "Request model for /v2/create-character-pro.",
@@ -5518,33 +5518,6 @@
           "pro"
         ]
       },
-      "CreateDirectionObject": {
-        "title": "Create8DirectionObjectResponse",
-        "description": "Response model for 8-direction object creation.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string"
-          },
-          "object_id": {
-            "title": "Object Id",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "object_id"
-        ]
-      },
       "CreateDirectionObjectView": {
         "title": "View",
         "description": "Camera angle.",
@@ -5555,21 +5528,6 @@
           "side"
         ],
         "default": "low top-down"
-      },
-      "CreateImageBitforge": {
-        "title": "CreateImageBitforgeResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "image": {
-            "$ref": "#/components/schemas/BaseImage"
-          }
-        },
-        "required": [
-          "image"
-        ]
       },
       "CreateImageBitforgeRequest": {
         "title": "CreateImageBitforgeRequest",
@@ -5915,37 +5873,6 @@
           },
           "no_background": true
         }
-      },
-      "CreateIsometricTileBackground": {
-        "title": "CreateIsometricTileBackgroundResponse",
-        "description": "Response for background isometric tile generation (async-only)",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for tracking generation progress",
-            "type": "string"
-          },
-          "tile_id": {
-            "title": "Tile Id",
-            "description": "Tile ID that will be created (available immediately)",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Always 'processing' - check status with background job ID",
-            "type": "string",
-            "default": "processing",
-            "const": "processing"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "tile_id"
-        ]
       },
       "CreateIsometricTileDetail": {
         "title": "Detail",
@@ -7080,6 +7007,62 @@
           "success"
         ]
       },
+      "DeleteTileResponse": {
+        "title": "DeleteIsometricTileResponse",
+        "description": "Response for isometric tile deletion.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "success": {
+            "title": "Success",
+            "description": "Whether the deletion succeeded",
+            "type": "boolean"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "description": "ID of the deleted tile",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Error message if deletion failed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "DeleteTilesetResponse": {
+        "title": "DeleteSidescrollerTilesetResponse",
+        "description": "Response for sidescroller tileset deletion.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "success": {
+            "title": "Success",
+            "description": "Whether the deletion succeeded",
+            "type": "boolean"
+          },
+          "tileset_id": {
+            "title": "Tileset Id",
+            "description": "ID of the deleted tileset",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Error message if deletion failed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
       "DeleteUIAssetResponse": {
         "title": "DeleteUIAssetResponse",
         "type": "object",
@@ -7428,23 +7411,6 @@
         ],
         "default": "edit_with_text"
       },
-      "EnhanceAnimationPrompt": {
-        "title": "EnhanceAnimationV3PromptResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "enhanced_prompt": {
-            "title": "Enhanced Prompt",
-            "description": "Enhanced motion description.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "enhanced_prompt"
-        ]
-      },
       "EnhanceAnimationV3PromptRequest": {
         "title": "EnhanceAnimationV3PromptRequest",
         "type": "object",
@@ -7570,6 +7536,23 @@
           },
           "no_background": true
         }
+      },
+      "EnhancedPromptResponse": {
+        "title": "EnhanceAnimationV3PromptResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "enhanced_prompt": {
+            "title": "Enhanced Prompt",
+            "description": "Enhanced motion description.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enhanced_prompt"
+        ]
       },
       "EstimateSkeletonRequest": {
         "title": "EstimateSkeletonRequest",
@@ -8242,20 +8225,35 @@
           "$ref": "#/components/schemas/ValidationError"
         }
       },
+      "ImageResponse": {
+        "title": "CreateImageBitforgeResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "image": {
+            "$ref": "#/components/schemas/BaseImage"
+          }
+        },
+        "required": [
+          "image"
+        ]
+      },
       "ImageSize": {
         "title": "ImageSize",
         "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels.",
-            "type": "integer",
-            "minimum": 1
-          },
           "height": {
             "title": "Height",
             "description": "Height in pixels.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "title": "Width",
+            "description": "Width in pixels.",
             "type": "integer",
             "minimum": 1
           }
@@ -8610,34 +8608,6 @@
             }
           }
         }
-      },
-      "IsometricTile": {
-        "title": "DeleteIsometricTileResponse",
-        "description": "Response for isometric tile deletion.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "success": {
-            "title": "Success",
-            "description": "Whether the deletion succeeded",
-            "type": "boolean"
-          },
-          "tile_id": {
-            "title": "Tile Id",
-            "description": "ID of the deleted tile",
-            "type": "string"
-          },
-          "error": {
-            "title": "Error",
-            "description": "Error message if deletion failed",
-            "type": "string"
-          }
-        },
-        "required": [
-          "success"
-        ]
       },
       "IsometricTileSummary": {
         "title": "IsometricTileSummary",
@@ -9146,6 +9116,33 @@
         "items": {
           "$ref": "#/components/schemas/ObjectAnimationGroup"
         }
+      },
+      "ObjectJobResponse": {
+        "title": "Create8DirectionObjectResponse",
+        "description": "Response model for 8-direction object creation.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "type": "string"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string",
+            "default": "queued"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "object_id"
+        ]
       },
       "ObjectRotationUrls": {
         "title": "ObjectRotationUrls",
@@ -9919,34 +9916,6 @@
           "width": 16
         }
       },
-      "SidescrollerTileset": {
-        "title": "DeleteSidescrollerTilesetResponse",
-        "description": "Response for sidescroller tileset deletion.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "success": {
-            "title": "Success",
-            "description": "Whether the deletion succeeded",
-            "type": "boolean"
-          },
-          "tileset_id": {
-            "title": "Tileset Id",
-            "description": "ID of the deleted tileset",
-            "type": "string"
-          },
-          "error": {
-            "title": "Error",
-            "description": "Error message if deletion failed",
-            "type": "string"
-          }
-        },
-        "required": [
-          "success"
-        ]
-      },
       "SidescrollerTilesetSummary": {
         "title": "SidescrollerTilesetSummary",
         "type": "object",
@@ -10363,6 +10332,37 @@
           "lower",
           "upper",
           "transition"
+        ]
+      },
+      "TileJobResponse": {
+        "title": "CreateIsometricTileBackgroundResponse",
+        "description": "Response for background isometric tile generation (async-only)",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for tracking generation progress",
+            "type": "string"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "description": "Tile ID that will be created (available immediately)",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Always 'processing' - check status with background job ID",
+            "type": "string",
+            "default": "processing",
+            "const": "processing"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "tile_id"
         ]
       },
       "TilePattern4x4": {
@@ -11140,7 +11140,7 @@
           ]
         }
       },
-      "UpdateObjectTags2": {
+      "UpdateTagsResponse": {
         "title": "UpdateObjectTagsResponse",
         "description": "Response after updating tags",
         "type": "object",
@@ -11628,7 +11628,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -11699,7 +11699,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -11722,7 +11722,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -11783,7 +11783,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -11825,7 +11825,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             },
             "example": {
               "images": {
@@ -11867,7 +11867,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             },
             "example": {
               "images": {
@@ -11925,7 +11925,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             }
           }
         }
@@ -11969,7 +11969,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -12039,7 +12039,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12069,7 +12069,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -12104,7 +12104,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateIsometricTileBackground"
+              "$ref": "#/components/schemas/TileJobResponse"
             }
           }
         }
@@ -12146,7 +12146,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -12224,7 +12224,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             }
           }
         }
@@ -12259,7 +12259,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -12288,7 +12288,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateIsometricTileBackground"
+              "$ref": "#/components/schemas/TileJobResponse"
             }
           }
         }
@@ -12564,7 +12564,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/IsometricTile"
+              "$ref": "#/components/schemas/DeleteTileResponse"
             }
           }
         }
@@ -12706,7 +12706,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/SidescrollerTileset"
+              "$ref": "#/components/schemas/DeleteTilesetResponse"
             }
           }
         }
@@ -12738,7 +12738,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/IsometricTile"
+              "$ref": "#/components/schemas/DeleteTileResponse"
             }
           }
         }
@@ -12767,7 +12767,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/SidescrollerTileset"
+              "$ref": "#/components/schemas/DeleteTilesetResponse"
             }
           }
         }
@@ -12845,7 +12845,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12875,7 +12875,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12905,7 +12905,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12935,7 +12935,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -12954,7 +12954,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -12973,7 +12973,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -13056,7 +13056,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13086,7 +13086,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13112,7 +13112,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13142,7 +13142,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13203,7 +13203,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13233,7 +13233,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13442,7 +13442,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             }
           }
         }
@@ -13733,7 +13733,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -13768,7 +13768,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13798,7 +13798,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14010,7 +14010,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14072,7 +14072,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14107,7 +14107,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14139,7 +14139,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14193,7 +14193,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14232,7 +14232,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateObjectTags2"
+              "$ref": "#/components/schemas/UpdateTagsResponse"
             },
             "example": {
               "tags": [
@@ -14278,7 +14278,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateObjectTags2"
+              "$ref": "#/components/schemas/UpdateTagsResponse"
             }
           }
         }

@@ -264,15 +264,6 @@ type AnimateWithSkeletonRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Response model for text-to-animation endpoint (background job)
-type AnimateWithText struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Job status
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for animation using text endpoint
 type AnimateWithTextRequest struct {
 	// Width: 64 px, fixed.
@@ -432,6 +423,15 @@ type AnimationGroup struct {
 // AnimationGroupDirections defines a model
 type AnimationGroupDirections []AnimationDirection
 
+// Response model for text-to-animation endpoint (background job)
+type AsyncJobResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Background job ID for polling status
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	// Job status
+	Status string `json:"status,omitzero"`
+}
+
 // Response model for background job status
 type BackgroundJobResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
@@ -546,6 +546,17 @@ type CharacterDetail struct {
 
 // All animations grouped by type and direction
 type CharacterDetailAnimations []AnimationGroup
+
+// Response — async; poll `/v2/background-jobs/{id}` for results.
+type CharacterJobResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Background job ID for tracking generation progress.
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
+	CharacterID string `json:"character_id,omitzero"`
+	// Job status (processing, completed, failed).
+	Status string `json:"status,omitzero"`
+}
 
 // Character proportions with individual control.
 type CharacterProportions struct {
@@ -811,17 +822,6 @@ type CreateCharacterAnimationResponse struct {
 	EnhanceUsage *Usage `json:"enhance_usage,omitempty"`
 }
 
-// Response — async; poll `/v2/background-jobs/{id}` for results.
-type CreateCharacterPro struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress.
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
-	CharacterID string `json:"character_id,omitzero"`
-	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
-}
-
 // Request model for /v2/create-character-pro.
 type CreateCharacterProRequest struct {
 	// Description of the character or object to generate.
@@ -1028,14 +1028,6 @@ func (e CreateCharacterWithDirectionsMode) Valid() bool {
 	}
 }
 
-// Response model for 8-direction object creation.
-type CreateDirectionObject struct {
-	Usage           *Usage `json:"usage,omitempty"`
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	ObjectID        string `json:"object_id,omitzero"`
-	Status          string `json:"status,omitzero"`
-}
-
 // Camera angle.
 type CreateDirectionObjectView string
 
@@ -1053,18 +1045,6 @@ func (e CreateDirectionObjectView) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// CreateImageBitforge defines a model
-type CreateImageBitforge struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// A base64 encoded image.
-	//
-	// Attributes:
-	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
-	//     base64 (str): The base64 encoded image data
-	//     format (str): The image format (e.g., "png", "jpeg")
-	Image BaseImage `json:"image"`
 }
 
 // Request model for image generation endpoint
@@ -1213,17 +1193,6 @@ type CreateImagePixfluxRequest struct {
 	ColorImage *BaseImage `json:"color_image,omitempty"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Response for background isometric tile generation (async-only)
-type CreateIsometricTileBackground struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id,omitzero"`
-	// Tile ID that will be created (available immediately)
-	TileID string `json:"tile_id,omitzero"`
-	// Always 'processing' - check status with background job ID
-	Status string `json:"status,omitzero"`
 }
 
 // Level of detail in the tile
@@ -1903,6 +1872,28 @@ type DeleteObjectResponse struct {
 	Err string `json:"error,omitzero"`
 }
 
+// Response for isometric tile deletion.
+type DeleteTileResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Whether the deletion succeeded
+	Success bool `json:"success"`
+	// ID of the deleted tile
+	TileID string `json:"tile_id,omitzero"`
+	// Error message if deletion failed
+	Err string `json:"error,omitzero"`
+}
+
+// Response for sidescroller tileset deletion.
+type DeleteTilesetResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Whether the deletion succeeded
+	Success bool `json:"success"`
+	// ID of the deleted tileset
+	TilesetID string `json:"tileset_id,omitzero"`
+	// Error message if deletion failed
+	Err string `json:"error,omitzero"`
+}
+
 // DeleteUIAssetResponse defines a model
 type DeleteUIAssetResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
@@ -2056,13 +2047,6 @@ func (e EditImagesV2RequestMethod) Valid() bool {
 	}
 }
 
-// EnhanceAnimationPrompt defines a model
-type EnhanceAnimationPrompt struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Enhanced motion description.
-	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
-}
-
 // EnhanceAnimationV3PromptRequest defines a model
 type EnhanceAnimationV3PromptRequest struct {
 	// First frame as base64 PNG/JPEG. Becomes the basis of the motion description.
@@ -2104,6 +2088,13 @@ type EnhancePixenPromptRequest struct {
 	Direction Direction `json:"direction,omitzero"`
 	// If true, the enhanced description will describe the subject on a plain background (no scene).
 	NoBackground bool `json:"no_background,omitempty"`
+}
+
+// EnhancedPromptResponse defines a model
+type EnhancedPromptResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Enhanced motion description.
+	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 }
 
 // Request model for estimate skeleton endpoint
@@ -2360,12 +2351,24 @@ type HTTPValidationError struct {
 // HTTPValidationErrorDetail defines a model
 type HTTPValidationErrorDetail []ValidationError
 
+// ImageResponse defines a model
+type ImageResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// A base64 encoded image.
+	//
+	// Attributes:
+	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
+	//     base64 (str): The base64 encoded image data
+	//     format (str): The image format (e.g., "png", "jpeg")
+	Image BaseImage `json:"image"`
+}
+
 // Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.
 type ImageSize struct {
-	// Width in pixels.
-	Width int `json:"width"`
 	// Height in pixels.
 	Height int `json:"height"`
+	// Width in pixels.
+	Width int `json:"width"`
 }
 
 // Request model for image to pixel art (pro) endpoint
@@ -2472,17 +2475,6 @@ type InterpolationV2Request struct {
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
 	NoBackground bool `json:"no_background,omitempty"`
-}
-
-// Response for isometric tile deletion.
-type IsometricTile struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success"`
-	// ID of the deleted tile
-	TileID string `json:"tile_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
 }
 
 // Summary of an isometric tile for listing
@@ -2672,6 +2664,14 @@ type ObjectDetail struct {
 
 // Animations on this object, grouped by animation_group_id
 type ObjectDetailAnimations []ObjectAnimationGroup
+
+// Response model for 8-direction object creation.
+type ObjectJobResponse struct {
+	Usage           *Usage `json:"usage,omitempty"`
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	ObjectID        string `json:"object_id,omitzero"`
+	Status          string `json:"status,omitzero"`
+}
 
 // URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
 // For 1-direction objects all keys are null — see `storage_urls['unknown']`.
@@ -2952,17 +2952,6 @@ type SidescrollerTileSize struct {
 	Height *int `json:"height,omitempty"`
 }
 
-// Response for sidescroller tileset deletion.
-type SidescrollerTileset struct {
-	Usage *Usage `json:"usage,omitempty"`
-	// Whether the deletion succeeded
-	Success bool `json:"success"`
-	// ID of the deleted tileset
-	TilesetID string `json:"tileset_id,omitzero"`
-	// Error message if deletion failed
-	Err string `json:"error,omitzero"`
-}
-
 // SidescrollerTilesetSummary defines a model
 type SidescrollerTilesetSummary struct {
 	ID                    string              `json:"id,omitzero"`
@@ -3138,6 +3127,17 @@ func (e TileCornersNe) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Response for background isometric tile generation (async-only)
+type TileJobResponse struct {
+	Usage *Usage `json:"usage,omitempty"`
+	// Background job ID for tracking generation progress
+	BackgroundJobID string `json:"background_job_id,omitzero"`
+	// Tile ID that will be created (available immediately)
+	TileID string `json:"tile_id,omitzero"`
+	// Always 'processing' - check status with background job ID
+	Status string `json:"status,omitzero"`
 }
 
 // 4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)
@@ -3387,7 +3387,7 @@ type UpdateObjectTags struct {
 }
 
 // Response after updating tags
-type UpdateObjectTags2 struct {
+type UpdateTagsResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
 	// Updated list of tags
 	Tags []string `json:"tags"`
