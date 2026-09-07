@@ -238,9 +238,10 @@ type AnimateWithSkeletonRequest struct {
 	ImageSize ImageSize `json:"image_size"`
 	// How closely to follow the reference image and skeleton keypoints
 	GuidanceScale *float64 `json:"guidance_scale,omitempty"`
-	// Camera view angle
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction (default: "east")
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
@@ -283,9 +284,10 @@ type AnimateWithTextRequest struct {
 	NFrames *int `json:"n_frames,omitempty"`
 	// Starting frame index of the full animation
 	StartFrameIndex *int `json:"start_frame_index,omitempty"`
-	// Camera view angle
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction (default: "east")
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Initial images to start the generation from
 	InitImages AnimateWithSkeletonInitImages `json:"init_images,omitzero"`
@@ -322,54 +324,13 @@ type AnimateWithTextV2Request struct {
 	// Remove background from generated frames
 	NoBackground bool `json:"no_background,omitempty"`
 	// Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')
-	View AnimateWithTextV2RequestView `json:"view,omitzero"`
+	// One of: none, low top-down, high top-down, side.
+	// Defaults to "none" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Direction the character faces during the animation.
-	Direction AnimateWithTextV2RequestDirection `json:"direction,omitzero"`
-}
-
-// Direction the character faces during the animation.
-type AnimateWithTextV2RequestDirection string
-
-const (
-	AnimateWithTextV2RequestDirectionNone      AnimateWithTextV2RequestDirection = "none"
-	AnimateWithTextV2RequestDirectionSouth     AnimateWithTextV2RequestDirection = "south"
-	AnimateWithTextV2RequestDirectionEast      AnimateWithTextV2RequestDirection = "east"
-	AnimateWithTextV2RequestDirectionWest      AnimateWithTextV2RequestDirection = "west"
-	AnimateWithTextV2RequestDirectionNorth     AnimateWithTextV2RequestDirection = "north"
-	AnimateWithTextV2RequestDirectionSouthEast AnimateWithTextV2RequestDirection = "south-east"
-	AnimateWithTextV2RequestDirectionSouthWest AnimateWithTextV2RequestDirection = "south-west"
-	AnimateWithTextV2RequestDirectionNorthEast AnimateWithTextV2RequestDirection = "north-east"
-	AnimateWithTextV2RequestDirectionNorthWest AnimateWithTextV2RequestDirection = "north-west"
-)
-
-// Valid indicates whether the value is a known member of the AnimateWithTextV2RequestDirection enum.
-func (e AnimateWithTextV2RequestDirection) Valid() bool {
-	switch e {
-	case AnimateWithTextV2RequestDirectionNone, AnimateWithTextV2RequestDirectionSouth, AnimateWithTextV2RequestDirectionEast, AnimateWithTextV2RequestDirectionWest, AnimateWithTextV2RequestDirectionNorth, AnimateWithTextV2RequestDirectionSouthEast, AnimateWithTextV2RequestDirectionSouthWest, AnimateWithTextV2RequestDirectionNorthEast, AnimateWithTextV2RequestDirectionNorthWest:
-		return true
-	default:
-		return false
-	}
-}
-
-// Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')
-type AnimateWithTextV2RequestView string
-
-const (
-	AnimateWithTextV2RequestViewNone        AnimateWithTextV2RequestView = "none"
-	AnimateWithTextV2RequestViewLowTopDown  AnimateWithTextV2RequestView = "low top-down"
-	AnimateWithTextV2RequestViewHighTopDown AnimateWithTextV2RequestView = "high top-down"
-	AnimateWithTextV2RequestViewSide        AnimateWithTextV2RequestView = "side"
-)
-
-// Valid indicates whether the value is a known member of the AnimateWithTextV2RequestView enum.
-func (e AnimateWithTextV2RequestView) Valid() bool {
-	switch e {
-	case AnimateWithTextV2RequestViewNone, AnimateWithTextV2RequestViewLowTopDown, AnimateWithTextV2RequestViewHighTopDown, AnimateWithTextV2RequestViewSide:
-		return true
-	default:
-		return false
-	}
+	// One of: none, south, east, west, north, south-east, south-west, north-east, north-west.
+	// Defaults to "none" if omitted.
+	Direction Direction `json:"direction,omitzero"`
 }
 
 // Request model for animate with text v3 endpoint
@@ -485,19 +446,21 @@ type BoundingBox struct {
 	Height int `json:"height"`
 }
 
-// CameraView defines a model
+// Camera / view angle. Which values are accepted is request-specific - see the field description where this is used.
 type CameraView string
 
 const (
 	CameraViewSide        CameraView = "side"
 	CameraViewLowTopDown  CameraView = "low top-down"
 	CameraViewHighTopDown CameraView = "high top-down"
+	CameraViewNone        CameraView = "none"
+	CameraViewTopDown     CameraView = "top-down"
 )
 
 // Valid indicates whether the value is a known member of the CameraView enum.
 func (e CameraView) Valid() bool {
 	switch e {
-	case CameraViewSide, CameraViewLowTopDown, CameraViewHighTopDown:
+	case CameraViewSide, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewNone, CameraViewTopDown:
 		return true
 	default:
 		return false
@@ -730,7 +693,9 @@ type Create8DirectionObjectRequest struct {
 	// Square image size in pixels (32-168 — the 8-rotation pipeline rejects anything larger). Defaults to 64 when omitted. Cannot be set together with `reference_image` or `style_image` — in those cases the image dimensions determine the output size.
 	Size *int `json:"size,omitempty"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Reference image of the object — generates 8 rotations of this exact image. Mutually exclusive with `style_image` and `size`.
 	ReferenceImage *BaseImage `json:"reference_image,omitempty"`
 	// Style reference — generates a new object matching the description with the style of this image. Mutually exclusive with `reference_image` and `size`.
@@ -831,7 +796,9 @@ type CreateCharacterProRequest struct {
 	// - `rotate_character`: `reference_image` (required) is an existing character to rotate into 8 directions. `description` is still used as guidance.
 	Method CreateCharacterProRequestMethod `json:"method,omitzero"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Quadruped templates also append ", on all fours" to the description so generated frames match the chosen skeleton.
 	TemplateID string `json:"template_id,omitzero"`
 	// Optional concept image (max 1024x1024). Used with `method=create_from_concept`.
@@ -903,7 +870,9 @@ type CreateCharacterV3Request struct {
 	// Height: 32-256 px.
 	ImageSize *ImageSize `json:"image_size,omitempty"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`.
 	TemplateID string `json:"template_id,omitzero"`
 	// Display name. Defaults to first 50 chars of `description`.
@@ -1029,25 +998,6 @@ func (e CreateCharacterWithDirectionsMode) Valid() bool {
 	}
 }
 
-// Camera angle.
-type CreateDirectionObjectView string
-
-const (
-	CreateDirectionObjectViewLowTopDown  CreateDirectionObjectView = "low top-down"
-	CreateDirectionObjectViewHighTopDown CreateDirectionObjectView = "high top-down"
-	CreateDirectionObjectViewSide        CreateDirectionObjectView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateDirectionObjectView enum.
-func (e CreateDirectionObjectView) Valid() bool {
-	switch e {
-	case CreateDirectionObjectViewLowTopDown, CreateDirectionObjectViewHighTopDown, CreateDirectionObjectViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request model for image generation endpoint
 type CreateImageBitforgeRequest struct {
 	// Text description of the image to generate
@@ -1063,15 +1013,18 @@ type CreateImageBitforgeRequest struct {
 	ExtraGuidanceScale *float64 `json:"extra_guidance_scale,omitempty"`
 	// Strength of the style transfer (0-100). 50 = balanced.
 	StyleStrength *int `json:"style_strength,omitempty"`
-	// Outline style reference
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Shading style reference
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
-	// Detail style reference
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle
+	// Shading complexity
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
@@ -1125,13 +1078,15 @@ type CreateImagePixenRequest struct {
 	// Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).
 	// Height: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32).
 	ImageSize ImageSize `json:"image_size"`
-	// Outline style
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Detail level (default: highly detailed)
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Generate with transparent background
 	NoBackground bool `json:"no_background,omitempty"`
@@ -1170,15 +1125,18 @@ type CreateImagePixfluxRequest struct {
 	ImageSize ImageSize `json:"image_size"`
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
-	// Outline style reference (weakly guiding)
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Shading style reference (weakly guiding)
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
-	// Detail style reference (weakly guiding)
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle (weakly guiding)
+	// Shading complexity
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction (weakly guiding)
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view (weakly guiding)
 	Isometric bool `json:"isometric,omitempty"`
@@ -1196,44 +1154,6 @@ type CreateImagePixfluxRequest struct {
 	Seed *int `json:"seed,omitempty"`
 }
 
-// Level of detail in the tile
-type CreateIsometricTileDetail string
-
-const (
-	CreateIsometricTileDetailLowDetail      CreateIsometricTileDetail = "low detail"
-	CreateIsometricTileDetailMediumDetail   CreateIsometricTileDetail = "medium detail"
-	CreateIsometricTileDetailHighlyDetailed CreateIsometricTileDetail = "highly detailed"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileDetail enum.
-func (e CreateIsometricTileDetail) Valid() bool {
-	switch e {
-	case CreateIsometricTileDetailLowDetail, CreateIsometricTileDetailMediumDetail, CreateIsometricTileDetailHighlyDetailed:
-		return true
-	default:
-		return false
-	}
-}
-
-// Outline style for the tile
-type CreateIsometricTileOutline string
-
-const (
-	CreateIsometricTileOutlineSingleColorOutline CreateIsometricTileOutline = "single color outline"
-	CreateIsometricTileOutlineSelectiveOutline   CreateIsometricTileOutline = "selective outline"
-	CreateIsometricTileOutlineLineless           CreateIsometricTileOutline = "lineless"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileOutline enum.
-func (e CreateIsometricTileOutline) Valid() bool {
-	switch e {
-	case CreateIsometricTileOutlineSingleColorOutline, CreateIsometricTileOutlineSelectiveOutline, CreateIsometricTileOutlineLineless:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request model for pixflux image generation endpoint
 type CreateIsometricTileRequest struct {
 	// Text description of the image to generate
@@ -1244,11 +1164,14 @@ type CreateIsometricTileRequest struct {
 	// How closely to follow the text description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Outline style for the tile
-	Outline CreateIsometricTileOutline `json:"outline,omitzero"`
+	// One of: single color outline, selective outline, lineless.
+	Outline Outline `json:"outline,omitzero"`
 	// Shading complexity
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
 	// Level of detail in the tile
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
 	// Initial image to start from
 	InitImage *BaseImage `json:"init_image,omitempty"`
 	// Strength of the initial image influence
@@ -1282,27 +1205,6 @@ func (e CreateIsometricTileRequestIsometricTileShape) Valid() bool {
 	}
 }
 
-// Shading complexity
-type CreateIsometricTileShading string
-
-const (
-	CreateIsometricTileShadingFlatShading           CreateIsometricTileShading = "flat shading"
-	CreateIsometricTileShadingBasicShading          CreateIsometricTileShading = "basic shading"
-	CreateIsometricTileShadingMediumShading         CreateIsometricTileShading = "medium shading"
-	CreateIsometricTileShadingDetailedShading       CreateIsometricTileShading = "detailed shading"
-	CreateIsometricTileShadingHighlyDetailedShading CreateIsometricTileShading = "highly detailed shading"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileShading enum.
-func (e CreateIsometricTileShading) Valid() bool {
-	switch e {
-	case CreateIsometricTileShadingFlatShading, CreateIsometricTileShadingBasicShading, CreateIsometricTileShadingMediumShading, CreateIsometricTileShadingDetailedShading, CreateIsometricTileShadingHighlyDetailedShading:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request for creating a map object with transparent background
 type CreateMapObjectRequest struct {
 	// Object description (e.g., 'wooden barrel', 'stone fountain')
@@ -1319,13 +1221,18 @@ type CreateMapObjectRequest struct {
 	// Defaults to {"width":128,"height":128} if omitted.
 	ImageSize *ImageSize `json:"image_size,omitempty"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Outline style for the tile
-	Outline CreateIsometricTileOutline `json:"outline,omitzero"`
+	// One of: single color outline, selective outline, lineless.
+	Outline Outline `json:"outline,omitzero"`
 	// Shading complexity
-	Shading CreateMapObjectRequestShading `json:"shading,omitzero"`
+	// One of: flat shading, basic shading, medium shading, detailed shading.
+	Shading Shading `json:"shading,omitzero"`
 	// Level of detail
-	Detail CreateMapObjectRequestDetail `json:"detail,omitzero"`
+	// One of: low detail, medium detail, high detail.
+	Detail Detail `json:"detail,omitzero"`
 	// How closely to follow the description
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Initial image to start from
@@ -1340,25 +1247,6 @@ type CreateMapObjectRequest struct {
 	Inpainting *CreateMapObjectRequestInpainting `json:"inpainting,omitempty"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
-}
-
-// Level of detail
-type CreateMapObjectRequestDetail string
-
-const (
-	CreateMapObjectRequestDetailLowDetail    CreateMapObjectRequestDetail = "low detail"
-	CreateMapObjectRequestDetailMediumDetail CreateMapObjectRequestDetail = "medium detail"
-	CreateMapObjectRequestDetailHighDetail   CreateMapObjectRequestDetail = "high detail"
-)
-
-// Valid indicates whether the value is a known member of the CreateMapObjectRequestDetail enum.
-func (e CreateMapObjectRequestDetail) Valid() bool {
-	switch e {
-	case CreateMapObjectRequestDetailLowDetail, CreateMapObjectRequestDetailMediumDetail, CreateMapObjectRequestDetailHighDetail:
-		return true
-	default:
-		return false
-	}
 }
 
 // Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
@@ -1423,26 +1311,6 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 	return fmt.Errorf("CreateMapObjectRequestInpainting: no variant set")
 }
 
-// Shading complexity
-type CreateMapObjectRequestShading string
-
-const (
-	CreateMapObjectRequestShadingFlatShading     CreateMapObjectRequestShading = "flat shading"
-	CreateMapObjectRequestShadingBasicShading    CreateMapObjectRequestShading = "basic shading"
-	CreateMapObjectRequestShadingMediumShading   CreateMapObjectRequestShading = "medium shading"
-	CreateMapObjectRequestShadingDetailedShading CreateMapObjectRequestShading = "detailed shading"
-)
-
-// Valid indicates whether the value is a known member of the CreateMapObjectRequestShading enum.
-func (e CreateMapObjectRequestShading) Valid() bool {
-	switch e {
-	case CreateMapObjectRequestShadingFlatShading, CreateMapObjectRequestShadingBasicShading, CreateMapObjectRequestShadingMediumShading, CreateMapObjectRequestShadingDetailedShading:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request to produce a state (variant) of an existing object.
 type CreateObjectStateRequest struct {
 	EditDescription string `json:"edit_description,omitzero"`
@@ -1462,7 +1330,9 @@ type CreateTilesProRequest struct {
 	// Tile height in pixels for non-square tiles (e.g., 128 for 64x128 tiles). When omitted, height is computed from tile_type geometry and view angle.
 	TileHeight *int `json:"tile_height,omitempty"`
 	// View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.
-	TileView CreateTilesProRequestTileView `json:"tile_view,omitzero"`
+	// One of: top-down, high top-down, low top-down, side.
+	// Defaults to "low top-down" if omitted.
+	TileView CameraView `json:"tile_view,omitzero"`
 	// Continuous view angle in degrees (0-90). Overrides tile_view when provided. 0=side, 90=top-down.
 	TileViewAngle *float64 `json:"tile_view_angle,omitempty"`
 	// Tile depth/thickness ratio (0.0-1.0). Controls how much vertical depth the tile has. Overrides the default computed from tile_view.
@@ -1575,26 +1445,6 @@ func (e CreateTilesProRequestTileType) Valid() bool {
 	}
 }
 
-// View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.
-type CreateTilesProRequestTileView string
-
-const (
-	CreateTilesProRequestTileViewTopDown     CreateTilesProRequestTileView = "top-down"
-	CreateTilesProRequestTileViewHighTopDown CreateTilesProRequestTileView = "high top-down"
-	CreateTilesProRequestTileViewLowTopDown  CreateTilesProRequestTileView = "low top-down"
-	CreateTilesProRequestTileViewSide        CreateTilesProRequestTileView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProRequestTileView enum.
-func (e CreateTilesProRequestTileView) Valid() bool {
-	switch e {
-	case CreateTilesProRequestTileViewTopDown, CreateTilesProRequestTileViewHighTopDown, CreateTilesProRequestTileViewLowTopDown, CreateTilesProRequestTileViewSide:
-		return true
-	default:
-		return false
-	}
-}
-
 // Response for background tileset generation (async-only)
 type CreateTilesetBackgroundResponse struct {
 	Usage *Usage `json:"usage,omitempty"`
@@ -1634,14 +1484,17 @@ type CreateTilesetRequest struct {
 	Raggedness *float64 `json:"raggedness,omitempty"`
 	// How closely to follow the text descriptions (default: 8.0)
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
-	// Outline style reference
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Shading style reference
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
-	// Detail style reference
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle for tileset (default: "high top-down")
-	View TilesetCameraView `json:"view,omitzero"`
+	// Shading complexity
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// Camera view options supported for tileset generation
+	// One of: low top-down, high top-down.
+	View CameraView `json:"view,omitzero"`
 	// Strength of tile pattern adherence
 	TileStrength *float64 `json:"tile_strength,omitempty"`
 	// How flexible it will be when following tileset structure, higher values means more flexibility
@@ -1704,12 +1557,14 @@ type CreateTilesetSidescrollerRequest struct {
 	TileSize *SidescrollerTileSize `json:"tile_size,omitempty"`
 	// How closely to follow the text descriptions (default: 8.0)
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
-	// Outline style reference
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Shading style reference
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
-	// Detail style reference
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
+	// Shading complexity
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
 	// Strength of tile pattern adherence
 	TileStrength *float64 `json:"tile_strength,omitempty"`
 	// How flexible it will be when following tileset structure, higher values means more flexibility
@@ -1902,7 +1757,27 @@ type DeleteUIAssetResponse struct {
 	Success bool `json:"success"`
 }
 
-// Direction defines a model
+// Level of detail. Which values are accepted is request-specific - see the field description where this is used.
+type Detail string
+
+const (
+	DetailLowDetail      Detail = "low detail"
+	DetailMediumDetail   Detail = "medium detail"
+	DetailHighlyDetailed Detail = "highly detailed"
+	DetailHighDetail     Detail = "high detail"
+)
+
+// Valid indicates whether the value is a known member of the Detail enum.
+func (e Detail) Valid() bool {
+	switch e {
+	case DetailLowDetail, DetailMediumDetail, DetailHighlyDetailed, DetailHighDetail:
+		return true
+	default:
+		return false
+	}
+}
+
+// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
 type Direction string
 
 const (
@@ -1914,12 +1789,13 @@ const (
 	DirectionSouthWest Direction = "south-west"
 	DirectionWest      Direction = "west"
 	DirectionNorthWest Direction = "north-west"
+	DirectionNone      Direction = "none"
 )
 
 // Valid indicates whether the value is a known member of the Direction enum.
 func (e Direction) Valid() bool {
 	switch e {
-	case DirectionNorth, DirectionNorthEast, DirectionEast, DirectionSouthEast, DirectionSouth, DirectionSouthWest, DirectionWest, DirectionNorthWest:
+	case DirectionNorth, DirectionNorthEast, DirectionEast, DirectionSouthEast, DirectionSouth, DirectionSouthWest, DirectionWest, DirectionNorthWest, DirectionNone:
 		return true
 	default:
 		return false
@@ -2067,7 +1943,9 @@ type EnhanceCharacterV3PromptRequest struct {
 	// Height: 32-256 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Outline style hint (soft guidance — same as create-character-v3).
 	Outline string `json:"outline,omitzero"`
 	// Detail level hint (soft guidance — same as create-character-v3).
@@ -2081,13 +1959,15 @@ type EnhancePixenPromptRequest struct {
 	// Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).
 	// Height: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32).
 	ImageSize ImageSize `json:"image_size"`
-	// Outline style hint.
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Detail level hint.
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle.
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction the enhanced description should describe.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// If true, the enhanced description will describe the subject on a plain background (no scene).
 	NoBackground bool `json:"no_background,omitempty"`
@@ -2153,7 +2033,9 @@ type Generate8RotationsV2Request struct {
 	// Description of the visual style
 	StyleDescription string `json:"style_description,omitzero"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated images
@@ -2429,15 +2311,18 @@ type InpaintRequest struct {
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// (Deprecated)
 	ExtraGuidanceScale *float64 `json:"extra_guidance_scale,omitempty"`
-	// Outline style reference
+	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
-	// Shading style reference
-	Shading CreateIsometricTileShading `json:"shading,omitzero"`
-	// Detail style reference
-	Detail CreateIsometricTileDetail `json:"detail,omitzero"`
-	// Camera view angle
+	// Shading complexity
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	Shading Shading `json:"shading,omitzero"`
+	// Level of detail in the tile
+	// One of: low detail, medium detail, highly detailed.
+	Detail Detail `json:"detail,omitzero"`
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Subject direction
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
@@ -2759,7 +2644,7 @@ type OriginalPosition struct {
 	Col int `json:"col"`
 }
 
-// Outline defines a model
+// Outline style. Which values are accepted is request-specific - see the field description where this is used.
 type Outline string
 
 const (
@@ -2801,7 +2686,9 @@ type PortraitCharacterProRequest struct {
 	// Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`).
 	Image BaseImage `json:"image"`
 	// Camera angle.
-	View CreateDirectionObjectView `json:"view,omitzero"`
+	// One of: low top-down, high top-down, side.
+	// Defaults to "low top-down" if omitted.
+	View CameraView `json:"view,omitzero"`
 	// Output sprite size in pixels. 128/160 render at 2K for extra detail (and cost more generations).
 	ResultSize *int `json:"result_size,omitempty"`
 	// Seed for reproducible generation.
@@ -2873,9 +2760,10 @@ type ResizeRequest struct {
 	// Width: 16-200 px.
 	// Height: 16-200 px.
 	TargetSize ImageSize `json:"target_size"`
-	// Camera view angle
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	View CameraView `json:"view,omitzero"`
-	// Directional view
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Isometric perspective
 	Isometric bool `json:"isometric,omitempty"`
@@ -2904,13 +2792,15 @@ type RotateRequest struct {
 	ViewChange *int `json:"view_change,omitempty"`
 	// How many degrees to rotate the subject
 	DirectionChange *int `json:"direction_change,omitempty"`
-	// From camera view angle
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	FromView CameraView `json:"from_view,omitzero"`
-	// To camera view angle
+	// One of: side, low top-down, high top-down.
+	// Defaults to "side" if omitted.
 	ToView CameraView `json:"to_view,omitzero"`
-	// From subject direction
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	FromDirection Direction `json:"from_direction,omitzero"`
-	// From subject direction (default: "east")
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	ToDirection Direction `json:"to_direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitempty"`
@@ -2968,6 +2858,27 @@ type SetPortraitResponse struct {
 	Size int `json:"size"`
 	// URL of the stored portrait image.
 	URL string `json:"url,omitzero"`
+}
+
+// Shading complexity. Which values are accepted is request-specific - see the field description where this is used.
+type Shading string
+
+const (
+	ShadingFlatShading           Shading = "flat shading"
+	ShadingBasicShading          Shading = "basic shading"
+	ShadingMediumShading         Shading = "medium shading"
+	ShadingDetailedShading       Shading = "detailed shading"
+	ShadingHighlyDetailedShading Shading = "highly detailed shading"
+)
+
+// Valid indicates whether the value is a known member of the Shading enum.
+func (e Shading) Valid() bool {
+	switch e {
+	case ShadingFlatShading, ShadingBasicShading, ShadingMediumShading, ShadingDetailedShading, ShadingHighlyDetailedShading:
+		return true
+	default:
+		return false
+	}
 }
 
 // SidescrollerTileSize defines a model
@@ -3218,24 +3129,6 @@ type TilesProSummary struct {
 	TileView    string `json:"tile_view,omitzero"`
 	CreatedAt   string `json:"created_at,omitzero"`
 	Status      string `json:"status,omitzero"`
-}
-
-// Camera view options supported for tileset generation
-type TilesetCameraView string
-
-const (
-	TilesetCameraViewLowTopDown  TilesetCameraView = "low top-down"
-	TilesetCameraViewHighTopDown TilesetCameraView = "high top-down"
-)
-
-// Valid indicates whether the value is a known member of the TilesetCameraView enum.
-func (e TilesetCameraView) Valid() bool {
-	switch e {
-	case TilesetCameraViewLowTopDown, TilesetCameraViewHighTopDown:
-		return true
-	default:
-		return false
-	}
 }
 
 // Tileset containing individual tiles

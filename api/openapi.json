@@ -3432,11 +3432,11 @@
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -3554,11 +3554,11 @@
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "init_images": {
             "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
@@ -3644,10 +3644,12 @@
             "type": "boolean"
           },
           "view": {
-            "$ref": "#/components/schemas/AnimateWithTextV2RequestView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')\nOne of: none, low top-down, high top-down, side.\nDefaults to \"none\" if omitted."
           },
           "direction": {
-            "$ref": "#/components/schemas/AnimateWithTextV2RequestDirection"
+            "$ref": "#/components/schemas/Direction",
+            "description": "Direction the character faces during the animation.\nOne of: none, south, east, west, north, south-east, south-west, north-east, north-west.\nDefaults to \"none\" if omitted."
           }
         },
         "required": [
@@ -3674,35 +3676,6 @@
           "seed": 42,
           "view": "low top-down"
         }
-      },
-      "AnimateWithTextV2RequestDirection": {
-        "title": "Direction",
-        "description": "Direction the character faces during the animation.",
-        "type": "string",
-        "enum": [
-          "none",
-          "south",
-          "east",
-          "west",
-          "north",
-          "south-east",
-          "south-west",
-          "north-east",
-          "north-west"
-        ],
-        "default": "none"
-      },
-      "AnimateWithTextV2RequestView": {
-        "title": "View",
-        "description": "Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')",
-        "type": "string",
-        "enum": [
-          "none",
-          "low top-down",
-          "high top-down",
-          "side"
-        ],
-        "default": "none"
       },
       "AnimateWithTextV3Request": {
         "title": "AnimateWithTextV3Request",
@@ -4052,13 +4025,15 @@
       },
       "CameraView": {
         "title": "CameraView",
+        "description": "Camera / view angle. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "side",
           "low top-down",
-          "high top-down"
-        ],
-        "default": "side"
+          "high top-down",
+          "none",
+          "top-down"
+        ]
       },
       "CharacterDetail": {
         "title": "CharacterDetail",
@@ -4725,7 +4700,8 @@
             "maximum": 168
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "reference_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -4966,7 +4942,8 @@
             "$ref": "#/components/schemas/CreateCharacterProRequestMethod"
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "template_id": {
             "title": "Template Id",
@@ -5104,7 +5081,8 @@
             "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "template_id": {
             "title": "Template Id",
@@ -5497,17 +5475,6 @@
           "pro"
         ]
       },
-      "CreateDirectionObjectView": {
-        "title": "View",
-        "description": "Camera angle.",
-        "type": "string",
-        "enum": [
-          "low top-down",
-          "high top-down",
-          "side"
-        ],
-        "default": "low top-down"
-      },
       "CreateImageBitforgeRequest": {
         "title": "CreateImageBitforgeRequest",
         "description": "Request model for image generation endpoint",
@@ -5553,23 +5520,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -5683,19 +5650,19 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail level (default: highly detailed)"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "no_background": {
             "title": "No Background",
@@ -5785,23 +5752,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference (weakly guiding)"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference (weakly guiding)"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference (weakly guiding)"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle (weakly guiding)"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (weakly guiding)"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -5853,26 +5820,6 @@
           "no_background": true
         }
       },
-      "CreateIsometricTileDetail": {
-        "title": "Detail",
-        "description": "Level of detail in the tile",
-        "type": "string",
-        "enum": [
-          "low detail",
-          "medium detail",
-          "highly detailed"
-        ]
-      },
-      "CreateIsometricTileOutline": {
-        "title": "Outline",
-        "description": "Outline style for the tile",
-        "type": "string",
-        "enum": [
-          "single color outline",
-          "selective outline",
-          "lineless"
-        ]
-      },
       "CreateIsometricTileRequest": {
         "title": "CreateIsometricTileRequest",
         "description": "Request model for pixflux image generation endpoint",
@@ -5896,13 +5843,16 @@
             "default": 8
           },
           "outline": {
-            "$ref": "#/components/schemas/CreateIsometricTileOutline"
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "init_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -5961,18 +5911,6 @@
         ],
         "default": "block"
       },
-      "CreateIsometricTileShading": {
-        "title": "Shading",
-        "description": "Shading complexity",
-        "type": "string",
-        "enum": [
-          "flat shading",
-          "basic shading",
-          "medium shading",
-          "detailed shading",
-          "highly detailed shading"
-        ]
-      },
       "CreateMapObjectRequest": {
         "title": "CreateMapObjectRequest",
         "description": "Request for creating a map object with transparent background",
@@ -5990,16 +5928,20 @@
             "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96\nWidth: 32-400 px - Width in pixels (32-400).\nHeight: 32-400 px - Height in pixels (32-400).\nDefaults to {\"width\":128,\"height\":128} if omitted."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "outline": {
-            "$ref": "#/components/schemas/CreateIsometricTileOutline"
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateMapObjectRequestShading"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateMapObjectRequestDetail"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail\nOne of: low detail, medium detail, high detail."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6054,16 +5996,6 @@
           "view": "high top-down"
         }
       },
-      "CreateMapObjectRequestDetail": {
-        "title": "Detail",
-        "description": "Level of detail",
-        "type": "string",
-        "enum": [
-          "low detail",
-          "medium detail",
-          "high detail"
-        ]
-      },
       "CreateMapObjectRequestInpainting": {
         "title": "Inpainting",
         "description": "Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)",
@@ -6077,17 +6009,6 @@
           {
             "$ref": "#/components/schemas/RectangleInpainting"
           }
-        ]
-      },
-      "CreateMapObjectRequestShading": {
-        "title": "Shading",
-        "description": "Shading complexity",
-        "type": "string",
-        "enum": [
-          "flat shading",
-          "basic shading",
-          "medium shading",
-          "detailed shading"
         ]
       },
       "CreateObjectStateRequest": {
@@ -6149,7 +6070,8 @@
             "maximum": 256
           },
           "tile_view": {
-            "$ref": "#/components/schemas/CreateTilesProRequestTileView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.\nOne of: top-down, high top-down, low top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "tile_view_angle": {
             "title": "Tile View Angle",
@@ -6294,18 +6216,6 @@
           "square_topdown"
         ],
         "default": "isometric"
-      },
-      "CreateTilesProRequestTileView": {
-        "title": "Tile View",
-        "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.",
-        "type": "string",
-        "enum": [
-          "top-down",
-          "high top-down",
-          "low top-down",
-          "side"
-        ],
-        "default": "low top-down"
       },
       "CreateTilesetBackgroundResponse": {
         "title": "CreateTilesetBackgroundResponse",
@@ -6504,19 +6414,19 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
-            "$ref": "#/components/schemas/TilesetCameraView",
-            "description": "Camera view angle for tileset (default: \"high top-down\")"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view options supported for tileset generation\nOne of: low top-down, high top-down."
           },
           "tile_strength": {
             "title": "Tile Strength",
@@ -6656,15 +6566,15 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "tile_strength": {
             "title": "Tile Strength",
@@ -7059,8 +6969,20 @@
           "success"
         ]
       },
+      "Detail": {
+        "title": "Detail",
+        "description": "Level of detail. Which values are accepted is request-specific - see the field description where this is used.",
+        "type": "string",
+        "enum": [
+          "low detail",
+          "medium detail",
+          "highly detailed",
+          "high detail"
+        ]
+      },
       "Direction": {
         "title": "Direction",
+        "description": "Facing direction. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "north",
@@ -7070,7 +6992,8 @@
           "south",
           "south-west",
           "west",
-          "north-west"
+          "north-west",
+          "none"
         ]
       },
       "DirectionSubmission": {
@@ -7437,7 +7360,8 @@
             "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "outline": {
             "title": "Outline",
@@ -7481,19 +7405,19 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style hint."
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail level hint."
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle."
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction the enhanced description should describe."
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "no_background": {
             "title": "No Background",
@@ -7658,7 +7582,8 @@
             "maxLength": 500
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "seed": {
             "title": "Seed",
@@ -8396,23 +8321,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -9369,6 +9294,7 @@
       },
       "Outline": {
         "title": "Outline",
+        "description": "Outline style. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "single color black outline",
@@ -9438,7 +9364,8 @@
             "description": "Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`)."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "result_size": {
             "title": "Result Size",
@@ -9610,11 +9537,11 @@
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Directional view"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -9707,19 +9634,19 @@
           },
           "from_view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "From camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "to_view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "To camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "from_direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "From subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "to_direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "From subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -9905,6 +9832,18 @@
           "character_id",
           "size",
           "url"
+        ]
+      },
+      "Shading": {
+        "title": "Shading",
+        "description": "Shading complexity. Which values are accepted is request-specific - see the field description where this is used.",
+        "type": "string",
+        "enum": [
+          "flat shading",
+          "basic shading",
+          "medium shading",
+          "detailed shading",
+          "highly detailed shading"
         ]
       },
       "SidescrollerTileSize": {
@@ -10583,15 +10522,6 @@
           "tile_view",
           "created_at",
           "status"
-        ]
-      },
-      "TilesetCameraView": {
-        "title": "TilesetCameraView",
-        "description": "Camera view options supported for tileset generation",
-        "type": "string",
-        "enum": [
-          "low top-down",
-          "high top-down"
         ]
       },
       "TilesetData": {

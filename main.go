@@ -147,6 +147,48 @@ func main() {
 
 	imageSizeSpecs := consolidateImageSizes(doc)
 
+	// Each of these families is the same concept - camera angle, facing
+	// direction, outline style, level of detail, shading complexity -
+	// generated once per endpoint with a slightly different value subset
+	// (and sometimes slightly different wording for the same value), so
+	// they never came out byte-identical enough for openapi-compress to
+	// merge on its own. Fold each family into one canonical enum, keeping
+	// every value any member used; the field that used to reference a
+	// narrower member keeps its own valid subset in its description.
+	consolidateEnumFamily(doc, "CameraView",
+		"Camera / view angle. Which values are accepted is request-specific - see the field description where this is used.",
+		[]string{
+			"CameraView",
+			"TilesetCameraView",
+			"CreateDirectionObjectView",
+			"AnimateWithTextV2RequestView",
+			"CreateTilesProRequestTileView",
+		})
+	consolidateEnumFamily(doc, "Direction",
+		"Facing direction. Which values are accepted is request-specific - see the field description where this is used.",
+		[]string{
+			"Direction",
+			"AnimateWithTextV2RequestDirection",
+		})
+	consolidateEnumFamily(doc, "Outline",
+		"Outline style. Which values are accepted is request-specific - see the field description where this is used.",
+		[]string{
+			"Outline",
+			"CreateIsometricTileOutline",
+		})
+	consolidateEnumFamily(doc, "Detail",
+		"Level of detail. Which values are accepted is request-specific - see the field description where this is used.",
+		[]string{
+			"CreateIsometricTileDetail",
+			"CreateMapObjectRequestDetail",
+		})
+	consolidateEnumFamily(doc, "Shading",
+		"Shading complexity. Which values are accepted is request-specific - see the field description where this is used.",
+		[]string{
+			"CreateIsometricTileShading",
+			"CreateMapObjectRequestShading",
+		})
+
 	for _, path := range doc.Paths {
 		for _, op := range path.Operations {
 			op.Responses.Sort()
@@ -457,6 +499,92 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 	}
 
 	return specs
+}
+
+// consolidateEnumFamily folds every schema named in members into one fresh
+// canonical string enum, keeping the union of every member's allowed values.
+// Each member's own values (and default, if any) are preserved as the
+// description of the field that referenced it - the same bounds-preservation
+// trick consolidateImageSizes uses, applied to enums instead of min/max.
+//
+// canonicalName may itself be one of members (the usual case: one member
+// already has the name the merged family should keep); it's moved aside
+// first so a fresh, unconstrained-by-any-single-member schema can take that
+// name.
+//
+// Unlike ImageSize, no validating constructors are generated for these:
+// wrapping a single enum value in a constructor doesn't pull its weight the
+// way pairing width+height did, so the per-field description is the only
+// mechanism preserving "which requests accept which values" here.
+func consolidateEnumFamily(doc *openapi.Document, canonicalName, canonicalDescription string, members []string) {
+	for i, name := range members {
+		if name != canonicalName {
+			continue
+		}
+
+		tmp := canonicalName + "Orig"
+		if err := edit.RenameSchema(doc, canonicalName, tmp); err != nil {
+			log.Fatal(err)
+		}
+		members[i] = tmp
+	}
+
+	var values []jsontext.Value
+	seen := map[string]bool{}
+	descriptions := make(map[string]string, len(members))
+
+	for _, name := range members {
+		s, ok := doc.Components.Schemas[name]
+		if !ok {
+			log.Fatalf("consolidateEnumFamily: schema %q not found", name)
+		}
+
+		descriptions[name] = enumUsageDescription(s)
+
+		for _, e := range s.Enum {
+			if v := string(e); !seen[v] {
+				seen[v] = true
+				values = append(values, e)
+			}
+		}
+	}
+
+	doc.Components.Schemas.Set(canonicalName, &openapi.Schema{
+		Title:       canonicalName,
+		Type:        openapi.TypeString,
+		Description: canonicalDescription,
+		Enum:        values,
+	})
+
+	for _, name := range members {
+		if err := edit.MergeSchema(doc, name, canonicalName, descriptions[name]); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+// enumUsageDescription composes the values (and default) carried by an
+// about-to-be-merged enum variant into text, so it survives on the field
+// that references it even after the schema itself is gone.
+func enumUsageDescription(s *openapi.Schema) string {
+	var parts []string
+	if d := strings.TrimSpace(s.Description); d != "" {
+		parts = append(parts, d)
+	}
+
+	if len(s.Enum) > 0 {
+		vals := make([]string, len(s.Enum))
+		for i, e := range s.Enum {
+			vals[i] = strings.Trim(string(e), `"`)
+		}
+		parts = append(parts, "One of: "+strings.Join(vals, ", ")+".")
+	}
+
+	if len(s.Default) > 0 {
+		parts = append(parts, fmt.Sprintf("Defaults to %s if omitted.", s.Default))
+	}
+
+	return strings.Join(parts, "\n")
 }
 
 // intBounds reads the integer minimum/maximum of a width or height property.
