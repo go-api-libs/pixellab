@@ -307,8 +307,6 @@ func mustEncode(v any) jsontext.Value {
 	return jsontext.Value(bytes.TrimSpace(b.Bytes()))
 }
 
-func ptr[T any](v T) *T { return &v }
-
 // imageSizeUsage identifies one field, on one generated Go request type,
 // that carries an image size.
 type imageSizeUsage struct {
@@ -472,10 +470,10 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 		// unbounded) also keeps this schema's shape from accidentally
 		// matching some unrelated, truly-unconstrained width/height schema
 		// and getting merged into it by openapi-compress.
-		Title: "Width", Type: openapi.TypeInteger, Description: "Width in pixels.", Min: ptr(1.0),
+		Title: "Width", Type: openapi.TypeInteger, Description: "Width in pixels.", Min: new(1.0),
 	}})
 	canonical.Properties.Set("height", &openapi.SchemaRef{Value: &openapi.Schema{
-		Title: "Height", Type: openapi.TypeInteger, Description: "Height in pixels.", Min: ptr(1.0),
+		Title: "Height", Type: openapi.TypeInteger, Description: "Height in pixels.", Min: new(1.0),
 	}})
 	doc.Components.Schemas.Set("ImageSize", canonical)
 
@@ -491,7 +489,8 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 			log.Fatalf(
 				"consolidateImageSizes: no imageSizeGroups entry for %q; "+
 					"a new ImageSize variant appeared in the upstream API and "+
-					"needs mapping to its Go request type(s) in cmd/generate/main.go", name)
+					"needs mapping to its Go request type(s) in cmd/generate/main.go", name,
+			)
 		}
 
 		spec := imageSizeSpec{usages: usages}
