@@ -356,6 +356,41 @@ var imageSizeGroups = map[string][]imageSizeUsage{
 	"app__endpoints__external__v2__remove_background__ImageSize": {
 		{"RemoveBackgroundRequest", "ImageSize"},
 	},
+
+	// These four are structurally identical to ImageSize too, but were never
+	// caught by the s.Title == "ImageSize" check above: unlike the endpoint
+	// variants keyed above (all anonymous per-endpoint models FastAPI titled
+	// "ImageSize"), these already had a distinct, clean title of their own,
+	// so openapi-compress never needed to disambiguate them with a numeric
+	// suffix. See extraImageSizeSchemas.
+	"FrameSize": {
+		{"AnimateWithTextV2Request", "ReferenceImageSize"},
+		{"AnimateWithTextV2Request", "ImageSize"},
+		{"CreateCharacterStateRequest", "OverrideFrameSize"},
+		{"CreateCharacterV3Request", "ImageSize"},
+		{"EnhanceCharacterV3PromptRequest", "ImageSize"},
+		{"TransferOutfitV2Request", "ImageSize"},
+	},
+	"OutputSize": {
+		{"ImageToPixelartRequest", "OutputSize"},
+	},
+	"ProImageSize": {
+		{"CreateCharacterProRequest", "ImageSize"},
+		{"Generate8RotationsV2Request", "ImageSize"},
+	},
+	// CharacterSize is a response field (character/object/UI-asset sprite
+	// dimensions), not a request constraint - there's nothing to validate,
+	// so it gets no constructors.
+	"CharacterSize": {},
+}
+
+// extraImageSizeSchemas are the imageSizeGroups keys above that aren't
+// endpoint-generated "ImageSize" schemas (see the comment on that block).
+var extraImageSizeSchemas = map[string]bool{
+	"FrameSize":     true,
+	"OutputSize":    true,
+	"ProImageSize":  true,
+	"CharacterSize": true,
 }
 
 // imageSizeSpec is the width/height bound set for one merged group of
@@ -389,8 +424,7 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 			// that floor on the shared schema (rather than leaving it
 			// unbounded) also keeps this schema's shape from accidentally
 			// matching some unrelated, truly-unconstrained width/height
-			// schema (e.g. CharacterSize) and getting merged into it by
-			// openapi-compress.
+			// schema and getting merged into it by openapi-compress.
 			"width":  {Value: &openapi.Schema{Title: "Width", Type: openapi.TypeInteger, Description: "Width in pixels.", Min: ptr(1.0)}},
 			"height": {Value: &openapi.Schema{Title: "Height", Type: openapi.TypeInteger, Description: "Height in pixels.", Min: ptr(1.0)}},
 		},
@@ -400,7 +434,7 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 	var specs []imageSizeSpec
 
 	for name, s := range doc.Components.Schemas.ByIndex() {
-		if s.Title != "ImageSize" || name == "ImageSize" {
+		if name == "ImageSize" || (s.Title != "ImageSize" && !extraImageSizeSchemas[name]) {
 			continue
 		}
 

@@ -3618,8 +3618,8 @@
             "description": "Reference image (character/object to animate) as base64 PNG/JPEG"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "action": {
             "title": "Action",
@@ -3629,8 +3629,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of each animation frame"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -4086,8 +4086,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Character image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -4414,27 +4414,6 @@
           "north"
         ]
       },
-      "CharacterSize": {
-        "title": "CharacterSize",
-        "description": "Character sprite dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer"
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ]
-      },
       "CharacterSummary": {
         "title": "CharacterSummary",
         "description": "Summary of a character for listing",
@@ -4461,8 +4440,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Character image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -4980,8 +4959,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ProImageSize",
-            "description": "Output frame size for each of the 8 rotations. The persisted character canvas is padded to ~2x for animation room."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-168 px - Output frame width in pixels (32-168)..\nHeight: 32-168 px - Output frame height in pixels (32-168).."
           },
           "method": {
             "$ref": "#/components/schemas/CreateCharacterProRequestMethod"
@@ -5079,8 +5058,8 @@
             "minimum": 0
           },
           "override_frame_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Optional larger canvas for the state, for edits that add something big (a weapon, wings) needing room beyond the character's tight canvas. Width/height must be multiples of 4 and no smaller than the source character's size. Omit to keep the source size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "state_name": {
             "title": "State Name",
@@ -5121,8 +5100,8 @@
             "description": "South-facing reference image (PNG/JPEG base64). If provided, the v3 model rotates it into 8 directions. If omitted, a sprite is generated from `description` using Pixen first. Max 256x256 pixels."
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Output frame size. For reference mode this is advisory (model picks its own size). For from-scratch mode this controls the pixen generation size (16-256, default 64x64). Final canvas is padded ~2x for animation room."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
             "$ref": "#/components/schemas/CreateDirectionObjectView"
@@ -7454,8 +7433,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Target frame size. Prompt complexity scales with size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
             "$ref": "#/components/schemas/CreateDirectionObjectView"
@@ -7646,29 +7625,6 @@
           "width": 64
         }
       },
-      "FrameSize": {
-        "title": "FrameSize",
-        "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 256
-          },
-          "height": {
-            "title": "Height",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ]
-      },
       "Generate8RotationsV2Request": {
         "title": "Generate8RotationsV2Request",
         "description": "Request model for generate-8-rotations-v2 endpoint",
@@ -7678,8 +7634,8 @@
             "$ref": "#/components/schemas/Generate8RotationsV2RequestMethod"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ProImageSize",
-            "description": "Size of the output images"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-168 px - Output frame width in pixels (32-168)..\nHeight: 32-168 px - Output frame height in pixels (32-168).."
           },
           "reference_image": {
             "$ref": "#/components/schemas/RotationReferenceImage",
@@ -8301,15 +8257,15 @@
         "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels.",
-            "type": "integer",
-            "minimum": 1
-          },
           "height": {
             "title": "Height",
             "description": "Height in pixels.",
+            "type": "integer",
+            "minimum": 1
+          },
+          "width": {
+            "title": "Width",
+            "description": "Width in pixels.",
             "type": "integer",
             "minimum": 1
           }
@@ -8367,8 +8323,8 @@
             "description": "Image dimensions\nWidth: 16-1280 px.\nHeight: 16-1280 px."
           },
           "output_size": {
-            "$ref": "#/components/schemas/OutputSize",
-            "description": "Desired output size"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Output dimensions\nWidth: 16-320 px.\nHeight: 16-320 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -9049,8 +9005,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Object image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -9273,8 +9229,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Object image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -9421,35 +9377,6 @@
           "lineless"
         ]
       },
-      "OutputSize": {
-        "title": "OutputSize",
-        "description": "Output dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 320
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 320
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
       "OvalInpainting": {
         "title": "OvalInpainting",
         "description": "Automatic oval/ellipse mask generation",
@@ -9556,34 +9483,6 @@
           "character_to_portrait"
         ],
         "default": "portrait_to_character"
-      },
-      "ProImageSize": {
-        "title": "ProImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Output frame width in pixels (32-168).",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 168
-          },
-          "height": {
-            "title": "Height",
-            "description": "Output frame height in pixels (32-168).",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 168
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 96,
-          "width": 96
-        }
       },
       "RectangleInpainting": {
         "title": "RectangleInpainting",
@@ -10911,8 +10810,8 @@
             "$ref": "#/components/schemas/EditAnimationFrames"
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of the output frames"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -10996,8 +10895,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "image_url": {
             "title": "Image Url",
@@ -11052,8 +10951,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "image_url": {
             "title": "Image Url",

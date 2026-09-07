@@ -307,12 +307,16 @@ type AnimateWithTextRequest struct {
 type AnimateWithTextV2Request struct {
 	// Reference image (character/object to animate) as base64 PNG/JPEG
 	ReferenceImage BaseImage `json:"reference_image"`
-	// Size of the reference image
-	ReferenceImageSize FrameSize `json:"reference_image_size"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	ReferenceImageSize ImageSize `json:"reference_image_size"`
 	// Action description (e.g., 'walk', 'jump', 'attack')
 	Action string `json:"action,omitzero"`
-	// Size of each animation frame
-	ImageSize FrameSize `json:"image_size"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	ImageSize ImageSize `json:"image_size"`
 	// Seed for reproducible generation (0 for random)
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from generated frames
@@ -510,8 +514,8 @@ type CharacterDetail struct {
 	StateName string `json:"state_name,omitzero"`
 	// Character creation prompt
 	Prompt string `json:"prompt,omitzero"`
-	// Character image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Number of directional rotations (4 or 8)
 	Directions int `json:"directions"`
 	// ISO timestamp of character creation
@@ -625,14 +629,6 @@ type CharacterRotationUrls struct {
 	SouthWest string `json:"south-west,omitzero"`
 }
 
-// Character sprite dimensions
-type CharacterSize struct {
-	// Image width in pixels
-	Width int `json:"width"`
-	// Image height in pixels
-	Height int `json:"height"`
-}
-
 // Summary of a character for listing
 type CharacterSummary struct {
 	// Unique character identifier
@@ -643,8 +639,8 @@ type CharacterSummary struct {
 	StateName string `json:"state_name,omitzero"`
 	// Character creation prompt
 	Prompt string `json:"prompt,omitzero"`
-	// Character image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Number of directional rotations (4 or 8)
 	Directions int `json:"directions"`
 	// ISO timestamp of character creation
@@ -826,8 +822,9 @@ type CreateCharacterAnimationResponse struct {
 type CreateCharacterProRequest struct {
 	// Description of the character or object to generate.
 	Description string `json:"description,omitzero"`
-	// Output frame size for each of the 8 rotations. The persisted character canvas is padded to ~2x for animation room.
-	ImageSize ProImageSize `json:"image_size"`
+	// Width: 32-168 px - Output frame width in pixels (32-168)..
+	// Height: 32-168 px - Output frame height in pixels (32-168)..
+	ImageSize ImageSize `json:"image_size"`
 	// How the reference inputs are used:
 	// - `create_with_style`: text-driven generation; `reference_image` (if provided) is treated as a style reference. If omitted, a default style for the chosen `view` and template body type is used.
 	// - `create_from_concept`: `concept_image` (required) seeds the design; `reference_image` (optional) provides additional style guidance.
@@ -880,8 +877,10 @@ type CreateCharacterStateRequest struct {
 	EditDescription string `json:"edit_description,omitzero"`
 	NoBackground    bool   `json:"no_background,omitempty"`
 	Seed            *int   `json:"seed,omitempty"`
-	// Optional larger canvas for the state, for edits that add something big (a weapon, wings) needing room beyond the character's tight canvas. Width/height must be multiples of 4 and no smaller than the source character's size. Omit to keep the source size.
-	OverrideFrameSize *FrameSize `json:"override_frame_size,omitempty"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	OverrideFrameSize *ImageSize `json:"override_frame_size,omitempty"`
 	// Name for the new state. Defaults to the edit description truncated to 20 characters.
 	StateName string `json:"state_name,omitzero"`
 	// Snap the edited rotations to the source character's existing color palette so the new state stays color-consistent with the original.
@@ -899,8 +898,10 @@ type CreateCharacterV3Request struct {
 	Description string `json:"description,omitzero"`
 	// South-facing reference image (PNG/JPEG base64). If provided, the v3 model rotates it into 8 directions. If omitted, a sprite is generated from `description` using Pixen first. Max 256x256 pixels.
 	ReferenceImage *BaseImage `json:"reference_image,omitempty"`
-	// Output frame size. For reference mode this is advisory (model picks its own size). For from-scratch mode this controls the pixen generation size (16-256, default 64x64). Final canvas is padded ~2x for animation room.
-	ImageSize *FrameSize `json:"image_size,omitempty"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	ImageSize *ImageSize `json:"image_size,omitempty"`
 	// Camera angle.
 	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`.
@@ -2061,8 +2062,10 @@ type EnhanceAnimationV3PromptRequest struct {
 type EnhanceCharacterV3PromptRequest struct {
 	// User's character description to enhance.
 	Description string `json:"description,omitzero"`
-	// Target frame size. Prompt complexity scales with size.
-	ImageSize FrameSize `json:"image_size"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	ImageSize ImageSize `json:"image_size"`
 	// Camera angle.
 	View CreateDirectionObjectView `json:"view,omitzero"`
 	// Outline style hint (soft guidance — same as create-character-v3).
@@ -2134,18 +2137,13 @@ type FrameImageSize struct {
 	Height int `json:"height"`
 }
 
-// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
-type FrameSize struct {
-	Width  int `json:"width"`
-	Height int `json:"height"`
-}
-
 // Request model for generate-8-rotations-v2 endpoint
 type Generate8RotationsV2Request struct {
 	// Generation method: 'rotate_character' rotates an existing character, 'create_with_style' creates new character matching style, 'create_from_concept' creates from concept art
 	Method Generate8RotationsV2RequestMethod `json:"method,omitzero"`
-	// Size of the output images
-	ImageSize ProImageSize `json:"image_size"`
+	// Width: 32-168 px - Output frame width in pixels (32-168)..
+	// Height: 32-168 px - Output frame height in pixels (32-168)..
+	ImageSize ImageSize `json:"image_size"`
 	// Image to rotate (rotate_character) or style reference
 	ReferenceImage *RotationReferenceImage `json:"reference_image,omitempty"`
 	// Concept art image (only for create_from_concept method)
@@ -2384,10 +2382,10 @@ type ImageResponse struct {
 
 // Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.
 type ImageSize struct {
-	// Width in pixels.
-	Width int `json:"width"`
 	// Height in pixels.
 	Height int `json:"height"`
+	// Width in pixels.
+	Width int `json:"width"`
 }
 
 // Request model for image to pixel art (pro) endpoint
@@ -2408,8 +2406,10 @@ type ImageToPixelartRequest struct {
 	// Width: 16-1280 px.
 	// Height: 16-1280 px.
 	ImageSize ImageSize `json:"image_size"`
-	// Desired output size
-	OutputSize OutputSize `json:"output_size"`
+	// Output dimensions
+	// Width: 16-320 px.
+	// Height: 16-320 px.
+	OutputSize ImageSize `json:"output_size"`
 	// How closely to follow pixel art style
 	TextGuidanceScale *float64 `json:"text_guidance_scale,omitempty"`
 	// Seed for reproducible generation
@@ -2651,8 +2651,8 @@ type ObjectDetail struct {
 	StateName string `json:"state_name,omitzero"`
 	// Object creation prompt
 	Prompt string `json:"prompt,omitzero"`
-	// Object image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Number of directional rotations (1, 4, or 8). Review-status objects are always 1-direction outputs awaiting selection.
 	Directions int `json:"directions"`
 	// ISO timestamp of object creation
@@ -2723,8 +2723,8 @@ type ObjectSummary struct {
 	StateName string `json:"state_name,omitzero"`
 	// Object creation prompt
 	Prompt string `json:"prompt,omitzero"`
-	// Object image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Number of directional rotations (1, 4, or 8)
 	Directions int `json:"directions"`
 	// ISO timestamp of object creation
@@ -2779,14 +2779,6 @@ func (e Outline) Valid() bool {
 	}
 }
 
-// Output dimensions
-type OutputSize struct {
-	// Width in pixels
-	Width int `json:"width"`
-	// Height in pixels
-	Height int `json:"height"`
-}
-
 // Automatic oval/ellipse mask generation
 type OvalInpainting struct {
 	Type string `json:"type,omitzero"`
@@ -2832,14 +2824,6 @@ func (e PortraitCharacterProRequestDirection) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// ProImageSize defines a model
-type ProImageSize struct {
-	// Output frame width in pixels (32-168).
-	Width int `json:"width"`
-	// Output frame height in pixels (32-168).
-	Height int `json:"height"`
 }
 
 // Automatic rectangular mask generation
@@ -3325,8 +3309,10 @@ type TransferOutfitV2Request struct {
 	ReferenceImage FrameImage `json:"reference_image"`
 	// Animation frames to edit (2-16 frames)
 	Frames EditAnimationFrames `json:"frames"`
-	// Size of the output frames
-	ImageSize FrameSize `json:"image_size"`
+	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
+	// Width: 32-256 px.
+	// Height: 32-256 px.
+	ImageSize ImageSize `json:"image_size"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitempty"`
 	// Remove background from output frames
@@ -3343,8 +3329,8 @@ type UIAssetDetail struct {
 	Name string `json:"name,omitzero"`
 	// Style description used to generate the panel
 	Prompt string `json:"prompt,omitzero"`
-	// Image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
@@ -3365,8 +3351,8 @@ type UIAssetSummary struct {
 	Name string `json:"name,omitzero"`
 	// Style description used to generate the panel
 	Prompt string `json:"prompt,omitzero"`
-	// Image dimensions
-	Size CharacterSize `json:"size"`
+	// Character sprite dimensions
+	Size ImageSize `json:"size"`
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed

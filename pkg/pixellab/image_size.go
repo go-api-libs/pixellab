@@ -4,6 +4,132 @@ package pixellab
 
 import "fmt"
 
+// NewReferenceImageSizeForAnimateWithTextV2 builds the ImageSize for AnimateWithTextV2Request.ReferenceImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewReferenceImageSizeForAnimateWithTextV2(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForAnimateWithTextV2 builds the ImageSize for AnimateWithTextV2Request.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewImageSizeForAnimateWithTextV2(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewOverrideFrameSizeForCreateCharacterState builds the ImageSize for CreateCharacterStateRequest.OverrideFrameSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewOverrideFrameSizeForCreateCharacterState(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForCreateCharacterV3 builds the ImageSize for CreateCharacterV3Request.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewImageSizeForCreateCharacterV3(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForEnhanceCharacterV3Prompt builds the ImageSize for EnhanceCharacterV3PromptRequest.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewImageSizeForEnhanceCharacterV3Prompt(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForTransferOutfitV2 builds the ImageSize for TransferOutfitV2Request.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-256
+//   - height: 32-256
+func NewImageSizeForTransferOutfitV2(width, height int) (ImageSize, error) {
+	if width < 32 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 256 pixels, got %d", width)
+	}
+	if height < 32 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewOutputSizeForImageToPixelart builds the ImageSize for ImageToPixelartRequest.OutputSize, checking width and height
+// against the bounds that request requires:
+//   - width: 16-320
+//   - height: 16-320
+func NewOutputSizeForImageToPixelart(width, height int) (ImageSize, error) {
+	if width < 16 || width > 320 {
+		return ImageSize{}, fmt.Errorf("width must be between 16 and 320 pixels, got %d", width)
+	}
+	if height < 16 || height > 320 {
+		return ImageSize{}, fmt.Errorf("height must be between 16 and 320 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForCreateCharacterPro builds the ImageSize for CreateCharacterProRequest.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-168
+//   - height: 32-168
+func NewImageSizeForCreateCharacterPro(width, height int) (ImageSize, error) {
+	if width < 32 || width > 168 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 168 pixels, got %d", width)
+	}
+	if height < 32 || height > 168 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 168 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForGenerate8RotationsV2 builds the ImageSize for Generate8RotationsV2Request.ImageSize, checking width and height
+// against the bounds that request requires:
+//   - width: 32-168
+//   - height: 32-168
+func NewImageSizeForGenerate8RotationsV2(width, height int) (ImageSize, error) {
+	if width < 32 || width > 168 {
+		return ImageSize{}, fmt.Errorf("width must be between 32 and 168 pixels, got %d", width)
+	}
+	if height < 32 || height > 168 {
+		return ImageSize{}, fmt.Errorf("height must be between 32 and 168 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
 // NewImageSizeForAnimateWithSkeleton builds the ImageSize for AnimateWithSkeletonRequest.ImageSize, checking width and height
 // against the bounds that request requires:
 //   - width: 16-256
