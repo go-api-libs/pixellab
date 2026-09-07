@@ -3419,7 +3419,8 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-256 px.\nHeight: 16-256 px."
           },
           "guidance_scale": {
             "title": "Guidance Scale",
@@ -3431,11 +3432,11 @@
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -3499,45 +3500,14 @@
           }
         }
       },
-      "AnimateWithText": {
-        "title": "AnimateWithTextV2Response",
-        "description": "Response model for text-to-animation endpoint (background job)",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for polling status",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Job status",
-            "type": "string",
-            "default": "processing"
-          }
-        },
-        "required": [
-          "background_job_id"
-        ],
-        "example": {
-          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
-          "status": "processing",
-          "usage": {
-            "type": "usd",
-            "usd": 0.0
-          }
-        }
-      },
       "AnimateWithTextRequest": {
         "title": "AnimateWithTextRequest",
         "description": "Request model for animation using text endpoint",
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize64x64"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 64 px, fixed.\nHeight: 64 px, fixed."
           },
           "description": {
             "title": "Description",
@@ -3584,11 +3554,11 @@
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "init_images": {
             "$ref": "#/components/schemas/AnimateWithSkeletonInitImages"
@@ -3648,8 +3618,8 @@
             "description": "Reference image (character/object to animate) as base64 PNG/JPEG"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "action": {
             "title": "Action",
@@ -3659,8 +3629,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of each animation frame"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -3674,10 +3644,12 @@
             "type": "boolean"
           },
           "view": {
-            "$ref": "#/components/schemas/AnimateWithTextV2RequestView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')\nOne of: none, low top-down, high top-down, side.\nDefaults to \"none\" if omitted."
           },
           "direction": {
-            "$ref": "#/components/schemas/AnimateWithTextV2RequestDirection"
+            "$ref": "#/components/schemas/Direction",
+            "description": "Direction the character faces during the animation.\nOne of: none, south, east, west, north, south-east, south-west, north-east, north-west.\nDefaults to \"none\" if omitted."
           }
         },
         "required": [
@@ -3704,35 +3676,6 @@
           "seed": 42,
           "view": "low top-down"
         }
-      },
-      "AnimateWithTextV2RequestDirection": {
-        "title": "Direction",
-        "description": "Direction the character faces during the animation.",
-        "type": "string",
-        "enum": [
-          "none",
-          "south",
-          "east",
-          "west",
-          "north",
-          "south-east",
-          "south-west",
-          "north-east",
-          "north-west"
-        ],
-        "default": "none"
-      },
-      "AnimateWithTextV2RequestView": {
-        "title": "View",
-        "description": "Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')",
-        "type": "string",
-        "enum": [
-          "none",
-          "low top-down",
-          "high top-down",
-          "side"
-        ],
-        "default": "none"
       },
       "AnimateWithTextV3Request": {
         "title": "AnimateWithTextV3Request",
@@ -3899,6 +3842,38 @@
           "$ref": "#/components/schemas/AnimationDirection"
         }
       },
+      "AsyncJobResponse": {
+        "title": "AnimateWithTextV2Response",
+        "description": "Response model for text-to-animation endpoint (background job)",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for polling status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status",
+            "type": "string",
+            "default": "processing"
+          }
+        },
+        "required": [
+          "background_job_id"
+        ],
+        "example": {
+          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+          "status": "processing",
+          "usage": {
+            "type": "usd",
+            "usd": 0.0
+          }
+        }
+      },
       "BackgroundJobResponse": {
         "title": "BackgroundJobResponse",
         "description": "Response model for background job status",
@@ -4050,13 +4025,15 @@
       },
       "CameraView": {
         "title": "CameraView",
+        "description": "Camera / view angle. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "side",
           "low top-down",
-          "high top-down"
-        ],
-        "default": "side"
+          "high top-down",
+          "none",
+          "top-down"
+        ]
       },
       "CharacterDetail": {
         "title": "CharacterDetail",
@@ -4084,8 +4061,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Character image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -4224,6 +4201,41 @@
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/AnimationGroup"
+        }
+      },
+      "CharacterJobResponse": {
+        "title": "CreateCharacterProResponse",
+        "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for tracking generation progress.",
+            "type": "string"
+          },
+          "character_id": {
+            "title": "Character Id",
+            "description": "Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status (processing, completed, failed).",
+            "type": "string",
+            "default": "processing"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "character_id"
+        ],
+        "example": {
+          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+          "character_id": "456e7890-e89b-12d3-a456-426614174001",
+          "status": "processing"
         }
       },
       "CharacterProportions": {
@@ -4377,27 +4389,6 @@
           "north"
         ]
       },
-      "CharacterSize": {
-        "title": "CharacterSize",
-        "description": "Character sprite dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer"
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ]
-      },
       "CharacterSummary": {
         "title": "CharacterSummary",
         "description": "Summary of a character for listing",
@@ -4424,8 +4415,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Character image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -4583,7 +4574,7 @@
             "description": "Concept image as base64 PNG/JPEG"
           },
           "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
+            "$ref": "#/components/schemas/ImageSize",
             "description": "Size of the concept image"
           }
         },
@@ -4709,7 +4700,8 @@
             "maximum": 168
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "reference_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -4930,41 +4922,6 @@
           "status": "processing"
         }
       },
-      "CreateCharacterPro": {
-        "title": "CreateCharacterProResponse",
-        "description": "Response — async; poll `/v2/background-jobs/{id}` for results.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for tracking generation progress.",
-            "type": "string"
-          },
-          "character_id": {
-            "title": "Character Id",
-            "description": "Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "character_id"
-        ],
-        "example": {
-          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
-          "character_id": "456e7890-e89b-12d3-a456-426614174001",
-          "status": "processing"
-        }
-      },
       "CreateCharacterProRequest": {
         "title": "CreateCharacterProRequest",
         "description": "Request model for /v2/create-character-pro.",
@@ -4978,14 +4935,15 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ProImageSize",
-            "description": "Output frame size for each of the 8 rotations. The persisted character canvas is padded to ~2x for animation room."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-168 px - Output frame width in pixels (32-168)..\nHeight: 32-168 px - Output frame height in pixels (32-168).."
           },
           "method": {
             "$ref": "#/components/schemas/CreateCharacterProRequestMethod"
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "template_id": {
             "title": "Template Id",
@@ -5077,8 +5035,8 @@
             "minimum": 0
           },
           "override_frame_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Optional larger canvas for the state, for edits that add something big (a weapon, wings) needing room beyond the character's tight canvas. Width/height must be multiples of 4 and no smaller than the source character's size. Omit to keep the source size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "state_name": {
             "title": "State Name",
@@ -5119,11 +5077,12 @@
             "description": "South-facing reference image (PNG/JPEG base64). If provided, the v3 model rotates it into 8 directions. If omitted, a sprite is generated from `description` using Pixen first. Max 256x256 pixels."
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Output frame size. For reference mode this is advisory (model picks its own size). For from-scratch mode this controls the pixen generation size (16-256, default 64x64). Final canvas is padded ~2x for animation room."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "template_id": {
             "title": "Template Id",
@@ -5251,8 +5210,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of each rotation image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "async_mode": {
             "title": "Async Mode",
@@ -5384,8 +5343,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of each rotation image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "mode": {
             "$ref": "#/components/schemas/CreateCharacterWithDirectionsMode"
@@ -5516,59 +5475,6 @@
           "pro"
         ]
       },
-      "CreateDirectionObject": {
-        "title": "Create8DirectionObjectResponse",
-        "description": "Response model for 8-direction object creation.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string"
-          },
-          "object_id": {
-            "title": "Object Id",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "object_id"
-        ]
-      },
-      "CreateDirectionObjectView": {
-        "title": "View",
-        "description": "Camera angle.",
-        "type": "string",
-        "enum": [
-          "low top-down",
-          "high top-down",
-          "side"
-        ],
-        "default": "low top-down"
-      },
-      "CreateImageBitforge": {
-        "title": "CreateImageBitforgeResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "image": {
-            "$ref": "#/components/schemas/BaseImage"
-          }
-        },
-        "required": [
-          "image"
-        ]
-      },
       "CreateImageBitforgeRequest": {
         "title": "CreateImageBitforgeRequest",
         "description": "Request model for image generation endpoint",
@@ -5585,7 +5491,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5613,23 +5520,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -5738,23 +5645,24 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize05"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).\nHeight: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)."
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail level (default: highly detailed)"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "no_background": {
             "title": "No Background",
@@ -5831,7 +5739,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize06"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-400 px.\nHeight: 16-400 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5843,23 +5752,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference (weakly guiding)"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference (weakly guiding)"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference (weakly guiding)"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle (weakly guiding)"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction (weakly guiding)"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -5911,57 +5820,6 @@
           "no_background": true
         }
       },
-      "CreateIsometricTileBackground": {
-        "title": "CreateIsometricTileBackgroundResponse",
-        "description": "Response for background isometric tile generation (async-only)",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "description": "Background job ID for tracking generation progress",
-            "type": "string"
-          },
-          "tile_id": {
-            "title": "Tile Id",
-            "description": "Tile ID that will be created (available immediately)",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "description": "Always 'processing' - check status with background job ID",
-            "type": "string",
-            "default": "processing",
-            "const": "processing"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "tile_id"
-        ]
-      },
-      "CreateIsometricTileDetail": {
-        "title": "Detail",
-        "description": "Level of detail in the tile",
-        "type": "string",
-        "enum": [
-          "low detail",
-          "medium detail",
-          "highly detailed"
-        ]
-      },
-      "CreateIsometricTileOutline": {
-        "title": "Outline",
-        "description": "Outline style for the tile",
-        "type": "string",
-        "enum": [
-          "single color outline",
-          "selective outline",
-          "lineless"
-        ]
-      },
       "CreateIsometricTileRequest": {
         "title": "CreateIsometricTileRequest",
         "description": "Request model for pixflux image generation endpoint",
@@ -5973,7 +5831,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize07"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-64 px - Image width in pixels. Sizes above 24px often give better results..\nHeight: 16-64 px - Image height in pixels. Sizes above 24px often give better results.."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -5984,13 +5843,16 @@
             "default": 8
           },
           "outline": {
-            "$ref": "#/components/schemas/CreateIsometricTileOutline"
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "init_image": {
             "$ref": "#/components/schemas/BaseImage",
@@ -6049,18 +5911,6 @@
         ],
         "default": "block"
       },
-      "CreateIsometricTileShading": {
-        "title": "Shading",
-        "description": "Shading complexity",
-        "type": "string",
-        "enum": [
-          "flat shading",
-          "basic shading",
-          "medium shading",
-          "detailed shading",
-          "highly detailed shading"
-        ]
-      },
       "CreateMapObjectRequest": {
         "title": "CreateMapObjectRequest",
         "description": "Request for creating a map object with transparent background",
@@ -6074,20 +5924,24 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize08",
-            "description": "Object dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96\nWidth: 32-400 px - Width in pixels (32-400).\nHeight: 32-400 px - Height in pixels (32-400).\nDefaults to {\"width\":128,\"height\":128} if omitted."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "outline": {
-            "$ref": "#/components/schemas/CreateIsometricTileOutline"
+            "$ref": "#/components/schemas/Outline",
+            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateMapObjectRequestShading"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateMapObjectRequestDetail"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail\nOne of: low detail, medium detail, high detail."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -6142,16 +5996,6 @@
           "view": "high top-down"
         }
       },
-      "CreateMapObjectRequestDetail": {
-        "title": "Detail",
-        "description": "Level of detail",
-        "type": "string",
-        "enum": [
-          "low detail",
-          "medium detail",
-          "high detail"
-        ]
-      },
       "CreateMapObjectRequestInpainting": {
         "title": "Inpainting",
         "description": "Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)",
@@ -6165,17 +6009,6 @@
           {
             "$ref": "#/components/schemas/RectangleInpainting"
           }
-        ]
-      },
-      "CreateMapObjectRequestShading": {
-        "title": "Shading",
-        "description": "Shading complexity",
-        "type": "string",
-        "enum": [
-          "flat shading",
-          "basic shading",
-          "medium shading",
-          "detailed shading"
         ]
       },
       "CreateObjectStateRequest": {
@@ -6237,7 +6070,8 @@
             "maximum": 256
           },
           "tile_view": {
-            "$ref": "#/components/schemas/CreateTilesProRequestTileView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.\nOne of: top-down, high top-down, low top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "tile_view_angle": {
             "title": "Tile View Angle",
@@ -6382,18 +6216,6 @@
           "square_topdown"
         ],
         "default": "isometric"
-      },
-      "CreateTilesProRequestTileView": {
-        "title": "Tile View",
-        "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.",
-        "type": "string",
-        "enum": [
-          "top-down",
-          "high top-down",
-          "low top-down",
-          "side"
-        ],
-        "default": "low top-down"
       },
       "CreateTilesetBackgroundResponse": {
         "title": "CreateTilesetBackgroundResponse",
@@ -6592,19 +6414,19 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
-            "$ref": "#/components/schemas/TilesetCameraView",
-            "description": "Camera view angle for tileset (default: \"high top-down\")"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera view options supported for tileset generation\nOne of: low top-down, high top-down."
           },
           "tile_strength": {
             "title": "Tile Strength",
@@ -6744,15 +6566,15 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "tile_strength": {
             "title": "Tile Strength",
@@ -6834,8 +6656,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize09",
-            "description": "Output image size in pixels (192–688; max per axis depends on aspect)"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 192-688 px - Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688) (defaults to 256 if omitted).\nHeight: 192-688 px - Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688) (defaults to 256 if omitted)."
           },
           "pieces": {
             "title": "Pieces",
@@ -7074,6 +6896,62 @@
           "success"
         ]
       },
+      "DeleteTileResponse": {
+        "title": "DeleteIsometricTileResponse",
+        "description": "Response for isometric tile deletion.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "success": {
+            "title": "Success",
+            "description": "Whether the deletion succeeded",
+            "type": "boolean"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "description": "ID of the deleted tile",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Error message if deletion failed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "DeleteTilesetResponse": {
+        "title": "DeleteSidescrollerTilesetResponse",
+        "description": "Response for sidescroller tileset deletion.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "success": {
+            "title": "Success",
+            "description": "Whether the deletion succeeded",
+            "type": "boolean"
+          },
+          "tileset_id": {
+            "title": "Tileset Id",
+            "description": "ID of the deleted tileset",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Error message if deletion failed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
       "DeleteUIAssetResponse": {
         "title": "DeleteUIAssetResponse",
         "type": "object",
@@ -7091,8 +6969,20 @@
           "success"
         ]
       },
+      "Detail": {
+        "title": "Detail",
+        "description": "Level of detail. Which values are accepted is request-specific - see the field description where this is used.",
+        "type": "string",
+        "enum": [
+          "low detail",
+          "medium detail",
+          "highly detailed",
+          "high detail"
+        ]
+      },
       "Direction": {
         "title": "Direction",
+        "description": "Facing direction. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "north",
@@ -7102,7 +6992,8 @@
           "south",
           "south-west",
           "west",
-          "north-west"
+          "north-west",
+          "none"
         ]
       },
       "DirectionSubmission": {
@@ -7154,7 +7045,7 @@
         "minItems": 2,
         "maxItems": 16,
         "items": {
-          "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImage"
+          "$ref": "#/components/schemas/FrameImage"
         }
       },
       "EditAnimationV2Request": {
@@ -7174,7 +7065,7 @@
           },
           "image_size": {
             "$ref": "#/components/schemas/ImageSize",
-            "description": "Size of the output frames"
+            "description": "Width: 16-256 px.\nHeight: 16-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -7270,8 +7161,8 @@
             "description": "Reference image to edit as base64 PNG/JPEG"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize06",
-            "description": "Size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-400 px.\nHeight: 16-400 px."
           },
           "description": {
             "title": "Description",
@@ -7352,8 +7243,8 @@
             "$ref": "#/components/schemas/EditImagesV2RequestEditImages"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize10",
-            "description": "Size of output images"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-512 px.\nHeight: 32-512 px."
           },
           "description": {
             "title": "Description",
@@ -7422,23 +7313,6 @@
         ],
         "default": "edit_with_text"
       },
-      "EnhanceAnimationPrompt": {
-        "title": "EnhanceAnimationV3PromptResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "enhanced_prompt": {
-            "title": "Enhanced Prompt",
-            "description": "Enhanced motion description.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "enhanced_prompt"
-        ]
-      },
       "EnhanceAnimationV3PromptRequest": {
         "title": "EnhanceAnimationV3PromptRequest",
         "type": "object",
@@ -7482,11 +7356,12 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Target frame size. Prompt complexity scales with size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "outline": {
             "title": "Outline",
@@ -7525,24 +7400,24 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize05",
-            "description": "Target image size. Prompt complexity scales with size."
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-768 px - Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32).\nHeight: 16-768 px - Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)."
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style hint."
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail level hint."
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle."
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction the enhanced description should describe."
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "no_background": {
             "title": "No Background",
@@ -7564,6 +7439,23 @@
           },
           "no_background": true
         }
+      },
+      "EnhancedPromptResponse": {
+        "title": "EnhanceAnimationV3PromptResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "enhanced_prompt": {
+            "title": "Enhanced Prompt",
+            "description": "Enhanced motion description.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enhanced_prompt"
+        ]
       },
       "EstimateSkeletonRequest": {
         "title": "EstimateSkeletonRequest",
@@ -7601,28 +7493,61 @@
       "ExportCharacterAsZip": {
         "type": "object"
       },
-      "FrameSize": {
-        "title": "FrameSize",
-        "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.",
+      "FrameImage": {
+        "title": "FrameImage",
+        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Frame image as base64 PNG/JPEG"
+          },
+          "size": {
+            "$ref": "#/components/schemas/FrameImageSize",
+            "description": "Size of the frame image"
+          }
+        },
+        "required": [
+          "image",
+          "size"
+        ],
+        "example": {
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "size": {
+            "height": 64,
+            "width": 64
+          }
+        }
+      },
+      "FrameImageSize": {
+        "title": "FrameImageSize",
         "type": "object",
         "properties": {
           "width": {
             "title": "Width",
+            "description": "Frame image width",
             "type": "integer",
-            "minimum": 32,
+            "minimum": 1,
             "maximum": 256
           },
           "height": {
             "title": "Height",
+            "description": "Frame image height",
             "type": "integer",
-            "minimum": 32,
+            "minimum": 1,
             "maximum": 256
           }
         },
         "required": [
           "width",
           "height"
-        ]
+        ],
+        "example": {
+          "height": 64,
+          "width": 64
+        }
       },
       "Generate8RotationsV2Request": {
         "title": "Generate8RotationsV2Request",
@@ -7633,15 +7558,15 @@
             "$ref": "#/components/schemas/Generate8RotationsV2RequestMethod"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ProImageSize",
-            "description": "Size of the output images"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 32-168 px - Output frame width in pixels (32-168)..\nHeight: 32-168 px - Output frame height in pixels (32-168).."
           },
           "reference_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage",
+            "$ref": "#/components/schemas/RotationReferenceImage",
             "description": "Image to rotate (rotate_character) or style reference"
           },
           "concept_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage",
+            "$ref": "#/components/schemas/RotationReferenceImage",
             "description": "Concept art image (only for create_from_concept method)"
           },
           "description": {
@@ -7657,7 +7582,8 @@
             "maxLength": 500
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "seed": {
             "title": "Seed",
@@ -7816,8 +7742,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize11",
-            "description": "Size of the output image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-792 px - Image width in pixels (16 to aspect-ratio max).\nHeight: 16-688 px - Image height in pixels (16 to aspect-ratio max)."
           },
           "seed": {
             "title": "Seed",
@@ -7834,7 +7760,7 @@
             "$ref": "#/components/schemas/GenerateImageV2RequestReferenceImages"
           },
           "style_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ReferenceImage",
+            "$ref": "#/components/schemas/ReferenceImage",
             "description": "Optional style image for pixel size and style reference"
           },
           "style_options": {
@@ -7862,7 +7788,7 @@
         "type": "array",
         "maxItems": 4,
         "items": {
-          "$ref": "#/components/schemas/app__endpoints__external__v2__generate_image_v2__ReferenceImage"
+          "$ref": "#/components/schemas/ReferenceImage"
         }
       },
       "GenerateUIV2Request": {
@@ -7878,8 +7804,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize12",
-            "description": "Output image size (16 to aspect-ratio max, e.g. 512x512 square)"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-792 px - Image width in pixels (16 to aspect-ratio max) (defaults to 256 if omitted).\nHeight: 16-688 px - Image height in pixels (16 to aspect-ratio max) (defaults to 256 if omitted)."
           },
           "seed": {
             "title": "Seed",
@@ -8236,401 +8162,43 @@
           "$ref": "#/components/schemas/ValidationError"
         }
       },
+      "ImageResponse": {
+        "title": "CreateImageBitforgeResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "image": {
+            "$ref": "#/components/schemas/BaseImage"
+          }
+        },
+        "required": [
+          "image"
+        ]
+      },
       "ImageSize": {
         "title": "ImageSize",
+        "description": "Pixel dimensions of an image. Valid width/height bounds are specific to the request this is used in - see the field description where it's used, or build one with the matching New*ImageSize constructor in pkg/pixellab, which validates against the exact bounds for that request.",
         "type": "object",
         "properties": {
           "width": {
             "title": "Width",
-            "description": "Image width in pixels",
+            "description": "Width in pixels.",
             "type": "integer",
-            "minimum": 16,
-            "maximum": 256
+            "minimum": 1
           },
           "height": {
             "title": "Height",
-            "description": "Image height in pixels",
+            "description": "Height in pixels.",
             "type": "integer",
-            "minimum": 16,
-            "maximum": 256
+            "minimum": 1
           }
         },
         "required": [
           "width",
           "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize03": {
-        "title": "app__endpoints__external__v__create_character_with__directions__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          },
-          "height": {
-            "title": "Height",
-            "description": "Character size in pixels. Canvas will be ~40% larger to make room for animations.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 128
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 96,
-          "width": 96
-        }
-      },
-      "ImageSize04": {
-        "title": "app__endpoints__external__v__create_image_bitforge__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 200
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize05": {
-        "title": "app__endpoints__external__v2__create_image_pixen__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 768,
-            "multipleOf": 4.0
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 768,
-            "multipleOf": 4.0
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize06": {
-        "title": "app__endpoints__external__v__create_image_pixflux__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize07": {
-        "title": "app__endpoints__external__v2__create_isometric_tile__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels. Sizes above 24px often give better results.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 64
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels. Sizes above 24px often give better results.",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 64
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 32,
-          "width": 32
-        }
-      },
-      "ImageSize08": {
-        "title": "app__endpoints__external__v2__create_map_object__ImageSize",
-        "description": "Image dimensions for map objects.\n\nSupports any aspect ratio:\n- Both width and height: 32px minimum, 400px maximum\n- Basic mode (no inpainting): max 400×400 total area (160,000 pixels)\n- Inpainting mode: max 192×192 total area (36,864 pixels)\n- Common sizes: 64×64, 128×128, 192×192, 256×128, 384×96",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels (32-400)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels (32-400)",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "default": {
-          "width": 128,
-          "height": 128
-        },
-        "example": {
-          "height": 128,
-          "width": 128
-        }
-      },
-      "ImageSize09": {
-        "title": "app__endpoints__external__v2__create_ui_asset__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Output width in pixels (192–688; max per axis depends on aspect — square 512, 16:9 688)",
-            "type": "integer",
-            "minimum": 192,
-            "maximum": 688,
-            "default": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Output height in pixels (192–688; max per axis depends on aspect — square 512, 9:16 688)",
-            "type": "integer",
-            "minimum": 192,
-            "maximum": 688,
-            "default": 256
-          }
-        },
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize10": {
-        "title": "app__endpoints__external__v2__edit_images_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 512
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize11": {
-        "title": "app__endpoints__external__v2__generate_image_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize12": {
-        "title": "app__endpoints__external__v2__generate_ui_v2__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 792,
-            "default": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels (16 to aspect-ratio max)",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 688,
-            "default": 256
-          }
-        },
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize13": {
-        "title": "app__endpoints__external__v2__image_to_pixelart__ImageSize",
-        "description": "Image dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 1280
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 256,
-          "width": 256
-        }
-      },
-      "ImageSize14": {
-        "title": "app__endpoints__external__v2__remove_background__ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 400
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "ImageSize64x64": {
-        "title": "ImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Image width in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height in pixels",
-            "type": "integer",
-            "minimum": 64,
-            "maximum": 64
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
+        ]
       },
       "ImageToPixelartProRequest": {
         "title": "ImageToPixelartProRequest",
@@ -8676,12 +8244,12 @@
             "description": "Image to convert to pixel art"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize13",
-            "description": "Size of the input image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Image dimensions\nWidth: 16-1280 px.\nHeight: 16-1280 px."
           },
           "output_size": {
-            "$ref": "#/components/schemas/OutputSize",
-            "description": "Desired output size"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Output dimensions\nWidth: 16-320 px.\nHeight: 16-320 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -8732,7 +8300,8 @@
             "type": "string"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -8752,23 +8321,23 @@
           },
           "outline": {
             "$ref": "#/components/schemas/Outline",
-            "description": "Outline style reference"
+            "description": "One of: single color black outline, single color outline, selective outline, lineless."
           },
           "shading": {
-            "$ref": "#/components/schemas/CreateIsometricTileShading",
-            "description": "Shading style reference"
+            "$ref": "#/components/schemas/Shading",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading."
           },
           "detail": {
-            "$ref": "#/components/schemas/CreateIsometricTileDetail",
-            "description": "Detail style reference"
+            "$ref": "#/components/schemas/Detail",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -8928,8 +8497,8 @@
             "minLength": 1
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize03",
-            "description": "Size of the output frames"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations..\nHeight: 16-128 px - Character size in pixels. Canvas will be ~40% larger to make room for animations.."
           },
           "seed": {
             "title": "Seed",
@@ -8976,34 +8545,6 @@
             }
           }
         }
-      },
-      "IsometricTile": {
-        "title": "DeleteIsometricTileResponse",
-        "description": "Response for isometric tile deletion.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "success": {
-            "title": "Success",
-            "description": "Whether the deletion succeeded",
-            "type": "boolean"
-          },
-          "tile_id": {
-            "title": "Tile Id",
-            "description": "ID of the deleted tile",
-            "type": "string"
-          },
-          "error": {
-            "title": "Error",
-            "description": "Error message if deletion failed",
-            "type": "string"
-          }
-        },
-        "required": [
-          "success"
-        ]
       },
       "IsometricTileSummary": {
         "title": "IsometricTileSummary",
@@ -9389,8 +8930,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Object image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -9513,6 +9054,33 @@
           "$ref": "#/components/schemas/ObjectAnimationGroup"
         }
       },
+      "ObjectJobResponse": {
+        "title": "Create8DirectionObjectResponse",
+        "description": "Response model for 8-direction object creation.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "type": "string"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string",
+            "default": "queued"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "object_id"
+        ]
+      },
       "ObjectRotationUrls": {
         "title": "ObjectRotationUrls",
         "description": "URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).\nFor 1-direction objects all keys are null — see `storage_urls['unknown']`.",
@@ -9586,8 +9154,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Object image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "directions": {
             "title": "Directions",
@@ -9726,6 +9294,7 @@
       },
       "Outline": {
         "title": "Outline",
+        "description": "Outline style. Which values are accepted is request-specific - see the field description where this is used.",
         "type": "string",
         "enum": [
           "single color black outline",
@@ -9733,35 +9302,6 @@
           "selective outline",
           "lineless"
         ]
-      },
-      "OutputSize": {
-        "title": "OutputSize",
-        "description": "Output dimensions",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Width in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 320
-          },
-          "height": {
-            "title": "Height",
-            "description": "Height in pixels",
-            "type": "integer",
-            "minimum": 16,
-            "maximum": 320
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
       },
       "OvalInpainting": {
         "title": "OvalInpainting",
@@ -9824,7 +9364,8 @@
             "description": "Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`)."
           },
           "view": {
-            "$ref": "#/components/schemas/CreateDirectionObjectView"
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted."
           },
           "result_size": {
             "title": "Result Size",
@@ -9870,34 +9411,6 @@
         ],
         "default": "portrait_to_character"
       },
-      "ProImageSize": {
-        "title": "ProImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Output frame width in pixels (32-168).",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 168
-          },
-          "height": {
-            "title": "Height",
-            "description": "Output frame height in pixels (32-168).",
-            "type": "integer",
-            "minimum": 32,
-            "maximum": 168
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 96,
-          "width": 96
-        }
-      },
       "RectangleInpainting": {
         "title": "RectangleInpainting",
         "description": "Automatic rectangular mask generation",
@@ -9919,6 +9432,41 @@
           }
         }
       },
+      "ReferenceImage": {
+        "title": "ReferenceImage",
+        "description": "Reference image with size and optional description.\n\nImages larger than 1024x1024 will be downscaled. Non-square images will be\npadded to square with transparent pixels before processing.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Reference image as base64 PNG/JPEG"
+          },
+          "size": {
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
+          },
+          "usage_description": {
+            "title": "Usage Description",
+            "description": "Optional description of how this reference should be used",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "image",
+          "size"
+        ],
+        "example": {
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "size": {
+            "height": 64,
+            "width": 64
+          },
+          "usage_description": "Use as color reference"
+        }
+      },
       "RemoveBackgroundRequest": {
         "title": "RemoveBackgroundRequest",
         "description": "Request model for remove-background endpoint",
@@ -9929,8 +9477,8 @@
             "description": "The image to remove the background from (PNG or JPEG base64)"
           },
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize14",
-            "description": "Size of the input image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 1-400 px.\nHeight: 1-400 px."
           },
           "background_removal_task": {
             "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
@@ -9980,20 +9528,20 @@
             "description": "Image to resize"
           },
           "reference_image_size": {
-            "$ref": "#/components/schemas/ImageSize04",
-            "description": "Original size of the reference image"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "target_size": {
-            "$ref": "#/components/schemas/ImageSize04",
-            "description": "Desired output size"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "Camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "Directional view"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -10059,7 +9607,8 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "$ref": "#/components/schemas/ImageSize04"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Width: 16-200 px.\nHeight: 16-200 px."
           },
           "image_guidance_scale": {
             "title": "Image Guidance Scale",
@@ -10085,19 +9634,19 @@
           },
           "from_view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "From camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "to_view": {
             "$ref": "#/components/schemas/CameraView",
-            "description": "To camera view angle"
+            "description": "One of: side, low top-down, high top-down.\nDefaults to \"side\" if omitted."
           },
           "from_direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "From subject direction"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "to_direction": {
             "$ref": "#/components/schemas/Direction",
-            "description": "From subject direction (default: \"east\")"
+            "description": "One of: north, north-east, east, south-east, south, south-west, west, north-west."
           },
           "isometric": {
             "title": "Isometric",
@@ -10156,6 +9705,43 @@
           },
           "to_direction": "east",
           "to_view": "side"
+        }
+      },
+      "RotationReferenceImage": {
+        "title": "ReferenceImage",
+        "description": "Reference image with dimensions.",
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/BaseImage",
+            "description": "Reference image as base64 PNG/JPEG"
+          },
+          "width": {
+            "title": "Width",
+            "description": "Image width (reference max 168, concept max 1024)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+          },
+          "height": {
+            "title": "Height",
+            "description": "Image height (reference max 168, concept max 1024)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+          }
+        },
+        "required": [
+          "image",
+          "width",
+          "height"
+        ],
+        "example": {
+          "height": 64,
+          "image": {
+            "base64": "data:image/png;base64,..."
+          },
+          "width": 64
         }
       },
       "SelectObjectFramesRequest": {
@@ -10248,6 +9834,18 @@
           "url"
         ]
       },
+      "Shading": {
+        "title": "Shading",
+        "description": "Shading complexity. Which values are accepted is request-specific - see the field description where this is used.",
+        "type": "string",
+        "enum": [
+          "flat shading",
+          "basic shading",
+          "medium shading",
+          "detailed shading",
+          "highly detailed shading"
+        ]
+      },
       "SidescrollerTileSize": {
         "title": "SidescrollerTileSize",
         "type": "object",
@@ -10283,34 +9881,6 @@
           "height": 16,
           "width": 16
         }
-      },
-      "SidescrollerTileset": {
-        "title": "DeleteSidescrollerTilesetResponse",
-        "description": "Response for sidescroller tileset deletion.",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "$ref": "#/components/schemas/Usage"
-          },
-          "success": {
-            "title": "Success",
-            "description": "Whether the deletion succeeded",
-            "type": "boolean"
-          },
-          "tileset_id": {
-            "title": "Tileset Id",
-            "description": "ID of the deleted tileset",
-            "type": "string"
-          },
-          "error": {
-            "title": "Error",
-            "description": "Error message if deletion failed",
-            "type": "string"
-          }
-        },
-        "required": [
-          "success"
-        ]
       },
       "SidescrollerTilesetSummary": {
         "title": "SidescrollerTilesetSummary",
@@ -10730,6 +10300,37 @@
           "transition"
         ]
       },
+      "TileJobResponse": {
+        "title": "CreateIsometricTileBackgroundResponse",
+        "description": "Response for background isometric tile generation (async-only)",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID for tracking generation progress",
+            "type": "string"
+          },
+          "tile_id": {
+            "title": "Tile Id",
+            "description": "Tile ID that will be created (available immediately)",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Always 'processing' - check status with background job ID",
+            "type": "string",
+            "default": "processing",
+            "const": "processing"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "tile_id"
+        ]
+      },
       "TilePattern4x4": {
         "title": "TilePattern4x4",
         "description": "4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)",
@@ -10921,15 +10522,6 @@
           "tile_view",
           "created_at",
           "status"
-        ]
-      },
-      "TilesetCameraView": {
-        "title": "TilesetCameraView",
-        "description": "Camera view options supported for tileset generation",
-        "type": "string",
-        "enum": [
-          "low top-down",
-          "high top-down"
         ]
       },
       "TilesetData": {
@@ -11141,15 +10733,15 @@
         "type": "object",
         "properties": {
           "reference_image": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImage",
+            "$ref": "#/components/schemas/FrameImage",
             "description": "Reference image containing the outfit/appearance to transfer"
           },
           "frames": {
             "$ref": "#/components/schemas/EditAnimationFrames"
           },
           "image_size": {
-            "$ref": "#/components/schemas/FrameSize",
-            "description": "Size of the output frames"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px."
           },
           "seed": {
             "title": "Seed",
@@ -11233,8 +10825,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "image_url": {
             "title": "Image Url",
@@ -11289,8 +10881,8 @@
             "type": "string"
           },
           "size": {
-            "$ref": "#/components/schemas/CharacterSize",
-            "description": "Image dimensions"
+            "$ref": "#/components/schemas/ImageSize",
+            "description": "Character sprite dimensions"
           },
           "image_url": {
             "title": "Image Url",
@@ -11505,7 +11097,7 @@
           ]
         }
       },
-      "UpdateObjectTags2": {
+      "UpdateTagsResponse": {
         "title": "UpdateObjectTagsResponse",
         "description": "Response after updating tags",
         "type": "object",
@@ -11697,160 +11289,6 @@
           "mood",
           "viseme_count"
         ]
-      },
-      "app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage": {
-        "title": "ReferenceImage",
-        "description": "Reference image with dimensions.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Reference image as base64 PNG/JPEG"
-          },
-          "width": {
-            "title": "Width",
-            "description": "Image width (reference max 168, concept max 1024)",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1024
-          },
-          "height": {
-            "title": "Height",
-            "description": "Image height (reference max 168, concept max 1024)",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 1024
-          }
-        },
-        "required": [
-          "image",
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v2__generate_image_v2__ReferenceImage": {
-        "title": "ReferenceImage",
-        "description": "Reference image with size and optional description.\n\nImages larger than 1024x1024 will be downscaled. Non-square images will be\npadded to square with transparent pixels before processing.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Reference image as base64 PNG/JPEG"
-          },
-          "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__generate_image_v__ReferenceImageSize",
-            "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled."
-          },
-          "usage_description": {
-            "title": "Usage Description",
-            "description": "Optional description of how this reference should be used",
-            "type": "string",
-            "maxLength": 500
-          }
-        },
-        "required": [
-          "image",
-          "size"
-        ],
-        "example": {
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "size": {
-            "height": 64,
-            "width": 64
-          },
-          "usage_description": "Use as color reference"
-        }
-      },
-      "app__endpoints__external__v__edit_animation_v__FrameImage": {
-        "title": "FrameImage",
-        "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
-        "type": "object",
-        "properties": {
-          "image": {
-            "$ref": "#/components/schemas/BaseImage",
-            "description": "Frame image as base64 PNG/JPEG"
-          },
-          "size": {
-            "$ref": "#/components/schemas/app__endpoints__external__v__edit_animation_v__FrameImageSize",
-            "description": "Size of the frame image"
-          }
-        },
-        "required": [
-          "image",
-          "size"
-        ],
-        "example": {
-          "image": {
-            "base64": "data:image/png;base64,..."
-          },
-          "size": {
-            "height": 64,
-            "width": 64
-          }
-        }
-      },
-      "app__endpoints__external__v__edit_animation_v__FrameImageSize": {
-        "title": "FrameImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Frame image width",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 256
-          },
-          "height": {
-            "title": "Height",
-            "description": "Frame image height",
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 256
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
-      },
-      "app__endpoints__external__v__generate_image_v__ReferenceImageSize": {
-        "title": "ReferenceImageSize",
-        "type": "object",
-        "properties": {
-          "width": {
-            "title": "Width",
-            "description": "Reference image width",
-            "type": "integer",
-            "minimum": 1
-          },
-          "height": {
-            "title": "Height",
-            "description": "Reference image height",
-            "type": "integer",
-            "minimum": 1
-          }
-        },
-        "required": [
-          "width",
-          "height"
-        ],
-        "example": {
-          "height": 64,
-          "width": 64
-        }
       }
     },
     "responses": {
@@ -12019,7 +11457,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12090,7 +11528,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -12113,7 +11551,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12174,7 +11612,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -12216,7 +11654,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             },
             "example": {
               "images": {
@@ -12258,7 +11696,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             },
             "example": {
               "images": {
@@ -12316,7 +11754,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             }
           }
         }
@@ -12360,7 +11798,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -12430,7 +11868,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -12460,7 +11898,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -12495,7 +11933,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateIsometricTileBackground"
+              "$ref": "#/components/schemas/TileJobResponse"
             }
           }
         }
@@ -12537,7 +11975,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -12615,7 +12053,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterPro"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             }
           }
         }
@@ -12650,7 +12088,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateDirectionObject"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -12679,7 +12117,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateIsometricTileBackground"
+              "$ref": "#/components/schemas/TileJobResponse"
             }
           }
         }
@@ -12955,7 +12393,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/IsometricTile"
+              "$ref": "#/components/schemas/DeleteTileResponse"
             }
           }
         }
@@ -13097,7 +12535,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/SidescrollerTileset"
+              "$ref": "#/components/schemas/DeleteTilesetResponse"
             }
           }
         }
@@ -13129,7 +12567,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/IsometricTile"
+              "$ref": "#/components/schemas/DeleteTileResponse"
             }
           }
         }
@@ -13158,7 +12596,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/SidescrollerTileset"
+              "$ref": "#/components/schemas/DeleteTilesetResponse"
             }
           }
         }
@@ -13236,7 +12674,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13266,7 +12704,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13296,7 +12734,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13326,7 +12764,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -13345,7 +12783,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -13364,7 +12802,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/EnhanceAnimationPrompt"
+              "$ref": "#/components/schemas/EnhancedPromptResponse"
             }
           }
         }
@@ -13447,7 +12885,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13477,7 +12915,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13503,7 +12941,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13533,7 +12971,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13594,7 +13032,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13624,7 +13062,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -13833,7 +13271,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             }
           }
         }
@@ -14124,7 +13562,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14159,7 +13597,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14189,7 +13627,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14401,7 +13839,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14463,7 +13901,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14498,7 +13936,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14530,7 +13968,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateImageBitforge"
+              "$ref": "#/components/schemas/ImageResponse"
             },
             "example": {
               "image": {
@@ -14584,7 +14022,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/AnimateWithText"
+              "$ref": "#/components/schemas/AsyncJobResponse"
             },
             "example": {
               "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -14623,7 +14061,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateObjectTags2"
+              "$ref": "#/components/schemas/UpdateTagsResponse"
             },
             "example": {
               "tags": [
@@ -14669,7 +14107,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateObjectTags2"
+              "$ref": "#/components/schemas/UpdateTagsResponse"
             }
           }
         }

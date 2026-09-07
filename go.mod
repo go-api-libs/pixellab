@@ -13,7 +13,7 @@ require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260905160141-933af336d1e3
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260905162804-6514c7779213
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260905162311-36f05ed3e07c
-	github.com/MarkRosemaker/openapi-edit v0.0.0-20260905160213-02eab925b41a
+	github.com/MarkRosemaker/openapi-edit v0.0.0-20260907142638-d544e9ef7586
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260905161434-377d6441ee4e
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260905160249-6aed8b0b43cd
 	github.com/ettle/strcase v0.2.0
