@@ -15,10 +15,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"uuid"
 
 	"github.com/MarkRosemaker/openapi-enrich/cassette"
 	"github.com/go-api-libs/api"
-	"github.com/google/uuid"
 )
 
 const defaultUserAgent = "Pixel Lab API"
@@ -11415,7 +11415,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 			q["animation_type"] = []string{params.AnimationType}
 		}
 
-		if params.AnimationGroupID != uuid.Nil {
+		if params.AnimationGroupID != uuid.Nil() {
 			q["animation_group_id"] = []string{params.AnimationGroupID.String()}
 		}
 
@@ -12376,7 +12376,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 			q["animation_type"] = []string{params.AnimationType}
 		}
 
-		if params.AnimationGroupID != uuid.Nil {
+		if params.AnimationGroupID != uuid.Nil() {
 			q["animation_group_id"] = []string{params.AnimationGroupID.String()}
 		}
 

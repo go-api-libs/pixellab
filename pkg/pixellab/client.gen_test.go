@@ -12,9 +12,9 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"uuid"
 
 	"github.com/go-api-libs/api"
-	"github.com/google/uuid"
 )
 
 func newTestServer(t *testing.T, status int) *httptest.Server {
@@ -3711,7 +3711,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3731,7 +3731,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3759,7 +3759,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3784,7 +3784,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4181,7 +4181,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4201,7 +4201,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4229,7 +4229,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4254,7 +4254,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteSidescrollerTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4463,7 +4463,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4483,7 +4483,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4511,7 +4511,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4536,7 +4536,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4839,7 +4839,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4859,7 +4859,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4887,7 +4887,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4912,7 +4912,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5403,7 +5403,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5423,7 +5423,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5451,7 +5451,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5476,7 +5476,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5497,7 +5497,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5517,7 +5517,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5545,7 +5545,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5570,7 +5570,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteUIAsset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7095,7 +7095,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil, AnimateObjectRequest{}); err == nil {
+			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7115,7 +7115,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil, AnimateObjectRequest{}); err == nil {
+			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7143,7 +7143,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil, AnimateObjectRequest{}); err == nil {
+			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7168,7 +7168,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil, AnimateObjectRequest{}); err == nil {
+			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7189,7 +7189,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7209,7 +7209,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7237,7 +7237,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7262,7 +7262,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7283,7 +7283,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil, CreateObjectStateRequest{}); err == nil {
+			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7303,7 +7303,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil, CreateObjectStateRequest{}); err == nil {
+			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7331,7 +7331,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil, CreateObjectStateRequest{}); err == nil {
+			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7356,7 +7356,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil, CreateObjectStateRequest{}); err == nil {
+			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7377,7 +7377,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil, SelectObjectFramesRequest{}); err == nil {
+			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7397,7 +7397,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil, SelectObjectFramesRequest{}); err == nil {
+			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7425,7 +7425,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil, SelectObjectFramesRequest{}); err == nil {
+			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7450,7 +7450,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil, SelectObjectFramesRequest{}); err == nil {
+			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7471,7 +7471,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7491,7 +7491,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7519,7 +7519,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7544,7 +7544,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7659,7 +7659,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7679,7 +7679,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7707,7 +7707,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7732,7 +7732,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7753,7 +7753,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7773,7 +7773,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7801,7 +7801,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7826,7 +7826,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil); err == nil {
+			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7847,7 +7847,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil, UpdateObjectTags{}); err == nil {
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7867,7 +7867,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil, UpdateObjectTags{}); err == nil {
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7895,7 +7895,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil, UpdateObjectTags{}); err == nil {
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -7920,7 +7920,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil, UpdateObjectTags{}); err == nil {
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -7941,7 +7941,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -7961,7 +7961,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -7989,7 +7989,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -8014,7 +8014,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil, nil); err == nil {
+			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)

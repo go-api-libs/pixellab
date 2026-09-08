@@ -8,8 +8,7 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
-
-	"github.com/google/uuid"
+	"uuid"
 )
 
 var jsonOpts = json.JoinOptions(
