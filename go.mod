@@ -11,7 +11,7 @@ tool (
 
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260907160136-02359bf9e79e
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260907162653-1bbb69f8fbbc
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260908041309-71c89b26474e
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260907162226-81510ebbd87a
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260907160209-6dc69841576c
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260907161343-9258363313d6
@@ -39,5 +39,5 @@ require (
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	mvdan.cc/gofumpt v0.11.0 // indirect
+	mvdan.cc/gofumpt v0.12.0 // indirect
 )
