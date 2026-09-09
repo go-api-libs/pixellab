@@ -498,7 +498,7 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 		spec.heightMin, spec.heightMax = intBounds(s.Properties["height"])
 		specs = append(specs, spec)
 
-		if err := edit.MergeSchema(doc, name, "ImageSize", imageSizeUsageDescription(s)); err != nil {
+		if err := edit.RedirectSchema(doc, name, "ImageSize", imageSizeUsageDescription(s)); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -562,7 +562,7 @@ func consolidateEnumFamily(doc *openapi.Document, canonicalName, canonicalDescri
 	})
 
 	for _, name := range members {
-		if err := edit.MergeSchema(doc, name, canonicalName, descriptions[name]); err != nil {
+		if err := edit.RedirectSchema(doc, name, canonicalName, descriptions[name]); err != nil {
 			log.Fatal(err)
 		}
 	}
