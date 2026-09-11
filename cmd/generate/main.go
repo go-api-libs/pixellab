@@ -194,6 +194,7 @@ func main() {
 			op.Responses.Sort()
 		}
 	}
+
 	doc.Components.SortMaps()
 
 	// These response schemas are legitimately shared by several unrelated
@@ -283,6 +284,7 @@ func improveSchema(ss *openapi.SchemaRef) {
 	prime := ss.Value.AnyOf[0]
 	if prime.Ref != nil {
 		ss.Ref = prime.Ref
+
 		ss.Value.AnyOf = nil
 		ss.Ref.Description = s.Description
 		if prime.Value.Example == nil {
@@ -328,6 +330,7 @@ func (u imageSizeUsage) varName() string {
 	if u.field == "ImageSize" {
 		return "ImageSizeFor" + base
 	}
+
 	return u.field + "For" + base
 }
 
@@ -531,10 +534,12 @@ func consolidateEnumFamily(doc *openapi.Document, canonicalName, canonicalDescri
 		if err := edit.RenameSchema(doc, canonicalName, tmp); err != nil {
 			log.Fatal(err)
 		}
+
 		members[i] = tmp
 	}
 
 	var values []jsontext.Value
+
 	seen := map[string]bool{}
 	descriptions := make(map[string]string, len(members))
 
@@ -549,6 +554,7 @@ func consolidateEnumFamily(doc *openapi.Document, canonicalName, canonicalDescri
 		for _, e := range s.Enum {
 			if v := string(e); !seen[v] {
 				seen[v] = true
+
 				values = append(values, e)
 			}
 		}
@@ -582,6 +588,7 @@ func enumUsageDescription(s *openapi.Schema) string {
 		for i, e := range s.Enum {
 			vals[i] = strings.Trim(string(e), `"`)
 		}
+
 		parts = append(parts, "One of: "+strings.Join(vals, ", ")+".")
 	}
 
@@ -597,9 +604,11 @@ func intBounds(p *openapi.SchemaRef) (min, max int) {
 	if p.Value.Min != nil {
 		min = int(*p.Value.Min)
 	}
+
 	if p.Value.Max != nil {
 		max = int(*p.Value.Max)
 	}
+
 	return min, max
 }
 
@@ -615,6 +624,7 @@ func imageSizeUsageDescription(s *openapi.Schema) string {
 	if wt := imageSizeAxisText(s.Properties["width"]); wt != "" {
 		parts = append(parts, "Width: "+wt+".")
 	}
+
 	if ht := imageSizeAxisText(s.Properties["height"]); ht != "" {
 		parts = append(parts, "Height: "+ht+".")
 	}
@@ -645,6 +655,7 @@ func imageSizeAxisText(p *openapi.SchemaRef) string {
 	if imageSizeGenericAxisDescriptions[d] {
 		d = ""
 	}
+
 	if def := p.Value.Default; len(def) > 0 {
 		d = strings.TrimSpace(fmt.Sprintf("%s (defaults to %s if omitted)", d, def))
 	}
