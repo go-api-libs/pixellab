@@ -11,10 +11,10 @@ tool (
 
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260919112358-1dc07f1fec35
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260919114215-c3adb08723bb
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260919221002-0e1400b96e4f
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260919113829-2c75405522b3
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260919112433-34f437b66f2f
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260919113209-f4319c65997c
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260919213515-9bcddeb850f8
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260919112445-26366da88002
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20260919132114-a73c17446ec0
@@ -31,7 +31,6 @@ require (
 	github.com/MarkRosemaker/yaml v0.0.0-20260919112332-c1f014ebc24b // indirect
 	github.com/MarkRosemaker/yaml2json v0.0.0-20260919112308-cbb7454d758e // indirect
 	github.com/go-api-libs/types v0.0.0-20260821232109-0cf45378823e // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/mod v0.41.0 // indirect
