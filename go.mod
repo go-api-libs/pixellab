@@ -10,12 +10,12 @@ tool (
 )
 
 require (
-	github.com/MarkRosemaker/openapi v0.0.0-20260920172243-4192123418a1
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260921220701-c056782966c8
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20260921220419-2bee7c891843
-	github.com/MarkRosemaker/openapi-edit v0.0.0-20260921220148-54e3ccf7e6c3
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260921220244-47a3b24bbac5
-	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260921175429-be01baf8e6f2
+	github.com/MarkRosemaker/openapi v0.0.0-20260922040130-e048f24d28df
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260922040714-01abce226ea0
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20260922040426-5baefaaee83b
+	github.com/MarkRosemaker/openapi-edit v0.0.0-20260922040148-826faf96f38a
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260922040252-87b679cb610b
+	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260922040210-c85d1daf8fe7
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20260920172211-2e5733e71b56
 )
@@ -25,8 +25,8 @@ require (
 	github.com/MarkRosemaker/errpath v0.0.0-20260920172209-24fb928433b3 // indirect
 	github.com/MarkRosemaker/json2yaml v0.0.0-20260920172209-522898d8cbe9 // indirect
 	github.com/MarkRosemaker/jsonutil v0.0.0-20260920172211-f6e22a1a8311 // indirect
-	github.com/MarkRosemaker/openapi-compare v0.0.0-20260920172315-5ee5db379394 // indirect
-	github.com/MarkRosemaker/openapi-merge v0.0.0-20260921143057-32bb5089eb14 // indirect
+	github.com/MarkRosemaker/openapi-compare v0.0.0-20260922040148-6c336369156c // indirect
+	github.com/MarkRosemaker/openapi-merge v0.0.0-20260922040148-04478f0d766e // indirect
 	github.com/MarkRosemaker/ordmap v0.0.0-20260920172223-2eab4db34adb // indirect
 	github.com/MarkRosemaker/yaml v0.0.0-20260920172227-27bebaf02fb5 // indirect
 	github.com/MarkRosemaker/yaml2json v0.0.0-20260920172209-d64c22f91b8c // indirect
