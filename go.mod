@@ -11,10 +11,10 @@ tool (
 
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260922040130-e048f24d28df
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260922160616-aa3e6e746190
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260922220628-07923694506a
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20260922040426-5baefaaee83b
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260922040148-826faf96f38a
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260922160221-24b195119a53
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260922220315-380e1fc1750e
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260922040210-c85d1daf8fe7
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20260920172211-2e5733e71b56
