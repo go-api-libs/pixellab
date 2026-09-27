@@ -12,7 +12,7 @@ tool (
 require (
 	github.com/MarkRosemaker/openapi v0.0.0-20260927002558-04ff8689cfeb
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20260926235137-bdf76ad63aa7
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20260926134527-b21b603e767b
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20260927040320-395b80516a1b
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20260927002636-5c18ec110c91
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20260927002816-aa40502baf91
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20260927002658-c36c995e1ff3
