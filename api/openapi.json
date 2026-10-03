@@ -3947,25 +3947,93 @@
           "id": {
             "title": "Id",
             "description": "Background job ID",
-            "type": "string"
+            "type": "string",
+            "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
           "status": {
             "title": "Status",
             "description": "Current job status (processing, completed, failed)",
-            "type": "string"
+            "type": "string",
+            "example": "failed"
           },
           "created_at": {
             "title": "Created At",
             "description": "ISO timestamp when job was created",
-            "type": "string"
+            "type": "string",
+            "example": "2026-10-03T18:33:53.126261+00:00"
           },
           "last_response": {
             "title": "Last Response",
             "description": "Latest response data from the job",
             "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            }
+            "properties": {
+              "code": {
+                "type": "integer",
+                "example": 3007
+              },
+              "type": {
+                "type": "string",
+                "example": "error"
+              },
+              "view": {
+                "type": "string",
+                "example": "low top-down"
+              },
+              "trace": {
+                "type": "null"
+              },
+              "detail": {
+                "type": "string",
+                "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+              },
+              "status": {
+                "type": "string",
+                "example": "initializing"
+              },
+              "progress": {
+                "type": "number",
+                "format": "double",
+                "example": 0.0
+              },
+              "limit_type": {
+                "type": "null"
+              },
+              "template_id": {
+                "type": "string",
+                "example": "mannequin"
+              },
+              "character_id": {
+                "type": "string",
+                "format": "uuid",
+                "example": "87e5c90e-ae41-4d57-9d85-1a4f307f8869"
+              },
+              "n_directions": {
+                "type": "integer",
+                "example": 4
+              },
+              "character_name": {
+                "type": "string",
+                "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+              },
+              "directions_type": {
+                "type": "string",
+                "example": "4-directions"
+              },
+              "number_of_frames": {
+                "type": "integer",
+                "example": 1
+              },
+              "character_description": {
+                "type": "string",
+                "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+              },
+              "generation_started_at": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-10-03T18:33:53.605664+00:00"
+              }
+            },
+            "additionalProperties": true
           }
         },
         "required": [
@@ -11384,7 +11452,9 @@
           },
           "usd": {
             "title": "Usd",
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "example": 0.0
           },
           "generations": {
             "title": "Generations",
