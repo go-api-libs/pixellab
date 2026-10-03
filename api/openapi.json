@@ -8922,6 +8922,14 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-10-03T18:33:53.605664+00:00"
+          },
+          "queue_position": {
+            "type": "integer",
+            "example": 0
+          },
+          "estimated_wait_seconds": {
+            "type": "integer",
+            "example": 0
           }
         }
       },

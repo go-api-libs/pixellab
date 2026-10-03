@@ -2443,6 +2443,8 @@ type LastResponse struct {
 	NumberOfFrames       *int      `json:"number_of_frames,omitzero"`
 	CharacterDescription string    `json:"character_description,omitzero"`
 	GenerationStartedAt  time.Time `json:"generation_started_at,omitzero"`
+	QueuePosition        *int      `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds *int      `json:"estimated_wait_seconds,omitzero"`
 }
 
 // LipSyncFrameOut defines a model
