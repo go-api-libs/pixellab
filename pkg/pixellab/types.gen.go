@@ -365,7 +365,7 @@ type BackgroundJobResponse struct {
 	// ISO timestamp when job was created
 	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
-	LastResponse *LastResponse `json:"last_response,omitzero"`
+	LastResponse LastResponse `json:"last_response,omitzero"`
 }
 
 // Response model for balance endpoint
@@ -2409,39 +2409,102 @@ type Keypoint struct {
 }
 
 // Latest response data from the job
+// LastResponse is an untagged anyOf union: at least one field is set after unmarshaling.
 type LastResponse struct {
-	Code                 *int            `json:"code,omitzero"`
-	Type                 string          `json:"type,omitzero"`
-	View                 string          `json:"view,omitzero"`
-	Trace                *struct{}       `json:"trace,omitzero"`
-	Detail               string          `json:"detail,omitzero"`
-	Status               string          `json:"status,omitzero"`
-	Progress             *float64        `json:"progress,omitzero"`
-	LimitType            *struct{}       `json:"limit_type,omitzero"`
-	TemplateID           string          `json:"template_id,omitzero"`
-	CharacterID          uuid.UUID       `json:"character_id,omitzero"`
-	NDirections          *int            `json:"n_directions,omitzero"`
-	CharacterName        string          `json:"character_name,omitzero"`
-	DirectionsType       string          `json:"directions_type,omitzero"`
-	NumberOfFrames       *int            `json:"number_of_frames,omitzero"`
-	CharacterDescription string          `json:"character_description,omitzero"`
-	GenerationStartedAt  time.Time       `json:"generation_started_at,omitzero"`
-	QueuePosition        *int            `json:"queue_position,omitzero"`
-	EstimatedWaitSeconds *int            `json:"estimated_wait_seconds,omitzero"`
-	GenerationID         uuid.UUID       `json:"generation_id,omitzero"`
-	Seed                 *int            `json:"seed,omitzero"`
-	Usage                *Usage          `json:"usage,omitzero"`
-	Images               QuantizedImages `json:"images,omitzero"`
-	ImageWidth           *int            `json:"image_width,omitzero"`
-	ImageHeight          *int            `json:"image_height,omitzero"`
+	LastResponseProgress      *LastResponseProgress
+	LastResponseCompleted     *LastResponseCompleted
+	LastResponseErrorMessage  *LastResponseErrorMessage
+	LastResponseErrorWithCode *LastResponseErrorWithCode
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	{
+		var vv LastResponseProgress
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.LastResponseProgress = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv LastResponseCompleted
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.LastResponseCompleted = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv LastResponseErrorMessage
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.LastResponseErrorMessage = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv LastResponseErrorWithCode
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.LastResponseErrorWithCode = &vv
+			matched++
+		}
+	}
+
+	if matched == 0 {
+		return &json.SemanticError{Err: errors.New("matches none of its alternatives")}
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.LastResponseProgress != nil:
+		return json.MarshalEncode(enc, v.LastResponseProgress, jsonOpts)
+	case v.LastResponseCompleted != nil:
+		return json.MarshalEncode(enc, v.LastResponseCompleted, jsonOpts)
+	case v.LastResponseErrorMessage != nil:
+		return json.MarshalEncode(enc, v.LastResponseErrorMessage, jsonOpts)
+	case v.LastResponseErrorWithCode != nil:
+		return json.MarshalEncode(enc, v.LastResponseErrorWithCode, jsonOpts)
+	}
+
+	return &json.SemanticError{Err: errors.New("no alternative set")}
+}
+
+// LastResponseBase defines a model
+type LastResponseBase struct {
+	CharacterID         uuid.UUID `json:"character_id"`
+	GenerationStartedAt time.Time `json:"generation_started_at"`
+}
+
+// LastResponseCompleted defines a model
+type LastResponseCompleted struct {
+	LastResponseBase
+	Seed        int             `json:"seed"`
+	Type        string          `json:"type"`
+	Usage       Usage           `json:"usage"`
+	Images      QuantizedImages `json:"images"`
+	ImageWidth  int             `json:"image_width"`
+	ImageHeight int             `json:"image_height"`
 	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
-	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
-	BillingCharged  *bool               `json:"billing_charged,omitzero"`
-	DirectionsCount *int                `json:"directions_count,omitzero"`
-	QuantizedImages QuantizedImages     `json:"quantized_images,omitzero"`
-	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
+	StorageUrls     ObjectRotationUrls `json:"storage_urls"`
+	BillingUsage    Usage              `json:"billing_usage"`
+	GenerationID    uuid.UUID          `json:"generation_id"`
+	BillingCharged  bool               `json:"billing_charged"`
+	DirectionsCount int                `json:"directions_count"`
+	QuantizedImages QuantizedImages    `json:"quantized_images"`
+	SavedToStorage  bool               `json:"saved_to_storage"`
 	// Which directions to animate.
 	//
 	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
@@ -2449,10 +2512,54 @@ type LastResponse struct {
 	//   - **New animation**: omit `directions` to animate all 8 cardinals.
 	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
-	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
-	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
-	Err                   string     `json:"error,omitzero"`
+	UploadedDirections    Directions `json:"uploaded_directions"`
+	OriginalImageNColors  int        `json:"original_image_n_colors"`
+	QuantizedImageNColors int        `json:"quantized_image_n_colors"`
+}
+
+// LastResponseErrorMessage defines a model
+type LastResponseErrorMessage struct {
+	LastResponseBase
+	Type   string `json:"type"`
+	Err    string `json:"error"`
+	Detail string `json:"detail"`
+}
+
+// LastResponseErrorWithCode defines a model
+type LastResponseErrorWithCode struct {
+	LastResponseBase
+	Type                 string  `json:"type"`
+	Code                 int     `json:"code"`
+	View                 string  `json:"view"`
+	Trace                string  `json:"trace,omitzero"`
+	Detail               string  `json:"detail"`
+	Status               string  `json:"status"`
+	Progress             float64 `json:"progress"`
+	LimitType            string  `json:"limit_type,omitzero"`
+	TemplateID           string  `json:"template_id"`
+	NDirections          int     `json:"n_directions"`
+	CharacterName        string  `json:"character_name"`
+	DirectionsType       string  `json:"directions_type"`
+	NumberOfFrames       int     `json:"number_of_frames"`
+	CharacterDescription string  `json:"character_description"`
+}
+
+// LastResponseProgress defines a model
+type LastResponseProgress struct {
+	LastResponseBase
+	Type                 string    `json:"type"`
+	View                 string    `json:"view"`
+	Status               string    `json:"status"`
+	Progress             float64   `json:"progress"`
+	TemplateID           string    `json:"template_id"`
+	NDirections          int       `json:"n_directions"`
+	GenerationID         uuid.UUID `json:"generation_id,omitzero"`
+	CharacterName        string    `json:"character_name"`
+	QueuePosition        int       `json:"queue_position"`
+	DirectionsType       string    `json:"directions_type"`
+	NumberOfFrames       int       `json:"number_of_frames"`
+	CharacterDescription string    `json:"character_description"`
+	EstimatedWaitSeconds int       `json:"estimated_wait_seconds"`
 }
 
 // LipSyncFrameOut defines a model

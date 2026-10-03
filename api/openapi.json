@@ -8872,89 +8872,57 @@
       "LastResponse": {
         "title": "Last Response",
         "description": "Latest response data from the job",
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseProgress"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseErrorMessage"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseErrorWithCode"
+          }
+        ]
+      },
+      "LastResponseBase": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "integer",
-            "example": 3007
-          },
-          "type": {
-            "type": "string",
-            "example": "error"
-          },
-          "view": {
-            "type": "string",
-            "example": "low top-down"
-          },
-          "trace": {
-            "type": "null"
-          },
-          "detail": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
-          },
-          "status": {
-            "type": "string",
-            "example": "initializing"
-          },
-          "progress": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          },
-          "limit_type": {
-            "type": "null"
-          },
-          "template_id": {
-            "type": "string",
-            "example": "mannequin"
-          },
           "character_id": {
             "type": "string",
-            "format": "uuid",
-            "example": "87e5c90e-ae41-4d57-9d85-1a4f307f8869"
-          },
-          "n_directions": {
-            "type": "integer",
-            "example": 4
-          },
-          "character_name": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
-          },
-          "directions_type": {
-            "type": "string",
-            "example": "4-directions"
-          },
-          "number_of_frames": {
-            "type": "integer",
-            "example": 1
-          },
-          "character_description": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+            "format": "uuid"
           },
           "generation_started_at": {
             "type": "string",
-            "format": "date-time",
-            "example": "2026-10-03T18:33:53.605664+00:00"
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "character_id",
+          "generation_started_at"
+        ]
+      },
+      "LastResponseCompleted": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseBase"
           },
-          "queue_position": {
-            "type": "integer",
-            "example": 0
-          },
-          "estimated_wait_seconds": {
-            "type": "integer",
-            "example": 0
-          },
-          "generation_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "726ce2d1-821a-4b39-b264-3dc8ba79bb43"
-          },
+          {
+            "$ref": "#/components/schemas/LastResponseCompletedAllOf1"
+          }
+        ]
+      },
+      "LastResponseCompletedAllOf1": {
+        "type": "object",
+        "properties": {
           "seed": {
-            "type": "integer",
-            "example": 290733758
+            "type": "integer"
+          },
+          "type": {
+            "type": "string",
+            "const": "message_done"
           },
           "usage": {
             "$ref": "#/components/schemas/Usage"
@@ -8963,12 +8931,10 @@
             "$ref": "#/components/schemas/QuantizedImages"
           },
           "image_width": {
-            "type": "integer",
-            "example": 68
+            "type": "integer"
           },
           "image_height": {
-            "type": "integer",
-            "example": 68
+            "type": "integer"
           },
           "storage_urls": {
             "$ref": "#/components/schemas/ObjectRotationUrls"
@@ -8976,12 +8942,15 @@
           "billing_usage": {
             "$ref": "#/components/schemas/Usage"
           },
+          "generation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "billing_charged": {
             "type": "boolean"
           },
           "directions_count": {
-            "type": "integer",
-            "example": 4
+            "type": "integer"
           },
           "quantized_images": {
             "$ref": "#/components/schemas/QuantizedImages"
@@ -8993,18 +8962,212 @@
             "$ref": "#/components/schemas/Directions"
           },
           "original_image_n_colors": {
-            "type": "integer",
-            "example": 110
+            "type": "integer"
           },
           "quantized_image_n_colors": {
-            "type": "integer",
-            "example": 21
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seed",
+          "type",
+          "usage",
+          "images",
+          "image_width",
+          "image_height",
+          "storage_urls",
+          "billing_usage",
+          "generation_id",
+          "billing_charged",
+          "directions_count",
+          "quantized_images",
+          "saved_to_storage",
+          "uploaded_directions",
+          "original_image_n_colors",
+          "quantized_image_n_colors"
+        ]
+      },
+      "LastResponseErrorMessage": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseBase"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseErrorMessageAllOf1"
+          }
+        ]
+      },
+      "LastResponseErrorMessageAllOf1": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "error"
           },
           "error": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
           }
-        }
+        },
+        "required": [
+          "type",
+          "error",
+          "detail"
+        ]
+      },
+      "LastResponseErrorWithCode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseBase"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseErrorWithCodeAllOf1"
+          }
+        ]
+      },
+      "LastResponseErrorWithCodeAllOf1": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "error"
+          },
+          "code": {
+            "type": "integer"
+          },
+          "view": {
+            "type": "string"
+          },
+          "trace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "limit_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "n_directions": {
+            "type": "integer"
+          },
+          "character_name": {
+            "type": "string"
+          },
+          "directions_type": {
+            "type": "string"
+          },
+          "number_of_frames": {
+            "type": "integer"
+          },
+          "character_description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "code",
+          "view",
+          "detail",
+          "status",
+          "progress",
+          "template_id",
+          "n_directions",
+          "character_name",
+          "directions_type",
+          "number_of_frames",
+          "character_description"
+        ]
+      },
+      "LastResponseProgress": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseBase"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseProgressAllOf1"
+          }
+        ]
+      },
+      "LastResponseProgressAllOf1": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "message_progress"
+          },
+          "view": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "template_id": {
+            "type": "string"
+          },
+          "n_directions": {
+            "type": "integer"
+          },
+          "generation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "character_name": {
+            "type": "string"
+          },
+          "queue_position": {
+            "type": "integer"
+          },
+          "directions_type": {
+            "type": "string"
+          },
+          "number_of_frames": {
+            "type": "integer"
+          },
+          "character_description": {
+            "type": "string"
+          },
+          "estimated_wait_seconds": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "view",
+          "status",
+          "progress",
+          "template_id",
+          "n_directions",
+          "character_name",
+          "queue_position",
+          "directions_type",
+          "number_of_frames",
+          "character_description",
+          "estimated_wait_seconds"
+        ]
       },
       "LipSyncFrameOut": {
         "title": "LipSyncFrameOut",
