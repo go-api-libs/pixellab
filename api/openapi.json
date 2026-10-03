@@ -8874,7 +8874,7 @@
         "description": "Latest response data from the job",
         "anyOf": [
           {
-            "$ref": "#/components/schemas/LastResponseError"
+            "$ref": "#/components/schemas/LastResponseProgress"
           }
         ]
       },
@@ -9115,76 +9115,35 @@
             "$ref": "#/components/schemas/LastResponseBase"
           },
           {
-            "$ref": "#/components/schemas/LastResponseProgressAllOf1"
+            "$ref": "#/components/schemas/LastResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseProgressMeta"
           }
         ]
       },
-      "LastResponseProgressAllOf1": {
+      "LastResponseProgressMeta": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "message_progress"
-          },
-          "view": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          },
-          "progress": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "template_id": {
-            "type": "string"
-          },
-          "n_directions": {
-            "type": "integer"
-          },
-          "generation_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "character_name": {
-            "type": "string"
-          },
           "queue_position": {
-            "type": "integer"
-          },
-          "directions_type": {
-            "type": "string"
-          },
-          "number_of_frames": {
-            "type": "integer"
-          },
-          "character_description": {
-            "type": "string"
+            "type": "integer",
+            "example": 0
           },
           "estimated_wait_seconds": {
-            "type": "integer"
+            "type": "integer",
+            "example": 0
           }
         },
         "required": [
-          "type",
-          "view",
-          "status",
-          "progress",
-          "template_id",
-          "n_directions",
-          "character_name",
           "queue_position",
-          "directions_type",
-          "number_of_frames",
-          "character_description",
           "estimated_wait_seconds"
         ]
       },
       "LastResponseType": {
         "type": "string",
         "enum": [
-          "error"
+          "error",
+          "message_progress"
         ],
         "example": "error"
       },
