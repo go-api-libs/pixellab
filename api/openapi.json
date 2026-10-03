@@ -8874,7 +8874,7 @@
         "description": "Latest response data from the job",
         "anyOf": [
           {
-            "$ref": "#/components/schemas/LastResponseErrorWithCode"
+            "$ref": "#/components/schemas/LastResponseError"
           }
         ]
       },
@@ -8992,34 +8992,41 @@
           "quantized_image_n_colors"
         ]
       },
-      "LastResponseErrorMessage": {
+      "LastResponseDetail": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+          }
+        },
+        "required": [
+          "detail"
+        ]
+      },
+      "LastResponseError": {
         "allOf": [
           {
             "$ref": "#/components/schemas/LastResponseBase"
           },
           {
-            "$ref": "#/components/schemas/LastResponseErrorMessageAllOf1"
+            "$ref": "#/components/schemas/LastResponseErrorMessage"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseDetail"
           }
         ]
       },
-      "LastResponseErrorMessageAllOf1": {
+      "LastResponseErrorMessage": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "error"
-          },
           "error": {
-            "type": "string"
-          },
-          "detail": {
-            "type": "string"
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           }
         },
         "required": [
-          "type",
-          "error",
-          "detail"
+          "error"
         ]
       },
       "LastResponseErrorWithCode": {
@@ -9047,10 +9054,6 @@
               "string",
               "null"
             ]
-          },
-          "detail": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           },
           "status": {
             "type": "string",
@@ -9095,10 +9098,7 @@
           }
         },
         "required": [
-          "type",
-          "code",
           "view",
-          "detail",
           "status",
           "progress",
           "template_id",
