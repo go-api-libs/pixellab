@@ -2434,12 +2434,12 @@ var membersOfLastResponse = map[string]bool{"character_id": true, "generation_st
 var variantsOfLastResponse = []jsonVariant{
 	{
 		value:    "",
-		members:  map[string]bool{"character_description": true, "character_name": true, "code": true, "detail": true, "directions_type": true, "error": true, "estimated_wait_seconds": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
+		members:  map[string]bool{"character_description": true, "character_name": true, "code": true, "detail": true, "directions_type": true, "error": true, "estimated_wait_seconds": true, "generation_id": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
 		required: []string{"character_description", "character_name", "code", "detail", "directions_type", "error", "estimated_wait_seconds", "n_directions", "number_of_frames", "progress", "queue_position", "status", "template_id", "view"},
 	},
 	{
 		value:    "",
-		members:  map[string]bool{"character_description": true, "character_name": true, "directions_type": true, "estimated_wait_seconds": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
+		members:  map[string]bool{"character_description": true, "character_name": true, "directions_type": true, "estimated_wait_seconds": true, "generation_id": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
 		required: []string{"character_description", "character_name", "directions_type", "estimated_wait_seconds", "n_directions", "number_of_frames", "progress", "queue_position", "status", "template_id", "view"},
 	},
 	{
@@ -2740,8 +2740,9 @@ type LastResponseProgress struct {
 
 // LastResponseProgressMeta defines a model
 type LastResponseProgressMeta struct {
-	QueuePosition        int `json:"queue_position"`
-	EstimatedWaitSeconds int `json:"estimated_wait_seconds"`
+	QueuePosition        int       `json:"queue_position"`
+	EstimatedWaitSeconds int       `json:"estimated_wait_seconds"`
+	GenerationID         uuid.UUID `json:"generation_id,omitzero"`
 }
 
 // LastResponseType defines a model
