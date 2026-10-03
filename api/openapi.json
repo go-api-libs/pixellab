@@ -8895,6 +8895,7 @@
       "LastResponse": {
         "title": "Last Response",
         "description": "Latest response data from the job",
+        "type": "object",
         "properties": {
           "type": {
             "$ref": "#/components/schemas/LastResponseType"

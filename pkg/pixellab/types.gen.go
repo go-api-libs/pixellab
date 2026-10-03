@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"time"
 	"uuid"
 )
 
@@ -2413,6 +2414,54 @@ type Keypoint struct {
 	Y      float64 `json:"y"`
 	Label  string  `json:"label"`
 	ZIndex float64 `json:"z_index"`
+}
+
+// Latest response data from the job
+type LastResponse struct {
+	Type                 LastResponseType  `json:"type,omitzero"`
+	CharacterID          uuid.UUID         `json:"character_id"`
+	GenerationStartedAt  time.Time         `json:"generation_started_at"`
+	View                 string            `json:"view,omitzero"`
+	Trace                string            `json:"trace,omitzero"`
+	Status               string            `json:"status,omitzero"`
+	Progress             *float64          `json:"progress,omitzero"`
+	LimitType            string            `json:"limit_type,omitzero"`
+	TemplateID           string            `json:"template_id,omitzero"`
+	NDirections          *int              `json:"n_directions,omitzero"`
+	CharacterName        string            `json:"character_name,omitzero"`
+	DirectionsType       string            `json:"directions_type,omitzero"`
+	NumberOfFrames       *int              `json:"number_of_frames,omitzero"`
+	CharacterDescription string            `json:"character_description,omitzero"`
+	Seed                 *int              `json:"seed,omitzero"`
+	Usage                *Usage            `json:"usage,omitzero"`
+	Images               DirectionalImages `json:"images,omitzero"`
+	ImageWidth           *int              `json:"image_width,omitzero"`
+	ImageHeight          *int              `json:"image_height,omitzero"`
+	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
+	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
+	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
+	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
+	GenerationID    uuid.UUID           `json:"generation_id,omitzero"`
+	BillingCharged  *bool               `json:"billing_charged,omitzero"`
+	DirectionsCount *int                `json:"directions_count,omitzero"`
+	QuantizedImages DirectionalImages   `json:"quantized_images,omitzero"`
+	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
+	// Which directions to animate.
+	//
+	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
+	// - For 8-direction objects:
+	//   - **New animation**: omit `directions` to animate all 8 cardinals.
+	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
+	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
+	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
+	Detail                string     `json:"detail,omitzero"`
+	Err                   string     `json:"error,omitzero"`
+	// An optional error code
+	Code                 *int `json:"code,omitzero"`
+	QueuePosition        *int `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds *int `json:"estimated_wait_seconds,omitzero"`
 }
 
 // LastResponseType defines a model

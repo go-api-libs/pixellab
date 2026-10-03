@@ -8358,11 +8358,23 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "14174150-f681-422e-9d5e-79418a0f3fb8"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, "0a54f3a8-4d32-415d-8d34-2a1a222bca19"); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "5e2e53f1-2e1f-47da-a007-6b3c46ac8802"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, "17207ad5-f864-4b77-b1c1-e53e5fb8b931"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "6c9cbd82-af86-498f-9de5-949afbd21510"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "f7d8a526-b9a8-4929-a71c-4c8299e62829"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "1366c538-ff5f-488c-bb86-4a7e621b5c58"); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 }
