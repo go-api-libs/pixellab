@@ -3247,7 +3247,7 @@
             "maxLength": 1000
           },
           "directions": {
-            "$ref": "#/components/schemas/AnimateObjectRequestDirections"
+            "$ref": "#/components/schemas/Directions"
           },
           "animation_group_id": {
             "title": "Animation Group Id",
@@ -3304,14 +3304,6 @@
           ],
           "frame_count": 8,
           "mode": "v3"
-        }
-      },
-      "AnimateObjectRequestDirections": {
-        "title": "Directions",
-        "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Direction"
         }
       },
       "AnimateObjectResponse": {
@@ -7192,6 +7184,14 @@
           "rate_limited"
         ]
       },
+      "Directions": {
+        "title": "Directions",
+        "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Direction"
+        }
+      },
       "DismissReviewResponse": {
         "title": "DismissReviewResponse",
         "type": "object",
@@ -8990,10 +8990,7 @@
             "type": "boolean"
           },
           "uploaded_directions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Direction"
-            }
+            "$ref": "#/components/schemas/Directions"
           },
           "original_image_n_colors": {
             "type": "integer",

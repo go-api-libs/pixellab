@@ -128,7 +128,7 @@ type AnimateObjectRequest struct {
 	//   - **New animation**: omit `directions` to animate all 8 cardinals.
 	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-	Directions AnimateObjectRequestDirections `json:"directions,omitzero"`
+	Directions Directions `json:"directions,omitzero"`
 	// Mostly only relevant for 8-direction objects: pass the animation_group_id of an existing animation on this object to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Optional name for the animation, shown in the UI and used when exporting.
@@ -166,15 +166,6 @@ type AnimateObjectRequest struct {
 	// If true, automatically expand `animation_description` into a richer motion description before generating (mode='v3' only) — equivalent to calling /v2/enhance-animation-v3-prompt first. Grounded on `custom_start_frame`/`end_frame` when provided, otherwise on the object's idle frame. The same enhanced description is reused across all requested directions. Requires `animation_description` (cannot enhance an inherited description). Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
-
-// Which directions to animate.
-//
-// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
-// - For 8-direction objects:
-//   - **New animation**: omit `directions` to animate all 8 cardinals.
-//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
-//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-type AnimateObjectRequestDirections []Direction
 
 // AnimateObjectResponse defines a model
 type AnimateObjectResponse struct {
@@ -1837,6 +1828,15 @@ func (e DirectionSubmissionStatus) Valid() bool {
 	}
 }
 
+// Which directions to animate.
+//
+// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
+// - For 8-direction objects:
+//   - **New animation**: omit `directions` to animate all 8 cardinals.
+//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
+//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
+type Directions []Direction
+
 // DismissReviewResponse defines a model
 type DismissReviewResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2436,15 +2436,22 @@ type LastResponse struct {
 	ImageHeight          *int            `json:"image_height,omitzero"`
 	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls           *ObjectRotationUrls `json:"storage_urls,omitzero"`
-	BillingUsage          *Usage              `json:"billing_usage,omitzero"`
-	BillingCharged        *bool               `json:"billing_charged,omitzero"`
-	DirectionsCount       *int                `json:"directions_count,omitzero"`
-	QuantizedImages       QuantizedImages     `json:"quantized_images,omitzero"`
-	SavedToStorage        *bool               `json:"saved_to_storage,omitzero"`
-	UploadedDirections    []Direction         `json:"uploaded_directions,omitzero"`
-	OriginalImageNColors  *int                `json:"original_image_n_colors,omitzero"`
-	QuantizedImageNColors *int                `json:"quantized_image_n_colors,omitzero"`
+	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
+	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
+	BillingCharged  *bool               `json:"billing_charged,omitzero"`
+	DirectionsCount *int                `json:"directions_count,omitzero"`
+	QuantizedImages QuantizedImages     `json:"quantized_images,omitzero"`
+	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
+	// Which directions to animate.
+	//
+	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
+	// - For 8-direction objects:
+	//   - **New animation**: omit `directions` to animate all 8 cardinals.
+	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
+	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
+	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
 }
 
 // LipSyncFrameOut defines a model
