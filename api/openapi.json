@@ -41,7 +41,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -76,7 +76,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -111,7 +111,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -149,7 +149,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -184,7 +184,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -222,7 +222,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -260,7 +260,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -298,7 +298,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -333,7 +333,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -371,7 +371,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -406,7 +406,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -441,7 +441,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -476,7 +476,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -511,7 +511,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -549,7 +549,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -588,7 +588,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -625,7 +625,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -669,7 +669,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -706,7 +706,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -741,7 +741,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -776,7 +776,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -811,7 +811,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -850,7 +850,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -888,7 +888,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -926,7 +926,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -961,7 +961,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -996,7 +996,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1034,7 +1034,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1069,7 +1069,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1104,7 +1104,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1142,7 +1142,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1177,7 +1177,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1215,7 +1215,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1250,7 +1250,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1285,7 +1285,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1319,7 +1319,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1355,7 +1355,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1396,7 +1396,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1433,7 +1433,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1468,7 +1468,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1502,7 +1502,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1538,7 +1538,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1576,7 +1576,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1613,7 +1613,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1648,7 +1648,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1689,7 +1689,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1726,7 +1726,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1761,7 +1761,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1795,7 +1795,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1830,7 +1830,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1867,7 +1867,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -1905,7 +1905,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1939,7 +1939,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -1974,7 +1974,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2014,7 +2014,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2049,7 +2049,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2083,7 +2083,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2117,7 +2117,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -2144,7 +2144,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2167,7 +2167,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2202,7 +2202,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2237,7 +2237,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2272,7 +2272,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2307,7 +2307,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2333,7 +2333,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2371,7 +2371,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2412,7 +2412,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2449,7 +2449,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2489,7 +2489,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -2510,7 +2510,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2588,7 +2588,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2625,7 +2625,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2660,7 +2660,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2695,7 +2695,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2744,7 +2744,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -2788,7 +2788,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2834,7 +2834,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2873,7 +2873,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2909,7 +2909,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2943,7 +2943,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -2980,7 +2980,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       },
@@ -3010,7 +3010,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -3053,7 +3053,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -3102,7 +3102,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -3134,7 +3134,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -3166,7 +3166,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -3198,7 +3198,7 @@
         },
         "security": [
           {
-            "HTTPBearer": []
+            "bearerAuth": []
           }
         ]
       }
@@ -15439,7 +15439,7 @@
       }
     },
     "securitySchemes": {
-      "HTTPBearer": {
+      "bearerAuth": {
         "type": "http",
         "scheme": "bearer"
       }
