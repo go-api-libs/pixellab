@@ -9065,6 +9065,12 @@
           },
           {
             "$ref": "#/components/schemas/LastResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseErrorMessage"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseProgressMeta"
           }
         ]
       },

@@ -2534,8 +2534,13 @@ type LastResponseDetail struct {
 // LastResponseError defines a model
 type LastResponseError struct {
 	LastResponseBase
-	Err string `json:"error"`
+	LastResponseErrorMessage
 	LastResponseDetail
+}
+
+// LastResponseErrorMessage defines a model
+type LastResponseErrorMessage struct {
+	Err string `json:"error"`
 }
 
 // LastResponseErrorWithCode defines a model
@@ -2544,6 +2549,8 @@ type LastResponseErrorWithCode struct {
 	LastResponseBase
 	LastResponseDetail
 	LastResponseMeta
+	LastResponseErrorMessage
+	LastResponseProgressMeta
 }
 
 // LastResponseMeta defines a model
@@ -2565,6 +2572,11 @@ type LastResponseMeta struct {
 type LastResponseProgress struct {
 	LastResponseBase
 	LastResponseMeta
+	LastResponseProgressMeta
+}
+
+// LastResponseProgressMeta defines a model
+type LastResponseProgressMeta struct {
 	QueuePosition        int `json:"queue_position"`
 	EstimatedWaitSeconds int `json:"estimated_wait_seconds"`
 }
