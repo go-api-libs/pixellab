@@ -8874,15 +8874,6 @@
         "description": "Latest response data from the job",
         "anyOf": [
           {
-            "$ref": "#/components/schemas/LastResponseProgress"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseCompleted"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseErrorMessage"
-          },
-          {
             "$ref": "#/components/schemas/LastResponseErrorWithCode"
           }
         ]
@@ -8890,19 +8881,33 @@
       "LastResponseBase": {
         "type": "object",
         "properties": {
+          "type": {
+            "$ref": "#/components/schemas/LastResponseType"
+          },
           "character_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "example": "87e5c90e-ae41-4d57-9d85-1a4f307f8869"
           },
           "generation_started_at": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "example": "2026-10-03T18:33:53.605664+00:00"
           }
         },
         "required": [
           "character_id",
           "generation_started_at"
         ]
+      },
+      "LastResponseCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 3007
+          }
+        }
       },
       "LastResponseCompleted": {
         "allOf": [
@@ -9020,25 +9025,22 @@
       "LastResponseErrorWithCode": {
         "allOf": [
           {
+            "$ref": "#/components/schemas/LastResponseCode"
+          },
+          {
             "$ref": "#/components/schemas/LastResponseBase"
           },
           {
-            "$ref": "#/components/schemas/LastResponseErrorWithCodeAllOf1"
+            "$ref": "#/components/schemas/LastResponseMeta"
           }
         ]
       },
-      "LastResponseErrorWithCodeAllOf1": {
+      "LastResponseMeta": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "error"
-          },
-          "code": {
-            "type": "integer"
-          },
           "view": {
-            "type": "string"
+            "type": "string",
+            "example": "low top-down"
           },
           "trace": {
             "type": [
@@ -9047,15 +9049,19 @@
             ]
           },
           "detail": {
-            "type": "string"
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "example": "initializing"
           },
           "progress": {
             "type": "number",
+            "format": "double",
             "minimum": 0,
-            "maximum": 1
+            "maximum": 1,
+            "example": 0.0
           },
           "limit_type": {
             "type": [
@@ -9064,22 +9070,28 @@
             ]
           },
           "template_id": {
-            "type": "string"
+            "type": "string",
+            "example": "mannequin"
           },
           "n_directions": {
-            "type": "integer"
+            "type": "integer",
+            "example": 4
           },
           "character_name": {
-            "type": "string"
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
           },
           "directions_type": {
-            "type": "string"
+            "type": "string",
+            "example": "4-directions"
           },
           "number_of_frames": {
-            "type": "integer"
+            "type": "integer",
+            "example": 1
           },
           "character_description": {
-            "type": "string"
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
           }
         },
         "required": [
@@ -9168,6 +9180,13 @@
           "character_description",
           "estimated_wait_seconds"
         ]
+      },
+      "LastResponseType": {
+        "type": "string",
+        "enum": [
+          "error"
+        ],
+        "example": "error"
       },
       "LipSyncFrameOut": {
         "title": "LipSyncFrameOut",
