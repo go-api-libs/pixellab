@@ -398,27 +398,7 @@ type BackgroundJobResponse struct {
 	// ISO timestamp when job was created
 	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
-	LastResponse *BackgroundJobResponseLastResponse `json:"last_response,omitzero"`
-}
-
-// Latest response data from the job
-type BackgroundJobResponseLastResponse struct {
-	Code                 *int      `json:"code,omitzero"`
-	Type                 string    `json:"type,omitzero"`
-	View                 string    `json:"view,omitzero"`
-	Trace                *struct{} `json:"trace,omitzero"`
-	Detail               string    `json:"detail,omitzero"`
-	Status               string    `json:"status,omitzero"`
-	Progress             *float64  `json:"progress,omitzero"`
-	LimitType            *struct{} `json:"limit_type,omitzero"`
-	TemplateID           string    `json:"template_id,omitzero"`
-	CharacterID          uuid.UUID `json:"character_id,omitzero"`
-	NDirections          *int      `json:"n_directions,omitzero"`
-	CharacterName        string    `json:"character_name,omitzero"`
-	DirectionsType       string    `json:"directions_type,omitzero"`
-	NumberOfFrames       *int      `json:"number_of_frames,omitzero"`
-	CharacterDescription string    `json:"character_description,omitzero"`
-	GenerationStartedAt  time.Time `json:"generation_started_at,omitzero"`
+	LastResponse *LastResponse `json:"last_response,omitzero"`
 }
 
 // Response model for balance endpoint
@@ -2443,6 +2423,26 @@ type Keypoint struct {
 	Y      float64 `json:"y"`
 	Label  string  `json:"label"`
 	ZIndex float64 `json:"z_index"`
+}
+
+// Latest response data from the job
+type LastResponse struct {
+	Code                 *int      `json:"code,omitzero"`
+	Type                 string    `json:"type,omitzero"`
+	View                 string    `json:"view,omitzero"`
+	Trace                *struct{} `json:"trace,omitzero"`
+	Detail               string    `json:"detail,omitzero"`
+	Status               string    `json:"status,omitzero"`
+	Progress             *float64  `json:"progress,omitzero"`
+	LimitType            *struct{} `json:"limit_type,omitzero"`
+	TemplateID           string    `json:"template_id,omitzero"`
+	CharacterID          uuid.UUID `json:"character_id,omitzero"`
+	NDirections          *int      `json:"n_directions,omitzero"`
+	CharacterName        string    `json:"character_name,omitzero"`
+	DirectionsType       string    `json:"directions_type,omitzero"`
+	NumberOfFrames       *int      `json:"number_of_frames,omitzero"`
+	CharacterDescription string    `json:"character_description,omitzero"`
+	GenerationStartedAt  time.Time `json:"generation_started_at,omitzero"`
 }
 
 // LipSyncFrameOut defines a model
