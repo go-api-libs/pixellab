@@ -8895,17 +8895,6 @@
       "LastResponse": {
         "title": "Last Response",
         "description": "Latest response data from the job",
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseBase"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponsePerType"
-          }
-        ]
-      },
-      "LastResponseBase": {
-        "type": "object",
         "properties": {
           "type": {
             "$ref": "#/components/schemas/LastResponseType"
@@ -8919,38 +8908,58 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-10-03T18:33:53.605664+00:00"
-          }
-        },
-        "required": [
-          "character_id",
-          "generation_started_at"
-        ]
-      },
-      "LastResponseCode": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "example": 3007
-          }
-        },
-        "required": [
-          "code"
-        ]
-      },
-      "LastResponseCompleted": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseMeta"
           },
-          {
-            "$ref": "#/components/schemas/LastResponseCompletedMeta"
-          }
-        ]
-      },
-      "LastResponseCompletedMeta": {
-        "type": "object",
-        "properties": {
+          "view": {
+            "type": "string",
+            "example": "low top-down"
+          },
+          "trace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "initializing"
+          },
+          "progress": {
+            "type": "number",
+            "format": "double",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.0
+          },
+          "limit_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "template_id": {
+            "type": "string",
+            "example": "mannequin"
+          },
+          "n_directions": {
+            "type": "integer",
+            "example": 4
+          },
+          "character_name": {
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+          },
+          "directions_type": {
+            "type": "string",
+            "example": "4-directions"
+          },
+          "number_of_frames": {
+            "type": "integer",
+            "example": 1
+          },
+          "character_description": {
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+          },
           "seed": {
             "type": "integer",
             "example": 290733758
@@ -9003,158 +9012,20 @@
           "quantized_image_n_colors": {
             "type": "integer",
             "example": 21
-          }
-        }
-      },
-      "LastResponseDetail": {
-        "type": "object",
-        "properties": {
+          },
           "detail": {
             "type": "string",
             "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
-          }
-        },
-        "required": [
-          "detail"
-        ]
-      },
-      "LastResponseError": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseErrorMessage"
           },
-          {
-            "$ref": "#/components/schemas/LastResponseDetail"
-          }
-        ]
-      },
-      "LastResponseErrorMessage": {
-        "type": "object",
-        "properties": {
           "error": {
             "type": "string",
             "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "LastResponseErrorWithCode": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseCode"
           },
-          {
-            "$ref": "#/components/schemas/LastResponseDetail"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseMeta"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseErrorMessage"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseProgressMeta"
-          }
-        ]
-      },
-      "LastResponseMeta": {
-        "type": "object",
-        "properties": {
-          "view": {
-            "type": "string",
-            "example": "low top-down"
-          },
-          "trace": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "example": "initializing"
-          },
-          "progress": {
-            "type": "number",
-            "format": "double",
-            "minimum": 0,
-            "maximum": 1,
-            "example": 0.0
-          },
-          "limit_type": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "template_id": {
-            "type": "string",
-            "example": "mannequin"
-          },
-          "n_directions": {
+          "code": {
+            "description": "An optional error code",
             "type": "integer",
-            "example": 4
+            "example": 3007
           },
-          "character_name": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
-          },
-          "directions_type": {
-            "type": "string",
-            "example": "4-directions"
-          },
-          "number_of_frames": {
-            "type": "integer",
-            "example": 1
-          },
-          "character_description": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
-          }
-        },
-        "required": [
-          "view",
-          "status",
-          "progress",
-          "template_id",
-          "n_directions",
-          "character_name",
-          "directions_type",
-          "number_of_frames",
-          "character_description"
-        ]
-      },
-      "LastResponsePerType": {
-        "anyOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseErrorWithCode"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseProgress"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseCompleted"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseError"
-          }
-        ]
-      },
-      "LastResponseProgress": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseMeta"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseProgressMeta"
-          }
-        ]
-      },
-      "LastResponseProgressMeta": {
-        "type": "object",
-        "properties": {
           "queue_position": {
             "type": "integer",
             "example": 0
@@ -9162,16 +9033,11 @@
           "estimated_wait_seconds": {
             "type": "integer",
             "example": 0
-          },
-          "generation_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "ee2ca9f0-2a37-42d8-8f26-2c576b891edd"
           }
         },
         "required": [
-          "queue_position",
-          "estimated_wait_seconds"
+          "character_id",
+          "generation_started_at"
         ]
       },
       "LastResponseType": {
