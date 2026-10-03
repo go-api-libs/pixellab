@@ -4085,22 +4085,26 @@
           "id": {
             "title": "Id",
             "description": "Unique character identifier",
-            "type": "string"
+            "type": "string",
+            "example": "11480c99-c7dc-4f63-aa67-7d1a09435cea"
           },
           "name": {
             "title": "Name",
             "description": "Character name (shared by all sibling states in the group)",
-            "type": "string"
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining tec..."
           },
           "state_name": {
             "title": "State Name",
             "description": "Name of this state within the character (e.g. 'Idle', 'wearing red armor')",
-            "type": "string"
+            "type": "string",
+            "example": "Idle"
           },
           "prompt": {
             "title": "Prompt",
             "description": "Character creation prompt",
-            "type": "string"
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
           },
           "size": {
             "description": "Character sprite dimensions",
@@ -4110,38 +4114,45 @@
           "directions": {
             "title": "Directions",
             "description": "Number of directional rotations (4 or 8)",
-            "type": "integer"
+            "type": "integer",
+            "example": 4
           },
           "created_at": {
             "title": "Created At",
             "description": "ISO timestamp of character creation",
-            "type": "string"
+            "type": "string",
+            "example": "2026-10-03T21:55:40.502540+00:00"
           },
           "updated_at": {
             "title": "Updated At",
             "description": "ISO timestamp of the last edit. Compare it (or the ?t= stamp on the returned URLs) against your copy to sync only what changed.",
-            "type": "string"
+            "type": "string",
+            "example": "2026-10-03T21:56:27.715969+00:00"
           },
           "animation_count": {
             "title": "Animation Count",
             "description": "Number of animations for this character",
-            "type": "integer"
+            "type": "integer",
+            "example": 0
           },
           "template_id": {
             "title": "Template Id",
             "description": "Template used for character creation",
-            "type": "string"
+            "type": "string",
+            "example": "mannequin"
           },
           "view": {
             "title": "View",
             "description": "Camera view angle used",
-            "type": "string"
+            "type": "string",
+            "example": "low top-down"
           },
           "status": {
             "title": "Status",
             "description": "Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.",
             "type": "string",
-            "default": "completed"
+            "default": "completed",
+            "example": "completed"
           },
           "rotation_urls": {
             "description": "URLs for all rotation images (null unless status == 'completed')",
@@ -4149,22 +4160,23 @@
             "$ref": "#/components/schemas/CharacterRotationUrls"
           },
           "style_settings": {
-            "title": "Style Settings",
-            "description": "Style settings used during generation",
-            "type": "object",
-            "additionalProperties": {
-              "type": "object"
-            }
+            "$ref": "#/components/schemas/StyleSettings"
           },
           "guidance": {
             "title": "Guidance",
             "description": "Text guidance scale used",
-            "type": "number"
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "ai_freedom": {
             "title": "Ai Freedom",
             "description": "AI freedom parameter used",
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "tags": {
             "title": "Tags",
@@ -4177,12 +4189,16 @@
           "group_id": {
             "title": "Group Id",
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
-            "type": "string"
+            "type": "string",
+            "example": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9"
           },
           "skeletons": {
             "title": "Skeletons",
             "description": "2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.",
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": {
               "type": "object"
             }
@@ -4387,42 +4403,58 @@
           "south": {
             "title": "South",
             "description": "URL for south-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/south.png?t=1791064587"
           },
           "west": {
             "title": "West",
             "description": "URL for west-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/west.png?t=1791064587"
           },
           "east": {
             "title": "East",
             "description": "URL for east-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/east.png?t=1791064587"
           },
           "north": {
             "title": "North",
             "description": "URL for north-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
           },
           "south-east": {
             "title": "South-East",
             "description": "URL for south-east rotation (8-dir only)",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "north-east": {
             "title": "North-East",
             "description": "URL for north-east rotation (8-dir only)",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "north-west": {
             "title": "North-West",
             "description": "URL for north-west rotation (8-dir only)",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "south-west": {
             "title": "South-West",
             "description": "URL for south-west rotation (8-dir only)",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -8401,13 +8433,15 @@
             "title": "Width",
             "description": "Width in pixels.",
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "example": 68
           },
           "height": {
             "title": "Height",
             "description": "Height in pixels.",
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "example": 68
           }
         },
         "required": [
@@ -10446,6 +10480,25 @@
           "detail": true,
           "outline": true,
           "shading": true
+        }
+      },
+      "StyleSettings": {
+        "title": "Style Settings",
+        "description": "Style settings used during generation",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "low detail"
+          },
+          "outline": {
+            "type": "string",
+            "example": "single color black outline"
+          },
+          "shading": {
+            "type": "string",
+            "example": "basic shading"
+          }
         }
       },
       "Subscription": {

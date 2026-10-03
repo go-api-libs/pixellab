@@ -454,7 +454,7 @@ type CharacterDetail struct {
 	// URLs for all rotation images (null unless status == 'completed')
 	RotationUrls CharacterRotationUrls `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
-	StyleSettings map[string]struct{} `json:"style_settings,omitzero"`
+	StyleSettings *StyleSettings `json:"style_settings,omitzero"`
 	// Text guidance scale used
 	Guidance *float64 `json:"guidance,omitzero"`
 	// AI freedom parameter used
@@ -3040,6 +3040,13 @@ type Style struct {
 	Detail *bool `json:"detail,omitzero"`
 	// Copy shading style
 	Shading *bool `json:"shading,omitzero"`
+}
+
+// Style settings used during generation
+type StyleSettings struct {
+	Detail  string `json:"detail,omitzero"`
+	Outline string `json:"outline,omitzero"`
+	Shading string `json:"shading,omitzero"`
 }
 
 // Subscription generation balance

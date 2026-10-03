@@ -466,5 +466,59 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/characters/11480c99-c7dc-4f63-aa67-7d1a09435cea",
+			"header": {
+				"Authorization": "Bearer ************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"id": "11480c99-c7dc-4f63-aa67-7d1a09435cea",
+				"name": "chief engineer (a worker). Tall angular mining tec...",
+				"state_name": "Idle",
+				"prompt": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior.",
+				"size": {
+					"width": 68,
+					"height": 68
+				},
+				"directions": 4,
+				"created_at": "2026-10-03T21:55:40.502540+00:00",
+				"updated_at": "2026-10-03T21:56:27.715969+00:00",
+				"animation_count": 0,
+				"template_id": "mannequin",
+				"view": "low top-down",
+				"status": "completed",
+				"rotation_urls": {
+					"south": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/south.png?t=1791064587",
+					"west": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/west.png?t=1791064587",
+					"east": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/east.png?t=1791064587",
+					"north": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587",
+					"south-east": null,
+					"north-east": null,
+					"north-west": null,
+					"south-west": null
+				},
+				"style_settings": {
+					"detail": "low detail",
+					"outline": "single color black outline",
+					"shading": "basic shading"
+				},
+				"guidance": null,
+				"ai_freedom": null,
+				"tags": [],
+				"group_id": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9",
+				"skeletons": null,
+				"animations": []
+			}
+		}
 	}
 ]
