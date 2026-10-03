@@ -2,7 +2,7 @@
 // code at module root, so this isn't package main.
 package generate
 
-//go:generate go run ./cmd/generate
+//TODO legacy, re-enable later: go:generate go run ./cmd/generate
 //go:generate go tool openapi-enrich
 //go:generate go tool openapi-flatten
 //go:generate go tool openapi-compress
