@@ -2417,8 +2417,251 @@ type Keypoint struct {
 }
 
 // Latest response data from the job
-// LastResponse is an untagged anyOf union: at least one field is set after unmarshaling.
 type LastResponse struct {
+	Type                LastResponseType    `json:"type,omitzero"`
+	CharacterID         uuid.UUID           `json:"character_id"`
+	GenerationStartedAt time.Time           `json:"generation_started_at"`
+	LastResponsePerType LastResponsePerType `json:"-"`
+}
+
+// fieldsOfLastResponse is LastResponse without its methods, to encode the fields outside its union.
+type fieldsOfLastResponse LastResponse
+
+// membersOfLastResponse are the members LastResponse declares outside its union.
+var membersOfLastResponse = map[string]bool{"character_id": true, "generation_started_at": true, "type": true}
+
+// variantsOfLastResponse are the alternatives its union is decoded as, in order.
+var variantsOfLastResponse = []jsonVariant{
+	{
+		value:    "",
+		members:  map[string]bool{"character_description": true, "character_name": true, "code": true, "detail": true, "directions_type": true, "error": true, "estimated_wait_seconds": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
+		required: []string{"character_description", "character_name", "code", "detail", "directions_type", "error", "estimated_wait_seconds", "n_directions", "number_of_frames", "progress", "queue_position", "status", "template_id", "view"},
+	},
+	{
+		value:    "",
+		members:  map[string]bool{"character_description": true, "character_name": true, "directions_type": true, "estimated_wait_seconds": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "progress": true, "queue_position": true, "status": true, "template_id": true, "trace": true, "view": true},
+		required: []string{"character_description", "character_name", "directions_type", "estimated_wait_seconds", "n_directions", "number_of_frames", "progress", "queue_position", "status", "template_id", "view"},
+	},
+	{
+		value:    "",
+		members:  map[string]bool{"billing_charged": true, "billing_usage": true, "character_description": true, "character_name": true, "directions_count": true, "directions_type": true, "generation_id": true, "image_height": true, "image_width": true, "images": true, "limit_type": true, "n_directions": true, "number_of_frames": true, "original_image_n_colors": true, "progress": true, "quantized_image_n_colors": true, "quantized_images": true, "saved_to_storage": true, "seed": true, "status": true, "storage_urls": true, "template_id": true, "trace": true, "uploaded_directions": true, "usage": true, "view": true},
+		required: []string{"character_description", "character_name", "directions_type", "n_directions", "number_of_frames", "progress", "status", "template_id", "view"},
+	},
+	{
+		value:    "",
+		members:  map[string]bool{"detail": true, "error": true},
+		required: []string{"detail", "error"},
+	},
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. The fields and the chosen alternative of LastResponsePerType each
+// decode the members they declare, and a member neither declares is an error.
+func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	chosen, err := jsonChooseVariants(raw, "", variantsOfLastResponse, membersOfLastResponse, false)
+	if err != nil {
+		return err
+	}
+
+	fields, err := jsonSelect(raw, membersOfLastResponse)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(fields, (*fieldsOfLastResponse)(v), jsonOpts); err != nil {
+		return err
+	}
+
+	for _, i := range chosen {
+		variant, err := jsonSelect(raw, variantsOfLastResponse[i].members)
+		if err != nil {
+			return err
+		}
+
+		switch i {
+		case 0:
+			var vv LastResponseErrorWithCode
+			if err := json.Unmarshal(variant, &vv, jsonOpts); err != nil {
+				return err
+			}
+
+			v.LastResponsePerType.LastResponseErrorWithCode = &vv
+		case 1:
+			var vv LastResponseProgress
+			if err := json.Unmarshal(variant, &vv, jsonOpts); err != nil {
+				return err
+			}
+
+			v.LastResponsePerType.LastResponseProgress = &vv
+		case 2:
+			var vv LastResponseCompleted
+			if err := json.Unmarshal(variant, &vv, jsonOpts); err != nil {
+				return err
+			}
+
+			v.LastResponsePerType.LastResponseCompleted = &vv
+		case 3:
+			var vv LastResponseError
+			if err := json.Unmarshal(variant, &vv, jsonOpts); err != nil {
+				return err
+			}
+
+			v.LastResponsePerType.LastResponseError = &vv
+		}
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It merges the fields with each alternative of LastResponsePerType that is set;
+// a member both write must have the same value in each.
+func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
+	out, err := json.Marshal((*fieldsOfLastResponse)(v), jsonOpts)
+	if err != nil {
+		return err
+	}
+
+	var set int
+
+	if v.LastResponsePerType.LastResponseErrorWithCode != nil {
+
+		variant, err := json.Marshal(v.LastResponsePerType.LastResponseErrorWithCode, jsonOpts)
+		if err != nil {
+			return err
+		}
+
+		if out, err = jsonMerge(out, variant); err != nil {
+			return err
+		}
+
+		set++
+	}
+
+	if v.LastResponsePerType.LastResponseProgress != nil {
+
+		variant, err := json.Marshal(v.LastResponsePerType.LastResponseProgress, jsonOpts)
+		if err != nil {
+			return err
+		}
+
+		if out, err = jsonMerge(out, variant); err != nil {
+			return err
+		}
+
+		set++
+	}
+
+	if v.LastResponsePerType.LastResponseCompleted != nil {
+
+		variant, err := json.Marshal(v.LastResponsePerType.LastResponseCompleted, jsonOpts)
+		if err != nil {
+			return err
+		}
+
+		if out, err = jsonMerge(out, variant); err != nil {
+			return err
+		}
+
+		set++
+	}
+
+	if v.LastResponsePerType.LastResponseError != nil {
+
+		variant, err := json.Marshal(v.LastResponsePerType.LastResponseError, jsonOpts)
+		if err != nil {
+			return err
+		}
+
+		if out, err = jsonMerge(out, variant); err != nil {
+			return err
+		}
+
+		set++
+	}
+
+	if set == 0 {
+		return &json.SemanticError{Err: errors.New("no alternative of LastResponsePerType set")}
+	}
+
+	return enc.WriteValue(out)
+}
+
+// LastResponseCompleted defines a model
+type LastResponseCompleted struct {
+	LastResponseMeta
+	Seed        *int              `json:"seed,omitzero"`
+	Usage       *Usage            `json:"usage,omitzero"`
+	Images      DirectionalImages `json:"images,omitzero"`
+	ImageWidth  *int              `json:"image_width,omitzero"`
+	ImageHeight *int              `json:"image_height,omitzero"`
+	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
+	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
+	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
+	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
+	GenerationID    uuid.UUID           `json:"generation_id,omitzero"`
+	BillingCharged  *bool               `json:"billing_charged,omitzero"`
+	DirectionsCount *int                `json:"directions_count,omitzero"`
+	QuantizedImages DirectionalImages   `json:"quantized_images,omitzero"`
+	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
+	// Which directions to animate.
+	//
+	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
+	// - For 8-direction objects:
+	//   - **New animation**: omit `directions` to animate all 8 cardinals.
+	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
+	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
+	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
+}
+
+// LastResponseDetail defines a model
+type LastResponseDetail struct {
+	Detail string `json:"detail"`
+}
+
+// LastResponseError defines a model
+type LastResponseError struct {
+	LastResponseErrorMessage
+	LastResponseDetail
+}
+
+// LastResponseErrorMessage defines a model
+type LastResponseErrorMessage struct {
+	Err string `json:"error"`
+}
+
+// LastResponseErrorWithCode defines a model
+type LastResponseErrorWithCode struct {
+	Code int `json:"code"`
+	LastResponseDetail
+	LastResponseMeta
+	LastResponseErrorMessage
+	LastResponseProgressMeta
+}
+
+// LastResponseMeta defines a model
+type LastResponseMeta struct {
+	View                 string  `json:"view"`
+	Trace                string  `json:"trace,omitzero"`
+	Status               string  `json:"status"`
+	Progress             float64 `json:"progress"`
+	LimitType            string  `json:"limit_type,omitzero"`
+	TemplateID           string  `json:"template_id"`
+	NDirections          int     `json:"n_directions"`
+	CharacterName        string  `json:"character_name"`
+	DirectionsType       string  `json:"directions_type"`
+	NumberOfFrames       int     `json:"number_of_frames"`
+	CharacterDescription string  `json:"character_description"`
+}
+
+// LastResponsePerType defines a model
+// LastResponsePerType is an untagged anyOf union: at least one field is set after unmarshaling.
+type LastResponsePerType struct {
 	LastResponseErrorWithCode *LastResponseErrorWithCode
 	LastResponseProgress      *LastResponseProgress
 	LastResponseCompleted     *LastResponseCompleted
@@ -2426,7 +2669,7 @@ type LastResponse struct {
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom].
-func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+func (v *LastResponsePerType) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	raw, err := dec.ReadValue()
 	if err != nil {
 		return err
@@ -2474,7 +2717,7 @@ func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 }
 
 // MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
-func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
+func (v *LastResponsePerType) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.LastResponseErrorWithCode != nil:
 		return json.MarshalEncode(enc, v.LastResponseErrorWithCode, jsonOpts)
@@ -2489,88 +2732,8 @@ func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
 	return &json.SemanticError{Err: errors.New("no alternative set")}
 }
 
-// LastResponseBase defines a model
-type LastResponseBase struct {
-	Type                LastResponseType `json:"type,omitzero"`
-	CharacterID         uuid.UUID        `json:"character_id"`
-	GenerationStartedAt time.Time        `json:"generation_started_at"`
-}
-
-// LastResponseCompleted defines a model
-type LastResponseCompleted struct {
-	LastResponseBase
-	LastResponseMeta
-	Seed        *int              `json:"seed,omitzero"`
-	Usage       *Usage            `json:"usage,omitzero"`
-	Images      DirectionalImages `json:"images,omitzero"`
-	ImageWidth  *int              `json:"image_width,omitzero"`
-	ImageHeight *int              `json:"image_height,omitzero"`
-	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
-	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
-	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
-	GenerationID    uuid.UUID           `json:"generation_id,omitzero"`
-	BillingCharged  *bool               `json:"billing_charged,omitzero"`
-	DirectionsCount *int                `json:"directions_count,omitzero"`
-	QuantizedImages DirectionalImages   `json:"quantized_images,omitzero"`
-	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
-	// Which directions to animate.
-	//
-	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
-	// - For 8-direction objects:
-	//   - **New animation**: omit `directions` to animate all 8 cardinals.
-	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
-	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
-	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
-	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
-}
-
-// LastResponseDetail defines a model
-type LastResponseDetail struct {
-	Detail string `json:"detail"`
-}
-
-// LastResponseError defines a model
-type LastResponseError struct {
-	LastResponseBase
-	LastResponseErrorMessage
-	LastResponseDetail
-}
-
-// LastResponseErrorMessage defines a model
-type LastResponseErrorMessage struct {
-	Err string `json:"error"`
-}
-
-// LastResponseErrorWithCode defines a model
-type LastResponseErrorWithCode struct {
-	Code int `json:"code"`
-	LastResponseBase
-	LastResponseDetail
-	LastResponseMeta
-	LastResponseErrorMessage
-	LastResponseProgressMeta
-}
-
-// LastResponseMeta defines a model
-type LastResponseMeta struct {
-	View                 string  `json:"view"`
-	Trace                string  `json:"trace,omitzero"`
-	Status               string  `json:"status"`
-	Progress             float64 `json:"progress"`
-	LimitType            string  `json:"limit_type,omitzero"`
-	TemplateID           string  `json:"template_id"`
-	NDirections          int     `json:"n_directions"`
-	CharacterName        string  `json:"character_name"`
-	DirectionsType       string  `json:"directions_type"`
-	NumberOfFrames       int     `json:"number_of_frames"`
-	CharacterDescription string  `json:"character_description"`
-}
-
 // LastResponseProgress defines a model
 type LastResponseProgress struct {
-	LastResponseBase
 	LastResponseMeta
 	LastResponseProgressMeta
 }

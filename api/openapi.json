@@ -8895,18 +8895,12 @@
       "LastResponse": {
         "title": "Last Response",
         "description": "Latest response data from the job",
-        "anyOf": [
+        "allOf": [
           {
-            "$ref": "#/components/schemas/LastResponseErrorWithCode"
+            "$ref": "#/components/schemas/LastResponseBase"
           },
           {
-            "$ref": "#/components/schemas/LastResponseProgress"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseCompleted"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseError"
+            "$ref": "#/components/schemas/LastResponsePerType"
           }
         ]
       },
@@ -8946,9 +8940,6 @@
       },
       "LastResponseCompleted": {
         "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseBase"
-          },
           {
             "$ref": "#/components/schemas/LastResponseMeta"
           },
@@ -9030,9 +9021,6 @@
       "LastResponseError": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/LastResponseBase"
-          },
-          {
             "$ref": "#/components/schemas/LastResponseErrorMessage"
           },
           {
@@ -9056,9 +9044,6 @@
         "allOf": [
           {
             "$ref": "#/components/schemas/LastResponseCode"
-          },
-          {
-            "$ref": "#/components/schemas/LastResponseBase"
           },
           {
             "$ref": "#/components/schemas/LastResponseDetail"
@@ -9141,11 +9126,24 @@
           "character_description"
         ]
       },
+      "LastResponsePerType": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/LastResponseErrorWithCode"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseProgress"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseError"
+          }
+        ]
+      },
       "LastResponseProgress": {
         "allOf": [
-          {
-            "$ref": "#/components/schemas/LastResponseBase"
-          },
           {
             "$ref": "#/components/schemas/LastResponseMeta"
           },
