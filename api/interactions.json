@@ -1,8 +1,45 @@
 [
 	{
 		"request": {
-			"method": "",
-			"url": ""
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/0a54f3a8-4d32-415d-8d34-2a1a222bca19",
+			"header": {
+				"Authorization": "Bearer ************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "0a54f3a8-4d32-415d-8d34-2a1a222bca19",
+				"status": "failed",
+				"created_at": "2026-10-03T18:33:53.126261+00:00",
+				"last_response": {
+					"code": 3007,
+					"type": "error",
+					"view": "low top-down",
+					"trace": null,
+					"detail": "Sorry, we are experiencing high demand and need to temporarily limit free tier.",
+					"status": "initializing",
+					"progress": 0.0,
+					"limit_type": null,
+					"template_id": "mannequin",
+					"character_id": "87e5c90e-ae41-4d57-9d85-1a4f307f8869",
+					"n_directions": 4,
+					"character_name": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior.",
+					"directions_type": "4-directions",
+					"number_of_frames": 1,
+					"character_description": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior.",
+					"generation_started_at": "2026-10-03T18:33:53.605664+00:00"
+				}
+			}
 		}
 	}
 ]
