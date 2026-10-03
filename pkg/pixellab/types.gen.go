@@ -2445,6 +2445,7 @@ type LastResponse struct {
 	GenerationStartedAt  time.Time `json:"generation_started_at,omitzero"`
 	QueuePosition        *int      `json:"queue_position,omitzero"`
 	EstimatedWaitSeconds *int      `json:"estimated_wait_seconds,omitzero"`
+	GenerationID         uuid.UUID `json:"generation_id,omitzero"`
 }
 
 // LipSyncFrameOut defines a model

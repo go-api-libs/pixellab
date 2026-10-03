@@ -8930,6 +8930,11 @@
           "estimated_wait_seconds": {
             "type": "integer",
             "example": 0
+          },
+          "generation_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "726ce2d1-821a-4b39-b264-3dc8ba79bb43"
           }
         }
       },
