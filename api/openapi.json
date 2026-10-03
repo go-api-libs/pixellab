@@ -7184,6 +7184,29 @@
           "rate_limited"
         ]
       },
+      "DirectionalImages": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "west": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "north": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "south": {
+            "$ref": "#/components/schemas/Image"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south"
+        ]
+      },
       "Directions": {
         "title": "Directions",
         "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
@@ -8874,7 +8897,7 @@
         "description": "Latest response data from the job",
         "anyOf": [
           {
-            "$ref": "#/components/schemas/LastResponseProgress"
+            "$ref": "#/components/schemas/LastResponseCompleted"
           }
         ]
       },
@@ -8915,31 +8938,33 @@
             "$ref": "#/components/schemas/LastResponseBase"
           },
           {
-            "$ref": "#/components/schemas/LastResponseCompletedAllOf1"
+            "$ref": "#/components/schemas/LastResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseCompletedMeta"
           }
         ]
       },
-      "LastResponseCompletedAllOf1": {
+      "LastResponseCompletedMeta": {
         "type": "object",
         "properties": {
           "seed": {
-            "type": "integer"
-          },
-          "type": {
-            "type": "string",
-            "const": "message_done"
+            "type": "integer",
+            "example": 290733758
           },
           "usage": {
             "$ref": "#/components/schemas/Usage"
           },
           "images": {
-            "$ref": "#/components/schemas/QuantizedImages"
+            "$ref": "#/components/schemas/DirectionalImages"
           },
           "image_width": {
-            "type": "integer"
+            "type": "integer",
+            "example": 68
           },
           "image_height": {
-            "type": "integer"
+            "type": "integer",
+            "example": 68
           },
           "storage_urls": {
             "$ref": "#/components/schemas/ObjectRotationUrls"
@@ -8949,16 +8974,18 @@
           },
           "generation_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "example": "089542e8-189b-4044-9b07-2823585a44f6"
           },
           "billing_charged": {
             "type": "boolean"
           },
           "directions_count": {
-            "type": "integer"
+            "type": "integer",
+            "example": 4
           },
           "quantized_images": {
-            "$ref": "#/components/schemas/QuantizedImages"
+            "$ref": "#/components/schemas/DirectionalImages"
           },
           "saved_to_storage": {
             "type": "boolean"
@@ -8967,37 +8994,20 @@
             "$ref": "#/components/schemas/Directions"
           },
           "original_image_n_colors": {
-            "type": "integer"
+            "type": "integer",
+            "example": 110
           },
           "quantized_image_n_colors": {
-            "type": "integer"
+            "type": "integer",
+            "example": 21
           }
-        },
-        "required": [
-          "seed",
-          "type",
-          "usage",
-          "images",
-          "image_width",
-          "image_height",
-          "storage_urls",
-          "billing_usage",
-          "generation_id",
-          "billing_charged",
-          "directions_count",
-          "quantized_images",
-          "saved_to_storage",
-          "uploaded_directions",
-          "original_image_n_colors",
-          "quantized_image_n_colors"
-        ]
+        }
       },
       "LastResponseDetail": {
         "type": "object",
         "properties": {
           "detail": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+            "type": "string"
           }
         },
         "required": [
@@ -9143,7 +9153,8 @@
         "type": "string",
         "enum": [
           "error",
-          "message_progress"
+          "message_progress",
+          "message_done"
         ],
         "example": "error"
       },
@@ -9915,29 +9926,6 @@
           "character_to_portrait"
         ],
         "default": "portrait_to_character"
-      },
-      "QuantizedImages": {
-        "type": "object",
-        "properties": {
-          "east": {
-            "$ref": "#/components/schemas/Image"
-          },
-          "west": {
-            "$ref": "#/components/schemas/Image"
-          },
-          "north": {
-            "$ref": "#/components/schemas/Image"
-          },
-          "south": {
-            "$ref": "#/components/schemas/Image"
-          }
-        },
-        "required": [
-          "east",
-          "west",
-          "north",
-          "south"
-        ]
       },
       "RectangleInpainting": {
         "title": "RectangleInpainting",
