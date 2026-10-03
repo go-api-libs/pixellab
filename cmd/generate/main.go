@@ -93,19 +93,19 @@ func main() {
 			for _, r := range op.Responses {
 				for _, c := range r.Value.Content {
 					s := c.Schema
-					if s == nil || s.Value.Type != "" {
+					if s == nil || s.Type != "" {
 						continue
 					}
 
 					// fill empty schemas
-					s.Value.Type = openapi.TypeObject
+					s.Type = openapi.TypeObject
 				}
 			}
 		}
 	}
 
 	for name, s := range doc.Components.Schemas.ByIndex() {
-		improveSchema(&openapi.SchemaRef{Value: s})
+		improveSchema(s)
 
 		switch name {
 		case "CameraView":
@@ -120,12 +120,6 @@ func main() {
 				Width:  16,
 				Height: 16,
 			})
-		}
-
-		for _, p := range s.Properties {
-			if p.Value.Type != "" {
-				continue
-			}
 		}
 	}
 
@@ -253,9 +247,7 @@ type dim struct {
 	Height int `json:"height"`
 }
 
-func improveSchema(ss *openapi.SchemaRef) {
-	s := ss.Value
-
+func improveSchema(s *openapi.Schema) {
 	for _, p := range s.Properties {
 		improveSchema(p)
 	}
@@ -272,7 +264,7 @@ func improveSchema(ss *openapi.SchemaRef) {
 		return
 	}
 
-	if n := s.AnyOf[len(s.AnyOf)-1]; n.Value.Type != openapi.TypeNull {
+	if n := s.AnyOf[len(s.AnyOf)-1]; n.Type != openapi.TypeNull {
 		return
 	}
 
@@ -281,23 +273,22 @@ func improveSchema(ss *openapi.SchemaRef) {
 		return
 	}
 
-	prime := ss.Value.AnyOf[0]
+	prime := s.AnyOf[0]
 	if prime.Ref != nil {
-		ss.Ref = prime.Ref
+		descr, example := s.Description, s.Example
+		s.Replace(&openapi.Schema{Ref: prime.Ref, Description: descr})
 
-		ss.Value.AnyOf = nil
-		ss.Ref.Description = s.Description
-		if prime.Value.Example == nil {
-			prime.Value.Example = s.Example
+		if prime.Ref.Value.Example == nil {
+			prime.Ref.Value.Example = example
 		}
 	} else {
 		title, descr := s.Title, s.Description
-		*s = *prime.Value
+		s.Replace(prime)
 		s.Title = title
 		s.Description = descr
 	}
 
-	improveSchema(ss)
+	improveSchema(s)
 }
 
 func mustEncode(v any) jsontext.Value {
@@ -308,6 +299,9 @@ func mustEncode(v any) jsontext.Value {
 
 	return jsontext.Value(bytes.TrimSpace(b.Bytes()))
 }
+
+//go:fix inline
+func ptr[T any](v T) *T { return new(v) }
 
 // imageSizeUsage identifies one field, on one generated Go request type,
 // that carries an image size.
@@ -463,21 +457,21 @@ func consolidateImageSizes(doc *openapi.Document) []imageSizeSpec {
 			"bounds for that request.",
 		Required: []string{"width", "height"},
 	}
-	// Set explicitly, in order, rather than via a map literal: SchemaRefs
+	// Set explicitly, in order, rather than via a map literal: Schemas
 	// tracks insertion order for marshalling, but a map literal's iteration
 	// order (which Set would otherwise see) is randomized per run, so width
 	// and height would swap places in api/openapi.json on every regen.
-	canonical.Properties.Set("width", &openapi.SchemaRef{Value: &openapi.Schema{
+	canonical.Properties.Set("width", &openapi.Schema{
 		// Every real request bounds width/height to at least 1px; keeping
 		// that floor on the shared schema (rather than leaving it
 		// unbounded) also keeps this schema's shape from accidentally
 		// matching some unrelated, truly-unconstrained width/height schema
 		// and getting merged into it by openapi-compress.
 		Title: "Width", Type: openapi.TypeInteger, Description: "Width in pixels.", Min: new(1.0),
-	}})
-	canonical.Properties.Set("height", &openapi.SchemaRef{Value: &openapi.Schema{
+	})
+	canonical.Properties.Set("height", &openapi.Schema{
 		Title: "Height", Type: openapi.TypeInteger, Description: "Height in pixels.", Min: new(1.0),
-	}})
+	})
 	doc.Components.Schemas.Set("ImageSize", canonical)
 
 	var specs []imageSizeSpec
@@ -600,13 +594,13 @@ func enumUsageDescription(s *openapi.Schema) string {
 }
 
 // intBounds reads the integer minimum/maximum of a width or height property.
-func intBounds(p *openapi.SchemaRef) (min, max int) {
-	if p.Value.Min != nil {
-		min = int(*p.Value.Min)
+func intBounds(p *openapi.Schema) (min, max int) {
+	if p.Min != nil {
+		min = int(*p.Min)
 	}
 
-	if p.Value.Max != nil {
-		max = int(*p.Value.Max)
+	if p.Max != nil {
+		max = int(*p.Max)
 	}
 
 	return min, max
@@ -648,15 +642,15 @@ var imageSizeGenericAxisDescriptions = map[string]bool{
 
 // imageSizeAxisText formats one width or height property as "<bound> -
 // <description>", keeping whichever half carries information.
-func imageSizeAxisText(p *openapi.SchemaRef) string {
+func imageSizeAxisText(p *openapi.Schema) string {
 	bound := imageSizeFormatBound(p)
 
-	d := strings.TrimSpace(p.Value.Description)
+	d := strings.TrimSpace(p.Description)
 	if imageSizeGenericAxisDescriptions[d] {
 		d = ""
 	}
 
-	if def := p.Value.Default; len(def) > 0 {
+	if def := p.Default; len(def) > 0 {
 		d = strings.TrimSpace(fmt.Sprintf("%s (defaults to %s if omitted)", d, def))
 	}
 
@@ -671,8 +665,8 @@ func imageSizeAxisText(p *openapi.SchemaRef) string {
 }
 
 // imageSizeFormatBound renders a property's minimum/maximum as text.
-func imageSizeFormatBound(p *openapi.SchemaRef) string {
-	min, max := p.Value.Min, p.Value.Max
+func imageSizeFormatBound(p *openapi.Schema) string {
+	min, max := p.Min, p.Max
 	switch {
 	case min != nil && max != nil && *min == *max:
 		return fmt.Sprintf("%d px, fixed", int(*min))
