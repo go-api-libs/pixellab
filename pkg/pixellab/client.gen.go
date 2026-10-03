@@ -6751,15 +6751,7 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 // Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
 //
 //	GET /tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID string) (*ExportCharacterAsZip, error) {
-	return c.GetSidescrollerTilesetByIDWithResult[ExportCharacterAsZip](ctx, tilesetID)
-}
-
-// Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
+func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID string) error {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID)
 	req := (&http.Request{
 		Header: http.Header{
@@ -6781,19 +6773,19 @@ func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context
 	if c.debug {
 		ia.Request, err = cassette.NewRequest(req)
 		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
+			return fmt.Errorf("recording request: %w", err)
 		}
 	}
 	rsp, err := c.cli.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer rsp.Body.Close()
 
 	if c.debug {
 		ia.Response, err = cassette.NewResponse(rsp)
 		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
+			return fmt.Errorf("recording response: %w", err)
 		}
 	}
 
@@ -6802,27 +6794,27 @@ func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context
 		// Successfully retrieved sidescroller tileset
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
+			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if c.debug {
 					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+						return errors.Join(api.WrapDecodingError(rsp, err), err2)
 					}
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				return api.WrapDecodingError(rsp, err)
 			}
 
-			return &out, nil
+			return nil
 		default:
-			return nil, api.NewErrUnknownContentType(rsp)
+			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
+		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Sidescroller tileset not found
-		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
+		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6831,22 +6823,22 @@ func (c *Client) GetSidescrollerTilesetByIDWithResult[R any](ctx context.Context
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if c.debug {
 					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+						return errors.Join(api.WrapDecodingError(rsp, err), err2)
 					}
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				return api.WrapDecodingError(rsp, err)
 			}
 
-			return nil, api.NewErrCustom(rsp, &out)
+			return api.NewErrCustom(rsp, &out)
 		default:
-			return nil, api.NewErrUnknownContentType(rsp)
+			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Still being generated; see Retry-After header
-		return nil, fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
+		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	default:
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return api.NewErrUnknownStatusCode(rsp)
 	}
 }
 
@@ -10567,70 +10559,7 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID string, params *ExportCharacterAsZipParams) (*ExportCharacterAsZip, error) {
-	return c.ExportCharacterAsZipWithResult[ExportCharacterAsZip](ctx, characterID, params)
-}
-
-// Download a character with all animations as a ZIP file.
-//
-// This endpoint creates a ZIP file containing all rotation images, animation frames,
-// and metadata for a character. Perfect for using characters in external tools,
-// game engines, or archiving your creations.
-//
-// **ZIP Contents:**
-// - `rotations/` - All character rotation images (4 or 8 directions)
-// - `animations/` - All animation frames organized by animation type and direction
-// - `metadata.json` - Complete character information with keypoints for all frames
-//
-// **Collision Detection**: Includes keypoints for all frames + PNG transparency for pixel-perfect collision detection.
-//
-// **File Structure:**
-// ```
-// character_name.zip
-// ├── rotations/
-// │   ├── south.png
-// │   ├── west.png
-// │   ├── east.png
-// │   ├── north.png
-// │   └── [8-direction files if applicable]
-// ├── animations/
-// │   └── {animation_type}/
-// │       └── {direction}/
-// │           ├── frame_000.png
-// │           ├── frame_001.png
-// │           └── ...
-// └── metadata.json
-// ```
-//
-// **Metadata Structure:**
-// The metadata.json includes:
-// - Character information (name, prompt, size, template)
-// - File organization structure
-// - Keypoints data for template-based characters
-// - Export version and timestamp
-//
-// **Keypoints Data:**
-// For characters created with templates, keypoints are included with:
-// - x,y coordinates for each body part
-// - Labels (nose, left_arm, etc.)
-// - Scaled to character's actual size
-// - Available for all rotations and animation frames
-//
-// **Authentication:**
-// No authentication required - the random character ID serves as the access key.
-//
-// **File Size:**
-// ZIP files are uncompressed for faster generation and compatibility.
-// File size depends on character image size and number of animations.
-//
-// **Status Codes:**
-// - 200: ZIP file ready for download
-// - 423: Character or animations still being generated (check status later)
-// - 404: Character not found
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /characters/{character_id}/zip
-func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, characterID string, params *ExportCharacterAsZipParams) (*R, error) {
+func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID string, params *ExportCharacterAsZipParams) error {
 	u := c.baseURL.JoinPath("characters", characterID, "zip")
 	if params != nil {
 		q := make(url.Values, 1)
@@ -10662,19 +10591,19 @@ func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, char
 	if c.debug {
 		ia.Request, err = cassette.NewRequest(req)
 		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
+			return fmt.Errorf("recording request: %w", err)
 		}
 	}
 	rsp, err := c.cli.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer rsp.Body.Close()
 
 	if c.debug {
 		ia.Response, err = cassette.NewResponse(rsp)
 		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
+			return fmt.Errorf("recording response: %w", err)
 		}
 	}
 
@@ -10683,24 +10612,24 @@ func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, char
 		// ZIP file download containing character data
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
+			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if c.debug {
 					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+						return errors.Join(api.WrapDecodingError(rsp, err), err2)
 					}
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				return api.WrapDecodingError(rsp, err)
 			}
 
-			return &out, nil
+			return nil
 		default:
-			return nil, api.NewErrUnknownContentType(rsp)
+			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10709,22 +10638,22 @@ func (c *Client) ExportCharacterAsZipWithResult[R any](ctx context.Context, char
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if c.debug {
 					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+						return errors.Join(api.WrapDecodingError(rsp, err), err2)
 					}
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				return api.WrapDecodingError(rsp, err)
 			}
 
-			return nil, api.NewErrCustom(rsp, &out)
+			return api.NewErrCustom(rsp, &out)
 		default:
-			return nil, api.NewErrUnknownContentType(rsp)
+			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	default:
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return api.NewErrUnknownStatusCode(rsp)
 	}
 }
 
@@ -12794,19 +12723,16 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 }
 
 // Returns a curated index of the API for Large Language Models (LLMs),
+// following the llms.txt standard (https://llmstxt.org).
 //
-//	following the llms.txt standard (https://llmstxt.org).
+// It provides a short overview plus links to the OpenAPI spec, interactive
+// docs, SDKs, and guides — where the full endpoint and parameter detail lives.
 //
-//	It provides a short overview plus links to the OpenAPI spec, interactive
-//	docs, SDKs, and guides — where the full endpoint and parameter detail lives.
+// ## Usage
 //
-//	## Usage
-//
-//	You can reference this documentation in AI prompts:
-//	- `@api.pixellab.ai/v2/llms.txt` in Claude
-//	- Direct URL access for other tools
-//
-// You can define a custom result to unmarshal the response into.
+// You can reference this documentation in AI prompts:
+// - `@api.pixellab.ai/v2/llms.txt` in Claude
+// - Direct URL access for other tools
 //
 //	GET /llms.txt
 func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, error) {
