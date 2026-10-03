@@ -2526,17 +2526,23 @@ type LastResponseCompleted struct {
 	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
 }
 
+// LastResponseDetail defines a model
+type LastResponseDetail struct {
+	Detail string `json:"detail"`
+}
+
 // LastResponseError defines a model
 type LastResponseError struct {
 	LastResponseBase
-	Err    string `json:"error"`
-	Detail string `json:"detail"`
+	Err string `json:"error"`
+	LastResponseDetail
 }
 
 // LastResponseErrorWithCode defines a model
 type LastResponseErrorWithCode struct {
-	Code *int `json:"code,omitzero"`
+	Code int `json:"code"`
 	LastResponseBase
+	LastResponseDetail
 	LastResponseMeta
 }
 

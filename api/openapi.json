@@ -8939,7 +8939,10 @@
             "type": "integer",
             "example": 3007
           }
-        }
+        },
+        "required": [
+          "code"
+        ]
       },
       "LastResponseCompleted": {
         "allOf": [
@@ -9016,7 +9019,8 @@
         "type": "object",
         "properties": {
           "detail": {
-            "type": "string"
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           }
         },
         "required": [
@@ -9055,6 +9059,9 @@
           },
           {
             "$ref": "#/components/schemas/LastResponseBase"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseDetail"
           },
           {
             "$ref": "#/components/schemas/LastResponseMeta"
