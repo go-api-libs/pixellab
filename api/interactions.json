@@ -235,5 +235,37 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/1366c538-ff5f-488c-bb86-4a7e621b5c58",
+			"header": {
+				"Authorization": "Bearer ************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "1366c538-ff5f-488c-bb86-4a7e621b5c58",
+				"status": "failed",
+				"created_at": "2026-10-03T19:32:51.106531+00:00",
+				"last_response": {
+					"type": "error",
+					"error": "Sorry, we are experiencing high demand and need to temporarily limit free tier.",
+					"detail": "Sorry, we are experiencing high demand and need to temporarily limit free tier.",
+					"character_id": "125533ce-b988-44ab-b4e1-61fa5caf1543",
+					"generation_started_at": "2026-10-03T19:32:52.078275+00:00"
+				}
+			}
+		}
 	}
 ]
