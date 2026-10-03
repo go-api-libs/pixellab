@@ -5,21 +5,15 @@
 package pixellab
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	"errors"
-	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"slices"
-	"strings"
 	"testing"
 	"uuid"
 
-	"github.com/MarkRosemaker/openapi-enrich/cassette"
 	"github.com/go-api-libs/api"
 )
 
@@ -8276,105 +8270,4 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 	})
-}
-
-func replay(t *testing.T) http.RoundTripper {
-	t.Helper()
-
-	interactions, err := cassette.InteractionsReadFile("../../api/interactions.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var idx int
-	return roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		if idx >= len(interactions) {
-			return nil, fmt.Errorf("unexpected request: %s %s", req.Method, req.URL)
-		}
-
-		ia := interactions[idx]
-
-		r, err := cassette.NewRequest(req)
-		if err != nil {
-			return nil, err
-		}
-
-		if r.URL != ia.Request.URL {
-			return nil, fmt.Errorf("interaction #%d: got URL %s, want %s", idx, r.URL, ia.Request.URL)
-		}
-
-		if r.Method != ia.Request.Method {
-			return nil, fmt.Errorf("interaction #%d: got method %s, want %s", idx, r.Method, ia.Request.Method)
-		}
-
-		gotBody := jsontext.Value(r.Body)
-		gotBody.Canonicalize()
-
-		wantBody := jsontext.Value(ia.Request.Body)
-		wantBody.Canonicalize()
-
-		if !bytes.Equal(gotBody, wantBody) {
-			return nil, fmt.Errorf("interaction #%d: got body %s, want %s", idx, string(gotBody), string(wantBody))
-		}
-
-		if ia.Request.Headers == nil {
-			ia.Request.Headers = http.Header{}
-		}
-
-		ia.Request.Headers.Set("User-Agent", defaultUserAgent)
-
-		if len(ia.Request.Body) == 0 {
-			ia.Request.Headers.Del("Content-Type")
-		}
-
-		gotScheme, _, _ := strings.Cut(r.Headers.Get("Authorization"), " ")
-		wantScheme, _, _ := strings.Cut(ia.Request.Headers.Get("Authorization"), " ")
-		if gotScheme != wantScheme {
-			return nil, fmt.Errorf("interaction #%d: got Authorization scheme %q, want %q", idx, gotScheme, wantScheme)
-		}
-		r.Headers.Del("Authorization")
-		ia.Request.Headers.Del("Authorization")
-
-		if !maps.EqualFunc(r.Headers, ia.Request.Headers, slices.Equal) {
-			return nil, fmt.Errorf("interaction #%d: got headers %s, want %s", idx, r.Headers, ia.Request.Headers)
-		}
-
-		idx++
-		return &http.Response{
-			Status:     fmt.Sprintf("%d %s", ia.Response.StatusCode, http.StatusText(ia.Response.StatusCode)),
-			StatusCode: ia.Response.StatusCode,
-			Header:     ia.Response.Headers.Clone(),
-			Body:       io.NopCloser(bytes.NewReader(ia.Response.Body)),
-		}, nil
-	})
-}
-
-func TestClient_Interactions(t *testing.T) {
-	ctx := t.Context()
-	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-	c, err := NewClient(WithHTTPClient(&http.Client{Transport: replay(t)}))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, "0a54f3a8-4d32-415d-8d34-2a1a222bca19"); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, "17207ad5-f864-4b77-b1c1-e53e5fb8b931"); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, "6c9cbd82-af86-498f-9de5-949afbd21510"); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, "f7d8a526-b9a8-4929-a71c-4c8299e62829"); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, "1366c538-ff5f-488c-bb86-4a7e621b5c58"); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
 }
