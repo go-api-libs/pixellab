@@ -8897,7 +8897,16 @@
         "description": "Latest response data from the job",
         "anyOf": [
           {
+            "$ref": "#/components/schemas/LastResponseErrorWithCode"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseProgress"
+          },
+          {
             "$ref": "#/components/schemas/LastResponseCompleted"
+          },
+          {
+            "$ref": "#/components/schemas/LastResponseError"
           }
         ]
       },

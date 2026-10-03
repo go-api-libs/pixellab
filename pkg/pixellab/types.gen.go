@@ -1828,6 +1828,14 @@ func (e DirectionSubmissionStatus) Valid() bool {
 	}
 }
 
+// DirectionalImages defines a model
+type DirectionalImages struct {
+	East  Image `json:"east"`
+	West  Image `json:"west"`
+	North Image `json:"north"`
+	South Image `json:"south"`
+}
+
 // Which directions to animate.
 //
 // - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
@@ -2411,10 +2419,10 @@ type Keypoint struct {
 // Latest response data from the job
 // LastResponse is an untagged anyOf union: at least one field is set after unmarshaling.
 type LastResponse struct {
+	LastResponseErrorWithCode *LastResponseErrorWithCode
 	LastResponseProgress      *LastResponseProgress
 	LastResponseCompleted     *LastResponseCompleted
-	LastResponseErrorMessage  *LastResponseErrorMessage
-	LastResponseErrorWithCode *LastResponseErrorWithCode
+	LastResponseError         *LastResponseError
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom].
@@ -2425,6 +2433,14 @@ func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	}
 
 	var matched int
+
+	{
+		var vv LastResponseErrorWithCode
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.LastResponseErrorWithCode = &vv
+			matched++
+		}
+	}
 
 	{
 		var vv LastResponseProgress
@@ -2443,17 +2459,9 @@ func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	}
 
 	{
-		var vv LastResponseErrorMessage
+		var vv LastResponseError
 		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
-			v.LastResponseErrorMessage = &vv
-			matched++
-		}
-	}
-
-	{
-		var vv LastResponseErrorWithCode
-		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
-			v.LastResponseErrorWithCode = &vv
+			v.LastResponseError = &vv
 			matched++
 		}
 	}
@@ -2468,14 +2476,14 @@ func (v *LastResponse) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 // MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
 func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
+	case v.LastResponseErrorWithCode != nil:
+		return json.MarshalEncode(enc, v.LastResponseErrorWithCode, jsonOpts)
 	case v.LastResponseProgress != nil:
 		return json.MarshalEncode(enc, v.LastResponseProgress, jsonOpts)
 	case v.LastResponseCompleted != nil:
 		return json.MarshalEncode(enc, v.LastResponseCompleted, jsonOpts)
-	case v.LastResponseErrorMessage != nil:
-		return json.MarshalEncode(enc, v.LastResponseErrorMessage, jsonOpts)
-	case v.LastResponseErrorWithCode != nil:
-		return json.MarshalEncode(enc, v.LastResponseErrorWithCode, jsonOpts)
+	case v.LastResponseError != nil:
+		return json.MarshalEncode(enc, v.LastResponseError, jsonOpts)
 	}
 
 	return &json.SemanticError{Err: errors.New("no alternative set")}
@@ -2483,28 +2491,29 @@ func (v *LastResponse) MarshalJSONTo(enc *jsontext.Encoder) error {
 
 // LastResponseBase defines a model
 type LastResponseBase struct {
-	CharacterID         uuid.UUID `json:"character_id"`
-	GenerationStartedAt time.Time `json:"generation_started_at"`
+	Type                LastResponseType `json:"type,omitzero"`
+	CharacterID         uuid.UUID        `json:"character_id"`
+	GenerationStartedAt time.Time        `json:"generation_started_at"`
 }
 
 // LastResponseCompleted defines a model
 type LastResponseCompleted struct {
 	LastResponseBase
-	Seed        int             `json:"seed"`
-	Type        string          `json:"type"`
-	Usage       Usage           `json:"usage"`
-	Images      QuantizedImages `json:"images"`
-	ImageWidth  int             `json:"image_width"`
-	ImageHeight int             `json:"image_height"`
+	LastResponseMeta
+	Seed        *int              `json:"seed,omitzero"`
+	Usage       *Usage            `json:"usage,omitzero"`
+	Images      DirectionalImages `json:"images,omitzero"`
+	ImageWidth  *int              `json:"image_width,omitzero"`
+	ImageHeight *int              `json:"image_height,omitzero"`
 	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls     ObjectRotationUrls `json:"storage_urls"`
-	BillingUsage    Usage              `json:"billing_usage"`
-	GenerationID    uuid.UUID          `json:"generation_id"`
-	BillingCharged  bool               `json:"billing_charged"`
-	DirectionsCount int                `json:"directions_count"`
-	QuantizedImages QuantizedImages    `json:"quantized_images"`
-	SavedToStorage  bool               `json:"saved_to_storage"`
+	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
+	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
+	GenerationID    uuid.UUID           `json:"generation_id,omitzero"`
+	BillingCharged  *bool               `json:"billing_charged,omitzero"`
+	DirectionsCount *int                `json:"directions_count,omitzero"`
+	QuantizedImages DirectionalImages   `json:"quantized_images,omitzero"`
+	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
 	// Which directions to animate.
 	//
 	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
@@ -2512,27 +2521,29 @@ type LastResponseCompleted struct {
 	//   - **New animation**: omit `directions` to animate all 8 cardinals.
 	//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 	//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-	UploadedDirections    Directions `json:"uploaded_directions"`
-	OriginalImageNColors  int        `json:"original_image_n_colors"`
-	QuantizedImageNColors int        `json:"quantized_image_n_colors"`
+	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
 }
 
-// LastResponseErrorMessage defines a model
-type LastResponseErrorMessage struct {
+// LastResponseError defines a model
+type LastResponseError struct {
 	LastResponseBase
-	Type   string `json:"type"`
 	Err    string `json:"error"`
 	Detail string `json:"detail"`
 }
 
 // LastResponseErrorWithCode defines a model
 type LastResponseErrorWithCode struct {
+	Code *int `json:"code,omitzero"`
 	LastResponseBase
-	Type                 string  `json:"type"`
-	Code                 int     `json:"code"`
+	LastResponseMeta
+}
+
+// LastResponseMeta defines a model
+type LastResponseMeta struct {
 	View                 string  `json:"view"`
 	Trace                string  `json:"trace,omitzero"`
-	Detail               string  `json:"detail"`
 	Status               string  `json:"status"`
 	Progress             float64 `json:"progress"`
 	LimitType            string  `json:"limit_type,omitzero"`
@@ -2547,19 +2558,28 @@ type LastResponseErrorWithCode struct {
 // LastResponseProgress defines a model
 type LastResponseProgress struct {
 	LastResponseBase
-	Type                 string    `json:"type"`
-	View                 string    `json:"view"`
-	Status               string    `json:"status"`
-	Progress             float64   `json:"progress"`
-	TemplateID           string    `json:"template_id"`
-	NDirections          int       `json:"n_directions"`
-	GenerationID         uuid.UUID `json:"generation_id,omitzero"`
-	CharacterName        string    `json:"character_name"`
-	QueuePosition        int       `json:"queue_position"`
-	DirectionsType       string    `json:"directions_type"`
-	NumberOfFrames       int       `json:"number_of_frames"`
-	CharacterDescription string    `json:"character_description"`
-	EstimatedWaitSeconds int       `json:"estimated_wait_seconds"`
+	LastResponseMeta
+	QueuePosition        int `json:"queue_position"`
+	EstimatedWaitSeconds int `json:"estimated_wait_seconds"`
+}
+
+// LastResponseType defines a model
+type LastResponseType string
+
+const (
+	LastResponseTypeError           LastResponseType = "error"
+	LastResponseTypeMessageProgress LastResponseType = "message_progress"
+	LastResponseTypeMessageDone     LastResponseType = "message_done"
+)
+
+// Valid indicates whether the value is a known member of the LastResponseType enum.
+func (e LastResponseType) Valid() bool {
+	switch e {
+	case LastResponseTypeError, LastResponseTypeMessageProgress, LastResponseTypeMessageDone:
+		return true
+	default:
+		return false
+	}
 }
 
 // LipSyncFrameOut defines a model
@@ -2866,14 +2886,6 @@ func (e PortraitCharacterProRequestDirection) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// QuantizedImages defines a model
-type QuantizedImages struct {
-	East  Image `json:"east"`
-	West  Image `json:"west"`
-	North Image `json:"north"`
-	South Image `json:"south"`
 }
 
 // Automatic rectangular mask generation
