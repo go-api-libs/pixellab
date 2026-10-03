@@ -2452,6 +2452,7 @@ type LastResponse struct {
 	UploadedDirections    Directions `json:"uploaded_directions,omitzero"`
 	OriginalImageNColors  *int       `json:"original_image_n_colors,omitzero"`
 	QuantizedImageNColors *int       `json:"quantized_image_n_colors,omitzero"`
+	Err                   string     `json:"error,omitzero"`
 }
 
 // LipSyncFrameOut defines a model

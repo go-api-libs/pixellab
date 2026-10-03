@@ -8999,6 +8999,10 @@
           "quantized_image_n_colors": {
             "type": "integer",
             "example": 21
+          },
+          "error": {
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           }
         }
       },
