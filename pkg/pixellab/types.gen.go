@@ -174,31 +174,7 @@ type AnimateObjectRequest struct {
 //   - **New animation**: omit `directions` to animate all 8 cardinals.
 //   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 //   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-type AnimateObjectRequestDirections []AnimateObjectRequestDirectionsItem
-
-// AnimateObjectRequestDirectionsItem defines a model
-type AnimateObjectRequestDirectionsItem string
-
-const (
-	AnimateObjectRequestDirectionsItemSouth     AnimateObjectRequestDirectionsItem = "south"
-	AnimateObjectRequestDirectionsItemSouthWest AnimateObjectRequestDirectionsItem = "south-west"
-	AnimateObjectRequestDirectionsItemWest      AnimateObjectRequestDirectionsItem = "west"
-	AnimateObjectRequestDirectionsItemNorthWest AnimateObjectRequestDirectionsItem = "north-west"
-	AnimateObjectRequestDirectionsItemNorth     AnimateObjectRequestDirectionsItem = "north"
-	AnimateObjectRequestDirectionsItemNorthEast AnimateObjectRequestDirectionsItem = "north-east"
-	AnimateObjectRequestDirectionsItemEast      AnimateObjectRequestDirectionsItem = "east"
-	AnimateObjectRequestDirectionsItemSouthEast AnimateObjectRequestDirectionsItem = "south-east"
-)
-
-// Valid indicates whether the value is a known member of the AnimateObjectRequestDirectionsItem enum.
-func (e AnimateObjectRequestDirectionsItem) Valid() bool {
-	switch e {
-	case AnimateObjectRequestDirectionsItemSouth, AnimateObjectRequestDirectionsItemSouthWest, AnimateObjectRequestDirectionsItemWest, AnimateObjectRequestDirectionsItemNorthWest, AnimateObjectRequestDirectionsItemNorth, AnimateObjectRequestDirectionsItemNorthEast, AnimateObjectRequestDirectionsItemEast, AnimateObjectRequestDirectionsItemSouthEast:
-		return true
-	default:
-		return false
-	}
-}
+type AnimateObjectRequestDirections []Direction
 
 // AnimateObjectResponse defines a model
 type AnimateObjectResponse struct {
@@ -2259,6 +2235,13 @@ type HTTPValidationError struct {
 	Detail []ValidationError `json:"detail,omitzero"`
 }
 
+// Image defines a model
+type Image struct {
+	BaseImage
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
 // ImageResponse defines a model
 type ImageResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2427,25 +2410,41 @@ type Keypoint struct {
 
 // Latest response data from the job
 type LastResponse struct {
-	Code                 *int      `json:"code,omitzero"`
-	Type                 string    `json:"type,omitzero"`
-	View                 string    `json:"view,omitzero"`
-	Trace                *struct{} `json:"trace,omitzero"`
-	Detail               string    `json:"detail,omitzero"`
-	Status               string    `json:"status,omitzero"`
-	Progress             *float64  `json:"progress,omitzero"`
-	LimitType            *struct{} `json:"limit_type,omitzero"`
-	TemplateID           string    `json:"template_id,omitzero"`
-	CharacterID          uuid.UUID `json:"character_id,omitzero"`
-	NDirections          *int      `json:"n_directions,omitzero"`
-	CharacterName        string    `json:"character_name,omitzero"`
-	DirectionsType       string    `json:"directions_type,omitzero"`
-	NumberOfFrames       *int      `json:"number_of_frames,omitzero"`
-	CharacterDescription string    `json:"character_description,omitzero"`
-	GenerationStartedAt  time.Time `json:"generation_started_at,omitzero"`
-	QueuePosition        *int      `json:"queue_position,omitzero"`
-	EstimatedWaitSeconds *int      `json:"estimated_wait_seconds,omitzero"`
-	GenerationID         uuid.UUID `json:"generation_id,omitzero"`
+	Code                 *int            `json:"code,omitzero"`
+	Type                 string          `json:"type,omitzero"`
+	View                 string          `json:"view,omitzero"`
+	Trace                *struct{}       `json:"trace,omitzero"`
+	Detail               string          `json:"detail,omitzero"`
+	Status               string          `json:"status,omitzero"`
+	Progress             *float64        `json:"progress,omitzero"`
+	LimitType            *struct{}       `json:"limit_type,omitzero"`
+	TemplateID           string          `json:"template_id,omitzero"`
+	CharacterID          uuid.UUID       `json:"character_id,omitzero"`
+	NDirections          *int            `json:"n_directions,omitzero"`
+	CharacterName        string          `json:"character_name,omitzero"`
+	DirectionsType       string          `json:"directions_type,omitzero"`
+	NumberOfFrames       *int            `json:"number_of_frames,omitzero"`
+	CharacterDescription string          `json:"character_description,omitzero"`
+	GenerationStartedAt  time.Time       `json:"generation_started_at,omitzero"`
+	QueuePosition        *int            `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds *int            `json:"estimated_wait_seconds,omitzero"`
+	GenerationID         uuid.UUID       `json:"generation_id,omitzero"`
+	Seed                 *int            `json:"seed,omitzero"`
+	Usage                *Usage          `json:"usage,omitzero"`
+	Images               QuantizedImages `json:"images,omitzero"`
+	ImageWidth           *int            `json:"image_width,omitzero"`
+	ImageHeight          *int            `json:"image_height,omitzero"`
+	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
+	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
+	StorageUrls           *ObjectRotationUrls `json:"storage_urls,omitzero"`
+	BillingUsage          *Usage              `json:"billing_usage,omitzero"`
+	BillingCharged        *bool               `json:"billing_charged,omitzero"`
+	DirectionsCount       *int                `json:"directions_count,omitzero"`
+	QuantizedImages       QuantizedImages     `json:"quantized_images,omitzero"`
+	SavedToStorage        *bool               `json:"saved_to_storage,omitzero"`
+	UploadedDirections    []Direction         `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int                `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int                `json:"quantized_image_n_colors,omitzero"`
 }
 
 // LipSyncFrameOut defines a model
@@ -2752,6 +2751,14 @@ func (e PortraitCharacterProRequestDirection) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// QuantizedImages defines a model
+type QuantizedImages struct {
+	East  Image `json:"east"`
+	West  Image `json:"west"`
+	North Image `json:"north"`
+	South Image `json:"south"`
 }
 
 // Automatic rectangular mask generation
@@ -3426,6 +3433,7 @@ type Usage struct {
 	Usd  *float64  `json:"usd,omitzero"`
 	// Number of subscription generations charged (only set when type is 'generations')
 	Generations *float64 `json:"generations,omitzero"`
+	Seconds     *float64 `json:"seconds,omitzero"`
 }
 
 // UsageType defines a model

@@ -3311,21 +3311,8 @@
         "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/AnimateObjectRequestDirectionsItem"
+          "$ref": "#/components/schemas/Direction"
         }
-      },
-      "AnimateObjectRequestDirectionsItem": {
-        "type": "string",
-        "enum": [
-          "south",
-          "south-west",
-          "west",
-          "north-west",
-          "north",
-          "north-east",
-          "east",
-          "south-east"
-        ]
       },
       "AnimateObjectResponse": {
         "title": "AnimateObjectResponse",
@@ -4029,7 +4016,8 @@
           "base64": {
             "title": "Base64",
             "description": "Base64 encoded image data",
-            "type": "string"
+            "type": "string",
+            "example": "iVBORw0KGgoAAAANSUhEUgAAAEQAAABECAYAAAA4E5OyAAAD3ElEQVR4nO2aTUwTURDH/+xuNxUExYrlUyofLTENxqTRiCENMSZGg6kcPHk04tWoJz1wl5MxUTl7goONxK8YMISISCRRI4QvKRi1ohGkVahry/NAdul2ix+JvKn4fkmTznvbvMl0Zt6beQsIBAKBQCAQCASCf4AsagWy7SpLHVuIaWR6kS2sG+LIrnLL3O3n0wBoDENikJIiJ6vbnvfL5/peR/A2PMNVR4nnYgCgyJLJGDOfv676bGWeDEWWLCG1lig8F9NJNUKy7Nycg+sXzxuyK9CMCDfNCDzkT1ngHNUZa5Du/kEAwIfgNa7rck+qiiyxuqrCVeeDrS0InGsx5GcTYUQSjJueGeEhwdYWi/wqksClG13rP2RUW/o8nmqUsxfuc9DGCtk5pDJPNuTUnSWVLY2n1nfIzM3N/fazrkDzGmpihcQgCzEtayg8axq72hFM/+x6zyE6nyKxrL6J93BuzgEAeMrK0N0/aGy3VJBWu9l2lb3puGIZ3xY4bXyPJ5bIK3IuKLLEkj+znW1strONpWsH8ITM+o48O/P79xlyNLqIh70DUG0KaT+EJIcossQKi12wqytnkgJHLhrq90D7HqdQyYDkn1BkiR097IddVXD/QS8WtSUAwKGD+wEAt+70kOUO0qN7e7ALdzc6EC51w1e+1fCY1U6z6xZFllhJkZMpssTmq7xstrONzVd5mSJLrKmxgTU1NpAl14wo7uQzl01ycm7hDblvnnR8g63UtSyEhvHk6TD8dbVk+pB7SGJbKbUKJsgMMvPho0mOacvb7V7fTgp1DEg9pKF+j2WMMn8AhAZRbQrevf9sGODeg0fw7fZSqWPA/e/Q71lqvTWoKHea5nI3ZvNWxwKZh0S/aCZ5h6sCD3sHjFxCBUnX3VPtRmhq0uQlMS2OW3d6AACbclQsakskRR75OSSV8M0CAED58d9vM/5NyEJG+x7Hi5cjmJyeQUyLIxpdBADUnJinUgkAYcgAwOj4mGlOtSlG+U9V7ZKGjKfajdHxMdN1ZXL7kALuIRNPLGWFpiZXnT/mq+SojRWyawg9XFJ7Hz+7sOIB6UkVAPLz803j1CFDvu3662qN2zn9Ukq1KYgntJ/9bM0g624nvyp1PHDAGG8PdsFT7cbQyMj/t8v4dnvT1i9UxgAyIIfk5m6gUiEtJB6iyBKr9dYAWOl/6LUM9dUlaYOouMhBuXxayAySCb2PdJAZZHg0BGCll9rT85g8XADCq8x045lgELJtV694dVIrXyrI72V0PNVu450RSj3Ij+7J6F4TmppkVO+IZFQOSSYT8olAIBAIBII15QdwCTZB3AR7TQAAAABJRU5ErkJggg=="
           },
           "format": {
             "title": "Format",
@@ -7137,6 +7125,23 @@
           "high detail"
         ]
       },
+      "Dimensions": {
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "example": 68
+          },
+          "height": {
+            "type": "integer",
+            "example": 68
+          }
+        },
+        "required": [
+          "width",
+          "height"
+        ]
+      },
       "Direction": {
         "title": "Direction",
         "description": "Facing direction. Which values are accepted is request-specific - see the field description where this is used.",
@@ -7151,7 +7156,8 @@
           "west",
           "north-west",
           "none"
-        ]
+        ],
+        "example": "south"
       },
       "DirectionSubmission": {
         "title": "DirectionSubmission",
@@ -8336,6 +8342,16 @@
           }
         }
       },
+      "Image": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseImage"
+          },
+          {
+            "$ref": "#/components/schemas/Dimensions"
+          }
+        ]
+      },
       "ImageResponse": {
         "title": "CreateImageBitforgeResponse",
         "type": "object",
@@ -8935,6 +8951,57 @@
             "type": "string",
             "format": "uuid",
             "example": "726ce2d1-821a-4b39-b264-3dc8ba79bb43"
+          },
+          "seed": {
+            "type": "integer",
+            "example": 290733758
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "images": {
+            "$ref": "#/components/schemas/QuantizedImages"
+          },
+          "image_width": {
+            "type": "integer",
+            "example": 68
+          },
+          "image_height": {
+            "type": "integer",
+            "example": 68
+          },
+          "storage_urls": {
+            "$ref": "#/components/schemas/ObjectRotationUrls"
+          },
+          "billing_usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "billing_charged": {
+            "type": "boolean"
+          },
+          "directions_count": {
+            "type": "integer",
+            "example": 4
+          },
+          "quantized_images": {
+            "$ref": "#/components/schemas/QuantizedImages"
+          },
+          "saved_to_storage": {
+            "type": "boolean"
+          },
+          "uploaded_directions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Direction"
+            }
+          },
+          "original_image_n_colors": {
+            "type": "integer",
+            "example": 110
+          },
+          "quantized_image_n_colors": {
+            "type": "integer",
+            "example": 21
           }
         }
       },
@@ -9379,22 +9446,26 @@
           "south": {
             "title": "South",
             "description": "URL for south-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/south.png"
           },
           "west": {
             "title": "West",
             "description": "URL for west-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/west.png"
           },
           "east": {
             "title": "East",
             "description": "URL for east-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/east.png"
           },
           "north": {
             "title": "North",
             "description": "URL for north-facing rotation",
-            "type": "string"
+            "type": "string",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/north.png"
           },
           "south-east": {
             "title": "South-East",
@@ -9702,6 +9773,29 @@
           "character_to_portrait"
         ],
         "default": "portrait_to_character"
+      },
+      "QuantizedImages": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "west": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "north": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "south": {
+            "$ref": "#/components/schemas/Image"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south"
+        ]
       },
       "RectangleInpainting": {
         "title": "RectangleInpainting",
@@ -11474,7 +11568,14 @@
           "generations": {
             "title": "Generations",
             "description": "Number of subscription generations charged (only set when type is 'generations')",
-            "type": "number"
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "seconds": {
+            "type": "number",
+            "format": "double",
+            "example": 33.30775260925293
           }
         },
         "example": {
