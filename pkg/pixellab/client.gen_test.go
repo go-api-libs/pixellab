@@ -8377,4 +8377,16 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.GetBackgroundJobStatus(ctx, "1366c538-ff5f-488c-bb86-4a7e621b5c58"); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "e8a1949a-ff83-489e-8ed7-1f5c7e2257bc"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "14174150-f681-422e-9d5e-79418a0f3fb8"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "5e2e53f1-2e1f-47da-a007-6b3c46ac8802"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
 }
