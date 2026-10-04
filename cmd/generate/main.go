@@ -131,7 +131,7 @@ func main() {
 		log.Fatalf("enrich: %v", err)
 	}
 
-	if err := flatten.Document(doc); err != nil {
+	if err := flatten.Document(doc, flatten.Config{MarkOrigin: true}); err != nil {
 		log.Fatalf("flatten: %v", err)
 	}
 
