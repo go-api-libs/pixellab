@@ -9380,6 +9380,11 @@
           "skeleton_frames_total": {
             "type": "integer",
             "example": 8
+          },
+          "animation_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "497010e2-8e1c-4e2d-be60-0a1e9395c6b1"
           }
         },
         "required": [
@@ -9392,7 +9397,8 @@
         "enum": [
           "error",
           "message_progress",
-          "message_done"
+          "message_done",
+          "done"
         ],
         "example": "error"
       },
@@ -9878,6 +9884,14 @@
             "title": "North-West",
             "description": "URL for north-west rotation (8-dir only)",
             "type": "string"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/497010e2-8e1c-4e2d-be60-0a1e9395c6b1/south/0.png"
+            }
           }
         }
       },

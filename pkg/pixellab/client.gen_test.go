@@ -8540,4 +8540,8 @@ func TestClient_Interactions(t *testing.T) {
 	} else if _, ok := errors.AsType[*SimpleError](err); !ok {
 		t.Fatalf("CreateCharacterAnimation: got: %T, want: *SimpleError", err)
 	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e8ec036f-cc9a-4589-a674-15197ac9e352")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
 }

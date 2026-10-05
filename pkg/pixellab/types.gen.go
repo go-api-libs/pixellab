@@ -2682,6 +2682,7 @@ type LastResponse struct {
 	GenerationMode      GenerationMode `json:"generation_mode,omitzero"`
 	SkeletonFramesDone  *int           `json:"skeleton_frames_done,omitzero"`
 	SkeletonFramesTotal *int           `json:"skeleton_frames_total,omitzero"`
+	AnimationID         uuid.UUID      `json:"animation_id,omitzero"`
 }
 
 // LastResponseType defines a model
@@ -2691,12 +2692,13 @@ const (
 	LastResponseTypeError           LastResponseType = "error"
 	LastResponseTypeMessageProgress LastResponseType = "message_progress"
 	LastResponseTypeMessageDone     LastResponseType = "message_done"
+	LastResponseTypeDone            LastResponseType = "done"
 )
 
 // Valid indicates whether the value is a known member of the LastResponseType enum.
 func (e LastResponseType) Valid() bool {
 	switch e {
-	case LastResponseTypeError, LastResponseTypeMessageProgress, LastResponseTypeMessageDone:
+	case LastResponseTypeError, LastResponseTypeMessageProgress, LastResponseTypeMessageDone, LastResponseTypeDone:
 		return true
 	default:
 		return false
@@ -2882,7 +2884,8 @@ type ObjectRotationUrls struct {
 	// URL for north-east rotation (8-dir only)
 	NorthEast string `json:"north-east,omitzero"`
 	// URL for north-west rotation (8-dir only)
-	NorthWest string `json:"north-west,omitzero"`
+	NorthWest string    `json:"north-west,omitzero"`
+	Frames    []url.URL `json:"frames,omitzero"`
 }
 
 // Summary of an object for listing
