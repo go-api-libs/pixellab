@@ -5,21 +5,13 @@ import (
 	"net/url"
 )
 
-// All returns all urls in clockwise order, starting from north.
+// All returns all urls in the order PixelLab's own exports list them: south
+// first, then round through east, north and west (south, south-east, east,
+// north-east, north, north-west, west, south-west).
 // 4-directional characters yield 4 entries; 8-directional characters yield 8.
 func (u RotationURLs) All() iter.Seq2[Direction, url.URL] {
 	return func(yield func(Direction, url.URL) bool) {
-		if !yield(DirectionNorth, u.North) {
-			return
-		}
-
-		if u.NorthEast != (url.URL{}) {
-			if !yield(DirectionNorthEast, u.NorthEast) {
-				return
-			}
-		}
-
-		if !yield(DirectionEast, u.East) {
+		if !yield(DirectionSouth, u.South) {
 			return
 		}
 
@@ -29,12 +21,22 @@ func (u RotationURLs) All() iter.Seq2[Direction, url.URL] {
 			}
 		}
 
-		if !yield(DirectionSouth, u.South) {
+		if !yield(DirectionEast, u.East) {
 			return
 		}
 
-		if u.SouthWest != (url.URL{}) {
-			if !yield(DirectionSouthWest, u.SouthWest) {
+		if u.NorthEast != (url.URL{}) {
+			if !yield(DirectionNorthEast, u.NorthEast) {
+				return
+			}
+		}
+
+		if !yield(DirectionNorth, u.North) {
+			return
+		}
+
+		if u.NorthWest != (url.URL{}) {
+			if !yield(DirectionNorthWest, u.NorthWest) {
 				return
 			}
 		}
@@ -43,8 +45,8 @@ func (u RotationURLs) All() iter.Seq2[Direction, url.URL] {
 			return
 		}
 
-		if u.NorthWest != (url.URL{}) {
-			if !yield(DirectionNorthWest, u.NorthWest) {
+		if u.SouthWest != (url.URL{}) {
+			if !yield(DirectionSouthWest, u.SouthWest) {
 				return
 			}
 		}
