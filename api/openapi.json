@@ -3061,7 +3061,7 @@
     "/characters/{character_id}/animations": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/character_id6"
+          "$ref": "#/components/parameters/character_id"
         },
         {
           "$ref": "#/components/parameters/animation_type2"
@@ -3214,6 +3214,21 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GetLlmFriendlyAPIDocumentationOk"
+          }
+        }
+      }
+    },
+    "/characters/{character_id}/spritesheet": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/character_id"
+        }
+      ],
+      "get": {
+        "operationId": "ExportCharacterSpritesheet",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Spritesheet"
           }
         }
       }
@@ -13499,6 +13514,10 @@
             }
           },
           "application/zip": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            },
             "example": "Binary ZIP file content"
           }
         }
@@ -14704,6 +14723,17 @@
       "SetCharactersPortraitUnprocessableEntity": {
         "description": "Image is not a valid PNG, or outside 16-256px"
       },
+      "Spritesheet": {
+        "description": "OK",
+        "content": {
+          "application/zip": {
+            "schema": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        }
+      },
       "TransferOutfitAccepted": {
         "description": "Outfit transfer job accepted and processing",
         "content": {
@@ -14858,15 +14888,6 @@
         }
       },
       "character_id": {
-        "name": "character_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "title": "Character Id",
-          "type": "string"
-        }
-      },
-      "character_id6": {
         "name": "character_id",
         "in": "path",
         "required": true,

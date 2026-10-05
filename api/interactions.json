@@ -706,5 +706,31 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/characters/46118899-1915-450d-be72-df0a89bc6363/zip"
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/zip"
+			},
+			"bodyOmitted": true
+		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/characters/46118899-1915-450d-be72-df0a89bc6363/spritesheet"
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/zip"
+			},
+			"bodyOmitted": true
+		}
 	}
 ]

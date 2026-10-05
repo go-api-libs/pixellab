@@ -2697,7 +2697,7 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 // `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
 //
 //	POST /characters/{character_id}/portrait
-func (c *Client) SetCharactersPortrait(ctx context.Context, characterID string, body SetPortraitRequest) (*SetPortraitResponse, error) {
+func (c *Client) SetCharactersPortrait(ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*SetPortraitResponse, error) {
 	return c.SetCharactersPortraitWithResult[SetPortraitResponse](ctx, characterID, body)
 }
 
@@ -2711,8 +2711,8 @@ func (c *Client) SetCharactersPortrait(ctx context.Context, characterID string, 
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /characters/{character_id}/portrait
-func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, characterID string, body SetPortraitRequest) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID, "portrait")
+func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "portrait")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10275,7 +10275,7 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 //
 //	GET /characters/{character_id}
-func (c *Client) GetCharacterDetails(ctx context.Context, characterID string) (*CharacterDetail, error) {
+func (c *Client) GetCharacterDetails(ctx context.Context, characterID uuid.UUID) (*CharacterDetail, error) {
 	return c.GetCharacterDetailsWithResult[CharacterDetail](ctx, characterID)
 }
 
@@ -10306,8 +10306,8 @@ func (c *Client) GetCharacterDetails(ctx context.Context, characterID string) (*
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /characters/{character_id}
-func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, characterID string) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID)
+func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -10407,7 +10407,7 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 // the slow storage.search_legacy_v1 function).
 //
 //	DELETE /characters/{character_id}
-func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, characterID string) (*DeleteCharacterResponse, error) {
+func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterResponse, error) {
 	return c.DeleteCharacterAndAllAssociatedDataWithResult[DeleteCharacterResponse](ctx, characterID)
 }
 
@@ -10419,8 +10419,8 @@ func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, charac
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /characters/{character_id}
-func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx context.Context, characterID string) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID)
+func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -10559,8 +10559,8 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID string, params *ExportCharacterAsZipParams) error {
-	u := c.baseURL.JoinPath("characters", characterID, "zip")
+func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID, params *ExportCharacterAsZipParams) error {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "zip")
 	if params != nil {
 		q := make(url.Values, 1)
 
@@ -10685,7 +10685,7 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID string, p
 // Requires a valid API token. You can only update tags for characters you created.
 //
 //	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, body UpdateObjectTags) (*UpdateTagsResponse, error) {
+func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
 	return c.UpdateCharacterTagsWithResult[UpdateTagsResponse](ctx, characterID, body)
 }
 
@@ -10718,8 +10718,8 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, bo
 // You can define a custom result to unmarshal the response into.
 //
 //	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID string, body UpdateObjectTags) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID, "tags")
+func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12784,6 +12784,68 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 			}
 
 			return out, nil
+		default:
+			return nil, api.NewErrUnknownContentType(rsp)
+		}
+	default:
+		return nil, api.NewErrUnknownStatusCode(rsp)
+	}
+}
+
+// GET /characters/{character_id}/spritesheet
+func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "spritesheet")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	var (
+		ia  cassette.Interaction
+		err error
+	)
+	if c.debug {
+		ia.Request, err = cassette.NewRequest(req)
+		if err != nil {
+			return nil, fmt.Errorf("recording request: %w", err)
+		}
+	}
+	rsp, err := c.cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	if c.debug {
+		ia.Response, err = cassette.NewResponse(rsp)
+		if err != nil {
+			return nil, fmt.Errorf("recording response: %w", err)
+		}
+	}
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/zip":
+			streaming = true
+
+			return rsp.Body, nil
 		default:
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
