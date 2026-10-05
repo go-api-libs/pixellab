@@ -466,7 +466,7 @@ type CharacterDetail struct {
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
 	Status string `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
-	RotationUrls CharacterRotationUrls `json:"rotation_urls,omitzero"`
+	RotationUrls RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
 	StyleSettings *StyleSettings `json:"style_settings,omitzero"`
 	// Text guidance scale used
@@ -539,26 +539,6 @@ func (e CharacterProportionsPresetName) Valid() bool {
 	default:
 		return false
 	}
-}
-
-// URLs for character rotation images
-type CharacterRotationUrls struct {
-	// URL for south-facing rotation
-	South url.URL `json:"south"`
-	// URL for west-facing rotation
-	West url.URL `json:"west"`
-	// URL for east-facing rotation
-	East url.URL `json:"east"`
-	// URL for north-facing rotation
-	North url.URL `json:"north"`
-	// URL for south-east rotation (8-dir only)
-	SouthEast url.URL `json:"south-east,omitzero"`
-	// URL for north-east rotation (8-dir only)
-	NorthEast url.URL `json:"north-east,omitzero"`
-	// URL for north-west rotation (8-dir only)
-	NorthWest url.URL `json:"north-west,omitzero"`
-	// URL for south-west rotation (8-dir only)
-	SouthWest url.URL `json:"south-west,omitzero"`
 }
 
 // Summary of a character for listing
@@ -2647,15 +2627,15 @@ type LastResponse struct {
 	Images               ImageArrayOrObject `json:"images,omitzero"`
 	ImageWidth           *int               `json:"image_width,omitzero"`
 	ImageHeight          *int               `json:"image_height,omitzero"`
-	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
+	// URLs for character or object rotation images. Populated for multi-direction characters or objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`
-	BillingUsage    *Usage              `json:"billing_usage,omitzero"`
-	GenerationID    uuid.UUID           `json:"generation_id,omitzero"`
-	BillingCharged  *bool               `json:"billing_charged,omitzero"`
-	DirectionsCount *int                `json:"directions_count,omitzero"`
-	QuantizedImages DirectionalImages   `json:"quantized_images,omitzero"`
-	SavedToStorage  *bool               `json:"saved_to_storage,omitzero"`
+	StorageUrls     RotationURLs      `json:"storage_urls,omitzero"`
+	BillingUsage    *Usage            `json:"billing_usage,omitzero"`
+	GenerationID    uuid.UUID         `json:"generation_id,omitzero"`
+	BillingCharged  *bool             `json:"billing_charged,omitzero"`
+	DirectionsCount *int              `json:"directions_count,omitzero"`
+	QuantizedImages DirectionalImages `json:"quantized_images,omitzero"`
+	SavedToStorage  *bool             `json:"saved_to_storage,omitzero"`
 	// Which directions to animate.
 	//
 	// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
@@ -2837,7 +2817,7 @@ type ObjectDetail struct {
 	// Camera view angle used
 	View string `json:"view,omitzero"`
 	// URLs for all rotation images
-	RotationUrls ObjectRotationUrls `json:"rotation_urls"`
+	RotationUrls RotationURLs `json:"rotation_urls"`
 	// Raw storage_urls map (frame_N keys when status='review')
 	StorageUrls map[string]string `json:"storage_urls,omitzero"`
 	// Candidate frame URLs when status='review' — pass indices to POST /v2/objects/{id}/select-frames
@@ -2864,28 +2844,6 @@ type ObjectJobResponse struct {
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	ObjectID        string    `json:"object_id"`
 	Status          string    `json:"status,omitzero"`
-}
-
-// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
-// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-type ObjectRotationUrls struct {
-	// URL for south-facing rotation
-	South string `json:"south,omitzero"`
-	// URL for west-facing rotation
-	West string `json:"west,omitzero"`
-	// URL for east-facing rotation
-	East string `json:"east,omitzero"`
-	// URL for north-facing rotation
-	North string `json:"north,omitzero"`
-	// URL for south-east rotation (8-dir only)
-	SouthEast string `json:"south-east,omitzero"`
-	// URL for south-west rotation (8-dir only)
-	SouthWest string `json:"south-west,omitzero"`
-	// URL for north-east rotation (8-dir only)
-	NorthEast string `json:"north-east,omitzero"`
-	// URL for north-west rotation (8-dir only)
-	NorthWest string    `json:"north-west,omitzero"`
-	Frames    []url.URL `json:"frames,omitzero"`
 }
 
 // Summary of an object for listing
@@ -3139,6 +3097,27 @@ type RotationReferenceImage struct {
 	Width int `json:"width"`
 	// Image height (reference max 168, concept max 1024)
 	Height int `json:"height"`
+}
+
+// URLs for character or object rotation images. Populated for multi-direction characters or objects (directions in {4, 8}).
+// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
+type RotationURLs struct {
+	// URL for south-facing rotation
+	South url.URL `json:"south"`
+	// URL for west-facing rotation
+	West url.URL `json:"west"`
+	// URL for east-facing rotation
+	East url.URL `json:"east"`
+	// URL for north-facing rotation
+	North url.URL `json:"north"`
+	// URL for south-east rotation (8-dir only)
+	SouthEast url.URL `json:"south-east,omitzero"`
+	// URL for north-east rotation (8-dir only)
+	NorthEast url.URL `json:"north-east,omitzero"`
+	// URL for north-west rotation (8-dir only)
+	NorthWest url.URL `json:"north-west,omitzero"`
+	// URL for south-west rotation (8-dir only)
+	SouthWest url.URL `json:"south-west,omitzero"`
 }
 
 // SelectObjectFramesRequest defines a model

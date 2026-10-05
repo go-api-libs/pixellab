@@ -7,7 +7,7 @@ import (
 
 // All returns all urls in clockwise order, starting from north.
 // 4-directional characters yield 4 entries; 8-directional characters yield 8.
-func (u CharacterRotationUrls) All() iter.Seq2[Direction, url.URL] {
+func (u RotationURLs) All() iter.Seq2[Direction, url.URL] {
 	return func(yield func(Direction, url.URL) bool) {
 		if !yield(DirectionNorth, u.North) {
 			return
@@ -52,7 +52,7 @@ func (u CharacterRotationUrls) All() iter.Seq2[Direction, url.URL] {
 }
 
 // Length returns the number of rotation URLs present (4 or 8).
-func (u CharacterRotationUrls) Length() int {
+func (u RotationURLs) Length() int {
 	n := 4
 
 	if u.NorthEast != (url.URL{}) {
@@ -75,7 +75,7 @@ func (u CharacterRotationUrls) Length() int {
 }
 
 // IsEightDirectional reports whether diagonal rotations are present.
-func (u CharacterRotationUrls) IsEightDirectional() bool {
+func (u RotationURLs) IsEightDirectional() bool {
 	return u.NorthEast != (url.URL{}) ||
 		u.SouthEast != (url.URL{}) ||
 		u.SouthWest != (url.URL{}) ||
@@ -84,7 +84,7 @@ func (u CharacterRotationUrls) IsEightDirectional() bool {
 
 // Get returns the URL for the given direction. The second return value is
 // false if dir is DirectionNone, unknown, or unset (diagonals on a 4-dir set).
-func (u CharacterRotationUrls) Get(dir Direction) (url.URL, bool) {
+func (u RotationURLs) Get(dir Direction) (url.URL, bool) {
 	switch dir {
 	case DirectionNorth:
 		return u.North, true
@@ -108,7 +108,7 @@ func (u CharacterRotationUrls) Get(dir Direction) (url.URL, bool) {
 }
 
 // Keys returns just the directions in clockwise order.
-func (u CharacterRotationUrls) Keys() iter.Seq[Direction] {
+func (u RotationURLs) Keys() iter.Seq[Direction] {
 	return func(yield func(Direction) bool) {
 		for d := range u.All() {
 			if !yield(d) {
@@ -119,7 +119,7 @@ func (u CharacterRotationUrls) Keys() iter.Seq[Direction] {
 }
 
 // Values returns just the URLs in clockwise order.
-func (u CharacterRotationUrls) Values() iter.Seq[url.URL] {
+func (u RotationURLs) Values() iter.Seq[url.URL] {
 	return func(yield func(url.URL) bool) {
 		for _, v := range u.All() {
 			if !yield(v) {
