@@ -3210,6 +3210,11 @@ type SidescrollerTilesetsListResponse struct {
 	Total int `json:"total"`
 }
 
+// SimpleError defines a model
+type SimpleError struct {
+	Detail string `json:"detail,omitzero"`
+}
+
 // SkeletonLabel defines a model
 type SkeletonLabel string
 

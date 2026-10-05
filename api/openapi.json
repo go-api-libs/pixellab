@@ -2328,7 +2328,7 @@
             "$ref": "#/components/responses/CreateCharacterAnimationOk"
           },
           "422": {
-            "$ref": "#/components/responses/CreateCharacterAnimationUnprocessableEntity"
+            "$ref": "#/components/responses/UnprocessableEntity"
           }
         },
         "security": [
@@ -10735,6 +10735,15 @@
           "total"
         ]
       },
+      "SimpleError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "example": "Generation failed"
+          }
+        }
+      },
       "SkeletonLabel": {
         "title": "SkeletonLabel",
         "type": "string",
@@ -12608,17 +12617,6 @@
             "schema": {
               "type": "object",
               "$ref": "#/components/schemas/CreateCharacterAnimationResponse"
-            }
-          }
-        }
-      },
-      "CreateCharacterAnimationUnprocessableEntity": {
-        "description": "Validation Error",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "$ref": "#/components/schemas/HTTPValidationError"
             }
           }
         }
@@ -15132,6 +15130,16 @@
       },
       "TransferOutfitUnprocessableEntity": {
         "description": "Validation error"
+      },
+      "UnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SimpleError"
+            }
+          }
+        }
       },
       "UpdateCharacterTagsBadRequest": {
         "description": "Invalid tag format or validation error"

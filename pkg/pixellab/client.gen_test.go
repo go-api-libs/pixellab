@@ -8525,4 +8525,19 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
+
+	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+		CharacterID:       uuid.MustParse("437e13d2-1387-4660-9810-98f7d76e9365"),
+		AnimationName:     "walking",
+		ActionDescription: "walking",
+		AsyncMode:         true,
+		Mode:              CreateCharacterAnimationRequestModeV3,
+		FrameCount:        8,
+		KeepFirstFrame:    new(true),
+		Directions:        []Direction{DirectionSouth, DirectionEast, DirectionNorth, DirectionWest},
+	}); err == nil {
+		t.Fatal("CreateCharacterAnimation: expected error")
+	} else if _, ok := errors.AsType[*SimpleError](err); !ok {
+		t.Fatalf("CreateCharacterAnimation: got: %T, want: *SimpleError", err)
+	}
 }

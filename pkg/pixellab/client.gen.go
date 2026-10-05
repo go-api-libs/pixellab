@@ -10183,7 +10183,7 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out HTTPValidationError
+			var out SimpleError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if !c.debug {
 					return nil, api.WrapDecodingError(rsp, err)
@@ -10193,7 +10193,7 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
 				}
 
-				out = *new(HTTPValidationError)
+				out = *new(SimpleError)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
