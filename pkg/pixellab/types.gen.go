@@ -2495,7 +2495,7 @@ type LastResponse struct {
 	GenerationStartedAt  time.Time          `json:"generation_started_at"`
 	View                 string             `json:"view,omitzero"`
 	Trace                string             `json:"trace,omitzero"`
-	Status               string             `json:"status,omitzero"`
+	Status               Status             `json:"status,omitzero"`
 	Progress             *float64           `json:"progress,omitzero"`
 	LimitType            string             `json:"limit_type,omitzero"`
 	TemplateID           string             `json:"template_id,omitzero"`
@@ -2536,12 +2536,14 @@ type LastResponse struct {
 	EstimatedWaitSeconds *int   `json:"estimated_wait_seconds,omitzero"`
 	Action               string `json:"action,omitzero"`
 	// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
-	Direction        Direction      `json:"direction,omitzero"`
-	FrameCount       *int           `json:"frame_count,omitzero"`
-	AnimationName    string         `json:"animation_name,omitzero"`
-	GenerationModel  string         `json:"generation_model,omitzero"`
-	AnimationGroupID uuid.UUID      `json:"animation_group_id,omitzero"`
-	GenerationMode   GenerationMode `json:"generation_mode,omitzero"`
+	Direction           Direction      `json:"direction,omitzero"`
+	FrameCount          *int           `json:"frame_count,omitzero"`
+	AnimationName       string         `json:"animation_name,omitzero"`
+	GenerationModel     string         `json:"generation_model,omitzero"`
+	AnimationGroupID    uuid.UUID      `json:"animation_group_id,omitzero"`
+	GenerationMode      GenerationMode `json:"generation_mode,omitzero"`
+	SkeletonFramesDone  *int           `json:"skeleton_frames_done,omitzero"`
+	SkeletonFramesTotal *int           `json:"skeleton_frames_total,omitzero"`
 }
 
 // LastResponseType defines a model
@@ -3104,6 +3106,25 @@ const (
 func (e SkeletonLabel) Valid() bool {
 	switch e {
 	case SkeletonLabelNose, SkeletonLabelNeck, SkeletonLabelRightShoulder, SkeletonLabelRightElbow, SkeletonLabelRightArm, SkeletonLabelLeftShoulder, SkeletonLabelLeftElbow, SkeletonLabelLeftArm, SkeletonLabelRightHip, SkeletonLabelRightKnee, SkeletonLabelRightLeg, SkeletonLabelLeftHip, SkeletonLabelLeftKnee, SkeletonLabelLeftLeg, SkeletonLabelRightEye, SkeletonLabelLeftEye, SkeletonLabelRightEar, SkeletonLabelLeftEar:
+		return true
+	default:
+		return false
+	}
+}
+
+// Status defines a model
+type Status string
+
+const (
+	StatusInitializing     Status = "initializing"
+	StatusGeneratingSprite Status = "generating_sprite"
+	StatusBuildingSkeleton Status = "building_skeleton"
+)
+
+// Valid indicates whether the value is a known member of the Status enum.
+func (e Status) Valid() bool {
+	switch e {
+	case StatusInitializing, StatusGeneratingSprite, StatusBuildingSkeleton:
 		return true
 	default:
 		return false

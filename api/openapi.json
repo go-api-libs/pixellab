@@ -9032,8 +9032,7 @@
             ]
           },
           "status": {
-            "type": "string",
-            "example": "initializing"
+            "$ref": "#/components/schemas/Status"
           },
           "progress": {
             "type": "number",
@@ -9172,6 +9171,14 @@
           },
           "generation_mode": {
             "$ref": "#/components/schemas/GenerationMode"
+          },
+          "skeleton_frames_done": {
+            "type": "integer",
+            "example": 1
+          },
+          "skeleton_frames_total": {
+            "type": "integer",
+            "example": 8
           }
         },
         "required": [
@@ -10551,6 +10558,15 @@
           "RIGHT EAR",
           "LEFT EAR"
         ]
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "initializing",
+          "generating_sprite",
+          "building_skeleton"
+        ],
+        "example": "initializing"
       },
       "Style": {
         "title": "StyleOptions",
