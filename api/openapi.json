@@ -8424,6 +8424,16 @@
           }
         ]
       },
+      "ImageArrayOrObject": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DirectionalImages"
+          },
+          {
+            "$ref": "#/components/schemas/Images"
+          }
+        ]
+      },
       "ImageResponse": {
         "title": "CreateImageBitforgeResponse",
         "type": "object",
@@ -8556,6 +8566,12 @@
             "height": 64,
             "width": 64
           }
+        }
+      },
+      "Images": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Image"
         }
       },
       "InpaintRequest": {
@@ -9020,7 +9036,7 @@
             "$ref": "#/components/schemas/Usage"
           },
           "images": {
-            "$ref": "#/components/schemas/DirectionalImages"
+            "$ref": "#/components/schemas/ImageArrayOrObject"
           },
           "image_width": {
             "type": "integer",

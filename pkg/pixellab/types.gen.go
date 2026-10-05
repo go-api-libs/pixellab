@@ -2251,6 +2251,57 @@ type Image struct {
 	Height int `json:"height"`
 }
 
+// ImageArrayOrObject defines a model
+// ImageArrayOrObject is an untagged oneOf union: exactly one field is set after unmarshaling.
+type ImageArrayOrObject struct {
+	DirectionalImages *DirectionalImages
+	Images            Images
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *ImageArrayOrObject) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	{
+		var vv DirectionalImages
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.DirectionalImages = &vv
+			matched++
+		}
+	}
+
+	{
+		var vv Images
+		if err := json.Unmarshal(raw, &vv, jsonOpts); err == nil {
+			v.Images = vv
+			matched++
+		}
+	}
+
+	if matched != 1 {
+		return &json.SemanticError{Err: fmt.Errorf("matches %d of its alternatives, want exactly one", matched)}
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *ImageArrayOrObject) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.DirectionalImages != nil:
+		return json.MarshalEncode(enc, v.DirectionalImages, jsonOpts)
+	case v.Images != nil:
+		return json.MarshalEncode(enc, v.Images, jsonOpts)
+	}
+
+	return &json.SemanticError{Err: errors.New("no alternative set")}
+}
+
 // ImageResponse defines a model
 type ImageResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2298,6 +2349,9 @@ type ImageToPixelartRequest struct {
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 }
+
+// Images defines a model
+type Images []Image
 
 // Request model for image generation endpoint
 type InpaintRequest struct {
@@ -2419,25 +2473,25 @@ type Keypoint struct {
 
 // Latest response data from the job
 type LastResponse struct {
-	Type                 LastResponseType  `json:"type,omitzero"`
-	CharacterID          uuid.UUID         `json:"character_id"`
-	GenerationStartedAt  time.Time         `json:"generation_started_at"`
-	View                 string            `json:"view,omitzero"`
-	Trace                string            `json:"trace,omitzero"`
-	Status               string            `json:"status,omitzero"`
-	Progress             *float64          `json:"progress,omitzero"`
-	LimitType            string            `json:"limit_type,omitzero"`
-	TemplateID           string            `json:"template_id,omitzero"`
-	NDirections          *int              `json:"n_directions,omitzero"`
-	CharacterName        string            `json:"character_name,omitzero"`
-	DirectionsType       string            `json:"directions_type,omitzero"`
-	NumberOfFrames       *int              `json:"number_of_frames,omitzero"`
-	CharacterDescription string            `json:"character_description,omitzero"`
-	Seed                 *int              `json:"seed,omitzero"`
-	Usage                *Usage            `json:"usage,omitzero"`
-	Images               DirectionalImages `json:"images,omitzero"`
-	ImageWidth           *int              `json:"image_width,omitzero"`
-	ImageHeight          *int              `json:"image_height,omitzero"`
+	Type                 LastResponseType   `json:"type,omitzero"`
+	CharacterID          uuid.UUID          `json:"character_id"`
+	GenerationStartedAt  time.Time          `json:"generation_started_at"`
+	View                 string             `json:"view,omitzero"`
+	Trace                string             `json:"trace,omitzero"`
+	Status               string             `json:"status,omitzero"`
+	Progress             *float64           `json:"progress,omitzero"`
+	LimitType            string             `json:"limit_type,omitzero"`
+	TemplateID           string             `json:"template_id,omitzero"`
+	NDirections          *int               `json:"n_directions,omitzero"`
+	CharacterName        string             `json:"character_name,omitzero"`
+	DirectionsType       string             `json:"directions_type,omitzero"`
+	NumberOfFrames       *int               `json:"number_of_frames,omitzero"`
+	CharacterDescription string             `json:"character_description,omitzero"`
+	Seed                 *int               `json:"seed,omitzero"`
+	Usage                *Usage             `json:"usage,omitzero"`
+	Images               ImageArrayOrObject `json:"images,omitzero"`
+	ImageWidth           *int               `json:"image_width,omitzero"`
+	ImageHeight          *int               `json:"image_height,omitzero"`
 	// URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
 	StorageUrls     *ObjectRotationUrls `json:"storage_urls,omitzero"`

@@ -8410,4 +8410,8 @@ func TestClient_Interactions(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "b7e52fb9-f38f-425e-bf85-9eca72d35cc4"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
 }
