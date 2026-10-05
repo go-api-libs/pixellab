@@ -165,6 +165,8 @@ var variantsOf{{$typeName}} = []jsonVariant{
 // {{.FieldName}}; each further member then decodes as it is read, into the fields or the alternative that declares
 // it, and a member neither declares is an error. With {{.Discriminator}} first, nothing is read twice.
 func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	*v = {{$typeName}}{}
+
 	tag, first, dec, err := jsonFirstMember(dec, {{ printf "%q" .Discriminator }})
 	if err != nil {
 		return err
@@ -194,6 +196,8 @@ func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 // decode the members they declare, and a member neither declares is an error.
 func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	opts, strict := jsonOptsOf(dec), jsonStrict(dec)
+
+	*v = {{$typeName}}{}
 
 	raw, err := dec.ReadValue()
 	if err != nil {
@@ -310,6 +314,8 @@ type {{.Name}} struct {
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member {{$disc}} names the alternative, which then
 // decodes each further member as it is read. With {{$disc}} first, nothing is read twice.
 func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	*v = {{$typeName}}{}
+
 	tag, first, dec, err := jsonFirstMember(dec, {{ printf "%q" $disc }})
 	if err != nil {
 		return err
@@ -334,6 +340,8 @@ func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 {{- else }}
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom].
 func (v *{{$typeName}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	*v = {{$typeName}}{}
+
 	opts := jsonOptsOf(dec)
 	{{- if and $isOneOf (not .Discriminator) }}
 	strict := jsonStrict(dec)
@@ -1079,19 +1087,11 @@ func jsonChooseVariants(raw jsontext.Value, discriminator string, variants []jso
 }
 {{- if .HasTagged }}
 
-// jsonTagMember says whether a value of a tag needs the member named after it, allows it, or allows none.
-type jsonTagMember int
-
-const (
-	jsonTagNone jsonTagMember = iota
-	jsonTagOptional
-	jsonTagRequired
-)
-
-// jsonCheckTag reports an error unless, of the members named after a value of the tag name, set holds only the one
-// tag names, and holds it if it is required. Not strict, it lets set hold others.
-func jsonCheckTag(name, tag string, members map[string]jsonTagMember, set []string, strict bool) error {
-	m, ok := members[tag]
+// jsonCheckTag reports an error unless set, the members of an alternative's own that are set, holds only members of
+// the alternative the value tag of the tag name names, and every one of them it requires. Not strict, set may hold
+// others too.
+func jsonCheckTag(name, tag string, tags map[string]map[string]bool, set []string, strict bool) error {
+	members, ok := tags[tag]
 	switch {
 	case tag == "":
 		return jsonMissing(name)
@@ -1100,43 +1100,94 @@ func jsonCheckTag(name, tag string, members map[string]jsonTagMember, set []stri
 	}
 
 	for _, s := range set {
-		if strict && (s != tag || m == jsonTagNone) {
+		if _, ok := members[s]; strict && !ok {
 			return &json.SemanticError{JSONKind: jsontext.KindBeginObject, Err: fmt.Errorf("%s %q does not allow member %q", name, tag, s)}
 		}
 	}
 
-	if m == jsonTagRequired && !slices.Contains(set, tag) {
-		return jsonMissing(tag)
+	for _, m := range slices.Sorted(maps.Keys(members)) {
+		if members[m] && !slices.Contains(set, m) {
+			return jsonMissing(m)
+		}
 	}
 
 	return nil
+}
+
+// jsonInferTag returns the value of a tag whose alternative is the one of tags that set, the members of an
+// alternative's own that are set, names: the one set member is a value whose alternative allows all of set.
+func jsonInferTag(tags map[string]map[string]bool, set []string) (string, bool) {
+	tag := ""
+
+	for _, s := range set {
+		members, ok := tags[s]
+		if !ok || !allIn(set, members) {
+			continue
+		}
+
+		if tag != "" {
+			return "", false
+		}
+
+		tag = s
+	}
+
+	return tag, tag != ""
+}
+
+// allIn reports whether every one of names is a key of m.
+func allIn(names []string, m map[string]bool) bool {
+	for _, n := range names {
+		if _, ok := m[n]; !ok {
+			return false
+		}
+	}
+
+	return true
 }
 {{- end }}
 {{- end }}
 
 {{- define "tagged" }}{{ $s := . }}{{ with .Tagged }}
+{{- if .Enum }}{{ $t := .Type }}
 
-// tagsOf{{$s.Name}} says, for each value of {{.Tag}}, whether the member named after it must, may or must not be set.
-var tagsOf{{$s.Name}} = map[string]jsonTagMember{
+// {{$t}} is a value of {{$s.Name}}'s {{.Tag}}, naming the members it holds.
+type {{$t}} string
+
+const (
+{{- range .Enum }}
+	{{.GoName}} {{$t}} = {{.Literal}}
+{{- end }}
+)
+
+// Valid indicates whether the value is a known member of the {{$t}} enum.
+func (e {{$t}}) Valid() bool {
+	_, ok := tagsOf{{$s.Name}}[string(e)]
+	return ok
+}
+{{- end }}
+
+// tagsOf{{$s.Name}} holds, for each value of {{.Tag}}, the members of its alternative's own, each with whether it is required.
+var tagsOf{{$s.Name}} = map[string]map[string]bool{
 	{{- range .Values }}
-	{{ printf "%q" .Value }}: {{ if not .Field }}jsonTagNone{{ else if .Required }}jsonTagRequired{{ else }}jsonTagOptional{{ end }},
+	{{ printf "%q" .Value }}: { {{- range .Members }}{{ printf "%q" .Name }}: {{ .Required }}, {{ end -}} },
 	{{- end }}
 }
 
-// taggedMembers returns those of the members named after a value of {{.Tag}} that are set.
+// taggedMembers returns those of the members of an alternative's own that are set.
 func (v *{{$s.Name}}) taggedMembers() []string {
 	var set []string
 	{{- range .Members }}
 	if v.{{.Field}} != {{.Zero}} {
-		set = append(set, {{ printf "%q" .Value }})
+		set = append(set, {{ printf "%q" .Name }})
 	}
 	{{- end }}
 
 	return set
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. It decodes the members, then checks that of those named after a
-// value of {{.Tag}}, only the one it names is set.
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. It decodes the members, then checks that of those of an
+// alternative's own, only those of the one {{.Tag}} names are set.
 func (v *{{$s.Name}}) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type plain {{$s.Name}}
 
@@ -1154,8 +1205,8 @@ func (v *{{$s.Name}}) MarshalJSONTo(enc *jsontext.Encoder) error {
 	type plain {{$s.Name}}
 
 	out, set := *v, v.taggedMembers()
-	if out.{{.Field}} == "" && len(set) == 1 {
-		out.{{.Field}} = {{.Type}}(set[0])
+	if tag, ok := jsonInferTag(tagsOf{{$s.Name}}, set); ok && out.{{.Field}} == "" {
+		out.{{.Field}} = {{.Type}}(tag)
 	}
 
 	if err := jsonCheckTag({{ printf "%q" .Tag }}, string(out.{{.Field}}), tagsOf{{$s.Name}}, set, true); err != nil {
