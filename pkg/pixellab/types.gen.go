@@ -338,8 +338,9 @@ type AnimateWithTextV3Response struct {
 
 // AnimationDirection defines a model
 type AnimationDirection struct {
-	Direction  string `json:"direction"`
-	FrameCount int    `json:"frame_count"`
+	// Facing direction. Which values are accepted is request-specific.
+	Direction  Direction `json:"direction"`
+	FrameCount int       `json:"frame_count"`
 	// Public URLs for each frame in order
 	Frames []url.URL `json:"frames"`
 }
@@ -1787,7 +1788,7 @@ func (e Detail) Valid() bool {
 	}
 }
 
-// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
+// Facing direction. Which values are accepted is request-specific.
 type Direction string
 
 const (
@@ -1814,7 +1815,8 @@ func (e Direction) Valid() bool {
 
 // DirectionSubmission defines a model
 type DirectionSubmission struct {
-	Direction       string                    `json:"direction"`
+	// Facing direction. Which values are accepted is request-specific.
+	Direction       Direction                 `json:"direction"`
 	Status          DirectionSubmissionStatus `json:"status"`
 	BackgroundJobID uuid.UUID                 `json:"background_job_id,omitzero"`
 	AnimationID     string                    `json:"animation_id,omitzero"`
@@ -2656,7 +2658,7 @@ type LastResponse struct {
 	QueuePosition        *int   `json:"queue_position,omitzero"`
 	EstimatedWaitSeconds *int   `json:"estimated_wait_seconds,omitzero"`
 	Action               string `json:"action,omitzero"`
-	// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
+	// Facing direction. Which values are accepted is request-specific.
 	Direction           Direction      `json:"direction,omitzero"`
 	FrameCount          *int           `json:"frame_count,omitzero"`
 	AnimationName       string         `json:"animation_name,omitzero"`
@@ -2773,12 +2775,12 @@ func (v *MaskInpainting) unmarshalJSONMember(dec *jsontext.Decoder, name string)
 
 // One direction within an animation group.
 type ObjectAnimationDirection struct {
-	// Direction name (south, west, ..., unknown)
-	Direction string `json:"direction"`
+	// Facing direction. Which values are accepted is request-specific.
+	Direction Direction `json:"direction"`
 	// Frame URLs for this direction, e.g. {"frames": ["...", ...]}
 	StorageUrls map[string]struct{} `json:"storage_urls,omitzero"`
 	// ISO timestamp
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // An animation grouped across one or more directions, keyed by animation_group_id.
@@ -3567,13 +3569,32 @@ type UIAssetDetail struct {
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
-	Status string `json:"status,omitzero"`
+	Status UIAssetDetailStatus `json:"status,omitzero"`
 	// ISO timestamp
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	// Progress when processing (null when completed)
 	ProgressPercent *int `json:"progress_percent,omitzero"`
 	// Estimated seconds remaining when processing
 	EtaSeconds *int `json:"eta_seconds,omitzero"`
+}
+
+// processing | completed | failed
+type UIAssetDetailStatus string
+
+const (
+	UIAssetDetailStatusProcessing UIAssetDetailStatus = "processing"
+	UIAssetDetailStatusCompleted  UIAssetDetailStatus = "completed"
+	UIAssetDetailStatusFailed     UIAssetDetailStatus = "failed"
+)
+
+// Valid indicates whether the value is a known member of the UIAssetDetailStatus enum.
+func (e UIAssetDetailStatus) Valid() bool {
+	switch e {
+	case UIAssetDetailStatusProcessing, UIAssetDetailStatusCompleted, UIAssetDetailStatusFailed:
+		return true
+	default:
+		return false
+	}
 }
 
 // UIAssetSummary defines a model
@@ -3591,7 +3612,7 @@ type UIAssetSummary struct {
 	// processing | completed | failed
 	Status string `json:"status,omitzero"`
 	// ISO timestamp
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // UIAssetsListResponse defines a model

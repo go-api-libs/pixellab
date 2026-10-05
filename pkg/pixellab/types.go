@@ -58,12 +58,15 @@ func (u CharacterRotationUrls) Length() int {
 	if u.NorthEast != (url.URL{}) {
 		n++
 	}
+
 	if u.SouthEast != (url.URL{}) {
 		n++
 	}
+
 	if u.SouthWest != (url.URL{}) {
 		n++
 	}
+
 	if u.NorthWest != (url.URL{}) {
 		n++
 	}
