@@ -2459,15 +2459,16 @@ type LastResponse struct {
 	Detail                string     `json:"detail,omitzero"`
 	Err                   string     `json:"error,omitzero"`
 	// An optional error code
-	Code                 *int      `json:"code,omitzero"`
-	QueuePosition        *int      `json:"queue_position,omitzero"`
-	EstimatedWaitSeconds *int      `json:"estimated_wait_seconds,omitzero"`
-	Action               string    `json:"action,omitzero"`
-	Direction            string    `json:"direction,omitzero"`
-	FrameCount           *int      `json:"frame_count,omitzero"`
-	AnimationName        string    `json:"animation_name,omitzero"`
-	GenerationModel      string    `json:"generation_model,omitzero"`
-	AnimationGroupID     uuid.UUID `json:"animation_group_id,omitzero"`
+	Code                 *int   `json:"code,omitzero"`
+	QueuePosition        *int   `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds *int   `json:"estimated_wait_seconds,omitzero"`
+	Action               string `json:"action,omitzero"`
+	// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
+	Direction        Direction `json:"direction,omitzero"`
+	FrameCount       *int      `json:"frame_count,omitzero"`
+	AnimationName    string    `json:"animation_name,omitzero"`
+	GenerationModel  string    `json:"generation_model,omitzero"`
+	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 }
 
 // LastResponseType defines a model
