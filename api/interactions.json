@@ -732,5 +732,41 @@
 			},
 			"bodyOmitted": true
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/e1d01ca3-de70-4ffc-8348-4782bf119f3f",
+			"header": {
+				"Authorization": "Bearer ************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "e1d01ca3-de70-4ffc-8348-4782bf119f3f",
+				"status": "processing",
+				"created_at": "2026-10-05T11:56:50.847940+00:00",
+				"last_response": {
+					"status": "generating_sprite",
+					"progress": 0.01,
+					"character_id": "a34046fa-fd42-43d5-828c-fa4a6d062f70",
+					"n_directions": 8,
+					"character_name": "elf ranger (a soldier). Lithe wood elf scout. Long",
+					"directions_type": "8-directions",
+					"generation_mode": "pixen_v3",
+					"character_description": "elf ranger (a soldier). Lithe wood elf scout. Long silver-blonde hair in a single braid, sharp features, pale green eyes. Hooded forest-green cloak over fitted brown leather armour, bracers, soft knee-high boots. Longbow carried in one hand, a quiver of fletched arrows on the back, a curved hunting knife at the hip.",
+					"generation_started_at": "2026-10-05T11:56:50.877909+00:00"
+				}
+			}
+		}
 	}
 ]

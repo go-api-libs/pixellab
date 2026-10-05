@@ -8198,6 +8198,13 @@
           ]
         }
       },
+      "GenerationMode": {
+        "type": "string",
+        "enum": [
+          "pixen_v3"
+        ],
+        "example": "pixen_v3"
+      },
       "GetFontResponse": {
         "title": "GetFontResponse",
         "type": "object",
@@ -9162,6 +9169,9 @@
             "type": "string",
             "format": "uuid",
             "example": "a9efa34c-78d9-4236-918f-d9b5132bb007"
+          },
+          "generation_mode": {
+            "$ref": "#/components/schemas/GenerationMode"
           }
         },
         "required": [

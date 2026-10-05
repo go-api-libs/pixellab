@@ -2166,6 +2166,23 @@ type GenerateWithStyleV2Request struct {
 	ImageSize map[string]int `json:"image_size,omitzero"`
 }
 
+// GenerationMode defines a model
+type GenerationMode string
+
+const (
+	GenerationModePixenV3 GenerationMode = "pixen_v3"
+)
+
+// Valid indicates whether the value is a known member of the GenerationMode enum.
+func (e GenerationMode) Valid() bool {
+	switch e {
+	case GenerationModePixenV3:
+		return true
+	default:
+		return false
+	}
+}
+
 // GetFontResponse defines a model
 type GetFontResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2519,11 +2536,12 @@ type LastResponse struct {
 	EstimatedWaitSeconds *int   `json:"estimated_wait_seconds,omitzero"`
 	Action               string `json:"action,omitzero"`
 	// Facing direction. Which values are accepted is request-specific - see the field description where this is used.
-	Direction        Direction `json:"direction,omitzero"`
-	FrameCount       *int      `json:"frame_count,omitzero"`
-	AnimationName    string    `json:"animation_name,omitzero"`
-	GenerationModel  string    `json:"generation_model,omitzero"`
-	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
+	Direction        Direction      `json:"direction,omitzero"`
+	FrameCount       *int           `json:"frame_count,omitzero"`
+	AnimationName    string         `json:"animation_name,omitzero"`
+	GenerationModel  string         `json:"generation_model,omitzero"`
+	AnimationGroupID uuid.UUID      `json:"animation_group_id,omitzero"`
+	GenerationMode   GenerationMode `json:"generation_mode,omitzero"`
 }
 
 // LastResponseType defines a model

@@ -8513,4 +8513,8 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.ExportCharacterSpritesheet(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363")); err != nil {
 		t.Fatalf("ExportCharacterSpritesheet: %v", err)
 	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
 }
