@@ -90,9 +90,12 @@ How the specification maps onto Go:
   unions, is generated with methods that return an "unimplemented" error.
 - **Debug mode** — with `-debug`, a client given `WithDebug` records each
   response it fails to decode to `api/interactions.json`, for `openapi-enrich` to
-  learn from. Nothing the specification leaves open decodes into `any` then: the
-  empty schema, an array without `items`, a free-form object and `not` alone
-  become `struct{}`, so any value in them fails and is recorded.
+  learn from, then decodes it again without rejecting members the specification
+  does not know. Only if that fails too does the call fail, so a response that
+  merely holds more than the specification says still reaches the caller.
+  Nothing the specification leaves open decodes into `any` then: the empty
+  schema, an array without `items`, a free-form object and `not` alone become
+  `struct{}`, so any value in them is recorded, and any but an object fails.
 - **Fields** — a field is a pointer only where its zero value must be told apart
   from something else: from leaving the field out, if it is optional, or from
   null, if it is nullable. That is a boolean, a number that may be 0, or an object

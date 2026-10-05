@@ -249,13 +249,18 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -422,13 +427,18 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -603,13 +613,18 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -742,13 +757,18 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -870,13 +890,18 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1015,13 +1040,18 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1161,13 +1191,18 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1311,13 +1346,18 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1473,13 +1513,18 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1632,13 +1677,18 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1782,13 +1832,18 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -1991,13 +2046,18 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2188,13 +2248,18 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2393,13 +2458,18 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2550,13 +2620,18 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2639,13 +2714,18 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2667,13 +2747,18 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -2763,13 +2848,18 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -2901,13 +2991,18 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3004,13 +3099,18 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3032,13 +3132,18 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -3133,13 +3238,18 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3248,13 +3358,18 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3399,13 +3514,18 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3485,13 +3605,18 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3513,13 +3638,18 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -3661,13 +3791,18 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -3817,13 +3952,18 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4045,13 +4185,18 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4228,13 +4373,18 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4363,13 +4513,18 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4559,13 +4714,18 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4726,13 +4886,18 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -4877,13 +5042,18 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5061,13 +5231,18 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5206,13 +5381,18 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5408,13 +5588,18 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5533,13 +5718,18 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5647,13 +5837,18 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5734,13 +5929,18 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -5998,13 +6198,18 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6017,13 +6222,18 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6184,13 +6394,18 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6209,13 +6424,18 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -6286,13 +6506,18 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6314,13 +6539,18 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -6402,13 +6632,18 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6424,13 +6659,18 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -6505,13 +6745,18 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6715,13 +6960,18 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6796,13 +7046,18 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 		case "application/json":
 			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return api.WrapDecodingError(rsp, err)
 				}
 
-				return api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil
@@ -6821,13 +7076,18 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return api.WrapDecodingError(rsp, err)
 				}
 
-				return api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return api.NewErrCustom(rsp, &out)
@@ -6898,13 +7158,18 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -6926,13 +7191,18 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -7053,13 +7323,18 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7072,13 +7347,18 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7207,13 +7487,18 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7232,13 +7517,18 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -7309,13 +7599,18 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7337,13 +7632,18 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -7439,13 +7739,18 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7660,13 +7965,18 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7796,13 +8106,18 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7821,13 +8136,18 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -7898,13 +8218,18 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -7929,13 +8254,18 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8017,13 +8347,18 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8039,13 +8374,18 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8152,13 +8492,18 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8250,13 +8595,18 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8278,13 +8628,18 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8376,13 +8731,18 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8476,13 +8836,18 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8498,13 +8863,18 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8572,13 +8942,18 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8597,13 +8972,18 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8671,13 +9051,18 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -8696,13 +9081,18 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -8790,13 +9180,18 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9012,13 +9407,18 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9271,13 +9671,18 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9462,13 +9867,18 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9643,13 +10053,18 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9746,13 +10161,18 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -9765,13 +10185,18 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -9958,13 +10383,18 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10054,13 +10484,18 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10085,13 +10520,18 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -10222,13 +10662,18 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10351,13 +10796,18 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10379,13 +10829,18 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -10464,13 +10919,18 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10483,13 +10943,18 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -10633,13 +11098,18 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -10767,13 +11237,18 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10798,13 +11273,18 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -10939,13 +11419,18 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -10964,13 +11449,18 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11060,13 +11550,18 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11165,13 +11660,18 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11266,13 +11766,18 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11300,13 +11805,18 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11395,13 +11905,18 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11426,13 +11941,18 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11507,13 +12027,18 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11538,13 +12063,18 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11622,13 +12152,18 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11650,13 +12185,18 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11724,13 +12264,18 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11752,13 +12297,18 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -11870,13 +12420,18 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -11972,13 +12527,18 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12000,13 +12560,18 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -12094,13 +12659,18 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12122,13 +12692,18 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -12229,13 +12804,18 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12260,13 +12840,18 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -12356,13 +12941,18 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12387,13 +12977,18 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return nil, api.NewErrCustom(rsp, &out)
@@ -12478,13 +13073,18 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12578,13 +13178,18 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
@@ -12692,13 +13297,18 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out R
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				return nil, api.WrapDecodingError(rsp, err)
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
 			}
 
 			return &out, nil
