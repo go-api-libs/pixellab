@@ -2504,7 +2504,66 @@ type Keypoint2D struct {
 }
 
 // Keypoint3D defines a model
-type Keypoint3D []float64
+type Keypoint3D struct {
+	X float64
+	Y float64
+	Z float64
+}
+
+func (a *Keypoint3D) Items(yield func(int, any) bool) {
+	for i, v := range []any{&a.X, &a.Y, &a.Z} {
+		if !yield(i, v) {
+			return
+		}
+	}
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (a *Keypoint3D) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	if k := dec.PeekKind(); k != jsontext.KindBeginArray {
+		return &json.SemanticError{JSONKind: k}
+	}
+
+	if _, err := dec.ReadToken(); err != nil {
+		return err
+	}
+
+	for _, f := range a.Items {
+		if dec.PeekKind() == jsontext.KindEndArray {
+			return &json.SemanticError{Err: fmt.Errorf("array shorter than 3")}
+		}
+
+		if err := json.UnmarshalDecode(dec, f); err != nil {
+			return err
+		}
+	}
+
+	if k := dec.PeekKind(); k != jsontext.KindEndArray {
+		return &json.SemanticError{JSONKind: k, Err: fmt.Errorf("array longer than 3")}
+	}
+
+	_, err := dec.ReadToken()
+	return err
+}
+
+// MarshalJSONTo implements [json.MarshalerTo].
+func (a Keypoint3D) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := enc.WriteToken(jsontext.BeginArray); err != nil {
+		return err
+	}
+
+	for _, v := range a.Items {
+		if err := json.MarshalEncode(enc, v); err != nil {
+			return err
+		}
+	}
+
+	if err := enc.WriteToken(jsontext.EndArray); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Keypoints defines a model
 type Keypoints struct {

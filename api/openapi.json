@@ -9027,11 +9027,23 @@
       },
       "Keypoint3D": {
         "type": "array",
-        "items": {
-          "type": "number",
-          "format": "double",
-          "example": 0.4997421746125551
-        }
+        "prefixItems": [
+          {
+            "type": "number",
+            "format": "double",
+            "x-go-name": "X"
+          },
+          {
+            "type": "number",
+            "format": "double",
+            "x-go-name": "Y"
+          },
+          {
+            "type": "number",
+            "format": "double",
+            "x-go-name": "Z"
+          }
+        ]
       },
       "Keypoints": {
         "type": "object",
