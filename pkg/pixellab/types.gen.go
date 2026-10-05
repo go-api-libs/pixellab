@@ -699,7 +699,7 @@ type CreateCharacterAnimationRequest struct {
 	// Detail level (uses character's original if not specified). Template mode only.
 	Detail string `json:"detail,omitzero"`
 	// List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
-	Directions []string `json:"directions,omitzero"`
+	Directions []Direction `json:"directions,omitzero"`
 	// Generate in isometric view
 	Isometric *bool `json:"isometric,omitzero"`
 	// Color palette reference image
@@ -736,7 +736,7 @@ type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
 	BackgroundJobIDs []uuid.UUID `json:"background_job_ids"`
 	// List of directions being animated
-	Directions []string `json:"directions"`
+	Directions []Direction `json:"directions"`
 	// Overall status (processing, completed, failed)
 	Status string `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').

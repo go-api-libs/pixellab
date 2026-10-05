@@ -8497,7 +8497,7 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              CreateCharacterAnimationRequestModeV3,
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        []string{"north", "west"},
+		Directions:        []Direction{DirectionNorth, DirectionWest},
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	}

@@ -4936,8 +4936,7 @@
             "description": "List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.",
             "type": "array",
             "items": {
-              "type": "string",
-              "example": "north"
+              "$ref": "#/components/schemas/Direction"
             }
           },
           "isometric": {
@@ -5012,8 +5011,7 @@
             "description": "List of directions being animated",
             "type": "array",
             "items": {
-              "type": "string",
-              "example": "north"
+              "$ref": "#/components/schemas/Direction"
             }
           },
           "status": {
