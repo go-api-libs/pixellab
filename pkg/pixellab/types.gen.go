@@ -318,7 +318,7 @@ type AnimateWithTextV3Request struct {
 type AnimateWithTextV3Response struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for polling generation progress
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Current job status (processing, completed, failed)
 	Status string `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
@@ -350,7 +350,7 @@ type AnimationGroup struct {
 type AsyncJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
 	Status string `json:"status,omitzero"`
 }
@@ -358,7 +358,7 @@ type AsyncJobResponse struct {
 // Response model for background job status
 type BackgroundJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
-	// Background job ID
+	// Background Job ID
 	ID string `json:"id"`
 	// Current job status (processing, completed, failed)
 	Status string `json:"status"`
@@ -473,7 +473,7 @@ type CharacterDetail struct {
 type CharacterJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for tracking generation progress.
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
@@ -631,10 +631,10 @@ func (e Create1DirectionObjectRequestView) Valid() bool {
 
 // Response model for 1-direction object creation.
 type Create1DirectionObjectResponse struct {
-	Usage           *Usage `json:"usage,omitzero"`
-	BackgroundJobID string `json:"background_job_id"`
-	ObjectID        string `json:"object_id"`
-	Status          string `json:"status,omitzero"`
+	Usage           *Usage    `json:"usage,omitzero"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	ObjectID        string    `json:"object_id"`
+	Status          string    `json:"status,omitzero"`
 	// Number of candidate frames produced (derived from `size`).
 	NFrames int `json:"n_frames"`
 }
@@ -846,7 +846,7 @@ type CreateCharacterV3Request struct {
 type CreateCharacterV3Response struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for tracking generation progress.
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Character ID — available immediately, but rotations land asynchronously. Character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
@@ -1437,7 +1437,7 @@ func (e CreateTilesProRequestTileType) Valid() bool {
 type CreateTilesetBackgroundResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Tileset ID that will be created (available immediately)
 	TilesetID string `json:"tileset_id"`
 	// Always 'processing' - check status with background job ID
@@ -1675,7 +1675,7 @@ func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) er
 type CreateUIAssetResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for polling status
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// UI asset ID (available immediately; poll until ready)
 	UIAssetID string `json:"ui_asset_id"`
 	// Job status
@@ -1807,7 +1807,7 @@ func (e Direction) Valid() bool {
 type DirectionSubmission struct {
 	Direction       string                    `json:"direction"`
 	Status          DirectionSubmissionStatus `json:"status"`
-	BackgroundJobID string                    `json:"background_job_id,omitzero"`
+	BackgroundJobID uuid.UUID                 `json:"background_job_id,omitzero"`
 	AnimationID     string                    `json:"animation_id,omitzero"`
 }
 
@@ -2700,10 +2700,10 @@ type ObjectDetail struct {
 
 // Response model for 8-direction object creation.
 type ObjectJobResponse struct {
-	Usage           *Usage `json:"usage,omitzero"`
-	BackgroundJobID string `json:"background_job_id"`
-	ObjectID        string `json:"object_id"`
-	Status          string `json:"status,omitzero"`
+	Usage           *Usage    `json:"usage,omitzero"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	ObjectID        string    `json:"object_id"`
+	Status          string    `json:"status,omitzero"`
 }
 
 // URLs for object rotation images. Populated for multi-direction objects (directions in {4, 8}).
@@ -3224,7 +3224,7 @@ func (e TileCornersNe) Valid() bool {
 type TileJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for tracking generation progress
-	BackgroundJobID string `json:"background_job_id"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Tile ID that will be created (available immediately)
 	TileID string `json:"tile_id"`
 	// Always 'processing' - check status with background job ID
@@ -3631,10 +3631,10 @@ type VocalAnimationRequest struct {
 type VocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Poll GET /v2/vocal-animation/{id}
-	BackgroundJobID string `json:"background_job_id"`
-	Status          string `json:"status,omitzero"`
-	Mood            string `json:"mood"`
-	VisemeCount     int    `json:"viseme_count"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	Status          string    `json:"status,omitzero"`
+	Mood            string    `json:"mood"`
+	VisemeCount     int       `json:"viseme_count"`
 }
 
 // jsonUnknownName reports a member no part of the type declares, as encoding/json reports one of a struct.

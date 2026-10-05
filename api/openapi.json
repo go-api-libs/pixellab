@@ -3809,9 +3809,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for polling generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -3908,9 +3909,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for polling status",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -3942,7 +3944,7 @@
           },
           "id": {
             "title": "Id",
-            "description": "Background job ID",
+            "description": "Background Job ID",
             "type": "string",
             "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
@@ -4288,9 +4290,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for tracking generation progress.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "character_id": {
             "title": "Character ID",
@@ -4759,8 +4762,9 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string"
+            "title": "Background Job ID",
+            "type": "string",
+            "format": "uuid"
           },
           "object_id": {
             "title": "Object Id",
@@ -5298,9 +5302,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for tracking generation progress.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "character_id": {
             "title": "Character ID",
@@ -6405,9 +6410,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for tracking generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "tileset_id": {
             "title": "Tileset Id",
@@ -6945,9 +6951,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for polling status",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "ui_asset_id": {
             "title": "Ui Asset Id",
@@ -7236,8 +7243,9 @@
             "$ref": "#/components/schemas/DirectionSubmissionStatus"
           },
           "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string"
+            "title": "Background Job ID",
+            "type": "string",
+            "format": "uuid"
           },
           "animation_id": {
             "title": "Animation Id",
@@ -9581,8 +9589,9 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string"
+            "title": "Background Job ID",
+            "type": "string",
+            "format": "uuid"
           },
           "object_id": {
             "title": "Object Id",
@@ -10889,9 +10898,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Background job ID for tracking generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "tile_id": {
             "title": "Tile Id",
@@ -11872,9 +11882,10 @@
             "$ref": "#/components/schemas/Usage"
           },
           "background_job_id": {
-            "title": "Background Job Id",
+            "title": "Background Job ID",
             "description": "Poll GET /v2/vocal-animation/{id}",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
