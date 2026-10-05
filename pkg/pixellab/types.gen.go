@@ -341,7 +341,7 @@ type AnimationDirection struct {
 	Direction  string `json:"direction"`
 	FrameCount int    `json:"frame_count"`
 	// Public URLs for each frame in order
-	Frames []string `json:"frames"`
+	Frames []url.URL `json:"frames"`
 }
 
 // AnimationGroup defines a model

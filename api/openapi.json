@@ -3856,7 +3856,8 @@
             "description": "Public URLs for each frame in order",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uri"
             }
           }
         },
