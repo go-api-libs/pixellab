@@ -8393,4 +8393,8 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.GetCharacterDetails(ctx, "11480c99-c7dc-4f63-aa67-7d1a09435cea"); err != nil {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, "6344e926-01ed-4659-81e8-ea3174a9c351"); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
 }

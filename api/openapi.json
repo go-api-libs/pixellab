@@ -9068,6 +9068,30 @@
           "estimated_wait_seconds": {
             "type": "integer",
             "example": 0
+          },
+          "action": {
+            "type": "string",
+            "example": "walking"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "frame_count": {
+            "type": "integer",
+            "example": 8
+          },
+          "animation_name": {
+            "type": "string",
+            "example": "custom-walking"
+          },
+          "generation_model": {
+            "type": "string",
+            "example": "v3"
+          },
+          "animation_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "a9efa34c-78d9-4236-918f-d9b5132bb007"
           }
         },
         "required": [
