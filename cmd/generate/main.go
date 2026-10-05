@@ -55,7 +55,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := os.WriteFile("api/llms.txt", llms, 0666); err != nil {
+	if err := os.WriteFile("api/llms.txt", llms, 0o666); err != nil {
 		log.Fatal(err)
 	}
 
