@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"encoding/json/jsontext"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	enrich "github.com/MarkRosemaker/openapi-enrich"
 	flatten "github.com/MarkRosemaker/openapi-flatten"
 	"github.com/ettle/strcase"
+	"github.com/go-api-libs/pixellab/pkg/pixellab"
 )
 
 const (
@@ -43,6 +45,20 @@ var opIDMapping = map[string]string{
 }
 
 func main() {
+	c, err := pixellab.NewClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	llms, err := c.GetLlmFriendlyAPIDocumentation(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.WriteFile("api/llms.txt", llms, 0666); err != nil {
+		log.Fatal(err)
+	}
+
 	data, err := os.ReadFile(originalPath)
 	if err != nil {
 		log.Fatal(err)
