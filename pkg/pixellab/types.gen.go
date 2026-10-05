@@ -2503,6 +2503,9 @@ type Keypoint2D struct {
 	Y float64 `json:"y"`
 }
 
+// Keypoint3D defines a model
+type Keypoint3D []float64
+
 // Keypoints defines a model
 type Keypoints struct {
 	Neck          Keypoint2D `json:"NECK"`
@@ -2527,24 +2530,24 @@ type Keypoints struct {
 
 // Keypoints3D defines a model
 type Keypoints3D struct {
-	Neck          []float64 `json:"NECK"`
-	Nose          []float64 `json:"NOSE"`
-	LeftArm       []float64 `json:"LEFT ARM"`
-	LeftEar       []float64 `json:"LEFT EAR"`
-	LeftEye       []float64 `json:"LEFT EYE"`
-	LeftHip       []float64 `json:"LEFT HIP"`
-	LeftLeg       []float64 `json:"LEFT LEG"`
-	LeftKnee      []float64 `json:"LEFT KNEE"`
-	RightArm      []float64 `json:"RIGHT ARM"`
-	RightEar      []float64 `json:"RIGHT EAR"`
-	RightEye      []float64 `json:"RIGHT EYE"`
-	RightHip      []float64 `json:"RIGHT HIP"`
-	RightLeg      []float64 `json:"RIGHT LEG"`
-	LeftElbow     []float64 `json:"LEFT ELBOW"`
-	RightKnee     []float64 `json:"RIGHT KNEE"`
-	RightElbow    []float64 `json:"RIGHT ELBOW"`
-	LeftShoulder  []float64 `json:"LEFT SHOULDER"`
-	RightShoulder []float64 `json:"RIGHT SHOULDER"`
+	Neck          Keypoint3D `json:"NECK"`
+	Nose          Keypoint3D `json:"NOSE"`
+	LeftArm       Keypoint3D `json:"LEFT ARM"`
+	LeftEar       Keypoint3D `json:"LEFT EAR"`
+	LeftEye       Keypoint3D `json:"LEFT EYE"`
+	LeftHip       Keypoint3D `json:"LEFT HIP"`
+	LeftLeg       Keypoint3D `json:"LEFT LEG"`
+	LeftKnee      Keypoint3D `json:"LEFT KNEE"`
+	RightArm      Keypoint3D `json:"RIGHT ARM"`
+	RightEar      Keypoint3D `json:"RIGHT EAR"`
+	RightEye      Keypoint3D `json:"RIGHT EYE"`
+	RightHip      Keypoint3D `json:"RIGHT HIP"`
+	RightLeg      Keypoint3D `json:"RIGHT LEG"`
+	LeftElbow     Keypoint3D `json:"LEFT ELBOW"`
+	RightKnee     Keypoint3D `json:"RIGHT KNEE"`
+	RightElbow    Keypoint3D `json:"RIGHT ELBOW"`
+	LeftShoulder  Keypoint3D `json:"LEFT SHOULDER"`
+	RightShoulder Keypoint3D `json:"RIGHT SHOULDER"`
 }
 
 // Latest response data from the job
@@ -3173,21 +3176,9 @@ func (e SkeletonLabel) Valid() bool {
 
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type Skeletons struct {
-	ThreeD         Skeletons3D           `json:"3d,omitzero"`
-	TwoDReference  TwoDReference         `json:"2d_reference,omitzero"`
-	TwoDReferences Skeletons2dReferences `json:"2d_references,omitzero"`
-}
-
-// Skeletons2dReferences defines a model
-type Skeletons2dReferences struct {
-	East      TwoDReference `json:"east"`
-	West      TwoDReference `json:"west"`
-	North     TwoDReference `json:"north"`
-	South     TwoDReference `json:"south"`
-	NorthEast TwoDReference `json:"north-east"`
-	NorthWest TwoDReference `json:"north-west"`
-	SouthEast TwoDReference `json:"south-east"`
-	SouthWest TwoDReference `json:"south-west"`
+	ThreeD         Skeletons3D    `json:"3d,omitzero"`
+	TwoDReference  TwoDReference  `json:"2d_reference,omitzero"`
+	TwoDReferences TwoDReferences `json:"2d_references,omitzero"`
 }
 
 // Skeletons3D defines a model
@@ -3490,6 +3481,18 @@ type TwoDReference struct {
 	Source    string    `json:"source"`
 	Direction string    `json:"direction"`
 	Keypoints Keypoints `json:"keypoints"`
+}
+
+// TwoDReferences defines a model
+type TwoDReferences struct {
+	East      TwoDReference `json:"east"`
+	West      TwoDReference `json:"west"`
+	North     TwoDReference `json:"north"`
+	South     TwoDReference `json:"south"`
+	NorthEast TwoDReference `json:"north-east"`
+	NorthWest TwoDReference `json:"north-west"`
+	SouthEast TwoDReference `json:"south-east"`
+	SouthWest TwoDReference `json:"south-west"`
 }
 
 // UIAssetDetail defines a model

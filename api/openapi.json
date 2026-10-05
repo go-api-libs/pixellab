@@ -9025,6 +9025,14 @@
           "y"
         ]
       },
+      "Keypoint3D": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "format": "double",
+          "example": 0.4997421746125551
+        }
+      },
       "Keypoints": {
         "type": "object",
         "properties": {
@@ -9108,148 +9116,58 @@
         "type": "object",
         "properties": {
           "NECK": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.4997421746125551
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "NOSE": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.4635584265167627
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT ARM": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.6249220042394984
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT EAR": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.5396357700127149
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT EYE": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.49711201657319515
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT HIP": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.5607927914120271
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT LEG": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.6139143909157858
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT KNEE": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.5857952578143679
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT ARM": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.3185210255984857
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT EAR": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.44109232107643753
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT EYE": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.4428852199303065
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT HIP": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.4364492160181632
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT LEG": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.40005327579870215
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT ELBOW": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.621835021467905
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT KNEE": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.41251171325489083
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT ELBOW": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.37147970113598455
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "LEFT SHOULDER": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.6028032707068395
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           },
           "RIGHT SHOULDER": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double",
-              "example": 0.395750665356794
-            }
+            "$ref": "#/components/schemas/Keypoint3D"
           }
         },
         "required": [
@@ -10849,45 +10767,6 @@
           }
         }
       },
-      "TwoDReferences": {
-        "type": "object",
-        "properties": {
-          "east": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "west": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "north": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "south": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "north-east": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "north-west": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "south-east": {
-            "$ref": "#/components/schemas/TwoDReference"
-          },
-          "south-west": {
-            "$ref": "#/components/schemas/TwoDReference"
-          }
-        },
-        "required": [
-          "east",
-          "west",
-          "north",
-          "south",
-          "north-east",
-          "north-west",
-          "south-east",
-          "south-west"
-        ]
-      },
       "Skeletons3D": {
         "type": "object",
         "properties": {
@@ -11804,6 +11683,45 @@
           "source",
           "direction",
           "keypoints"
+        ]
+      },
+      "TwoDReferences": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north-east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north-west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south-east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south-west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south",
+          "north-east",
+          "north-west",
+          "south-east",
+          "south-west"
         ]
       },
       "UIAssetDetail": {
