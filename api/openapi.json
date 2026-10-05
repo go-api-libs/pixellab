@@ -3070,7 +3070,7 @@
           "$ref": "#/components/parameters/animation_group_id2"
         },
         {
-          "$ref": "#/components/parameters/direction2"
+          "$ref": "#/components/parameters/direction_delete"
         }
       ],
       "delete": {
@@ -14901,18 +14901,15 @@
         "name": "direction",
         "in": "query",
         "schema": {
-          "title": "Direction",
-          "type": "string"
+          "$ref": "#/components/schemas/Direction"
         }
       },
-      "direction2": {
+      "direction_delete": {
         "name": "direction",
         "in": "query",
         "description": "Single direction to delete (e.g. 'south'). Omit for all.",
         "schema": {
-          "title": "Direction",
-          "description": "Single direction to delete (e.g. 'south'). Omit for all.",
-          "type": "string"
+          "$ref": "#/components/schemas/Direction"
         }
       },
       "job_id": {

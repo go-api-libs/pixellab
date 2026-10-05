@@ -72,7 +72,7 @@ type ExportCharacterAsZipParams struct {
 type DeleteAnimationsFromAnObjectParams struct {
 	AnimationType    string
 	AnimationGroupID uuid.UUID
-	Direction        string
+	Direction        Direction
 }
 
 // ListUsersObjectsParams holds the query parameters for ListUsersObjects.
@@ -90,7 +90,7 @@ type DeleteAnimationsFromCharacterParams struct {
 	// Animation group UUID shown by get_character as [group: ...].
 	AnimationGroupID uuid.UUID
 	// Single direction to delete (e.g. 'south'). Omit for all.
-	Direction string
+	Direction Direction
 }
 
 // Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.

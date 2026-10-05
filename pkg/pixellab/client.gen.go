@@ -11349,7 +11349,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		}
 
 		if params.Direction != "" {
-			q["direction"] = []string{params.Direction}
+			q["direction"] = []string{string(params.Direction)}
 		}
 
 		u.RawQuery = q.Encode()
@@ -12310,7 +12310,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		}
 
 		if params.Direction != "" {
-			q["direction"] = []string{params.Direction}
+			q["direction"] = []string{string(params.Direction)}
 		}
 
 		u.RawQuery = q.Encode()
