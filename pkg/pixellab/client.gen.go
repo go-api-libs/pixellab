@@ -10559,7 +10559,7 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID, params *ExportCharacterAsZipParams) error {
+func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID, params *ExportCharacterAsZipParams) (io.ReadCloser, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "zip")
 	if params != nil {
 		q := make(url.Values, 1)
@@ -10591,19 +10591,26 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 	if c.debug {
 		ia.Request, err = cassette.NewRequest(req)
 		if err != nil {
-			return fmt.Errorf("recording request: %w", err)
+			return nil, fmt.Errorf("recording request: %w", err)
 		}
 	}
 	rsp, err := c.cli.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rsp.Body.Close()
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
 
 	if c.debug {
 		ia.Response, err = cassette.NewResponse(rsp)
 		if err != nil {
-			return fmt.Errorf("recording response: %w", err)
+			return nil, fmt.Errorf("recording response: %w", err)
 		}
 	}
 
@@ -10611,25 +10618,16 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 	case http.StatusOK:
 		// ZIP file download containing character data
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out struct{}
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if c.debug {
-					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return errors.Join(api.WrapDecodingError(rsp, err), err2)
-					}
-				}
+		case "application/zip":
+			streaming = true
 
-				return api.WrapDecodingError(rsp, err)
-			}
-
-			return nil
+			return rsp.Body, nil
 		default:
-			return api.NewErrUnknownContentType(rsp)
+			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10638,22 +10636,22 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if c.debug {
 					if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
-						return errors.Join(api.WrapDecodingError(rsp, err), err2)
+						return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
 					}
 				}
 
-				return api.WrapDecodingError(rsp, err)
+				return nil, api.WrapDecodingError(rsp, err)
 			}
 
-			return api.NewErrCustom(rsp, &out)
+			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			return api.NewErrUnknownContentType(rsp)
+			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	default:
-		return api.NewErrUnknownStatusCode(rsp)
+		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
 

@@ -13508,11 +13508,6 @@
       "ExportCharacterAsZipOk": {
         "description": "ZIP file download containing character data",
         "content": {
-          "application/json": {
-            "schema": {
-              "type": "object"
-            }
-          },
           "application/zip": {
             "schema": {
               "type": "string",
