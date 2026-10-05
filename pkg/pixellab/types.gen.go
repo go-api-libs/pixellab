@@ -1235,10 +1235,10 @@ type CreateMapObjectRequestInpainting struct {
 	RectangleInpainting *RectangleInpainting
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its first member must be type, which names the
-// alternative; the alternative then decodes each further member as it is read.
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member type names the alternative, which then
+// decodes each further member as it is read. With type first, nothing is read twice.
 func (v *CreateMapObjectRequestInpainting) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	tag, first, err := jsonFirstMember(dec, "type")
+	tag, first, dec, err := jsonFirstMember(dec, "type")
 	if err != nil {
 		return err
 	}
@@ -1604,10 +1604,10 @@ type CreateUIAssetRequestPiecesItem struct {
 	UiPiecePolygon *UiPiecePolygon
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its first member must be kind, which names the
-// alternative; the alternative then decodes each further member as it is read.
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member kind names the alternative, which then
+// decodes each further member as it is read. With kind first, nothing is read twice.
 func (v *CreateUIAssetRequestPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	tag, first, err := jsonFirstMember(dec, "kind")
+	tag, first, dec, err := jsonFirstMember(dec, "kind")
 	if err != nil {
 		return err
 	}
@@ -3652,39 +3652,88 @@ func jsonUnknownValue(name, value string) error {
 	return &json.SemanticError{JSONKind: jsontext.KindString, JSONValue: jsontext.Value(strconv.Quote(value)), Err: fmt.Errorf("unknown value of %q", name)}
 }
 
-// jsonFirstMember reads the opening of a JSON object and its first member, which must be name with a string value.
-// It returns the string and the value as written.
-func jsonFirstMember(dec *jsontext.Decoder, name string) (string, jsontext.Value, error) {
+// jsonFirstMember reads the opening of a JSON object and its member name, which must have a string value. It returns
+// the string, the value as written, and the decoder to read the object's further members from: dec itself when name
+// comes first, the fast way, and otherwise one over the object read whole, with name moved to the front.
+func jsonFirstMember(dec *jsontext.Decoder, name string) (string, jsontext.Value, *jsontext.Decoder, error) {
 	if tok, err := dec.ReadToken(); err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	} else if tok.Kind() != jsontext.KindBeginObject {
-		return "", nil, &json.SemanticError{JSONKind: tok.Kind(), Err: errors.New("want an object")}
+		return "", nil, nil, &json.SemanticError{JSONKind: tok.Kind(), Err: errors.New("want an object")}
 	}
 
 	if dec.PeekKind() == jsontext.KindEndObject {
-		return "", nil, jsonMissing(name)
+		return "", nil, nil, jsonMissing(name)
 	}
 
 	tok, err := dec.ReadToken()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	if got := tok.String(); got != name {
-		return "", nil, &json.SemanticError{Err: fmt.Errorf("first member is %q, want %q", got, name)}
+		// read the rest of the object, and start again with name first
+		var buf bytes.Buffer
+		enc := jsontext.NewEncoder(&buf)
+		if err := enc.WriteToken(jsontext.BeginObject); err != nil {
+			return "", nil, nil, err
+		}
+
+		if err := enc.WriteToken(jsontext.String(got)); err != nil {
+			return "", nil, nil, err
+		}
+
+		for dec.PeekKind() != jsontext.KindEndObject {
+			val, err := dec.ReadValue()
+			if err != nil {
+				return "", nil, nil, err
+			}
+
+			if err := enc.WriteValue(val); err != nil {
+				return "", nil, nil, err
+			}
+
+			if dec.PeekKind() == jsontext.KindEndObject {
+				break
+			}
+
+			tok, err := dec.ReadToken()
+			if err != nil {
+				return "", nil, nil, err
+			}
+
+			if err := enc.WriteToken(tok); err != nil {
+				return "", nil, nil, err
+			}
+		}
+
+		if _, err := dec.ReadToken(); err != nil { // the end of the object
+			return "", nil, nil, err
+		}
+
+		if err := enc.WriteToken(jsontext.EndObject); err != nil {
+			return "", nil, nil, err
+		}
+
+		ordered, err := jsonFirst(buf.Bytes(), name, "")
+		if err != nil {
+			return "", nil, nil, err
+		}
+
+		return jsonFirstMember(jsontext.NewDecoder(bytes.NewReader(ordered)), name)
 	}
 
 	val, err := dec.ReadValue()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	var tag string
 	if err := json.Unmarshal(val, &tag); err != nil {
-		return "", nil, &json.SemanticError{JSONKind: val.Kind(), Err: fmt.Errorf("member %q is not a string", name)}
+		return "", nil, nil, &json.SemanticError{JSONKind: val.Kind(), Err: fmt.Errorf("member %q is not a string", name)}
 	}
 
-	return tag, val.Clone(), nil
+	return tag, val.Clone(), dec, nil
 }
 
 // jsonMembersFrom decodes the first member, already read, and every further member of the object dec is in, each
