@@ -560,5 +560,47 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "https://api.pixellab.ai/v2/characters/animations",
+			"header": {
+				"Authorization": "Bearer ************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"character_id": "46118899-1915-450d-be72-df0a89bc6363",
+				"animation_name": "walking",
+				"action_description": "walking",
+				"async_mode": true,
+				"mode": "v3",
+				"frame_count": 8,
+				"keep_first_frame": true,
+				"directions": [
+					"north",
+					"west"
+				]
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json"
+			},
+			"body": {
+				"background_job_ids": [
+					"0c1682f6-60da-4e0f-ac9e-be1d6a1b2218"
+				],
+				"directions": [
+					"north"
+				],
+				"animation_group_id": "26905fda-03bf-41c7-8d24-c8cb0c3ab027",
+				"status": "processing",
+				"enhanced_prompt": null,
+				"enhance_usage": null
+			}
+		}
 	}
 ]

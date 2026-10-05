@@ -732,7 +732,8 @@ type CreateCharacterAnimationResponse struct {
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
-	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+	EnhanceUsage     *Usage    `json:"enhance_usage,omitzero"`
+	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 }
 
 // Request model for /v2/create-character-pro.

@@ -4822,12 +4822,14 @@
           "character_id": {
             "title": "Character Id",
             "description": "ID of existing character to animate",
-            "type": "string"
+            "type": "string",
+            "example": "46118899-1915-450d-be72-df0a89bc6363"
           },
           "animation_name": {
             "title": "Animation Name",
             "description": "Name for this animation (defaults to action_description if not provided)",
-            "type": "string"
+            "type": "string",
+            "example": "walking"
           },
           "description": {
             "title": "Description",
@@ -4839,7 +4841,8 @@
           "action_description": {
             "title": "Action Description",
             "description": "Action description (e.g., 'walking', 'running', 'jumping'). Required for custom mode (when template_animation_id is omitted). For template mode, defaults to a description based on the template.",
-            "type": "string"
+            "type": "string",
+            "example": "walking"
           },
           "async_mode": {
             "title": "Async Mode",
@@ -4860,7 +4863,8 @@
             "description": "Number of animation frames (4-16, must be even). Only used in v3 mode.",
             "type": "integer",
             "minimum": 4,
-            "maximum": 16
+            "maximum": 16,
+            "example": 8
           },
           "custom_start_frame": {
             "description": "Optional custom starting pose for the animation (`mode='v3'` only). When omitted, the character's rotation image for the chosen direction is used as the start. Subject to v3's 256x256 maximum. Requires exactly one direction (pass e.g. `directions=['south']`). Not compatible with `mode='template'` or `mode='pro'`.",
@@ -4905,7 +4909,8 @@
             "description": "List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "example": "north"
             }
           },
           "isometric": {
@@ -4956,7 +4961,8 @@
           "template",
           "v3",
           "pro"
-        ]
+        ],
+        "example": "v3"
       },
       "CreateCharacterAnimationResponse": {
         "title": "CreateCharacterAnimationResponse",
@@ -4968,7 +4974,8 @@
             "description": "List of background job IDs (one per direction)",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "example": "0c1682f6-60da-4e0f-ac9e-be1d6a1b2218"
             }
           },
           "directions": {
@@ -4976,24 +4983,34 @@
             "description": "List of directions being animated",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "example": "north"
             }
           },
           "status": {
             "title": "Status",
             "description": "Overall status (processing, completed, failed)",
             "type": "string",
-            "default": "processing"
+            "default": "processing",
+            "example": "processing"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
             "description": "The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "enhance_usage": {
             "description": "Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.",
             "type": "object",
             "$ref": "#/components/schemas/Usage"
+          },
+          "animation_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "26905fda-03bf-41c7-8d24-c8cb0c3ab027"
           }
         },
         "required": [
@@ -11653,7 +11670,10 @@
       },
       "Usage": {
         "title": "Usage",
-        "type": "object",
+        "type": [
+          "object",
+          "null"
+        ],
         "properties": {
           "type": {
             "$ref": "#/components/schemas/UsageType"

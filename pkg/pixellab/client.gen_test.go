@@ -8397,4 +8397,17 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.GetBackgroundJobStatus(ctx, "6344e926-01ed-4659-81e8-ea3174a9c351"); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
+
+	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+		CharacterID:       "46118899-1915-450d-be72-df0a89bc6363",
+		AnimationName:     "walking",
+		ActionDescription: "walking",
+		AsyncMode:         true,
+		Mode:              CreateCharacterAnimationRequestModeV3,
+		FrameCount:        8,
+		KeepFirstFrame:    new(true),
+		Directions:        []string{"north", "west"},
+	}); err != nil {
+		t.Fatalf("CreateCharacterAnimation: %v", err)
+	}
 }
