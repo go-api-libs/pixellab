@@ -3117,7 +3117,8 @@ type RotationURLs struct {
 	// URL for north-west rotation (8-dir only)
 	NorthWest url.URL `json:"north-west,omitzero"`
 	// URL for south-west rotation (8-dir only)
-	SouthWest url.URL `json:"south-west,omitzero"`
+	SouthWest url.URL   `json:"south-west,omitzero"`
+	Frames    []url.URL `json:"frames,omitzero"`
 }
 
 // SelectObjectFramesRequest defines a model

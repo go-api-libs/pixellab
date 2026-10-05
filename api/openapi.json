@@ -10466,6 +10466,14 @@
             ],
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-west.png?t=1791201628"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
+            }
           }
         },
         "required": [
