@@ -475,7 +475,7 @@ type CharacterJobResponse struct {
 	// Background job ID for tracking generation progress.
 	BackgroundJobID string `json:"background_job_id"`
 	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
-	CharacterID string `json:"character_id"`
+	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
 	Status string `json:"status,omitzero"`
 }
@@ -659,7 +659,7 @@ type Create8DirectionObjectRequest struct {
 // Request model for character animation endpoint
 type CreateCharacterAnimationRequest struct {
 	// ID of existing character to animate
-	CharacterID string `json:"character_id"`
+	CharacterID uuid.UUID `json:"character_id"`
 	// Name for this animation (defaults to action_description if not provided)
 	AnimationName string `json:"animation_name,omitzero"`
 	// Description of the character or object to animate (uses character's original if not specified)
@@ -793,10 +793,10 @@ func (e CreateCharacterProRequestMethod) Valid() bool {
 // Request to produce a state (variant) of an existing character.
 type CreateCharacterStateRequest struct {
 	// ID of the source character
-	CharacterID     string `json:"character_id"`
-	EditDescription string `json:"edit_description"`
-	NoBackground    *bool  `json:"no_background,omitzero"`
-	Seed            *int   `json:"seed,omitzero"`
+	CharacterID     uuid.UUID `json:"character_id"`
+	EditDescription string    `json:"edit_description"`
+	NoBackground    *bool     `json:"no_background,omitzero"`
+	Seed            *int      `json:"seed,omitzero"`
 	// A canvas size in pixels. Both sides must be multiples of 4, 32–256.
 	// Width: 32-256 px.
 	// Height: 32-256 px.
@@ -848,7 +848,7 @@ type CreateCharacterV3Response struct {
 	// Background job ID for tracking generation progress.
 	BackgroundJobID string `json:"background_job_id"`
 	// Character ID — available immediately, but rotations land asynchronously. Character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded, and the 3D skeleton is reconstructed.
-	CharacterID string `json:"character_id"`
+	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
 	Status string `json:"status,omitzero"`
 	// The expanded prompt used for generation. Populated only when enhance_prompt=true.
@@ -1709,7 +1709,7 @@ type DeleteCharacterResponse struct {
 	// Whether the deletion was successful
 	Success bool `json:"success"`
 	// ID of the deleted character
-	CharacterID string `json:"character_id,omitzero"`
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
 	// Number of storage files deleted
 	FilesDeleted *int `json:"files_deleted,omitzero"`
 	// Number of animations deleted
@@ -2222,11 +2222,11 @@ type GetTilesProResponse struct {
 type GetVocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// processing, completed or failed
-	Status      string `json:"status"`
-	JobID       string `json:"job_id"`
-	Mood        string `json:"mood"`
-	VisemeCount int    `json:"viseme_count"`
-	CharacterID string `json:"character_id,omitzero"`
+	Status      string    `json:"status"`
+	JobID       string    `json:"job_id"`
+	Mood        string    `json:"mood"`
+	VisemeCount int       `json:"viseme_count"`
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
 	// Mouth positions produced so far.
 	CompletedVisemes []string `json:"completed_visemes,omitzero"`
 	// The mouth positions, keyed by id. Only returned for the stateless (`portrait`) form — for `character_id` jobs they are saved onto the character instead.
@@ -2583,7 +2583,7 @@ type LipSyncRequest struct {
 	// The line of dialogue to lip-sync.
 	Text string `json:"text"`
 	// Use the mouth positions stored on this character; the response then also carries the spritesheet URL and the row to read. Mutually exclusive with `viseme_count`.
-	CharacterID string `json:"character_id,omitzero"`
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
 	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
 	Mood LipSyncMood `json:"mood,omitzero"`
 	// Plan against a preset without touching a character — useful if you hold the frames yourself. Mutually exclusive with `character_id`.
@@ -3002,8 +3002,8 @@ type SetPortraitRequest struct {
 
 // SetPortraitResponse defines a model
 type SetPortraitResponse struct {
-	Usage       *Usage `json:"usage,omitzero"`
-	CharacterID string `json:"character_id"`
+	Usage       *Usage    `json:"usage,omitzero"`
+	CharacterID uuid.UUID `json:"character_id"`
 	// Portrait edge length in pixels (always square).
 	Size int `json:"size"`
 	// URL of the stored portrait image.
@@ -3129,7 +3129,7 @@ type TalkingGifRequest struct {
 	// The line of dialogue to lip-sync. Mouth shapes are derived from the letters, so any language using the latin alphabet works.
 	Text string `json:"text"`
 	// Use the mouth positions stored on this character. Mutually exclusive with `visemes`.
-	CharacterID string `json:"character_id,omitzero"`
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
 	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.
 	Mood LipSyncMood `json:"mood,omitzero"`
 	// Supply the mouth positions directly, as returned by GET /v2/vocal-animation/{job_id}. Mutually exclusive with `character_id`.
@@ -3614,7 +3614,7 @@ func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 // VocalAnimationRequest defines a model
 type VocalAnimationRequest struct {
 	// Generate from this character's stored portrait and save the result onto it. Required if you want to use `character_id` with /v2/talking-gif. Mutually exclusive with `portrait`.
-	CharacterID string `json:"character_id,omitzero"`
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
 	// Generate from this image instead and store nothing — the mouth positions come back inline. Max 256x256. Mutually exclusive with `character_id`.
 	Portrait BaseImage `json:"portrait,omitzero"`
 	// Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.

@@ -8544,7 +8544,7 @@ func TestClient_Interactions(t *testing.T) {
 	}
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
-		CharacterID:       "46118899-1915-450d-be72-df0a89bc6363",
+		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
 		AnimationName:     "walking",
 		ActionDescription: "walking",
 		AsyncMode:         true,
