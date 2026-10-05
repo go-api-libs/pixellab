@@ -4212,15 +4212,7 @@
             "example": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9"
           },
           "skeletons": {
-            "title": "Skeletons",
-            "description": "2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.",
-            "type": [
-              "object",
-              "null"
-            ],
-            "additionalProperties": {
-              "type": "object"
-            }
+            "$ref": "#/components/schemas/Skeletons"
           },
           "animations": {
             "title": "Animations",
@@ -4425,24 +4417,28 @@
             "title": "South",
             "description": "URL for south-facing rotation",
             "type": "string",
+            "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/south.png?t=1791064587"
           },
           "west": {
             "title": "West",
             "description": "URL for west-facing rotation",
             "type": "string",
+            "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/west.png?t=1791064587"
           },
           "east": {
             "title": "East",
             "description": "URL for east-facing rotation",
             "type": "string",
+            "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/east.png?t=1791064587"
           },
           "north": {
             "title": "North",
             "description": "URL for north-facing rotation",
             "type": "string",
+            "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
           },
           "south-east": {
@@ -4451,7 +4447,9 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-east.png?t=1791201628"
           },
           "north-east": {
             "title": "North-East",
@@ -4459,7 +4457,9 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-east.png?t=1791201628"
           },
           "north-west": {
             "title": "North-West",
@@ -4467,7 +4467,9 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-west.png?t=1791201628"
           },
           "south-west": {
             "title": "South-West",
@@ -4475,7 +4477,9 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-west.png?t=1791201628"
           }
         },
         "required": [
@@ -9002,6 +9006,273 @@
           "z_index"
         ]
       },
+      "Keypoint2D": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double",
+            "example": 0.4868011474609375
+          },
+          "y": {
+            "type": "number",
+            "format": "double",
+            "example": 0.31441497802734375
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "Keypoints": {
+        "type": "object",
+        "properties": {
+          "NECK": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "NOSE": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT ARM": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT EAR": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT EYE": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT HIP": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT LEG": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT KNEE": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT ARM": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT EAR": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT EYE": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT HIP": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT LEG": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT ELBOW": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT KNEE": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT ELBOW": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "LEFT SHOULDER": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          },
+          "RIGHT SHOULDER": {
+            "$ref": "#/components/schemas/Keypoint2D"
+          }
+        },
+        "required": [
+          "NECK",
+          "NOSE",
+          "LEFT ARM",
+          "LEFT EAR",
+          "LEFT EYE",
+          "LEFT HIP",
+          "LEFT LEG",
+          "LEFT KNEE",
+          "RIGHT ARM",
+          "RIGHT EAR",
+          "RIGHT EYE",
+          "RIGHT HIP",
+          "RIGHT LEG",
+          "LEFT ELBOW",
+          "RIGHT KNEE",
+          "RIGHT ELBOW",
+          "LEFT SHOULDER",
+          "RIGHT SHOULDER"
+        ]
+      },
+      "Keypoints3D": {
+        "type": "object",
+        "properties": {
+          "NECK": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.4997421746125551
+            }
+          },
+          "NOSE": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.4635584265167627
+            }
+          },
+          "LEFT ARM": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.6249220042394984
+            }
+          },
+          "LEFT EAR": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.5396357700127149
+            }
+          },
+          "LEFT EYE": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.49711201657319515
+            }
+          },
+          "LEFT HIP": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.5607927914120271
+            }
+          },
+          "LEFT LEG": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.6139143909157858
+            }
+          },
+          "LEFT KNEE": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.5857952578143679
+            }
+          },
+          "RIGHT ARM": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.3185210255984857
+            }
+          },
+          "RIGHT EAR": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.44109232107643753
+            }
+          },
+          "RIGHT EYE": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.4428852199303065
+            }
+          },
+          "RIGHT HIP": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.4364492160181632
+            }
+          },
+          "RIGHT LEG": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.40005327579870215
+            }
+          },
+          "LEFT ELBOW": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.621835021467905
+            }
+          },
+          "RIGHT KNEE": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.41251171325489083
+            }
+          },
+          "RIGHT ELBOW": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.37147970113598455
+            }
+          },
+          "LEFT SHOULDER": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.6028032707068395
+            }
+          },
+          "RIGHT SHOULDER": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double",
+              "example": 0.395750665356794
+            }
+          }
+        },
+        "required": [
+          "NECK",
+          "NOSE",
+          "LEFT ARM",
+          "LEFT EAR",
+          "LEFT EYE",
+          "LEFT HIP",
+          "LEFT LEG",
+          "LEFT KNEE",
+          "RIGHT ARM",
+          "RIGHT EAR",
+          "RIGHT EYE",
+          "RIGHT HIP",
+          "RIGHT LEG",
+          "LEFT ELBOW",
+          "RIGHT KNEE",
+          "RIGHT ELBOW",
+          "LEFT SHOULDER",
+          "RIGHT SHOULDER"
+        ]
+      },
       "LastResponse": {
         "title": "Last Response",
         "description": "Latest response data from the job",
@@ -10559,6 +10830,80 @@
           "LEFT EAR"
         ]
       },
+      "Skeletons": {
+        "title": "Skeletons",
+        "description": "2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.",
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "3d": {
+            "$ref": "#/components/schemas/Skeletons3D"
+          },
+          "2d_reference": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "2d_references": {
+            "$ref": "#/components/schemas/TwoDReferences"
+          }
+        }
+      },
+      "TwoDReferences": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north-east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "north-west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south-east": {
+            "$ref": "#/components/schemas/TwoDReference"
+          },
+          "south-west": {
+            "$ref": "#/components/schemas/TwoDReference"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south",
+          "north-east",
+          "north-west",
+          "south-east",
+          "south-west"
+        ]
+      },
+      "Skeletons3D": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "example": "3d"
+          },
+          "keypoints": {
+            "$ref": "#/components/schemas/Keypoints3D"
+          }
+        },
+        "required": [
+          "format",
+          "keypoints"
+        ]
+      },
       "Status": {
         "type": "string",
         "enum": [
@@ -10621,6 +10966,9 @@
           "shading": {
             "type": "string",
             "example": "basic shading"
+          },
+          "generation_mode": {
+            "$ref": "#/components/schemas/GenerationMode"
           }
         }
       },
@@ -11426,6 +11774,37 @@
           },
           "seed": 42
         }
+      },
+      "TwoDReference": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "type": "string",
+            "example": "low top-down"
+          },
+          "format": {
+            "type": "string",
+            "example": "2d"
+          },
+          "source": {
+            "type": "string",
+            "example": "estimated"
+          },
+          "direction": {
+            "type": "string",
+            "example": "south"
+          },
+          "keypoints": {
+            "$ref": "#/components/schemas/Keypoints"
+          }
+        },
+        "required": [
+          "view",
+          "format",
+          "source",
+          "direction",
+          "keypoints"
+        ]
       },
       "UIAssetDetail": {
         "title": "UIAssetDetail",

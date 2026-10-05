@@ -10,14 +10,23 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strconv"
 	"time"
 	"uuid"
+
+	"github.com/MarkRosemaker/jsonutil"
 )
 
 var jsonOpts = json.JoinOptions(
 	json.RejectUnknownMembers(true),
+	json.WithMarshalers(json.JoinMarshalers(
+		json.MarshalToFunc(jsonutil.URLMarshal),
+	)),
+	json.WithUnmarshalers(json.JoinUnmarshalers(
+		json.UnmarshalFromFunc(jsonutil.URLUnmarshal),
+	)),
 )
 
 // ListUsersTilesetsParams holds the query parameters for ListUsersTilesets.
@@ -464,7 +473,7 @@ type CharacterDetail struct {
 	// Shared ID grouping sibling state characters (None if not part of a group)
 	GroupID string `json:"group_id,omitzero"`
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
-	Skeletons map[string]struct{} `json:"skeletons,omitzero"`
+	Skeletons *Skeletons `json:"skeletons,omitzero"`
 	// All animations grouped by type and direction
 	Animations []AnimationGroup `json:"animations,omitzero"`
 }
@@ -530,21 +539,21 @@ func (e CharacterProportionsPresetName) Valid() bool {
 // URLs for character rotation images
 type CharacterRotationUrls struct {
 	// URL for south-facing rotation
-	South string `json:"south"`
+	South url.URL `json:"south"`
 	// URL for west-facing rotation
-	West string `json:"west"`
+	West url.URL `json:"west"`
 	// URL for east-facing rotation
-	East string `json:"east"`
+	East url.URL `json:"east"`
 	// URL for north-facing rotation
-	North string `json:"north"`
+	North url.URL `json:"north"`
 	// URL for south-east rotation (8-dir only)
-	SouthEast string `json:"south-east,omitzero"`
+	SouthEast url.URL `json:"south-east,omitzero"`
 	// URL for north-east rotation (8-dir only)
-	NorthEast string `json:"north-east,omitzero"`
+	NorthEast url.URL `json:"north-east,omitzero"`
 	// URL for north-west rotation (8-dir only)
-	NorthWest string `json:"north-west,omitzero"`
+	NorthWest url.URL `json:"north-west,omitzero"`
 	// URL for south-west rotation (8-dir only)
-	SouthWest string `json:"south-west,omitzero"`
+	SouthWest url.URL `json:"south-west,omitzero"`
 }
 
 // Summary of a character for listing
@@ -2488,6 +2497,56 @@ type Keypoint struct {
 	ZIndex float64 `json:"z_index"`
 }
 
+// Keypoint2D defines a model
+type Keypoint2D struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// Keypoints defines a model
+type Keypoints struct {
+	Neck          Keypoint2D `json:"NECK"`
+	Nose          Keypoint2D `json:"NOSE"`
+	LeftArm       Keypoint2D `json:"LEFT ARM"`
+	LeftEar       Keypoint2D `json:"LEFT EAR"`
+	LeftEye       Keypoint2D `json:"LEFT EYE"`
+	LeftHip       Keypoint2D `json:"LEFT HIP"`
+	LeftLeg       Keypoint2D `json:"LEFT LEG"`
+	LeftKnee      Keypoint2D `json:"LEFT KNEE"`
+	RightArm      Keypoint2D `json:"RIGHT ARM"`
+	RightEar      Keypoint2D `json:"RIGHT EAR"`
+	RightEye      Keypoint2D `json:"RIGHT EYE"`
+	RightHip      Keypoint2D `json:"RIGHT HIP"`
+	RightLeg      Keypoint2D `json:"RIGHT LEG"`
+	LeftElbow     Keypoint2D `json:"LEFT ELBOW"`
+	RightKnee     Keypoint2D `json:"RIGHT KNEE"`
+	RightElbow    Keypoint2D `json:"RIGHT ELBOW"`
+	LeftShoulder  Keypoint2D `json:"LEFT SHOULDER"`
+	RightShoulder Keypoint2D `json:"RIGHT SHOULDER"`
+}
+
+// Keypoints3D defines a model
+type Keypoints3D struct {
+	Neck          []float64 `json:"NECK"`
+	Nose          []float64 `json:"NOSE"`
+	LeftArm       []float64 `json:"LEFT ARM"`
+	LeftEar       []float64 `json:"LEFT EAR"`
+	LeftEye       []float64 `json:"LEFT EYE"`
+	LeftHip       []float64 `json:"LEFT HIP"`
+	LeftLeg       []float64 `json:"LEFT LEG"`
+	LeftKnee      []float64 `json:"LEFT KNEE"`
+	RightArm      []float64 `json:"RIGHT ARM"`
+	RightEar      []float64 `json:"RIGHT EAR"`
+	RightEye      []float64 `json:"RIGHT EYE"`
+	RightHip      []float64 `json:"RIGHT HIP"`
+	RightLeg      []float64 `json:"RIGHT LEG"`
+	LeftElbow     []float64 `json:"LEFT ELBOW"`
+	RightKnee     []float64 `json:"RIGHT KNEE"`
+	RightElbow    []float64 `json:"RIGHT ELBOW"`
+	LeftShoulder  []float64 `json:"LEFT SHOULDER"`
+	RightShoulder []float64 `json:"RIGHT SHOULDER"`
+}
+
 // Latest response data from the job
 type LastResponse struct {
 	Type                 LastResponseType   `json:"type,omitzero"`
@@ -3112,6 +3171,31 @@ func (e SkeletonLabel) Valid() bool {
 	}
 }
 
+// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
+type Skeletons struct {
+	ThreeD         Skeletons3D           `json:"3d,omitzero"`
+	TwoDReference  TwoDReference         `json:"2d_reference,omitzero"`
+	TwoDReferences Skeletons2dReferences `json:"2d_references,omitzero"`
+}
+
+// Skeletons2dReferences defines a model
+type Skeletons2dReferences struct {
+	East      TwoDReference `json:"east"`
+	West      TwoDReference `json:"west"`
+	North     TwoDReference `json:"north"`
+	South     TwoDReference `json:"south"`
+	NorthEast TwoDReference `json:"north-east"`
+	NorthWest TwoDReference `json:"north-west"`
+	SouthEast TwoDReference `json:"south-east"`
+	SouthWest TwoDReference `json:"south-west"`
+}
+
+// Skeletons3D defines a model
+type Skeletons3D struct {
+	Format    string      `json:"format"`
+	Keypoints Keypoints3D `json:"keypoints"`
+}
+
 // Status defines a model
 type Status string
 
@@ -3145,9 +3229,10 @@ type Style struct {
 
 // Style settings used during generation
 type StyleSettings struct {
-	Detail  string `json:"detail,omitzero"`
-	Outline string `json:"outline,omitzero"`
-	Shading string `json:"shading,omitzero"`
+	Detail         string         `json:"detail,omitzero"`
+	Outline        string         `json:"outline,omitzero"`
+	Shading        string         `json:"shading,omitzero"`
+	GenerationMode GenerationMode `json:"generation_mode,omitzero"`
 }
 
 // Subscription generation balance
@@ -3396,6 +3481,15 @@ type TransferOutfitV2Request struct {
 	NoBackground *bool `json:"no_background,omitzero"`
 	// Optional free-text instructions to guide the transfer (e.g. view/direction hints like 'frames show the character from behind')
 	AdditionalInstructions string `json:"additional_instructions,omitzero"`
+}
+
+// TwoDReference defines a model
+type TwoDReference struct {
+	View      string    `json:"view"`
+	Format    string    `json:"format"`
+	Source    string    `json:"source"`
+	Direction string    `json:"direction"`
+	Keypoints Keypoints `json:"keypoints"`
 }
 
 // UIAssetDetail defines a model

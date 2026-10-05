@@ -8521,4 +8521,8 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
+
+	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
+		t.Fatalf("GetCharacterDetails: %v", err)
+	}
 }
