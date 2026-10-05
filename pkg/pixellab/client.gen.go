@@ -2586,7 +2586,7 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 // Get portrait ↔ character job status + result
 //
 //	GET /portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID string) (*GetPortraitCharacterResponse, error) {
+func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID uuid.UUID) (*GetPortraitCharacterResponse, error) {
 	return c.GetPortraitCharacterJobStatusWithResult[GetPortraitCharacterResponse](ctx, jobID)
 }
 
@@ -2594,8 +2594,8 @@ func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID string
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
-	u := c.baseURL.JoinPath("portrait-character-pro", jobID)
+func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("portrait-character-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -2947,7 +2947,7 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 // character; a `portrait` job returns the frames in `visemes`.
 //
 //	GET /vocal-animation/{job_id}
-func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID string) (*GetVocalAnimationResponse, error) {
+func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID uuid.UUID) (*GetVocalAnimationResponse, error) {
 	return c.GetMouthPositionJobStatusWithResult[GetVocalAnimationResponse](ctx, jobID)
 }
 
@@ -2959,8 +2959,8 @@ func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID string) (*
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /vocal-animation/{job_id}
-func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
-	u := c.baseURL.JoinPath("vocal-animation", jobID)
+func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("vocal-animation", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -3432,7 +3432,7 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 // Get font-pro job status + result
 //
 //	GET /generate-font-pro/{job_id}
-func (c *Client) GetFontProJobStatus(ctx context.Context, jobID string) (*GetFontResponse, error) {
+func (c *Client) GetFontProJobStatus(ctx context.Context, jobID uuid.UUID) (*GetFontResponse, error) {
 	return c.GetFontProJobStatusWithResult[GetFontResponse](ctx, jobID)
 }
 
@@ -3440,8 +3440,8 @@ func (c *Client) GetFontProJobStatus(ctx context.Context, jobID string) (*GetFon
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /generate-font-pro/{job_id}
-func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
-	u := c.baseURL.JoinPath("generate-font-pro", jobID)
+func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("generate-font-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -10855,7 +10855,7 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 // - Animations may take longer depending on frame count and directions
 //
 //	GET /background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID string) (*BackgroundJobResponse, error) {
+func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID uuid.UUID) (*BackgroundJobResponse, error) {
 	return c.GetBackgroundJobStatusWithResult[BackgroundJobResponse](ctx, jobID)
 }
 
@@ -10895,8 +10895,8 @@ func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID string) (*Bac
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jobID string) (*R, error) {
-	u := c.baseURL.JoinPath("background-jobs", jobID)
+func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("background-jobs", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},

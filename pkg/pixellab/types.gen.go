@@ -2170,9 +2170,9 @@ type GenerateWithStyleV2Request struct {
 type GetFontResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status  string `json:"status"`
-	JobID   string `json:"job_id"`
-	GlyphPx *int   `json:"glyph_px,omitzero"`
+	Status  string    `json:"status"`
+	JobID   uuid.UUID `json:"job_id"`
+	GlyphPx *int      `json:"glyph_px,omitzero"`
 	// No-auth URL for the glyph-atlas PNG. Only present when status=completed.
 	DownloadAtlasURL string `json:"download_atlas_url,omitzero"`
 	// No-auth URL for the .ttf font file. Only present when status=completed.
@@ -2198,11 +2198,11 @@ type GetMapObjectResponse struct {
 type GetPortraitCharacterResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status string `json:"status"`
-	JobID  string `json:"job_id"`
-	Width  *int   `json:"width,omitzero"`
-	Height *int   `json:"height,omitzero"`
-	Seed   *int   `json:"seed,omitzero"`
+	Status string    `json:"status"`
+	JobID  uuid.UUID `json:"job_id"`
+	Width  *int      `json:"width,omitzero"`
+	Height *int      `json:"height,omitzero"`
+	Seed   *int      `json:"seed,omitzero"`
 	// No-auth download URL for the sprite PNG. Only present when status=completed.
 	DownloadURL string `json:"download_url,omitzero"`
 }
@@ -2223,7 +2223,7 @@ type GetVocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// processing, completed or failed
 	Status      string    `json:"status"`
-	JobID       string    `json:"job_id"`
+	JobID       uuid.UUID `json:"job_id"`
 	Mood        string    `json:"mood"`
 	VisemeCount int       `json:"viseme_count"`
 	CharacterID uuid.UUID `json:"character_id,omitzero"`

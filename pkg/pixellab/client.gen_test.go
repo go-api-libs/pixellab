@@ -1461,7 +1461,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1481,7 +1481,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1509,7 +1509,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1534,7 +1534,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1743,7 +1743,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1763,7 +1763,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1791,7 +1791,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1816,7 +1816,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2119,7 +2119,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2139,7 +2139,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2167,7 +2167,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2192,7 +2192,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6768,7 +6768,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6788,7 +6788,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6816,7 +6816,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6841,7 +6841,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), ""); err == nil {
+			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -8503,35 +8503,35 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "0a54f3a8-4d32-415d-8d34-2a1a222bca19"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "17207ad5-f864-4b77-b1c1-e53e5fb8b931"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "6c9cbd82-af86-498f-9de5-949afbd21510"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "f7d8a526-b9a8-4929-a71c-4c8299e62829"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "1366c538-ff5f-488c-bb86-4a7e621b5c58"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "e8a1949a-ff83-489e-8ed7-1f5c7e2257bc"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "14174150-f681-422e-9d5e-79418a0f3fb8"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "5e2e53f1-2e1f-47da-a007-6b3c46ac8802"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
@@ -8539,7 +8539,7 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "6344e926-01ed-4659-81e8-ea3174a9c351"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
@@ -8556,7 +8556,7 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, "b7e52fb9-f38f-425e-bf85-9eca72d35cc4"); err != nil {
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
 		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
