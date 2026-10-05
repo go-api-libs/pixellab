@@ -508,6 +508,11 @@ type Response struct {
 	IsStream bool `json:"isStream,omitzero"`
 }
 
+// IsJSON reports whether the response's media type is a JSON one, whose body the client decodes.
+func (r Response) IsJSON() bool {
+	return r.ContentType != "" && !r.IsRawBytes && !r.IsStream
+}
+
 // ReqBody is the IR representation of an operation request body.
 type ReqBody struct {
 	TypeName    string `json:"typeName,omitzero"`

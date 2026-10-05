@@ -2544,7 +2544,8 @@
           "423": {
             "$ref": "#/components/responses/ExportCharacterAsZipLocked"
           }
-        }
+        },
+        "security": []
       }
     },
     "/characters/{character_id}/tags": {
@@ -3230,7 +3231,8 @@
           "200": {
             "$ref": "#/components/responses/Spritesheet"
           }
-        }
+        },
+        "security": []
       }
     }
   },

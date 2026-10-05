@@ -10573,8 +10573,7 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 	req := (&http.Request{
 		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
+			"User-Agent": []string{c.userAgent},
 		},
 		Host:       u.Host,
 		Method:     http.MethodGet,
@@ -12795,8 +12794,7 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 	u := c.baseURL.JoinPath("characters", characterID.String(), "spritesheet")
 	req := (&http.Request{
 		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
+			"User-Agent": []string{c.userAgent},
 		},
 		Host:       u.Host,
 		Method:     http.MethodGet,

@@ -403,7 +403,7 @@ func (c *Client) {{.Name}}(ctx context.Context{{range .PathParams}}, {{.GoName}}
 {{- else if or .IsSuccess .GoType }}
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "{{ .ContentType }}":
-			{{- if eq .ContentType "application/json" }}
+			{{- if .IsJSON }}
 			var out {{ if and .IsSuccess $op.SuccessReturn }}R{{ else }}{{ .GoType }}{{ end }}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				{{ if $.Debug -}}
