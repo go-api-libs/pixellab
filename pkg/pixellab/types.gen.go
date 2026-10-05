@@ -724,7 +724,7 @@ func (e CreateCharacterAnimationRequestMode) Valid() bool {
 // Response model for character animation (background jobs)
 type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
-	BackgroundJobIds []string `json:"background_job_ids"`
+	BackgroundJobIDs []uuid.UUID `json:"background_job_ids"`
 	// List of directions being animated
 	Directions []string `json:"directions"`
 	// Overall status (processing, completed, failed)

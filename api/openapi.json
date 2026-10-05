@@ -4994,8 +4994,10 @@
             "type": "array",
             "items": {
               "type": "string",
+              "format": "uuid",
               "example": "0c1682f6-60da-4e0f-ac9e-be1d6a1b2218"
-            }
+            },
+            "x-go-name": "BackgroundJobIDs"
           },
           "directions": {
             "title": "Directions",
