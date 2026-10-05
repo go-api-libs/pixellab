@@ -5,15 +5,21 @@
 package pixellab
 
 import (
+	"bytes"
 	"encoding/json/jsontext"
 	"errors"
+	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
+	"strings"
 	"testing"
 	"uuid"
 
+	"github.com/MarkRosemaker/openapi-enrich/cassette"
 	"github.com/go-api-libs/api"
 )
 
@@ -8361,4 +8367,162 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 	})
+}
+
+func replay(t *testing.T) http.RoundTripper {
+	t.Helper()
+
+	interactions, err := cassette.InteractionsReadFile("../../api/interactions.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var idx int
+	return roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if idx >= len(interactions) {
+			return nil, fmt.Errorf("unexpected request: %s %s", req.Method, req.URL)
+		}
+
+		ia := interactions[idx]
+
+		r, err := cassette.NewRequest(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if r.URL != ia.Request.URL {
+			return nil, fmt.Errorf("interaction #%d: got URL %s, want %s", idx, r.URL, ia.Request.URL)
+		}
+
+		if r.Method != ia.Request.Method {
+			return nil, fmt.Errorf("interaction #%d: got method %s, want %s", idx, r.Method, ia.Request.Method)
+		}
+
+		gotBody := jsontext.Value(r.Body)
+		gotBody.Canonicalize()
+
+		wantBody := jsontext.Value(ia.Request.Body)
+		wantBody.Canonicalize()
+
+		if !bytes.Equal(gotBody, wantBody) {
+			return nil, fmt.Errorf("interaction #%d: got body %s, want %s", idx, string(gotBody), string(wantBody))
+		}
+
+		if ia.Request.Headers == nil {
+			ia.Request.Headers = http.Header{}
+		}
+
+		ia.Request.Headers.Set("User-Agent", defaultUserAgent)
+
+		if len(ia.Request.Body) == 0 {
+			ia.Request.Headers.Del("Content-Type")
+		}
+
+		gotScheme, _, _ := strings.Cut(r.Headers.Get("Authorization"), " ")
+		wantScheme, _, _ := strings.Cut(ia.Request.Headers.Get("Authorization"), " ")
+		if gotScheme != wantScheme {
+			return nil, fmt.Errorf("interaction #%d: got Authorization scheme %q, want %q", idx, gotScheme, wantScheme)
+		}
+		r.Headers.Del("Authorization")
+		ia.Request.Headers.Del("Authorization")
+
+		if !maps.EqualFunc(r.Headers, ia.Request.Headers, slices.Equal) {
+			return nil, fmt.Errorf("interaction #%d: got headers %s, want %s", idx, r.Headers, ia.Request.Headers)
+		}
+
+		idx++
+		return &http.Response{
+			Status:     fmt.Sprintf("%d %s", ia.Response.StatusCode, http.StatusText(ia.Response.StatusCode)),
+			StatusCode: ia.Response.StatusCode,
+			Header:     ia.Response.Headers.Clone(),
+			Body:       io.NopCloser(bytes.NewReader(ia.Response.Body)),
+		}, nil
+	})
+}
+
+func TestClient_Interactions(t *testing.T) {
+	ctx := t.Context()
+	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+	c, err := NewClient(WithHTTPClient(&http.Client{Transport: replay(t)}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
+		t.Fatalf("GetCharacterDetails: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
+		AnimationName:     "walking",
+		ActionDescription: "walking",
+		AsyncMode:         true,
+		Mode:              CreateCharacterAnimationRequestModeV3,
+		FrameCount:        8,
+		KeepFirstFrame:    new(true),
+		Directions:        []string{"north", "west"},
+	}); err != nil {
+		t.Fatalf("CreateCharacterAnimation: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.ExportCharacterAsZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &ExportCharacterAsZipParams{}); err != nil {
+		t.Fatalf("ExportCharacterAsZip: %v", err)
+	}
+
+	if _, err := c.ExportCharacterSpritesheet(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363")); err != nil {
+		t.Fatalf("ExportCharacterSpritesheet: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
+		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	}
+
+	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
+		t.Fatalf("GetCharacterDetails: %v", err)
+	}
 }

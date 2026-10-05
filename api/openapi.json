@@ -9031,16 +9031,19 @@
           {
             "type": "number",
             "format": "double",
+            "example": 0.4997421746125551,
             "x-go-name": "X"
           },
           {
             "type": "number",
             "format": "double",
+            "example": 0.4997421746125551,
             "x-go-name": "Y"
           },
           {
             "type": "number",
             "format": "double",
+            "example": 0.4997421746125551,
             "x-go-name": "Z"
           }
         ]
