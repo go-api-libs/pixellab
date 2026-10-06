@@ -1333,7 +1333,7 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 		return &json.SemanticError{Err: errors.New("no alternative set")}
 	}
 
-	out, err := json.Marshal(variant, jsonOpts)
+	out, err := json.Marshal(variant, jsonOptsTo(enc))
 	if err != nil {
 		return err
 	}
@@ -1704,7 +1704,7 @@ func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) er
 		return &json.SemanticError{Err: errors.New("no alternative set")}
 	}
 
-	out, err := json.Marshal(variant, jsonOpts)
+	out, err := json.Marshal(variant, jsonOptsTo(enc))
 	if err != nil {
 		return err
 	}
@@ -2337,10 +2337,14 @@ func (v *ImageArrayOrObject) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 
 	// leniently, more than one may match, and the first does
 	if strict || matched == 0 {
-		var vv DirectionalImages
-		if err := json.Unmarshal(raw, &vv, opts); err == nil {
-			v.DirectionalImages = &vv
-			matched++
+		// decoding checks neither the members the alternative requires nor those it pins to one value
+		required, pinned := []string{"east", "north", "south", "west"}, map[string]string{}
+		if jsonFits(raw, required, pinned) {
+			var vv DirectionalImages
+			if err := json.Unmarshal(raw, &vv, opts); err == nil {
+				v.DirectionalImages = &vv
+				matched++
+			}
 		}
 	}
 
@@ -2364,9 +2368,9 @@ func (v *ImageArrayOrObject) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 func (v *ImageArrayOrObject) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.DirectionalImages != nil:
-		return json.MarshalEncode(enc, v.DirectionalImages, jsonOpts)
+		return json.MarshalEncode(enc, v.DirectionalImages, jsonOptsTo(enc))
 	case v.Images != nil:
-		return json.MarshalEncode(enc, v.Images, jsonOpts)
+		return json.MarshalEncode(enc, v.Images, jsonOptsTo(enc))
 	}
 
 	return &json.SemanticError{Err: errors.New("no alternative set")}
@@ -3938,9 +3942,9 @@ func (v *ValidationErrorLocItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error 
 func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.String != "":
-		return json.MarshalEncode(enc, v.String, jsonOpts)
+		return json.MarshalEncode(enc, v.String, jsonOptsTo(enc))
 	case v.Int != nil:
-		return json.MarshalEncode(enc, v.Int, jsonOpts)
+		return json.MarshalEncode(enc, v.Int, jsonOptsTo(enc))
 	}
 
 	return &json.SemanticError{Err: errors.New("no alternative set")}
@@ -3985,6 +3989,12 @@ func jsonOptsOf(dec *jsontext.Decoder) json.Options {
 	}
 
 	return jsonOptsLenient
+}
+
+// jsonOptsTo is jsonOpts with the options enc was given beside them, such as the marshalers that leave out what a
+// request or a response does not carry, so that what a type encodes itself passes them on.
+func jsonOptsTo(enc *jsontext.Encoder) json.Options {
+	return json.JoinOptions(jsonOpts, enc.Options())
 }
 
 // jsonUnknownName reports a member no part of the type declares, as encoding/json reports one of a struct.
@@ -4454,6 +4464,58 @@ type jsonVariant struct {
 	value    string
 	members  map[string]bool
 	required []string
+	// pinned are the members it allows one value for, written as compact JSON
+	pinned map[string]string
+}
+
+// jsonFits reports whether the JSON value raw has the members required, and those of pinned it has with the value
+// each pins, written as compact JSON. Any value fits where nothing is required or pinned.
+func jsonFits(raw jsontext.Value, required []string, pinned map[string]string) bool {
+	if len(required) == 0 && len(pinned) == 0 {
+		return true
+	}
+
+	if raw.Kind() != jsontext.KindBeginObject {
+		return false
+	}
+
+	dec := jsontext.NewDecoder(bytes.NewReader(raw))
+	if _, err := dec.ReadToken(); err != nil {
+		return false
+	}
+
+	present := map[string]bool{}
+
+	for dec.PeekKind() != jsontext.KindEndObject {
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return false
+		}
+
+		name := tok.String()
+
+		val, err := dec.ReadValue()
+		if err != nil {
+			return false
+		}
+
+		present[name] = true
+
+		if want, ok := pinned[name]; ok {
+			got := val.Clone()
+			if err := got.Compact(); err != nil || string(got) != want {
+				return false
+			}
+		}
+	}
+
+	for _, r := range required {
+		if !present[r] {
+			return false
+		}
+	}
+
+	return true
 }
 
 // jsonChooseVariants returns the alternatives the JSON object raw is: the one its discriminator names, if there is
@@ -4496,10 +4558,8 @@ func jsonChooseVariants(raw jsontext.Value, discriminator string, variants []jso
 	} else {
 	variants:
 		for i, v := range variants {
-			for _, r := range v.required {
-				if !present[r] {
-					continue variants
-				}
+			if !jsonFits(raw, v.required, v.pinned) {
+				continue variants
 			}
 
 			for _, n := range names {
