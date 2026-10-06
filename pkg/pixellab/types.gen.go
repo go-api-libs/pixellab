@@ -466,7 +466,7 @@ type CharacterDetail struct {
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
 	Status string `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
-	RotationUrls RotationURLs `json:"rotation_urls,omitzero"`
+	RotationUrls *RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
 	StyleSettings *StyleSettings `json:"style_settings,omitzero"`
 	// Text guidance scale used
@@ -2629,7 +2629,7 @@ type LastResponse struct {
 	ImageHeight          *int               `json:"image_height,omitzero"`
 	// URLs for character or object rotation images. Populated for multi-direction characters or objects (directions in {4, 8}).
 	// For 1-direction objects all keys are null — see `storage_urls['unknown']`.
-	StorageUrls     RotationURLs      `json:"storage_urls,omitzero"`
+	StorageUrls     *RotationURLs     `json:"storage_urls,omitzero"`
 	BillingUsage    *Usage            `json:"billing_usage,omitzero"`
 	GenerationID    uuid.UUID         `json:"generation_id,omitzero"`
 	BillingCharged  *bool             `json:"billing_charged,omitzero"`
@@ -3103,13 +3103,13 @@ type RotationReferenceImage struct {
 // For 1-direction objects all keys are null — see `storage_urls['unknown']`.
 type RotationURLs struct {
 	// URL for south-facing rotation
-	South url.URL `json:"south"`
+	South url.URL `json:"south,omitzero"`
 	// URL for west-facing rotation
-	West url.URL `json:"west"`
+	West url.URL `json:"west,omitzero"`
 	// URL for east-facing rotation
-	East url.URL `json:"east"`
+	East url.URL `json:"east,omitzero"`
 	// URL for north-facing rotation
-	North url.URL `json:"north"`
+	North url.URL `json:"north,omitzero"`
 	// URL for south-east rotation (8-dir only)
 	SouthEast url.URL `json:"south-east,omitzero"`
 	// URL for north-east rotation (8-dir only)

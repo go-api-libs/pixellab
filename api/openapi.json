@@ -10475,13 +10475,7 @@
               "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
             }
           }
-        },
-        "required": [
-          "south",
-          "west",
-          "east",
-          "north"
-        ]
+        }
       },
       "SelectObjectFramesRequest": {
         "title": "SelectObjectFramesRequest",
