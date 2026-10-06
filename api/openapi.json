@@ -7,11 +7,11 @@
   },
   "servers": [
     {
-      "url": "https://api.pixellab.ai/v2"
+      "url": "https://api.pixellab.ai"
     }
   ],
   "paths": {
-    "/generate-image-v2": {
+    "/v2/generate-image-v2": {
       "post": {
         "tags": [
           "Create Image"
@@ -46,7 +46,7 @@
         ]
       }
     },
-    "/generate-with-style-v2": {
+    "/v2/generate-with-style-v2": {
       "post": {
         "tags": [
           "Create Image"
@@ -81,7 +81,7 @@
         ]
       }
     },
-    "/generate-ui-v2": {
+    "/v2/generate-ui-v2": {
       "post": {
         "tags": [
           "Create Image"
@@ -116,7 +116,7 @@
         ]
       }
     },
-    "/create-image-pixflux": {
+    "/v2/create-image-pixflux": {
       "post": {
         "tags": [
           "Create Image"
@@ -154,7 +154,7 @@
         ]
       }
     },
-    "/create-image-pixflux-background": {
+    "/v2/create-image-pixflux-background": {
       "post": {
         "tags": [
           "Create Image"
@@ -189,7 +189,7 @@
         ]
       }
     },
-    "/create-image-pixen": {
+    "/v2/create-image-pixen": {
       "post": {
         "tags": [
           "Create Image"
@@ -227,7 +227,7 @@
         ]
       }
     },
-    "/create-image-bitforge": {
+    "/v2/create-image-bitforge": {
       "post": {
         "tags": [
           "Create Image"
@@ -265,7 +265,7 @@
         ]
       }
     },
-    "/image-to-pixelart": {
+    "/v2/image-to-pixelart": {
       "post": {
         "tags": [
           "Image Operations"
@@ -303,7 +303,7 @@
         ]
       }
     },
-    "/image-to-pixelart-pro": {
+    "/v2/image-to-pixelart-pro": {
       "post": {
         "tags": [
           "Image Operations"
@@ -338,7 +338,7 @@
         ]
       }
     },
-    "/resize": {
+    "/v2/resize": {
       "post": {
         "tags": [
           "Image Operations"
@@ -376,7 +376,7 @@
         ]
       }
     },
-    "/remove-background": {
+    "/v2/remove-background": {
       "post": {
         "tags": [
           "Image Operations"
@@ -411,7 +411,7 @@
         ]
       }
     },
-    "/edit-animation-v2": {
+    "/v2/edit-animation-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -446,7 +446,7 @@
         ]
       }
     },
-    "/interpolation-v2": {
+    "/v2/interpolation-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -481,7 +481,7 @@
         ]
       }
     },
-    "/transfer-outfit-v2": {
+    "/v2/transfer-outfit-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -516,7 +516,7 @@
         ]
       }
     },
-    "/portrait-character-pro": {
+    "/v2/portrait-character-pro": {
       "post": {
         "tags": [
           "Generate"
@@ -554,7 +554,7 @@
         ]
       }
     },
-    "/portrait-character-pro/{job_id}": {
+    "/v2/portrait-character-pro/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -593,7 +593,7 @@
         ]
       }
     },
-    "/characters/{character_id}/portrait": {
+    "/v2/characters/{character_id}/portrait": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -630,7 +630,7 @@
         ]
       }
     },
-    "/vocal-animation": {
+    "/v2/vocal-animation": {
       "post": {
         "tags": [
           "Generate"
@@ -674,7 +674,7 @@
         ]
       }
     },
-    "/vocal-animation/{job_id}": {
+    "/v2/vocal-animation/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -711,7 +711,7 @@
         ]
       }
     },
-    "/talking-gif": {
+    "/v2/talking-gif": {
       "post": {
         "tags": [
           "Generate"
@@ -746,7 +746,7 @@
         ]
       }
     },
-    "/lip-sync": {
+    "/v2/lip-sync": {
       "post": {
         "tags": [
           "Generate"
@@ -781,7 +781,7 @@
         ]
       }
     },
-    "/generate-font-pro": {
+    "/v2/generate-font-pro": {
       "post": {
         "tags": [
           "Generate"
@@ -816,7 +816,7 @@
         ]
       }
     },
-    "/generate-font-pro/{job_id}": {
+    "/v2/generate-font-pro/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -855,7 +855,7 @@
         ]
       }
     },
-    "/animate-with-skeleton": {
+    "/v2/animate-with-skeleton": {
       "post": {
         "tags": [
           "Animate"
@@ -893,7 +893,7 @@
         ]
       }
     },
-    "/animate-with-text": {
+    "/v2/animate-with-text": {
       "post": {
         "tags": [
           "Animate"
@@ -931,7 +931,7 @@
         ]
       }
     },
-    "/animate-with-text-v2": {
+    "/v2/animate-with-text-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -966,7 +966,7 @@
         ]
       }
     },
-    "/animate-with-text-v3": {
+    "/v2/animate-with-text-v3": {
       "post": {
         "tags": [
           "Animate"
@@ -1001,7 +1001,7 @@
         ]
       }
     },
-    "/estimate-skeleton": {
+    "/v2/estimate-skeleton": {
       "post": {
         "tags": [
           "Animate"
@@ -1039,7 +1039,7 @@
         ]
       }
     },
-    "/generate-8-rotations-v2": {
+    "/v2/generate-8-rotations-v2": {
       "post": {
         "tags": [
           "Rotate"
@@ -1074,7 +1074,7 @@
         ]
       }
     },
-    "/generate-8-rotations-v3": {
+    "/v2/generate-8-rotations-v3": {
       "post": {
         "tags": [
           "Rotate"
@@ -1109,7 +1109,7 @@
         ]
       }
     },
-    "/rotate": {
+    "/v2/rotate": {
       "post": {
         "tags": [
           "Rotate"
@@ -1147,7 +1147,7 @@
         ]
       }
     },
-    "/inpaint-v3": {
+    "/v2/inpaint-v3": {
       "post": {
         "tags": [
           "Inpaint"
@@ -1182,7 +1182,7 @@
         ]
       }
     },
-    "/inpaint": {
+    "/v2/inpaint": {
       "post": {
         "tags": [
           "Inpaint"
@@ -1220,7 +1220,7 @@
         ]
       }
     },
-    "/edit-images-v2": {
+    "/v2/edit-images-v2": {
       "post": {
         "tags": [
           "Edit"
@@ -1255,7 +1255,7 @@
         ]
       }
     },
-    "/edit-image": {
+    "/v2/edit-image": {
       "post": {
         "tags": [
           "Edit"
@@ -1290,7 +1290,7 @@
         ]
       }
     },
-    "/tilesets": {
+    "/v2/tilesets": {
       "get": {
         "tags": [
           "Create map"
@@ -1360,7 +1360,7 @@
         ]
       }
     },
-    "/create-tileset": {
+    "/v2/create-tileset": {
       "post": {
         "tags": [
           "Create map"
@@ -1401,7 +1401,7 @@
         ]
       }
     },
-    "/tilesets/{tileset_id}": {
+    "/v2/tilesets/{tileset_id}": {
       "get": {
         "tags": [
           "Create map"
@@ -1473,7 +1473,7 @@
         ]
       }
     },
-    "/tilesets-sidescroller": {
+    "/v2/tilesets-sidescroller": {
       "get": {
         "tags": [
           "Create map"
@@ -1543,7 +1543,7 @@
         ]
       }
     },
-    "/create-tileset-sidescroller": {
+    "/v2/create-tileset-sidescroller": {
       "post": {
         "tags": [
           "Create map"
@@ -1581,7 +1581,7 @@
         ]
       }
     },
-    "/tilesets-sidescroller/{tileset_id}": {
+    "/v2/tilesets-sidescroller/{tileset_id}": {
       "get": {
         "tags": [
           "Create map"
@@ -1653,7 +1653,7 @@
         ]
       }
     },
-    "/create-isometric-tile": {
+    "/v2/create-isometric-tile": {
       "post": {
         "tags": [
           "Create map"
@@ -1694,7 +1694,7 @@
         ]
       }
     },
-    "/isometric-tiles/{tile_id}": {
+    "/v2/isometric-tiles/{tile_id}": {
       "get": {
         "tags": [
           "Create map"
@@ -1766,7 +1766,7 @@
         ]
       }
     },
-    "/isometric-tiles": {
+    "/v2/isometric-tiles": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit3"
@@ -1800,7 +1800,7 @@
         ]
       }
     },
-    "/create-tiles-pro": {
+    "/v2/create-tiles-pro": {
       "post": {
         "tags": [
           "Create map"
@@ -1835,7 +1835,7 @@
         ]
       }
     },
-    "/tiles-pro/{tile_id}": {
+    "/v2/tiles-pro/{tile_id}": {
       "get": {
         "tags": [
           "Create map"
@@ -1910,7 +1910,7 @@
         ]
       }
     },
-    "/tiles-pro": {
+    "/v2/tiles-pro": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit2"
@@ -1944,7 +1944,7 @@
         ]
       }
     },
-    "/map-objects": {
+    "/v2/map-objects": {
       "post": {
         "tags": [
           "Map Objects"
@@ -1979,7 +1979,7 @@
         ]
       }
     },
-    "/map-objects/{object_id}": {
+    "/v2/map-objects/{object_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -2019,7 +2019,7 @@
         ]
       }
     },
-    "/create-ui-asset": {
+    "/v2/create-ui-asset": {
       "post": {
         "tags": [
           "UI Creator"
@@ -2054,7 +2054,7 @@
         ]
       }
     },
-    "/ui-assets": {
+    "/v2/ui-assets": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit5"
@@ -2088,7 +2088,7 @@
         ]
       }
     },
-    "/ui-assets/{ui_asset_id}": {
+    "/v2/ui-assets/{ui_asset_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/ui_asset_id"
@@ -2149,7 +2149,7 @@
         ]
       }
     },
-    "/balance": {
+    "/v2/balance": {
       "get": {
         "tags": [
           "Account"
@@ -2172,7 +2172,7 @@
         ]
       }
     },
-    "/create-character-with-4-directions": {
+    "/v2/create-character-with-4-directions": {
       "post": {
         "tags": [
           "Character from template"
@@ -2207,7 +2207,7 @@
         ]
       }
     },
-    "/create-character-with-8-directions": {
+    "/v2/create-character-with-8-directions": {
       "post": {
         "tags": [
           "Character from template"
@@ -2242,7 +2242,7 @@
         ]
       }
     },
-    "/create-character-pro": {
+    "/v2/create-character-pro": {
       "post": {
         "tags": [
           "Character from template"
@@ -2277,7 +2277,7 @@
         ]
       }
     },
-    "/create-character-v3": {
+    "/v2/create-character-v3": {
       "post": {
         "tags": [
           "Character from template"
@@ -2312,7 +2312,7 @@
         ]
       }
     },
-    "/characters/animations": {
+    "/v2/characters/animations": {
       "post": {
         "tags": [
           "Character from template"
@@ -2338,7 +2338,7 @@
         ]
       }
     },
-    "/animate-character": {
+    "/v2/animate-character": {
       "post": {
         "tags": [
           "Character from template"
@@ -2376,7 +2376,7 @@
         ]
       }
     },
-    "/create-character-state": {
+    "/v2/create-character-state": {
       "post": {
         "tags": [
           "Characters"
@@ -2417,7 +2417,7 @@
         ]
       }
     },
-    "/characters": {
+    "/v2/characters": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit6"
@@ -2454,7 +2454,7 @@
         ]
       }
     },
-    "/characters/{character_id}": {
+    "/v2/characters/{character_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -2515,7 +2515,7 @@
         ]
       }
     },
-    "/characters/{character_id}/zip": {
+    "/v2/characters/{character_id}/zip": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -2548,7 +2548,7 @@
         "security": []
       }
     },
-    "/characters/{character_id}/tags": {
+    "/v2/characters/{character_id}/tags": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -2594,7 +2594,7 @@
         ]
       }
     },
-    "/background-jobs/{job_id}": {
+    "/v2/background-jobs/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -2631,7 +2631,7 @@
         ]
       }
     },
-    "/create-1-direction-object": {
+    "/v2/create-1-direction-object": {
       "post": {
         "tags": [
           "Objects"
@@ -2666,7 +2666,7 @@
         ]
       }
     },
-    "/create-8-direction-object": {
+    "/v2/create-8-direction-object": {
       "post": {
         "tags": [
           "Objects"
@@ -2701,7 +2701,7 @@
         ]
       }
     },
-    "/objects/{object_id}/animations": {
+    "/v2/objects/{object_id}/animations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -2794,7 +2794,7 @@
         ]
       }
     },
-    "/objects/{object_id}/states": {
+    "/v2/objects/{object_id}/states": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -2840,7 +2840,7 @@
         ]
       }
     },
-    "/objects/{object_id}/select-frames": {
+    "/v2/objects/{object_id}/select-frames": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -2879,7 +2879,7 @@
         ]
       }
     },
-    "/objects/{object_id}/dismiss-review": {
+    "/v2/objects/{object_id}/dismiss-review": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -2915,7 +2915,7 @@
         ]
       }
     },
-    "/objects": {
+    "/v2/objects": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit7"
@@ -2949,7 +2949,7 @@
         ]
       }
     },
-    "/objects/{object_id}": {
+    "/v2/objects/{object_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -3016,7 +3016,7 @@
         ]
       }
     },
-    "/objects/{object_id}/tags": {
+    "/v2/objects/{object_id}/tags": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id2"
@@ -3059,7 +3059,7 @@
         ]
       }
     },
-    "/characters/{character_id}/animations": {
+    "/v2/characters/{character_id}/animations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -3108,7 +3108,7 @@
         ]
       }
     },
-    "/enhance-pixen-prompt": {
+    "/v2/enhance-pixen-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3140,7 +3140,7 @@
         ]
       }
     },
-    "/enhance-character-v3-prompt": {
+    "/v2/enhance-character-v3-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3172,7 +3172,7 @@
         ]
       }
     },
-    "/enhance-animation-v3-prompt": {
+    "/v2/enhance-animation-v3-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3204,7 +3204,7 @@
         ]
       }
     },
-    "/llms.txt": {
+    "/v2/llms.txt": {
       "get": {
         "tags": [
           "Documentation"
@@ -3219,7 +3219,7 @@
         }
       }
     },
-    "/characters/{character_id}/spritesheet": {
+    "/v2/characters/{character_id}/spritesheet": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -3233,6 +3233,24 @@
           }
         },
         "security": []
+      }
+    },
+    "/animate-with-text-v3/character/background": {
+      "post": {
+        "operationId": "AnimateCharacterBackground",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/AnimateCharacterBackground"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/BackgroundJob"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     }
   },
@@ -3248,6 +3266,61 @@
           "jumping"
         ],
         "example": "walking"
+      },
+      "AnimateCharacterBackground": {
+        "type": "object",
+        "properties": {
+          "character_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "8901396f-5807-4f57-90da-8443d1f6a517"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "action": {
+            "title": "Action",
+            "description": "Action description",
+            "type": "string",
+            "example": "walking"
+          },
+          "frame_count": {
+            "title": "Frame Count",
+            "type": "integer",
+            "example": 8
+          },
+          "animation_name": {
+            "$ref": "#/components/schemas/AnimationName"
+          },
+          "no_background": {
+            "type": "boolean"
+          },
+          "custom_frames": {
+            "type": "boolean"
+          },
+          "animation_group_id": {
+            "title": "Animation Group Id",
+            "type": "string",
+            "format": "uuid",
+            "example": "46a19e47-cbe7-4fee-b619-615509d1d796"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "description": "Optional name for the animation, shown in the UI and used when exporting.",
+            "type": "string",
+            "example": "Walking"
+          },
+          "keep_first_frame": {
+            "type": "boolean"
+          },
+          "template_action": {
+            "$ref": "#/components/schemas/TemplateAction"
+          },
+          "engine": {
+            "type": "string",
+            "example": "v3"
+          }
+        }
       },
       "AnimateObjectMode": {
         "title": "Mode",
@@ -3910,6 +3983,16 @@
           "directions"
         ]
       },
+      "AnimationName": {
+        "title": "Animation Name",
+        "description": "Name for this animation (defaults to action_description if not provided)",
+        "type": "string",
+        "enum": [
+          "v3:walking",
+          "walking"
+        ],
+        "example": "v3:walking"
+      },
       "AsyncJobResponse": {
         "title": "AnimateWithTextV2Response",
         "description": "Response model for text-to-animation endpoint (background job)",
@@ -3943,6 +4026,24 @@
             "usd": 0.0
           }
         }
+      },
+      "BackgroundJob": {
+        "type": "object",
+        "properties": {
+          "background_job_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "f51fc2ef-27bd-4caa-9fe5-65cd9662015a"
+          },
+          "status": {
+            "type": "string",
+            "example": "processing"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "status"
+        ]
       },
       "BackgroundJobResponse": {
         "title": "BackgroundJobResponse",
@@ -4791,10 +4892,7 @@
             "format": "uuid"
           },
           "animation_name": {
-            "title": "Animation Name",
-            "description": "Name for this animation (defaults to action_description if not provided)",
-            "type": "string",
-            "example": "walking"
+            "$ref": "#/components/schemas/AnimationName"
           },
           "async_mode": {
             "title": "Async Mode",
@@ -9284,8 +9382,7 @@
             "example": 8
           },
           "animation_name": {
-            "type": "string",
-            "example": "custom-walking"
+            "$ref": "#/components/schemas/AnimationName"
           },
           "generation_model": {
             "type": "string",
@@ -11003,6 +11100,13 @@
           "height"
         ]
       },
+      "TemplateAction": {
+        "type": "string",
+        "enum": [
+          "walking"
+        ],
+        "example": "walking"
+      },
       "TemplateAnimationID": {
         "title": "Template Animation Id",
         "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
@@ -12490,6 +12594,16 @@
       },
       "AnimateWithTextV3UnprocessableEntity": {
         "description": "Validation error"
+      },
+      "BackgroundJob": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/BackgroundJob"
+            }
+          }
+        }
       },
       "ConvertImageToPixelArtBadRequest": {
         "description": "Invalid image size constraints"
@@ -15519,6 +15633,15 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/CreateCharacterAnimationRequest"
+            }
+          }
+        }
+      },
+      "AnimateCharacterBackground": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnimateCharacterBackground"
             }
           }
         }

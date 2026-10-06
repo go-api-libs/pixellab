@@ -125,6 +125,26 @@ func (e ActionDescription) Valid() bool {
 	}
 }
 
+// AnimateCharacterBackground defines a model
+type AnimateCharacterBackground struct {
+	CharacterID uuid.UUID `json:"character_id,omitzero"`
+	// Facing direction. Which values are accepted is request-specific.
+	Direction Direction `json:"direction,omitzero"`
+	// Action description
+	Action     string `json:"action,omitzero"`
+	FrameCount *int   `json:"frame_count,omitzero"`
+	// Name for this animation (defaults to action_description if not provided)
+	AnimationName    AnimationName `json:"animation_name,omitzero"`
+	NoBackground     *bool         `json:"no_background,omitzero"`
+	CustomFrames     *bool         `json:"custom_frames,omitzero"`
+	AnimationGroupID uuid.UUID     `json:"animation_group_id,omitzero"`
+	// Optional name for the animation, shown in the UI and used when exporting.
+	DisplayName    string         `json:"display_name,omitzero"`
+	KeepFirstFrame *bool          `json:"keep_first_frame,omitzero"`
+	TemplateAction TemplateAction `json:"template_action,omitzero"`
+	Engine         string         `json:"engine,omitzero"`
+}
+
 // Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.
 //
 // **Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).
@@ -379,6 +399,24 @@ type AnimationGroup struct {
 	Directions       []AnimationDirection `json:"directions"`
 }
 
+// Name for this animation (defaults to action_description if not provided)
+type AnimationName string
+
+const (
+	AnimationNameV3walking AnimationName = "v3:walking"
+	AnimationNameWalking   AnimationName = "walking"
+)
+
+// Valid indicates whether the value is a known member of the AnimationName enum.
+func (e AnimationName) Valid() bool {
+	switch e {
+	case AnimationNameV3walking, AnimationNameWalking:
+		return true
+	default:
+		return false
+	}
+}
+
 // Response model for text-to-animation endpoint (background job)
 type AsyncJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -386,6 +424,12 @@ type AsyncJobResponse struct {
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
 	Status string `json:"status,omitzero"`
+}
+
+// BackgroundJob defines a model
+type BackgroundJob struct {
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	Status          string    `json:"status"`
 }
 
 // Response model for background job status
@@ -678,7 +722,7 @@ type CreateCharacterAnimationRequest struct {
 	// Pass the animation_group_id of an existing animation on this character to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it. Same semantics as animate_object. A direction the group already has is rejected with 409: delete it first, or omit the id to create a new animation.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Name for this animation (defaults to action_description if not provided)
-	AnimationName string `json:"animation_name,omitzero"`
+	AnimationName AnimationName `json:"animation_name,omitzero"`
 	// Process in background (always true - no foreground processing yet)
 	AsyncMode bool `json:"async_mode,omitzero"`
 	// Color palette reference image
@@ -2658,9 +2702,10 @@ type LastResponse struct {
 	EstimatedWaitSeconds *int   `json:"estimated_wait_seconds,omitzero"`
 	Action               string `json:"action,omitzero"`
 	// Facing direction. Which values are accepted is request-specific.
-	Direction           Direction      `json:"direction,omitzero"`
-	FrameCount          *int           `json:"frame_count,omitzero"`
-	AnimationName       string         `json:"animation_name,omitzero"`
+	Direction  Direction `json:"direction,omitzero"`
+	FrameCount *int      `json:"frame_count,omitzero"`
+	// Name for this animation (defaults to action_description if not provided)
+	AnimationName       AnimationName  `json:"animation_name,omitzero"`
 	GenerationModel     string         `json:"generation_model,omitzero"`
 	AnimationGroupID    uuid.UUID      `json:"animation_group_id,omitzero"`
 	GenerationMode      GenerationMode `json:"generation_mode,omitzero"`
@@ -3359,6 +3404,23 @@ type TalkingGifResponse struct {
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
 	Mood   string `json:"mood,omitzero"`
+}
+
+// TemplateAction defines a model
+type TemplateAction string
+
+const (
+	TemplateActionWalking TemplateAction = "walking"
+)
+
+// Valid indicates whether the value is a known member of the TemplateAction enum.
+func (e TemplateAction) Valid() bool {
+	switch e {
+	case TemplateActionWalking:
+		return true
+	default:
+		return false
+	}
 }
 
 // Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...

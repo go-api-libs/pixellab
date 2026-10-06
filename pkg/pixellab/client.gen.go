@@ -26,7 +26,7 @@ const defaultUserAgent = "Pixel Lab API"
 var defaultBaseURL = &url.URL{
 	Scheme: "https",
 	Host:   "api.pixellab.ai",
-	Path:   "/v2",
+	Path:   "/",
 }
 
 // Client is an HTTP client for the pixellab API.
@@ -142,7 +142,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 //
 // ```
 //
-//	POST /generate-image-v2
+//	POST /v2/generate-image-v2
 func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request) (*AsyncJobResponse, error) {
 	return c.GenerateImageWithResult[AsyncJobResponse](ctx, body)
 }
@@ -196,9 +196,9 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request)
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-image-v2
+//	POST /v2/generate-image-v2
 func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body GenerateImageV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("generate-image-v2")
+	u := c.baseURL.JoinPath("v2", "generate-image-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -333,7 +333,7 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 // # Output size is deduced from the style images (64x64 here)
 // ```
 //
-//	POST /generate-with-style-v2
+//	POST /v2/generate-with-style-v2
 func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2Request) (*AsyncJobResponse, error) {
 	return c.GenerateWithStyleWithResult[AsyncJobResponse](ctx, body)
 }
@@ -381,9 +381,9 @@ func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-with-style-v2
+//	POST /v2/generate-with-style-v2
 func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body GenerateWithStyleV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("generate-with-style-v2")
+	u := c.baseURL.JoinPath("v2", "generate-with-style-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -522,7 +522,7 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 // response.images[0].pil_image().save("button.png")
 // ```
 //
-//	POST /generate-ui-v2
+//	POST /v2/generate-ui-v2
 func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*AsyncJobResponse, error) {
 	return c.GenerateUIWithResult[AsyncJobResponse](ctx, body)
 }
@@ -574,9 +574,9 @@ func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*Asy
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-ui-v2
+//	POST /v2/generate-ui-v2
 func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateUIV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("generate-ui-v2")
+	u := c.baseURL.JoinPath("v2", "generate-ui-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -694,7 +694,7 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 // response.image.pil_image()
 // ```
 //
-//	POST /create-image-pixflux
+//	POST /v2/create-image-pixflux
 func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*ImageResponse, error) {
 	return c.CreateImagePixfluxWithResult[ImageResponse](ctx, body)
 }
@@ -725,9 +725,9 @@ func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixflux
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-image-pixflux
+//	POST /v2/create-image-pixflux
 func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-image-pixflux")
+	u := c.baseURL.JoinPath("v2", "create-image-pixflux")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -841,7 +841,7 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
 // 3. When `status` is `completed`, the image is in `last_response.image.base64`
 //
-//	POST /create-image-pixflux-background
+//	POST /v2/create-image-pixflux-background
 func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*AsyncJobResponse, error) {
 	return c.CreateImagePixfluxBackgroundWithResult[AsyncJobResponse](ctx, body)
 }
@@ -865,9 +865,9 @@ func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateIm
 // 3. When `status` is `completed`, the image is in `last_response.image.base64`
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-image-pixflux-background
+//	POST /v2/create-image-pixflux-background
 func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-image-pixflux-background")
+	u := c.baseURL.JoinPath("v2", "create-image-pixflux-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -988,7 +988,7 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 // response.image.pil_image()
 // ```
 //
-//	POST /create-image-pixen
+//	POST /v2/create-image-pixen
 func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequest) (*CreateImagePixenResponse, error) {
 	return c.CreateImagePixenWithResult[CreateImagePixenResponse](ctx, body)
 }
@@ -1022,9 +1022,9 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-image-pixen
+//	POST /v2/create-image-pixen
 func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body CreateImagePixenRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-image-pixen")
+	u := c.baseURL.JoinPath("v2", "create-image-pixen")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1147,7 +1147,7 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 // response.image.pil_image()
 // ```
 //
-//	POST /create-image-bitforge
+//	POST /v2/create-image-bitforge
 func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*ImageResponse, error) {
 	return c.CreateImageBitforgeWithResult[ImageResponse](ctx, body)
 }
@@ -1180,9 +1180,9 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-image-bitforge
+//	POST /v2/create-image-bitforge
 func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body CreateImageBitforgeRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-image-bitforge")
+	u := c.baseURL.JoinPath("v2", "create-image-bitforge")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1307,7 +1307,7 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 // result.image.pil_image().save("pixelart.png")
 // ```
 //
-//	POST /image-to-pixelart
+//	POST /v2/image-to-pixelart
 func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
 	return c.ConvertImageToPixelArtWithResult[ImageResponse](ctx, body)
 }
@@ -1342,9 +1342,9 @@ func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelar
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /image-to-pixelart
+//	POST /v2/image-to-pixelart
 func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
-	u := c.baseURL.JoinPath("image-to-pixelart")
+	u := c.baseURL.JoinPath("v2", "image-to-pixelart")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1475,7 +1475,7 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 // )
 // ```
 //
-//	POST /image-to-pixelart-pro
+//	POST /v2/image-to-pixelart-pro
 func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixelartProRequest) (*AsyncJobResponse, error) {
 	return c.ConvertImageToPixelArtProWithResult[AsyncJobResponse](ctx, body)
 }
@@ -1516,9 +1516,9 @@ func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixe
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /image-to-pixelart-pro
+//	POST /v2/image-to-pixelart-pro
 func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("image-to-pixelart-pro")
+	u := c.baseURL.JoinPath("v2", "image-to-pixelart-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1646,7 +1646,7 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 // result.image.pil_image().save("character_64x64.png")
 // ```
 //
-//	POST /resize
+//	POST /v2/resize
 func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {
 	return c.ResizePixelArtImageWithResult[ImageResponse](ctx, body)
 }
@@ -1687,9 +1687,9 @@ func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /resize
+//	POST /v2/resize
 func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
-	u := c.baseURL.JoinPath("resize")
+	u := c.baseURL.JoinPath("v2", "resize")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1814,7 +1814,7 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 // result.image.pil_image().save("character_no_bg.png")
 // ```
 //
-//	POST /remove-background
+//	POST /v2/remove-background
 func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
 	return c.RemoveBackgroundWithResult[ImageResponse](ctx, body)
 }
@@ -1849,9 +1849,9 @@ func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequ
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /remove-background
+//	POST /v2/remove-background
 func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
-	u := c.baseURL.JoinPath("remove-background")
+	u := c.baseURL.JoinPath("v2", "remove-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -2004,7 +2004,7 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 //
 // ```
 //
-//	POST /edit-animation-v2
+//	POST /v2/edit-animation-v2
 func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request) (*AsyncJobResponse, error) {
 	return c.EditAnimationWithResult[AsyncJobResponse](ctx, body)
 }
@@ -2070,9 +2070,9 @@ func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request)
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /edit-animation-v2
+//	POST /v2/edit-animation-v2
 func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAnimationV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("edit-animation-v2")
+	u := c.baseURL.JoinPath("v2", "edit-animation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -2219,7 +2219,7 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 //
 // ```
 //
-//	POST /interpolation-v2
+//	POST /v2/interpolation-v2
 func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (*AsyncJobResponse, error) {
 	return c.InterpolateWithResult[AsyncJobResponse](ctx, body)
 }
@@ -2279,9 +2279,9 @@ func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /interpolation-v2
+//	POST /v2/interpolation-v2
 func (c *Client) InterpolateWithResult[R any](ctx context.Context, body InterpolationV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("interpolation-v2")
+	u := c.baseURL.JoinPath("v2", "interpolation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -2432,7 +2432,7 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 //
 // ```
 //
-//	POST /transfer-outfit-v2
+//	POST /v2/transfer-outfit-v2
 func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Request) (*AsyncJobResponse, error) {
 	return c.TransferOutfitWithResult[AsyncJobResponse](ctx, body)
 }
@@ -2496,9 +2496,9 @@ func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Reques
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /transfer-outfit-v2
+//	POST /v2/transfer-outfit-v2
 func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body TransferOutfitV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("transfer-outfit-v2")
+	u := c.baseURL.JoinPath("v2", "transfer-outfit-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -2625,7 +2625,7 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 // response.images[0].pil_image().save("character.png")
 // ```
 //
-//	POST /portrait-character-pro
+//	POST /v2/portrait-character-pro
 func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterProRequest) (*AsyncJobResponse, error) {
 	return c.PortraitCharacterWithResult[AsyncJobResponse](ctx, body)
 }
@@ -2665,9 +2665,9 @@ func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterPr
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /portrait-character-pro
+//	POST /v2/portrait-character-pro
 func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body PortraitCharacterProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("portrait-character-pro")
+	u := c.baseURL.JoinPath("v2", "portrait-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -2765,7 +2765,7 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 
 // Get portrait ↔ character job status + result
 //
-//	GET /portrait-character-pro/{job_id}
+//	GET /v2/portrait-character-pro/{job_id}
 func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID uuid.UUID) (*GetPortraitCharacterResponse, error) {
 	return c.GetPortraitCharacterJobStatusWithResult[GetPortraitCharacterResponse](ctx, jobID)
 }
@@ -2773,9 +2773,9 @@ func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID uuid.U
 // Get portrait ↔ character job status + result
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /portrait-character-pro/{job_id}
+//	GET /v2/portrait-character-pro/{job_id}
 func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("portrait-character-pro", jobID.String())
+	u := c.baseURL.JoinPath("v2", "portrait-character-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -2893,7 +2893,7 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 // To generate a portrait from a full-body sprite first, use
 // `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
 //
-//	POST /characters/{character_id}/portrait
+//	POST /v2/characters/{character_id}/portrait
 func (c *Client) SetCharactersPortrait(ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*SetPortraitResponse, error) {
 	return c.SetCharactersPortraitWithResult[SetPortraitResponse](ctx, characterID, body)
 }
@@ -2907,9 +2907,9 @@ func (c *Client) SetCharactersPortrait(ctx context.Context, characterID uuid.UUI
 // `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /characters/{character_id}/portrait
+//	POST /v2/characters/{character_id}/portrait
 func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "portrait")
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "portrait")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -3026,7 +3026,7 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 //  3. When `status` is `completed`, either the set is on your character, or the
 //     frames are in `visemes`
 //
-//     POST /vocal-animation
+//     POST /v2/vocal-animation
 func (c *Client) GenerateTalkingMouthPositionsForPortrait(ctx context.Context, body VocalAnimationRequest) (*VocalAnimationResponse, error) {
 	return c.GenerateTalkingMouthPositionsForPortraitWithResult[VocalAnimationResponse](ctx, body)
 }
@@ -3057,9 +3057,9 @@ func (c *Client) GenerateTalkingMouthPositionsForPortrait(ctx context.Context, b
 //
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /vocal-animation
+//	POST /v2/vocal-animation
 func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx context.Context, body VocalAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("vocal-animation")
+	u := c.baseURL.JoinPath("v2", "vocal-animation")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -3167,7 +3167,7 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 // while the job runs. On completion, a `character_id` job has saved the set onto the
 // character; a `portrait` job returns the frames in `visemes`.
 //
-//	GET /vocal-animation/{job_id}
+//	GET /v2/vocal-animation/{job_id}
 func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID uuid.UUID) (*GetVocalAnimationResponse, error) {
 	return c.GetMouthPositionJobStatusWithResult[GetVocalAnimationResponse](ctx, jobID)
 }
@@ -3179,9 +3179,9 @@ func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID uuid.UUID)
 // character; a `portrait` job returns the frames in `visemes`.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /vocal-animation/{job_id}
+//	GET /v2/vocal-animation/{job_id}
 func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("vocal-animation", jobID.String())
+	u := c.baseURL.JoinPath("v2", "vocal-animation", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -3300,7 +3300,7 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 //
 // Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
 //
-//	POST /talking-gif
+//	POST /v2/talking-gif
 func (c *Client) LipSyncTextToTalkingGifFree(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
 	return c.LipSyncTextToTalkingGifFreeWithResult[TalkingGifResponse](ctx, body)
 }
@@ -3318,9 +3318,9 @@ func (c *Client) LipSyncTextToTalkingGifFree(ctx context.Context, body TalkingGi
 // Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /talking-gif
+//	POST /v2/talking-gif
 func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
-	u := c.baseURL.JoinPath("talking-gif")
+	u := c.baseURL.JoinPath("v2", "talking-gif")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -3426,7 +3426,7 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 //
 // Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
 //
-//	POST /lip-sync
+//	POST /v2/lip-sync
 func (c *Client) GetTheLipSyncFramePlanForTextFree(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
 	return c.GetTheLipSyncFramePlanForTextFreeWithResult[LipSyncResponse](ctx, body)
 }
@@ -3445,9 +3445,9 @@ func (c *Client) GetTheLipSyncFramePlanForTextFree(ctx context.Context, body Lip
 // Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /lip-sync
+//	POST /v2/lip-sync
 func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
-	u := c.baseURL.JoinPath("lip-sync")
+	u := c.baseURL.JoinPath("v2", "lip-sync")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -3571,7 +3571,7 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 // )
 // ```
 //
-//	POST /generate-font-pro
+//	POST /v2/generate-font-pro
 func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequest) (*AsyncJobResponse, error) {
 	return c.GeneratePixelFontWithResult[AsyncJobResponse](ctx, body)
 }
@@ -3608,9 +3608,9 @@ func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequ
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-font-pro
+//	POST /v2/generate-font-pro
 func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("generate-font-pro")
+	u := c.baseURL.JoinPath("v2", "generate-font-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -3705,7 +3705,7 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 
 // Get font-pro job status + result
 //
-//	GET /generate-font-pro/{job_id}
+//	GET /v2/generate-font-pro/{job_id}
 func (c *Client) GetFontProJobStatus(ctx context.Context, jobID uuid.UUID) (*GetFontResponse, error) {
 	return c.GetFontProJobStatusWithResult[GetFontResponse](ctx, jobID)
 }
@@ -3713,9 +3713,9 @@ func (c *Client) GetFontProJobStatus(ctx context.Context, jobID uuid.UUID) (*Get
 // Get font-pro job status + result
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /generate-font-pro/{job_id}
+//	GET /v2/generate-font-pro/{job_id}
 func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("generate-font-pro", jobID.String())
+	u := c.baseURL.JoinPath("v2", "generate-font-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -3859,7 +3859,7 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 // images = [image.pil_image() for image in response.images]
 // ```
 //
-//	POST /animate-with-skeleton
+//	POST /v2/animate-with-skeleton
 func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeleton, error) {
 	return c.AnimateWithSkeletonWithResult[AnimateWithSkeleton](ctx, body)
 }
@@ -3899,9 +3899,9 @@ func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkelet
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /animate-with-skeleton
+//	POST /v2/animate-with-skeleton
 func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
-	u := c.baseURL.JoinPath("animate-with-skeleton")
+	u := c.baseURL.JoinPath("v2", "animate-with-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4029,7 +4029,7 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 // images = [image.pil_image() for image in response.images]
 // ```
 //
-//	POST /animate-with-text
+//	POST /v2/animate-with-text
 func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithSkeleton, error) {
 	return c.AnimateWithTextWithResult[AnimateWithSkeleton](ctx, body)
 }
@@ -4067,9 +4067,9 @@ func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextReques
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /animate-with-text
+//	POST /v2/animate-with-text
 func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
-	u := c.baseURL.JoinPath("animate-with-text")
+	u := c.baseURL.JoinPath("v2", "animate-with-text")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4233,7 +4233,7 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 //
 // ```
 //
-//	POST /animate-with-text-v2
+//	POST /v2/animate-with-text-v2
 func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2Request) (*AsyncJobResponse, error) {
 	return c.AnimateWithTextProWithResult[AsyncJobResponse](ctx, body)
 }
@@ -4307,9 +4307,9 @@ func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2R
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /animate-with-text-v2
+//	POST /v2/animate-with-text-v2
 func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("animate-with-text-v2")
+	u := c.baseURL.JoinPath("v2", "animate-with-text-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4449,7 +4449,7 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 //
 // ```
 //
-//	POST /animate-with-text-v3
+//	POST /v2/animate-with-text-v3
 func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Request) (*AnimateWithTextV3Response, error) {
 	return c.AnimateWithTextV3WithResult[AnimateWithTextV3Response](ctx, body)
 }
@@ -4502,9 +4502,9 @@ func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Re
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /animate-with-text-v3
+//	POST /v2/animate-with-text-v3
 func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("animate-with-text-v3")
+	u := c.baseURL.JoinPath("v2", "animate-with-text-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4620,7 +4620,7 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 // response.keypoints
 // ```
 //
-//	POST /estimate-skeleton
+//	POST /v2/estimate-skeleton
 func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
 	return c.EstimateSkeletonWithResult[EstimateSkeletonResponse](ctx, body)
 }
@@ -4649,9 +4649,9 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /estimate-skeleton
+//	POST /v2/estimate-skeleton
 func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
-	u := c.baseURL.JoinPath("estimate-skeleton")
+	u := c.baseURL.JoinPath("v2", "estimate-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4799,7 +4799,7 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 // )
 // ```
 //
-//	POST /generate-8-rotations-v2
+//	POST /v2/generate-8-rotations-v2
 func (c *Client) Generate8Rotations(ctx context.Context, body Generate8RotationsV2Request) (*AsyncJobResponse, error) {
 	return c.Generate8RotationsWithResult[AsyncJobResponse](ctx, body)
 }
@@ -4857,9 +4857,9 @@ func (c *Client) Generate8Rotations(ctx context.Context, body Generate8Rotations
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-8-rotations-v2
+//	POST /v2/generate-8-rotations-v2
 func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("generate-8-rotations-v2")
+	u := c.baseURL.JoinPath("v2", "generate-8-rotations-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -4991,7 +4991,7 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 //
 // ```
 //
-//	POST /generate-8-rotations-v3
+//	POST /v2/generate-8-rotations-v3
 func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*AsyncJobResponse, error) {
 	return c.Generate8RotationsV3WithResult[AsyncJobResponse](ctx, body)
 }
@@ -5036,9 +5036,9 @@ func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8Rotatio
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /generate-8-rotations-v3
+//	POST /v2/generate-8-rotations-v3
 func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("generate-8-rotations-v3")
+	u := c.baseURL.JoinPath("v2", "generate-8-rotations-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -5162,7 +5162,7 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 // response.image.pil_image()
 // ```
 //
-//	POST /rotate
+//	POST /v2/rotate
 func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest) (*ImageResponse, error) {
 	return c.RotateCharacterOrObjectWithResult[ImageResponse](ctx, body)
 }
@@ -5199,9 +5199,9 @@ func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /rotate
+//	POST /v2/rotate
 func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("rotate")
+	u := c.baseURL.JoinPath("v2", "rotate")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -5343,7 +5343,7 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 // response.images[0].pil_image().save("edited.png")
 // ```
 //
-//	POST /inpaint-v3
+//	POST /v2/inpaint-v3
 func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*AsyncJobResponse, error) {
 	return c.InpaintImageV3WithResult[AsyncJobResponse](ctx, body)
 }
@@ -5395,9 +5395,9 @@ func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*As
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /inpaint-v3
+//	POST /v2/inpaint-v3
 func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("inpaint-v3")
+	u := c.baseURL.JoinPath("v2", "inpaint-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -5518,7 +5518,7 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 // response.image.pil_image()
 // ```
 //
-//	POST /inpaint
+//	POST /v2/inpaint
 func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*ImageResponse, error) {
 	return c.InpaintImageWithResult[ImageResponse](ctx, body)
 }
@@ -5552,9 +5552,9 @@ func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*ImageR
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /inpaint
+//	POST /v2/inpaint
 func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
-	u := c.baseURL.JoinPath("inpaint")
+	u := c.baseURL.JoinPath("v2", "inpaint")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -5705,7 +5705,7 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 // )
 // ```
 //
-//	POST /edit-images-v2
+//	POST /v2/edit-images-v2
 func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*AsyncJobResponse, error) {
 	return c.EditImagesWithResult[AsyncJobResponse](ctx, body)
 }
@@ -5766,9 +5766,9 @@ func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*Asy
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /edit-images-v2
+//	POST /v2/edit-images-v2
 func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImagesV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("edit-images-v2")
+	u := c.baseURL.JoinPath("v2", "edit-images-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -5879,7 +5879,7 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
 // 3. When `status` is `completed`, edited image is in `last_response`
 //
-//	POST /edit-image
+//	POST /v2/edit-image
 func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AsyncJobResponse, error) {
 	return c.EditImageWithResult[AsyncJobResponse](ctx, body)
 }
@@ -5903,9 +5903,9 @@ func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AsyncJo
 // 3. When `status` is `completed`, edited image is in `last_response`
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /edit-image
+//	POST /v2/edit-image
 func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
-	u := c.baseURL.JoinPath("edit-image")
+	u := c.baseURL.JoinPath("v2", "edit-image")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -6007,7 +6007,7 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 // - Use `offset` to skip tilesets for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /tilesets
+//	GET /v2/tilesets
 func (c *Client) ListUsersTilesets(ctx context.Context, params *ListUsersTilesetsParams) (*TilesetsListResponse, error) {
 	return c.ListUsersTilesetsWithResult[TilesetsListResponse](ctx, params)
 }
@@ -6022,9 +6022,9 @@ func (c *Client) ListUsersTilesets(ctx context.Context, params *ListUsersTileset
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /tilesets
+//	GET /v2/tilesets
 func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params *ListUsersTilesetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets")
+	u := c.baseURL.JoinPath("v2", "tilesets")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -6120,7 +6120,7 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 
 // Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
 //
-//	POST /tilesets
+//	POST /v2/tilesets
 func (c *Client) CreateTilesetAsynchronously(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
 	return c.CreateTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
@@ -6128,9 +6128,9 @@ func (c *Client) CreateTilesetAsynchronously(ctx context.Context, body CreateTil
 // Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /tilesets
+//	POST /v2/tilesets
 func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets")
+	u := c.baseURL.JoinPath("v2", "tilesets")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -6312,7 +6312,7 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 //
 // ```
 //
-//	POST /create-tileset
+//	POST /v2/create-tileset
 func (c *Client) CreateTopDownTilesetAsyncProcessing(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
 	return c.CreateTopDownTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
@@ -6404,9 +6404,9 @@ func (c *Client) CreateTopDownTilesetAsyncProcessing(ctx context.Context, body C
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-tileset
+//	POST /v2/create-tileset
 func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-tileset")
+	u := c.baseURL.JoinPath("v2", "create-tileset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -6574,7 +6574,7 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 //
 // ```
 //
-//	GET /tilesets/{tileset_id}
+//	GET /v2/tilesets/{tileset_id}
 func (c *Client) GetGeneratedTilesetByID(ctx context.Context, tilesetID string) (*CreateTilesetResponse, error) {
 	return c.GetGeneratedTilesetByIDWithResult[CreateTilesetResponse](ctx, tilesetID)
 }
@@ -6621,9 +6621,9 @@ func (c *Client) GetGeneratedTilesetByID(ctx context.Context, tilesetID string) 
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /tilesets/{tileset_id}
+//	GET /v2/tilesets/{tileset_id}
 func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets", tilesetID)
+	u := c.baseURL.JoinPath("v2", "tilesets", tilesetID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -6732,7 +6732,7 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 //
-//	DELETE /tilesets/{tileset_id}
+//	DELETE /v2/tilesets/{tileset_id}
 func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
 	return c.DeleteTopDownTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
 }
@@ -6740,9 +6740,9 @@ func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) 
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /tilesets/{tileset_id}
+//	DELETE /v2/tilesets/{tileset_id}
 func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
+	u := c.baseURL.JoinPath("v2", "tilesets", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -6851,7 +6851,7 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 
 // List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 //
-//	GET /tilesets-sidescroller
+//	GET /v2/tilesets-sidescroller
 func (c *Client) ListYourSidescrollerTilesets(ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*SidescrollerTilesetsListResponse, error) {
 	return c.ListYourSidescrollerTilesetsWithResult[SidescrollerTilesetsListResponse](ctx, params)
 }
@@ -6859,9 +6859,9 @@ func (c *Client) ListYourSidescrollerTilesets(ctx context.Context, params *ListY
 // List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /tilesets-sidescroller
+//	GET /v2/tilesets-sidescroller
 func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets-sidescroller")
+	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -6978,7 +6978,7 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 
 // Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
 //
-//	POST /tilesets-sidescroller
+//	POST /v2/tilesets-sidescroller
 func (c *Client) CreateSidescrollerTilesetAsynchronously(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
 	return c.CreateSidescrollerTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
@@ -6986,9 +6986,9 @@ func (c *Client) CreateSidescrollerTilesetAsynchronously(ctx context.Context, bo
 // Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /tilesets-sidescroller
+//	POST /v2/tilesets-sidescroller
 func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets-sidescroller")
+	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -7143,7 +7143,7 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 // tileset = client.get_tileset(response.tileset_id)
 // ```
 //
-//	POST /create-tileset-sidescroller
+//	POST /v2/create-tileset-sidescroller
 func (c *Client) CreateSidescrollerTilesetAsyncProcessing(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
 	return c.CreateSidescrollerTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
 }
@@ -7208,9 +7208,9 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessing(ctx context.Context, b
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-tileset-sidescroller
+//	POST /v2/create-tileset-sidescroller
 func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-tileset-sidescroller")
+	u := c.baseURL.JoinPath("v2", "create-tileset-sidescroller")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -7308,9 +7308,9 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 
 // Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
 //
-//	GET /tilesets-sidescroller/{tileset_id}
+//	GET /v2/tilesets-sidescroller/{tileset_id}
 func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID string) error {
-	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID)
+	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller", tilesetID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -7412,7 +7412,7 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 //
-//	DELETE /tilesets-sidescroller/{tileset_id}
+//	DELETE /v2/tilesets-sidescroller/{tileset_id}
 func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
 	return c.DeleteSidescrollerTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
 }
@@ -7420,9 +7420,9 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /tilesets-sidescroller/{tileset_id}
+//	DELETE /v2/tilesets-sidescroller/{tileset_id}
 func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
+	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -7554,7 +7554,7 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 // response.image.pil_image()
 // ```
 //
-//	POST /create-isometric-tile
+//	POST /v2/create-isometric-tile
 func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
 	return c.CreateIsometricTileAsyncProcessingWithResult[TileJobResponse](ctx, body)
 }
@@ -7585,9 +7585,9 @@ func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body Cr
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-isometric-tile
+//	POST /v2/create-isometric-tile
 func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-isometric-tile")
+	u := c.baseURL.JoinPath("v2", "create-isometric-tile")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -7739,7 +7739,7 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 // tile.image.pil_image().save("tile.png")
 // ```
 //
-//	GET /isometric-tiles/{tile_id}
+//	GET /v2/isometric-tiles/{tile_id}
 func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID string) (*ImageResponse, error) {
 	return c.GetGeneratedIsometricTileByIDWithResult[ImageResponse](ctx, tileID)
 }
@@ -7770,9 +7770,9 @@ func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID strin
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /isometric-tiles/{tile_id}
+//	GET /v2/isometric-tiles/{tile_id}
 func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
-	u := c.baseURL.JoinPath("isometric-tiles", tileID)
+	u := c.baseURL.JoinPath("v2", "isometric-tiles", tileID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -7881,7 +7881,7 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 
 // Permanently delete an isometric tile you own. Cannot be undone.
 //
-//	DELETE /isometric-tiles/{tile_id}
+//	DELETE /v2/isometric-tiles/{tile_id}
 func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
 	return c.DeleteAnIsometricTileWithResult[DeleteTileResponse](ctx, tileID)
 }
@@ -7889,9 +7889,9 @@ func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*
 // Permanently delete an isometric tile you own. Cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /isometric-tiles/{tile_id}
+//	DELETE /v2/isometric-tiles/{tile_id}
 func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
+	u := c.baseURL.JoinPath("v2", "isometric-tiles", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -8007,7 +8007,7 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 // - Use `offset` to skip tiles for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /isometric-tiles
+//	GET /v2/isometric-tiles
 func (c *Client) ListUsersIsometricTiles(ctx context.Context, params *ListUsersIsometricTilesParams) (*IsometricTilesListResponse, error) {
 	return c.ListUsersIsometricTilesWithResult[IsometricTilesListResponse](ctx, params)
 }
@@ -8022,9 +8022,9 @@ func (c *Client) ListUsersIsometricTiles(ctx context.Context, params *ListUsersI
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /isometric-tiles
+//	GET /v2/isometric-tiles
 func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, params *ListUsersIsometricTilesParams) (*R, error) {
-	u := c.baseURL.JoinPath("isometric-tiles")
+	u := c.baseURL.JoinPath("v2", "isometric-tiles")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -8187,7 +8187,7 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 // )
 // ```
 //
-//	POST /create-tiles-pro
+//	POST /v2/create-tiles-pro
 func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
 	return c.CreateTilesProAsyncProcessingWithResult[TileJobResponse](ctx, body)
 }
@@ -8262,9 +8262,9 @@ func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateT
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-tiles-pro
+//	POST /v2/create-tiles-pro
 func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-tiles-pro")
+	u := c.baseURL.JoinPath("v2", "create-tiles-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -8384,7 +8384,7 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 //
 // ```
 //
-//	GET /tiles-pro/{tile_id}
+//	GET /v2/tiles-pro/{tile_id}
 func (c *Client) GetGeneratedTilesProByID(ctx context.Context, tileID string) (*GetTilesProResponse, error) {
 	return c.GetGeneratedTilesProByIDWithResult[GetTilesProResponse](ctx, tileID)
 }
@@ -8417,9 +8417,9 @@ func (c *Client) GetGeneratedTilesProByID(ctx context.Context, tileID string) (*
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /tiles-pro/{tile_id}
+//	GET /v2/tiles-pro/{tile_id}
 func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
-	u := c.baseURL.JoinPath("tiles-pro", tileID)
+	u := c.baseURL.JoinPath("v2", "tiles-pro", tileID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -8528,7 +8528,7 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
 //
-//	DELETE /tiles-pro/{tile_id}
+//	DELETE /v2/tiles-pro/{tile_id}
 func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
 	return c.DeleteTilesProTileWithResult[DeleteTileResponse](ctx, tileID)
 }
@@ -8536,9 +8536,9 @@ func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*Del
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /tiles-pro/{tile_id}
+//	DELETE /v2/tiles-pro/{tile_id}
 func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("tiles-pro", tileID.String())
+	u := c.baseURL.JoinPath("v2", "tiles-pro", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -8650,7 +8650,7 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 
 // List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 //
-//	GET /tiles-pro
+//	GET /v2/tiles-pro
 func (c *Client) ListYourTilesProTiles(ctx context.Context, params *ListYourTilesProTilesParams) (*TilesProListResponse, error) {
 	return c.ListYourTilesProTilesWithResult[TilesProListResponse](ctx, params)
 }
@@ -8658,9 +8658,9 @@ func (c *Client) ListYourTilesProTiles(ctx context.Context, params *ListYourTile
 // List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /tiles-pro
+//	GET /v2/tiles-pro
 func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, params *ListYourTilesProTilesParams) (*R, error) {
-	u := c.baseURL.JoinPath("tiles-pro")
+	u := c.baseURL.JoinPath("v2", "tiles-pro")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -8793,7 +8793,7 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 // )
 // ```
 //
-//	POST /map-objects
+//	POST /v2/map-objects
 func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
 	return c.CreateMapObjectWithResult[ObjectJobResponse](ctx, body)
 }
@@ -8817,9 +8817,9 @@ func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectReques
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /map-objects
+//	POST /v2/map-objects
 func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("map-objects")
+	u := c.baseURL.JoinPath("v2", "map-objects")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -8920,7 +8920,7 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 //
 // Map objects auto-delete 8h after creation — grab the PNG promptly.
 //
-//	GET /map-objects/{object_id}
+//	GET /v2/map-objects/{object_id}
 func (c *Client) GetMapObjectStatusMetadata(ctx context.Context, objectID string) (*GetMapObjectResponse, error) {
 	return c.GetMapObjectStatusMetadataWithResult[GetMapObjectResponse](ctx, objectID)
 }
@@ -8934,9 +8934,9 @@ func (c *Client) GetMapObjectStatusMetadata(ctx context.Context, objectID string
 // Map objects auto-delete 8h after creation — grab the PNG promptly.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /map-objects/{object_id}
+//	GET /v2/map-objects/{object_id}
 func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context, objectID string) (*R, error) {
-	u := c.baseURL.JoinPath("map-objects", objectID)
+	u := c.baseURL.JoinPath("v2", "map-objects", objectID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9055,7 +9055,7 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 // Provide `pieces` to control the panel shape (editor view coords: longer side 512,
 // shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
 //
-//	POST /create-ui-asset
+//	POST /v2/create-ui-asset
 func (c *Client) CreateUIPanel(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
 	return c.CreateUIPanelWithResult[CreateUIAssetResponse](ctx, body)
 }
@@ -9070,9 +9070,9 @@ func (c *Client) CreateUIPanel(ctx context.Context, body CreateUIAssetRequest) (
 // shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-ui-asset
+//	POST /v2/create-ui-asset
 func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-ui-asset")
+	u := c.baseURL.JoinPath("v2", "create-ui-asset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -9167,7 +9167,7 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 
 // List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
 //
-//	GET /ui-assets
+//	GET /v2/ui-assets
 func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (*UIAssetsListResponse, error) {
 	return c.ListUIAssetsWithResult[UIAssetsListResponse](ctx, params)
 }
@@ -9175,9 +9175,9 @@ func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (
 // List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /ui-assets
+//	GET /v2/ui-assets
 func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *ListUIAssetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("ui-assets")
+	u := c.baseURL.JoinPath("v2", "ui-assets")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -9294,7 +9294,7 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 
 // Get a UI panel's details. Reports progress while the panel is still generating.
 //
-//	GET /ui-assets/{ui_asset_id}
+//	GET /v2/ui-assets/{ui_asset_id}
 func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
 	return c.GetUIAssetWithResult[UIAssetDetail](ctx, uiAssetID)
 }
@@ -9302,9 +9302,9 @@ func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetD
 // Get a UI panel's details. Reports progress while the panel is still generating.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /ui-assets/{ui_asset_id}
+//	GET /v2/ui-assets/{ui_asset_id}
 func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
+	u := c.baseURL.JoinPath("v2", "ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9410,7 +9410,7 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 // Permanently delete a UI panel and its backing image files.
 //
-//	DELETE /ui-assets/{ui_asset_id}
+//	DELETE /v2/ui-assets/{ui_asset_id}
 func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
 	return c.DeleteUIAssetWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
 }
@@ -9418,9 +9418,9 @@ func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*Delet
 // Permanently delete a UI panel and its backing image files.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /ui-assets/{ui_asset_id}
+//	DELETE /v2/ui-assets/{ui_asset_id}
 func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
+	u := c.baseURL.JoinPath("v2", "ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9536,7 +9536,7 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 // print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
 // ```
 //
-//	GET /balance
+//	GET /v2/balance
 func (c *Client) GetBalance(ctx context.Context) (*BalanceResponse, error) {
 	return c.GetBalanceWithResult[BalanceResponse](ctx)
 }
@@ -9554,9 +9554,9 @@ func (c *Client) GetBalance(ctx context.Context) (*BalanceResponse, error) {
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /balance
+//	GET /v2/balance
 func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
-	u := c.baseURL.JoinPath("balance")
+	u := c.baseURL.JoinPath("v2", "balance")
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9704,7 +9704,7 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 // )
 // ```
 //
-//	POST /create-character-with-4-directions
+//	POST /v2/create-character-with-4-directions
 func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CharacterJobResponse, error) {
 	return c.CreateCharacterWith4DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
@@ -9781,9 +9781,9 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-character-with-4-directions
+//	POST /v2/create-character-with-4-directions
 func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-character-with-4-directions")
+	u := c.baseURL.JoinPath("v2", "create-character-with-4-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -9961,7 +9961,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 // east_facing = response.images["east"]
 // ```
 //
-//	POST /create-character-with-8-directions
+//	POST /v2/create-character-with-8-directions
 func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CharacterJobResponse, error) {
 	return c.CreateCharacterWith8DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
@@ -10052,9 +10052,9 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-character-with-8-directions
+//	POST /v2/create-character-with-8-directions
 func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-character-with-8-directions")
+	u := c.baseURL.JoinPath("v2", "create-character-with-8-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10198,7 +10198,7 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 // )
 // ```
 //
-//	POST /create-character-pro
+//	POST /v2/create-character-pro
 func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
 	return c.CreateCharacterWithProMode8DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
@@ -10255,9 +10255,9 @@ func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-character-pro
+//	POST /v2/create-character-pro
 func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-character-pro")
+	u := c.baseURL.JoinPath("v2", "create-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10396,7 +10396,7 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 // )
 // ```
 //
-//	POST /create-character-v3
+//	POST /v2/create-character-v3
 func (c *Client) CreateCharacterWithV3Model8Rotations(ctx context.Context, body CreateCharacterV3Request) (*CreateCharacterV3Response, error) {
 	return c.CreateCharacterWithV3Model8RotationsWithResult[CreateCharacterV3Response](ctx, body)
 }
@@ -10448,9 +10448,9 @@ func (c *Client) CreateCharacterWithV3Model8Rotations(ctx context.Context, body 
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-character-v3
+//	POST /v2/create-character-v3
 func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx context.Context, body CreateCharacterV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("create-character-v3")
+	u := c.baseURL.JoinPath("v2", "create-character-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10550,7 +10550,7 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 // - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
 // - **pro**: Custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction).
 //
-//	POST /characters/animations
+//	POST /v2/characters/animations
 func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
 	return c.CreateCharacterAnimationWithResult[CreateCharacterAnimationResponse](ctx, body)
 }
@@ -10563,9 +10563,9 @@ func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharac
 // - **pro**: Custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /characters/animations
+//	POST /v2/characters/animations
 func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("characters", "animations")
+	u := c.baseURL.JoinPath("v2", "characters", "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10728,7 +10728,7 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 // - 20-40 generations per direction depending on character size
 // - Directions default to south only if not specified
 //
-//	POST /animate-character
+//	POST /v2/animate-character
 func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
 	return c.AnimateCharacterWithResult[CreateCharacterAnimationResponse](ctx, body)
 }
@@ -10792,9 +10792,9 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 // - Directions default to south only if not specified
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /animate-character
+//	POST /v2/animate-character
 func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("animate-character")
+	u := c.baseURL.JoinPath("v2", "animate-character")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10892,7 +10892,7 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 //
-//	POST /create-character-state
+//	POST /v2/create-character-state
 func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
 	return c.CreateStateOfAnExistingCharacterWithResult[CharacterJobResponse](ctx, body)
 }
@@ -10900,9 +10900,9 @@ func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body Crea
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-character-state
+//	POST /v2/create-character-state
 func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-character-state")
+	u := c.baseURL.JoinPath("v2", "create-character-state")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -11047,7 +11047,7 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 // - Use `offset` to skip characters for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /characters
+//	GET /v2/characters
 func (c *Client) ListUsersCharacters(ctx context.Context, params *ListUsersCharactersParams) (*CharactersListResponse, error) {
 	return c.ListUsersCharactersWithResult[CharactersListResponse](ctx, params)
 }
@@ -11078,9 +11078,9 @@ func (c *Client) ListUsersCharacters(ctx context.Context, params *ListUsersChara
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /characters
+//	GET /v2/characters
 func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, params *ListUsersCharactersParams) (*R, error) {
-	u := c.baseURL.JoinPath("characters")
+	u := c.baseURL.JoinPath("v2", "characters")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -11202,7 +11202,7 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 // All rotation URLs follow the pattern:
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 //
-//	GET /characters/{character_id}
+//	GET /v2/characters/{character_id}
 func (c *Client) GetCharacterDetails(ctx context.Context, characterID uuid.UUID) (*CharacterDetail, error) {
 	return c.GetCharacterDetailsWithResult[CharacterDetail](ctx, characterID)
 }
@@ -11233,9 +11233,9 @@ func (c *Client) GetCharacterDetails(ctx context.Context, characterID uuid.UUID)
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /characters/{character_id}
+//	GET /v2/characters/{character_id}
 func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String())
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11351,7 +11351,7 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 // fast storage deletion by using service_role internally (avoiding
 // the slow storage.search_legacy_v1 function).
 //
-//	DELETE /characters/{character_id}
+//	DELETE /v2/characters/{character_id}
 func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterResponse, error) {
 	return c.DeleteCharacterAndAllAssociatedDataWithResult[DeleteCharacterResponse](ctx, characterID)
 }
@@ -11363,9 +11363,9 @@ func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, charac
 // the slow storage.search_legacy_v1 function).
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /characters/{character_id}
+//	DELETE /v2/characters/{character_id}
 func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String())
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11520,9 +11520,9 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 // - 423: Character or animations still being generated (check status later)
 // - 404: Character not found
 //
-//	GET /characters/{character_id}/zip
+//	GET /v2/characters/{character_id}/zip
 func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID, params *ExportCharacterAsZipParams) (io.ReadCloser, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "zip")
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "zip")
 	if params != nil {
 		q := make(url.Values, 1)
 
@@ -11648,7 +11648,7 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 // **Authentication:**
 // Requires a valid API token. You can only update tags for characters you created.
 //
-//	PATCH /characters/{character_id}/tags
+//	PATCH /v2/characters/{character_id}/tags
 func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
 	return c.UpdateCharacterTagsWithResult[UpdateTagsResponse](ctx, characterID, body)
 }
@@ -11681,9 +11681,9 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 // Requires a valid API token. You can only update tags for characters you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	PATCH /characters/{character_id}/tags
+//	PATCH /v2/characters/{character_id}/tags
 func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "tags")
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -11837,7 +11837,7 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 // - Character creation typically takes 30-60 seconds
 // - Animations may take longer depending on frame count and directions
 //
-//	GET /background-jobs/{job_id}
+//	GET /v2/background-jobs/{job_id}
 func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID uuid.UUID) (*BackgroundJobResponse, error) {
 	return c.GetBackgroundJobStatusWithResult[BackgroundJobResponse](ctx, jobID)
 }
@@ -11877,9 +11877,9 @@ func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID uuid.UUID) (*
 // - Animations may take longer depending on frame count and directions
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /background-jobs/{job_id}
+//	GET /v2/background-jobs/{job_id}
 func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("background-jobs", jobID.String())
+	u := c.baseURL.JoinPath("v2", "background-jobs", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11994,7 +11994,7 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 //
 // For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
-//	POST /create-1-direction-object
+//	POST /v2/create-1-direction-object
 func (c *Client) Create1DirectionObject(ctx context.Context, body Create1DirectionObjectRequest) (*Create1DirectionObjectResponse, error) {
 	return c.Create1DirectionObjectWithResult[Create1DirectionObjectResponse](ctx, body)
 }
@@ -12008,9 +12008,9 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 // For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-1-direction-object
+//	POST /v2/create-1-direction-object
 func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, body Create1DirectionObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-1-direction-object")
+	u := c.baseURL.JoinPath("v2", "create-1-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12111,7 +12111,7 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 //
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
-//	POST /create-8-direction-object
+//	POST /v2/create-8-direction-object
 func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
 	return c.CreateAn8DirectionObjectWithResult[ObjectJobResponse](ctx, body)
 }
@@ -12125,9 +12125,9 @@ func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8Direc
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /create-8-direction-object
+//	POST /v2/create-8-direction-object
 func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("create-8-direction-object")
+	u := c.baseURL.JoinPath("v2", "create-8-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12226,7 +12226,7 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 //
 // **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 //
-//	POST /objects/{object_id}/animations
+//	POST /v2/objects/{object_id}/animations
 func (c *Client) AddAnAnimationToAnExistingObject(ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*AnimateObjectResponse, error) {
 	return c.AddAnAnimationToAnExistingObjectWithResult[AnimateObjectResponse](ctx, objectID, body)
 }
@@ -12238,9 +12238,9 @@ func (c *Client) AddAnAnimationToAnExistingObject(ctx context.Context, objectID 
 // **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /objects/{object_id}/animations
+//	POST /v2/objects/{object_id}/animations
 func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12365,7 +12365,7 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 //
-//	DELETE /objects/{object_id}/animations
+//	DELETE /v2/objects/{object_id}/animations
 func (c *Client) DeleteAnimationsFromAnObject(ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*DeleteAnimationResponse, error) {
 	return c.DeleteAnimationsFromAnObjectWithResult[DeleteAnimationResponse](ctx, objectID, params)
 }
@@ -12373,9 +12373,9 @@ func (c *Client) DeleteAnimationsFromAnObject(ctx context.Context, objectID uuid
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /objects/{object_id}/animations
+//	DELETE /v2/objects/{object_id}/animations
 func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
 
@@ -12505,7 +12505,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 //
-//	POST /objects/{object_id}/states
+//	POST /v2/objects/{object_id}/states
 func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
 	return c.CreateStateOfAnExistingObjectWithResult[ObjectJobResponse](ctx, objectID, body)
 }
@@ -12513,9 +12513,9 @@ func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uui
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /objects/{object_id}/states
+//	POST /v2/objects/{object_id}/states
 func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "states")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12637,7 +12637,7 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 // Promote selected frames of a review object to completed objects
 //
-//	POST /objects/{object_id}/select-frames
+//	POST /v2/objects/{object_id}/select-frames
 func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjects(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
 	return c.PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[SelectObjectFramesResponse](ctx, objectID, body)
 }
@@ -12645,9 +12645,9 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjects(ctx conte
 // Promote selected frames of a review object to completed objects
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /objects/{object_id}/select-frames
+//	POST /v2/objects/{object_id}/select-frames
 func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "select-frames")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "select-frames")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12763,7 +12763,7 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 // Dismiss a review object without saving any frames
 //
-//	POST /objects/{object_id}/dismiss-review
+//	POST /v2/objects/{object_id}/dismiss-review
 func (c *Client) DismissReviewObjectWithoutSavingAnyFrames(ctx context.Context, objectID uuid.UUID) (*DismissReviewResponse, error) {
 	return c.DismissReviewObjectWithoutSavingAnyFramesWithResult[DismissReviewResponse](ctx, objectID)
 }
@@ -12771,9 +12771,9 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFrames(ctx context.Context, 
 // Dismiss a review object without saving any frames
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /objects/{object_id}/dismiss-review
+//	POST /v2/objects/{object_id}/dismiss-review
 func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "dismiss-review")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "dismiss-review")
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -12897,7 +12897,7 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 // - Use `offset` to skip objects for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /objects
+//	GET /v2/objects
 func (c *Client) ListUsersObjects(ctx context.Context, params *ListUsersObjectsParams) (*ObjectsListResponse, error) {
 	return c.ListUsersObjectsWithResult[ObjectsListResponse](ctx, params)
 }
@@ -12920,9 +12920,9 @@ func (c *Client) ListUsersObjects(ctx context.Context, params *ListUsersObjectsP
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /objects
+//	GET /v2/objects
 func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *ListUsersObjectsParams) (*R, error) {
-	u := c.baseURL.JoinPath("objects")
+	u := c.baseURL.JoinPath("v2", "objects")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -13029,7 +13029,7 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 // **Authentication:**
 // Requires a valid API token. You can only access objects you created.
 //
-//	GET /objects/{object_id}
+//	GET /v2/objects/{object_id}
 func (c *Client) GetObjectDetails(ctx context.Context, objectID uuid.UUID) (*ObjectDetail, error) {
 	return c.GetObjectDetailsWithResult[ObjectDetail](ctx, objectID)
 }
@@ -13048,9 +13048,9 @@ func (c *Client) GetObjectDetails(ctx context.Context, objectID uuid.UUID) (*Obj
 // Requires a valid API token. You can only access objects you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /objects/{object_id}
+//	GET /v2/objects/{object_id}
 func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String())
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -13169,7 +13169,7 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 //
 // **Warning:** This action cannot be undone.
 //
-//	DELETE /objects/{object_id}
+//	DELETE /v2/objects/{object_id}
 func (c *Client) DeleteAnObjectAndAllAssociatedData(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
 	return c.DeleteAnObjectAndAllAssociatedDataWithResult[DeleteObjectResponse](ctx, objectID)
 }
@@ -13187,9 +13187,9 @@ func (c *Client) DeleteAnObjectAndAllAssociatedData(ctx context.Context, objectI
 // **Warning:** This action cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /objects/{object_id}
+//	DELETE /v2/objects/{object_id}
 func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String())
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -13311,7 +13311,7 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 // **Authentication:**
 // Requires a valid API token. You can only update tags for objects you created.
 //
-//	PATCH /objects/{object_id}/tags
+//	PATCH /v2/objects/{object_id}/tags
 func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
 	return c.UpdateObjectTagsWithResult[UpdateTagsResponse](ctx, objectID, body)
 }
@@ -13332,9 +13332,9 @@ func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body 
 // Requires a valid API token. You can only update tags for objects you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	PATCH /objects/{object_id}/tags
+//	PATCH /v2/objects/{object_id}/tags
 func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*R, error) {
-	u := c.baseURL.JoinPath("objects", objectID.String(), "tags")
+	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -13455,7 +13455,7 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 //
 // Storage cleanup on B2 is best-effort; DB deletion is authoritative.
 //
-//	DELETE /characters/{character_id}/animations
+//	DELETE /v2/characters/{character_id}/animations
 func (c *Client) DeleteAnimationsFromCharacter(ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*DeleteAnimationResponse, error) {
 	return c.DeleteAnimationsFromCharacterWithResult[DeleteAnimationResponse](ctx, characterID, params)
 }
@@ -13465,9 +13465,9 @@ func (c *Client) DeleteAnimationsFromCharacter(ctx context.Context, characterID 
 // Storage cleanup on B2 is best-effort; DB deletion is authoritative.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /characters/{character_id}/animations
+//	DELETE /v2/characters/{character_id}/animations
 func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "animations")
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
 
@@ -13602,7 +13602,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 // (small images get short focused prompts, large images get rich detail) and respects
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 //
-//	POST /enhance-pixen-prompt
+//	POST /v2/enhance-pixen-prompt
 func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhancePixenPromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -13615,9 +13615,9 @@ func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPrompt
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /enhance-pixen-prompt
+//	POST /v2/enhance-pixen-prompt
 func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body EnhancePixenPromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("enhance-pixen-prompt")
+	u := c.baseURL.JoinPath("v2", "enhance-pixen-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -13714,7 +13714,7 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 // 8 directions automatically) and never describes a background (v3 always renders
 // transparent).
 //
-//	POST /enhance-character-v3-prompt
+//	POST /v2/enhance-character-v3-prompt
 func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhanceCharacterV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -13727,9 +13727,9 @@ func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceChara
 // transparent).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /enhance-character-v3-prompt
+//	POST /v2/enhance-character-v3-prompt
 func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, body EnhanceCharacterV3PromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("enhance-character-v3-prompt")
+	u := c.baseURL.JoinPath("v2", "enhance-character-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -13833,7 +13833,7 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 // orientation, clothing) and does not introduce camera moves, cuts, or new objects
 // unless explicitly requested.
 //
-//	POST /enhance-animation-v3-prompt
+//	POST /v2/enhance-animation-v3-prompt
 func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhanceAnimationV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -13853,9 +13853,9 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 // unless explicitly requested.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /enhance-animation-v3-prompt
+//	POST /v2/enhance-animation-v3-prompt
 func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, body EnhanceAnimationV3PromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("enhance-animation-v3-prompt")
+	u := c.baseURL.JoinPath("v2", "enhance-animation-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -13957,9 +13957,9 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 // - `@api.pixellab.ai/v2/llms.txt` in Claude
 // - Direct URL access for other tools
 //
-//	GET /llms.txt
+//	GET /v2/llms.txt
 func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, error) {
-	u := c.baseURL.JoinPath("llms.txt")
+	u := c.baseURL.JoinPath("v2", "llms.txt")
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -14015,9 +14015,9 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 	}
 }
 
-// GET /characters/{character_id}/spritesheet
+// GET /v2/characters/{character_id}/spritesheet
 func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uuid.UUID) (io.ReadCloser, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "spritesheet")
+	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "spritesheet")
 	req := (&http.Request{
 		Header: http.Header{
 			"User-Agent": []string{c.userAgent},
@@ -14068,6 +14068,94 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 			streaming = true
 
 			return rsp.Body, nil
+		default:
+			return nil, api.NewErrUnknownContentType(rsp)
+		}
+	default:
+		return nil, api.NewErrUnknownStatusCode(rsp)
+	}
+}
+
+// POST /animate-with-text-v3/character/background
+func (c *Client) AnimateCharacterBackground(ctx context.Context, body *AnimateCharacterBackground) (*BackgroundJob, error) {
+	return c.AnimateCharacterBackgroundWithResult[BackgroundJob](ctx, body)
+}
+
+// POST /animate-with-text-v3/character/background
+func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context, body *AnimateCharacterBackground) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-text-v3", "character", "background")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	var (
+		ia  cassette.Interaction
+		err error
+	)
+	if c.debug {
+		ia.Request, err = cassette.NewRequest(req)
+		if err != nil {
+			return nil, fmt.Errorf("recording request: %w", err)
+		}
+	}
+	rsp, err := c.cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	if c.debug {
+		ia.Response, err = cassette.NewResponse(rsp)
+		if err != nil {
+			return nil, fmt.Errorf("recording response: %w", err)
+		}
+	}
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*BackgroundJob); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if !c.debug {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if err2 := cassette.AddInteraction("api/interactions.json", ia); err2 != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
 		default:
 			return nil, api.NewErrUnknownContentType(rsp)
 		}

@@ -8367,6 +8367,100 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("AnimateCharacterBackground", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
 }
 
 func replay(t *testing.T) http.RoundTripper {
@@ -8485,14 +8579,10 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
-
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
 		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
 		ActionDescription: ActionDescriptionWalking,
-		AnimationName:     "walking",
+		AnimationName:     AnimationNameWalking,
 		AsyncMode:         true,
 		Directions:        []Direction{DirectionNorth, DirectionWest},
 		FrameCount:        8,
@@ -8500,10 +8590,6 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              ModeV3,
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
-	}
-
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
 	}
 
 	if _, err := c.ExportCharacterAsZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &ExportCharacterAsZipParams{}); err != nil {
@@ -8529,7 +8615,7 @@ func TestClient_Interactions(t *testing.T) {
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
 		CharacterID:       uuid.MustParse("437e13d2-1387-4660-9810-98f7d76e9365"),
 		ActionDescription: ActionDescriptionWalking,
-		AnimationName:     "walking",
+		AnimationName:     AnimationNameWalking,
 		AsyncMode:         true,
 		Directions:        []Direction{DirectionSouth, DirectionEast, DirectionNorth, DirectionWest},
 		FrameCount:        8,
@@ -8541,7 +8627,20 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("CreateCharacterAnimation: got: %T, want: *SimpleError", err)
 	}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
+	if _, err := c.AnimateCharacterBackground(ctx, new(AnimateCharacterBackground{
+		CharacterID:      uuid.MustParse("8901396f-5807-4f57-90da-8443d1f6a517"),
+		Direction:        DirectionSouthEast,
+		Action:           "walking",
+		FrameCount:       new(8),
+		AnimationName:    AnimationNameV3walking,
+		NoBackground:     new(true),
+		CustomFrames:     new(false),
+		AnimationGroupID: uuid.MustParse("46a19e47-cbe7-4fee-b619-615509d1d796"),
+		DisplayName:      "Walking",
+		KeepFirstFrame:   new(true),
+		TemplateAction:   TemplateActionWalking,
+		Engine:           "v3",
+	})); err != nil {
+		t.Fatalf("AnimateCharacterBackground: %v", err)
 	}
 }
