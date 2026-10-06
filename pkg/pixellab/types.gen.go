@@ -403,14 +403,13 @@ type AnimationGroup struct {
 type AnimationName string
 
 const (
-	AnimationNameV3walking AnimationName = "v3:walking"
-	AnimationNameWalking   AnimationName = "walking"
+	AnimationNameV3Walking AnimationName = "v3:walking"
 )
 
 // Valid indicates whether the value is a known member of the AnimationName enum.
 func (e AnimationName) Valid() bool {
 	switch e {
-	case AnimationNameV3walking, AnimationNameWalking:
+	case AnimationNameV3Walking:
 		return true
 	default:
 		return false

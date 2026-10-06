@@ -3988,10 +3988,12 @@
         "description": "Name for this animation (defaults to action_description if not provided)",
         "type": "string",
         "enum": [
-          "v3:walking",
-          "walking"
+          "v3:walking"
         ],
-        "example": "v3:walking"
+        "example": "v3:walking",
+        "x-enumNames": [
+          "V3Walking"
+        ]
       },
       "AsyncJobResponse": {
         "title": "AnimateWithTextV2Response",

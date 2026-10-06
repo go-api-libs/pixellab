@@ -8579,19 +8579,6 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
 
-	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
-		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
-		ActionDescription: ActionDescriptionWalking,
-		AnimationName:     AnimationNameWalking,
-		AsyncMode:         true,
-		Directions:        []Direction{DirectionNorth, DirectionWest},
-		FrameCount:        8,
-		KeepFirstFrame:    new(true),
-		Mode:              ModeV3,
-	}); err != nil {
-		t.Fatalf("CreateCharacterAnimation: %v", err)
-	}
-
 	if _, err := c.ExportCharacterAsZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &ExportCharacterAsZipParams{}); err != nil {
 		t.Fatalf("ExportCharacterAsZip: %v", err)
 	}
@@ -8612,27 +8599,12 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetCharacterDetails: %v", err)
 	}
 
-	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
-		CharacterID:       uuid.MustParse("437e13d2-1387-4660-9810-98f7d76e9365"),
-		ActionDescription: ActionDescriptionWalking,
-		AnimationName:     AnimationNameWalking,
-		AsyncMode:         true,
-		Directions:        []Direction{DirectionSouth, DirectionEast, DirectionNorth, DirectionWest},
-		FrameCount:        8,
-		KeepFirstFrame:    new(true),
-		Mode:              ModeV3,
-	}); err == nil {
-		t.Fatal("CreateCharacterAnimation: expected error")
-	} else if _, ok := errors.AsType[*SimpleError](err); !ok {
-		t.Fatalf("CreateCharacterAnimation: got: %T, want: *SimpleError", err)
-	}
-
 	if _, err := c.AnimateCharacterBackground(ctx, new(AnimateCharacterBackground{
 		CharacterID:      uuid.MustParse("8901396f-5807-4f57-90da-8443d1f6a517"),
 		Direction:        DirectionSouthEast,
 		Action:           "walking",
 		FrameCount:       new(8),
-		AnimationName:    AnimationNameV3walking,
+		AnimationName:    AnimationNameV3Walking,
 		NoBackground:     new(true),
 		CustomFrames:     new(false),
 		AnimationGroupID: uuid.MustParse("46a19e47-cbe7-4fee-b619-615509d1d796"),
