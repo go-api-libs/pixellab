@@ -12,7 +12,7 @@ tool (
 require (
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261004011215-c1eff28436f6
 	github.com/MarkRosemaker/openapi v0.0.0-20261006170304-55e0a87dfa74
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261006191032-7ec56bc4e7a2
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261006195332-a8d4fe860f78
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261006190958-adbbc7924a68
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261006170628-7d8379d5a60a
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261006190920-cec15e14d62a
