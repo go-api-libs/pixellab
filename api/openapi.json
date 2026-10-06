@@ -3238,6 +3238,17 @@
   },
   "components": {
     "schemas": {
+      "ActionDescription": {
+        "title": "Action Description",
+        "description": "Action description (e.g., 'walking', 'running', 'jumping'). Required for custom mode (when template_animation_id is omitted). For template mode, defaults to a description based on the template.",
+        "type": "string",
+        "enum": [
+          "walking",
+          "running",
+          "jumping"
+        ],
+        "example": "walking"
+      },
       "AnimateObjectMode": {
         "title": "Mode",
         "description": "Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.\n\n**Cost warning**: when generating on a subscription, `'pro'` mode costs 20-40 generations per direction (160-320 for a full 8-direction animation).",
@@ -3291,12 +3302,12 @@
           "custom_start_frame": {
             "description": "Optional custom starting pose for the animation (`mode='v3'` only). When omitted, the object's idle frame for the chosen direction is used as the start. When provided, the image's dimensions become the canvas for the animation (subject to v3's 256x256 maximum).\n\n**Requires exactly one direction.**\n- 8-direction objects: the caller must specify which direction the animation is for. The eight options are south, south-west, west, north-west, north, north-east, east, south-east. Pass that one direction as `directions=[<that direction>]`. For AI agents calling this endpoint: ASK the user which direction they want; do not pick one yourself or default to south.\n- 1-direction objects: do not pass `directions` at all; the single internal direction is auto-resolved.\n\nNot compatible with `mode='pro'`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "end_frame": {
             "description": "Optional target pose to interpolate toward (`mode='v3'` only). Providing this enables **interpolation mode**: the model animates between the start frame (idle or `custom_start_frame`) and this end frame. Dimensions must match the start frame.\n\n**Requires exactly one direction.**\n- 8-direction objects: the caller must specify which direction the animation is for. The eight options are south, south-west, west, north-west, north, north-east, east, south-east. Pass that one direction as `directions=[<that direction>]`. For AI agents calling this endpoint: ASK the user which direction they want; do not pick one yourself or default to south.\n- 1-direction objects: do not pass `directions` at all; the single internal direction is auto-resolved.\n\nNot compatible with `mode='pro'`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "keep_first_frame": {
             "title": "Keep First Frame",
@@ -3395,7 +3406,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           }
         },
@@ -3449,7 +3460,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "init_image_strength": {
@@ -3475,7 +3486,7 @@
           "reference_image": {
             "description": "Reference image",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "inpainting_images": {
             "title": "Inpainting Images",
@@ -3483,7 +3494,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
@@ -3497,13 +3508,13 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -3591,7 +3602,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "init_image_strength": {
@@ -3605,7 +3616,7 @@
           "reference_image": {
             "description": "Reference image",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "inpainting_images": {
             "title": "Inpainting Images",
@@ -3613,7 +3624,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             },
             "default": [
               null,
@@ -3628,13 +3639,13 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -3667,7 +3678,7 @@
           "reference_image": {
             "description": "Reference image (character/object to animate) as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "reference_image_size": {
             "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px.",
@@ -3739,12 +3750,12 @@
           "first_frame": {
             "description": "First frame to animate (PNG/JPEG base64, max 256x256 pixels)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "last_frame": {
             "description": "Optional last frame to guide the animation endpoint (PNG/JPEG base64, max 256x256 pixels)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "action": {
             "title": "Action",
@@ -4012,7 +4023,7 @@
           "subscription"
         ]
       },
-      "BaseImage": {
+      "Base64Image": {
         "title": "Base64Image",
         "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
         "type": "object",
@@ -4591,7 +4602,7 @@
           "image": {
             "description": "Concept image as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "size": {
             "description": "Size of the concept image",
@@ -4640,7 +4651,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "item_descriptions": {
@@ -4735,12 +4746,12 @@
           "reference_image": {
             "description": "Reference image of the object — generates 8 rotations of this exact image. Mutually exclusive with `style_image` and `size`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "style_image": {
             "description": "Style reference — generates a new object matching the description with the style of this image. Mutually exclusive with `reference_image` and `size`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "style_object_id": {
             "title": "Style Object Id",
@@ -4771,22 +4782,17 @@
             "format": "uuid",
             "example": "46118899-1915-450d-be72-df0a89bc6363"
           },
+          "action_description": {
+            "$ref": "#/components/schemas/ActionDescription"
+          },
+          "animation_group_id": {
+            "description": "Pass the animation_group_id of an existing animation on this character to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it. Same semantics as animate_object. A direction the group already has is rejected with 409: delete it first, or omit the id to create a new animation.",
+            "type": "string",
+            "format": "uuid"
+          },
           "animation_name": {
             "title": "Animation Name",
             "description": "Name for this animation (defaults to action_description if not provided)",
-            "type": "string",
-            "example": "walking"
-          },
-          "description": {
-            "title": "Description",
-            "description": "Description of the character or object to animate (uses character's original if not specified)",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          },
-          "action_description": {
-            "title": "Action Description",
-            "description": "Action description (e.g., 'walking', 'running', 'jumping'). Required for custom mode (when template_animation_id is omitted). For template mode, defaults to a description based on the template.",
             "type": "string",
             "example": "walking"
           },
@@ -4796,54 +4802,22 @@
             "type": "boolean",
             "const": true
           },
-          "mode": {
-            "$ref": "#/components/schemas/CreateCharacterAnimationRequestMode"
-          },
-          "template_animation_id": {
-            "title": "Template Animation Id",
-            "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
-            "type": "string"
-          },
-          "frame_count": {
-            "title": "Frame Count",
-            "description": "Number of animation frames (4-16, must be even). Only used in v3 mode.",
-            "type": "integer",
-            "minimum": 4,
-            "maximum": 16,
-            "example": 8
+          "color_image": {
+            "description": "Color palette reference image",
+            "type": "object",
+            "$ref": "#/components/schemas/Base64Image"
           },
           "custom_start_frame": {
             "description": "Optional custom starting pose for the animation (`mode='v3'` only). When omitted, the character's rotation image for the chosen direction is used as the start. Subject to v3's 256x256 maximum. Requires exactly one direction (pass e.g. `directions=['south']`). Not compatible with `mode='template'` or `mode='pro'`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
-          "end_frame": {
-            "description": "Optional target pose to interpolate toward (`mode='v3'` only). Providing this enables interpolation mode: the model animates between the start frame (rotation image or `custom_start_frame`) and this end frame. Dimensions must match the start frame. Requires exactly one direction. Not compatible with `mode='template'` or `mode='pro'`.",
-            "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
-          },
-          "keep_first_frame": {
-            "title": "Keep First Frame",
-            "description": "Keep the reference frame as frame 0 of the stored animation (`mode='v3'` only). Set `false` to store exactly `frame_count` generated frames — the reference start frame is stripped, so `frame_count=8` stores 8 frames instead of 9. Not compatible with `mode='template'` or `mode='pro'`.",
-            "type": "boolean",
-            "default": true
-          },
-          "text_guidance_scale": {
-            "title": "Text Guidance Scale",
-            "description": "How closely to follow the text description (higher = more faithful). Template mode only.",
-            "type": "number",
-            "minimum": 1,
-            "maximum": 20
-          },
-          "outline": {
-            "title": "Outline",
-            "description": "Outline style (uses character's original if not specified). Template mode only.",
-            "type": "string"
-          },
-          "shading": {
-            "title": "Shading",
-            "description": "Shading style (uses character's original if not specified). Template mode only.",
-            "type": "string"
+          "description": {
+            "title": "Description",
+            "description": "Description of the character or object to animate (uses character's original if not specified)",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
           },
           "detail": {
             "title": "Detail",
@@ -4858,20 +4832,55 @@
               "$ref": "#/components/schemas/Direction"
             }
           },
-          "isometric": {
-            "title": "Isometric",
-            "description": "Generate in isometric view",
-            "type": "boolean"
-          },
-          "color_image": {
-            "description": "Color palette reference image",
+          "end_frame": {
+            "description": "Optional target pose to interpolate toward (`mode='v3'` only). Providing this enables interpolation mode: the model animates between the start frame (rotation image or `custom_start_frame`) and this end frame. Dimensions must match the start frame. Requires exactly one direction. Not compatible with `mode='template'` or `mode='pro'`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
+          },
+          "enhance_prompt": {
+            "title": "Enhance Prompt",
+            "description": "If true, automatically expand `action_description` into a richer motion description before generating — equivalent to calling /v2/enhance-animation-v3-prompt with the character's south-facing frame first. The same enhanced description is reused across all requested directions. Only valid for mode='v3' (returns 422 with template/pro). Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.",
+            "type": "boolean",
+            "default": false
           },
           "force_colors": {
             "title": "Force Colors",
             "description": "Force the use of colors from color_image",
             "type": "boolean"
+          },
+          "frame_count": {
+            "title": "Frame Count",
+            "description": "Number of animation frames (4-16, must be even). Only used in v3 mode.",
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 16,
+            "example": 8
+          },
+          "initial_pose": {
+            "title": "Initial Pose",
+            "description": "`mode='pixminimax'` only: the pose the first frame is in (e.g. 'standing upright with the sword lowered'). Omit to have it read from the image.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "isometric": {
+            "title": "Isometric",
+            "description": "Generate in isometric view",
+            "type": "boolean"
+          },
+          "keep_first_frame": {
+            "title": "Keep First Frame",
+            "description": "Keep the reference frame as frame 0 of the stored animation (`mode='v3'` only). Set `false` to store exactly `frame_count` generated frames — the reference start frame is stripped, so `frame_count=8` stores 8 frames instead of 9. Not compatible with `mode='template'` or `mode='pro'`.",
+            "type": "boolean",
+            "default": true
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "outline": {
+            "title": "Outline",
+            "description": "Outline style (uses character's original if not specified). Template mode only.",
+            "type": "string"
           },
           "seed": {
             "title": "Seed",
@@ -4879,11 +4888,22 @@
             "type": "integer",
             "minimum": 0
           },
-          "enhance_prompt": {
-            "title": "Enhance Prompt",
-            "description": "If true, automatically expand `action_description` into a richer motion description before generating — equivalent to calling /v2/enhance-animation-v3-prompt with the character's south-facing frame first. The same enhanced description is reused across all requested directions. Only valid for mode='v3' (returns 422 with template/pro). Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.",
-            "type": "boolean",
-            "default": false
+          "shading": {
+            "title": "Shading",
+            "description": "Shading style (uses character's original if not specified). Template mode only.",
+            "type": "string"
+          },
+          "template_animation_id": {
+            "title": "Template Animation Id",
+            "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
+            "type": "string"
+          },
+          "text_guidance_scale": {
+            "title": "Text Guidance Scale",
+            "description": "How closely to follow the text description (higher = more faithful). Template mode only.",
+            "type": "number",
+            "minimum": 1,
+            "maximum": 20
           }
         },
         "required": [
@@ -4897,17 +4917,6 @@
           ],
           "template_animation_id": "walking-4-frames"
         }
-      },
-      "CreateCharacterAnimationRequestMode": {
-        "title": "Mode",
-        "description": "Animation mode. \"template\": skeleton-based from template_animation_id (1 gen/direction). \"v3\": custom animation from action_description with frame_count control. \"pro\": custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.",
-        "type": "string",
-        "enum": [
-          "template",
-          "v3",
-          "pro"
-        ],
-        "example": "v3"
       },
       "CreateCharacterAnimationResponse": {
         "title": "CreateCharacterAnimationResponse",
@@ -5008,12 +5017,12 @@
           "concept_image": {
             "description": "Optional concept image (max 1024x1024). Used with `method=create_from_concept`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "reference_image": {
             "description": "Optional reference image (max 168x168). Used as style reference for `create_with_style` / `create_from_concept`, or as the character to rotate for `rotate_character`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "style_character_id": {
             "title": "Style Character Id",
@@ -5133,7 +5142,7 @@
           "reference_image": {
             "description": "South-facing reference image (PNG/JPEG base64). If provided, the v3 model rotates it into 8 directions. If omitted, a sprite is generated from `description` using Pixen first. Max 256x256 pixels.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "image_size": {
             "description": "A canvas size in pixels. Both sides must be multiples of 4, 32–256.\nWidth: 32-256 px.\nHeight: 32-256 px.",
@@ -5319,7 +5328,7 @@
           "color_image": {
             "description": "Color palette reference image",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "force_colors": {
             "title": "Force Colors",
@@ -5362,7 +5371,7 @@
             "description": "Optional reference images per direction. Allowed keys: 'south', 'east', 'north', 'west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'; oblique view requires all 4 cardinals.",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             },
             "propertyNames": {
               "$ref": "#/components/schemas/CreateCharacterWithDirectionsKey"
@@ -5448,7 +5457,7 @@
           "color_image": {
             "description": "Color palette reference image",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "force_colors": {
             "title": "Force Colors",
@@ -5491,7 +5500,7 @@
             "description": "Optional reference images per direction. Allowed keys: 'south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'.",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             },
             "propertyNames": {
               "$ref": "#/components/schemas/CreateCharacterWithDirectionsKey"
@@ -5636,7 +5645,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -5649,22 +5658,22 @@
           "style_image": {
             "description": "Reference image for style transfer",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "inpainting_image": {
             "description": "Reference image which is inpainted",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "mask_image": {
             "description": "Inpainting / mask image (black and white image, where the white is where the model should inpaint)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "skeleton_guidance_scale": {
             "title": "Skeleton Guidance Scale",
@@ -5795,7 +5804,7 @@
           },
           "image": {
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -5884,7 +5893,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -5897,7 +5906,7 @@
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -5956,7 +5965,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -5981,7 +5990,7 @@
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -6056,7 +6065,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -6069,12 +6078,12 @@
           "color_image": {
             "description": "Image containing colors for forced palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "background_image": {
             "description": "Background/map image for style matching. Required when using inpainting.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "inpainting": {
             "$ref": "#/components/schemas/CreateMapObjectRequestInpainting"
@@ -6575,22 +6584,22 @@
           "lower_reference_image": {
             "description": "Reference image for lower terrain style",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "upper_reference_image": {
             "description": "Reference image for upper terrain style",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "transition_reference_image": {
             "description": "Reference image for transition area style",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_image": {
             "description": "Reference image for color palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -6739,17 +6748,17 @@
           "lower_reference_image": {
             "description": "Reference image for platform terrain style",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "transition_reference_image": {
             "description": "Reference image for transition area style",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_image": {
             "description": "Reference image for color palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -6806,7 +6815,7 @@
           "style_image": {
             "description": "Optional style reference image (PNG/JPEG base64)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_palette": {
             "title": "Color Palette",
@@ -7309,7 +7318,7 @@
           "image": {
             "description": "Image to edit as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "width": {
             "title": "Width",
@@ -7347,7 +7356,7 @@
           "image": {
             "description": "Reference image to edit as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "image_size": {
             "description": "Width: 16-400 px.\nHeight: 16-400 px.",
@@ -7396,7 +7405,7 @@
           "color_image": {
             "description": "Color reference image for style guidance",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           }
         },
         "required": [
@@ -7511,12 +7520,12 @@
           "first_frame": {
             "description": "First frame as base64 PNG/JPEG. Becomes the basis of the motion description.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "last_frame": {
             "description": "Optional end frame. When provided, the enhanced prompt describes the interpolated motion between first_frame and last_frame.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "action": {
             "title": "Action",
@@ -7665,7 +7674,7 @@
           "image": {
             "description": "Image for which to estimate the skeleton",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           }
         }
       },
@@ -7698,7 +7707,7 @@
           "image": {
             "description": "Frame image as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "size": {
             "description": "Size of the frame image",
@@ -7839,7 +7848,7 @@
           "first_frame": {
             "description": "Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "description": {
             "title": "Description",
@@ -8331,7 +8340,7 @@
             "description": "The mouth positions, keyed by id. Only returned for the stateless (`portrait`) form — for `character_id` jobs they are saved onto the character instead.",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "moods_on_character": {
@@ -8380,7 +8389,7 @@
       "Image": {
         "allOf": [
           {
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           {
             "$ref": "#/components/schemas/Dimensions"
@@ -8407,7 +8416,7 @@
           },
           "image": {
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           }
         },
         "required": [
@@ -8451,7 +8460,7 @@
           "image": {
             "description": "Image to convert to pixel art (base64 PNG/JPEG)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "description": {
             "title": "Description",
@@ -8486,7 +8495,7 @@
           "image": {
             "description": "Image to convert to pixel art",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "image_size": {
             "description": "Image dimensions\nWidth: 16-1280 px.\nHeight: 16-1280 px.",
@@ -8620,7 +8629,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -8633,17 +8642,17 @@
           "inpainting_image": {
             "description": "Reference image which is inpainted",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "mask_image": {
             "description": "Inpainting / mask image. (black and white image, where the white is where the model should inpaint).",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -9494,12 +9503,25 @@
           "mask_image": {
             "description": "Mask image: black (0,0,0)=frozen context, white (255,255,255)=generate area",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           }
         },
         "required": [
           "mask_image"
         ]
+      },
+      "Mode": {
+        "title": "Mode",
+        "description": "Animation mode. \"template\": skeleton-based from template_animation_id (1 gen/direction). \"v3\": custom animation from action_description with frame_count control. \"pro\": custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.",
+        "type": "string",
+        "enum": [
+          "template",
+          "skeleton-v3",
+          "v3",
+          "pixminimax",
+          "pro"
+        ],
+        "example": "v3"
       },
       "ObjectAnimationDirection": {
         "title": "ObjectAnimationDirection",
@@ -9990,7 +10012,7 @@
           "image": {
             "description": "Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`).",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "view": {
             "description": "Camera angle.\nOne of: low top-down, high top-down, side.\nDefaults to \"low top-down\" if omitted.",
@@ -10069,7 +10091,7 @@
           "image": {
             "description": "Reference image as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "size": {
             "description": "Size of the reference image. Images larger than 1024x1024 will be downscaled.",
@@ -10106,7 +10128,7 @@
           "image": {
             "description": "The image to remove the background from (PNG or JPEG base64)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "image_size": {
             "description": "Width: 1-400 px.\nHeight: 1-400 px.",
@@ -10159,7 +10181,7 @@
           "reference_image": {
             "description": "Image to resize",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "reference_image_size": {
             "description": "Width: 16-200 px.\nHeight: 16-200 px.",
@@ -10199,12 +10221,12 @@
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -10308,7 +10330,7 @@
           "init_image": {
             "description": "Initial image to start from",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "init_image_strength": {
             "title": "Init Image Strength",
@@ -10321,17 +10343,17 @@
           "mask_image": {
             "description": "Inpainting / mask image. Requires init image! (black and white image, where the white is where the model should inpaint)",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "from_image": {
             "description": "Reference image to rotate",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "seed": {
             "title": "Seed",
@@ -10364,7 +10386,7 @@
           "image": {
             "description": "Reference image as base64 PNG/JPEG",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "width": {
             "title": "Width",
@@ -10534,7 +10556,7 @@
           "image": {
             "description": "Portrait as base64 PNG/JPEG, 16-256px. A non-square image is centred on a transparent square canvas.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           }
         },
         "required": [
@@ -10899,7 +10921,7 @@
             "description": "Supply the mouth positions directly, as returned by GET /v2/vocal-animation/{job_id}. Mutually exclusive with `character_id`.",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/BaseImage"
+              "$ref": "#/components/schemas/Base64Image"
             }
           },
           "frame_ms": {
@@ -11001,7 +11023,7 @@
           "image": {
             "description": "Tile image data",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "corners": {
             "description": "Terrain type for each corner",
@@ -12147,7 +12169,7 @@
           "portrait": {
             "description": "Generate from this image instead and store nothing — the mouth positions come back inline. Max 256x256. Mutually exclusive with `character_id`.",
             "type": "object",
-            "$ref": "#/components/schemas/BaseImage"
+            "$ref": "#/components/schemas/Base64Image"
           },
           "mood": {
             "$ref": "#/components/schemas/LipSyncMood"

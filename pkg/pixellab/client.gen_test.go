@@ -8491,13 +8491,13 @@ func TestClient_Interactions(t *testing.T) {
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
 		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
+		ActionDescription: ActionDescriptionWalking,
 		AnimationName:     "walking",
-		ActionDescription: "walking",
 		AsyncMode:         true,
-		Mode:              CreateCharacterAnimationRequestModeV3,
+		Directions:        []Direction{DirectionNorth, DirectionWest},
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        []Direction{DirectionNorth, DirectionWest},
+		Mode:              ModeV3,
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	}
@@ -8528,13 +8528,13 @@ func TestClient_Interactions(t *testing.T) {
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
 		CharacterID:       uuid.MustParse("437e13d2-1387-4660-9810-98f7d76e9365"),
+		ActionDescription: ActionDescriptionWalking,
 		AnimationName:     "walking",
-		ActionDescription: "walking",
 		AsyncMode:         true,
-		Mode:              CreateCharacterAnimationRequestModeV3,
+		Directions:        []Direction{DirectionSouth, DirectionEast, DirectionNorth, DirectionWest},
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        []Direction{DirectionSouth, DirectionEast, DirectionNorth, DirectionWest},
+		Mode:              ModeV3,
 	}); err == nil {
 		t.Fatal("CreateCharacterAnimation: expected error")
 	} else if _, ok := errors.AsType[*SimpleError](err); !ok {
