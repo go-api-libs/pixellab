@@ -714,7 +714,7 @@ type CreateCharacterAnimationRequest struct {
 	// Shading style (uses character's original if not specified). Template mode only.
 	Shading string `json:"shading,omitzero"`
 	// Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...
-	TemplateAnimationID string `json:"template_animation_id,omitzero"`
+	TemplateAnimationID TemplateAnimationID `json:"template_animation_id,omitzero"`
 	// How closely to follow the text description (higher = more faithful). Template mode only.
 	TextGuidanceScale float64 `json:"text_guidance_scale,omitzero"`
 }
@@ -3359,6 +3359,32 @@ type TalkingGifResponse struct {
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
 	Mood   string `json:"mood,omitzero"`
+}
+
+// Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...
+type TemplateAnimationID string
+
+const (
+	TemplateAnimationIDAngry           TemplateAnimationID = "angry"
+	TemplateAnimationIDAttack          TemplateAnimationID = "attack"
+	TemplateAnimationIDAttackBack      TemplateAnimationID = "attack-back"
+	TemplateAnimationIDAttackLeft      TemplateAnimationID = "attack-left"
+	TemplateAnimationIDAttackRight     TemplateAnimationID = "attack-right"
+	TemplateAnimationIDBackflip        TemplateAnimationID = "backflip"
+	TemplateAnimationIDBark            TemplateAnimationID = "bark"
+	TemplateAnimationIDBreathingIdle   TemplateAnimationID = "breathing-idle"
+	TemplateAnimationIDCrossPunch      TemplateAnimationID = "cross-punch"
+	TemplateAnimationIDCrouchedWalking TemplateAnimationID = "crouched-walking"
+)
+
+// Valid indicates whether the value is a known member of the TemplateAnimationID enum.
+func (e TemplateAnimationID) Valid() bool {
+	switch e {
+	case TemplateAnimationIDAngry, TemplateAnimationIDAttack, TemplateAnimationIDAttackBack, TemplateAnimationIDAttackLeft, TemplateAnimationIDAttackRight, TemplateAnimationIDBackflip, TemplateAnimationIDBark, TemplateAnimationIDBreathingIdle, TemplateAnimationIDCrossPunch, TemplateAnimationIDCrouchedWalking:
+		return true
+	default:
+		return false
+	}
 }
 
 // Individual tile with metadata

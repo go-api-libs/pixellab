@@ -4894,9 +4894,7 @@
             "type": "string"
           },
           "template_animation_id": {
-            "title": "Template Animation Id",
-            "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
-            "type": "string"
+            "$ref": "#/components/schemas/TemplateAnimationID"
           },
           "text_guidance_scale": {
             "title": "Text Guidance Scale",
@@ -11003,6 +11001,23 @@
           "hold_ms",
           "width",
           "height"
+        ]
+      },
+      "TemplateAnimationID": {
+        "title": "Template Animation Id",
+        "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
+        "type": "string",
+        "enum": [
+          "angry",
+          "attack",
+          "attack-back",
+          "attack-left",
+          "attack-right",
+          "backflip",
+          "bark",
+          "breathing-idle",
+          "cross-punch",
+          "crouched-walking"
         ]
       },
       "Tile": {
