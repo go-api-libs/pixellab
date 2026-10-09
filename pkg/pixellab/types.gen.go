@@ -4466,6 +4466,54 @@ type jsonVariant struct {
 	required []string
 	// pinned are the members it allows one value for, written as compact JSON
 	pinned map[string]string
+	// enums are the members it allows the values of an enum for, written so
+	enums map[string][]string
+}
+
+// jsonEnumsFit reports whether each member of the JSON object raw that enums names has one of the values it allows,
+// written as compact JSON.
+func jsonEnumsFit(raw jsontext.Value, enums map[string][]string) bool {
+	if len(enums) == 0 {
+		return true
+	}
+
+	dec := jsontext.NewDecoder(bytes.NewReader(raw))
+	if tok, err := dec.ReadToken(); err != nil || tok.Kind() != jsontext.KindBeginObject {
+		return false
+	}
+
+	for dec.PeekKind() != jsontext.KindEndObject {
+		tok, err := dec.ReadToken()
+		if err != nil {
+			return false
+		}
+
+		name := tok.String()
+
+		val, err := dec.ReadValue()
+		if err != nil {
+			return false
+		}
+
+		if allowed, ok := enums[name]; ok {
+			got := val.Clone()
+			if err := got.Compact(); err != nil || !slices.Contains(allowed, string(got)) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// jsonEnumPasses are whether to check enums in each attempt at choosing an alternative: strict, always; leniently,
+// first, then not, should no alternative fit, as an API may add a value to an enum.
+func jsonEnumPasses(strict bool) []bool {
+	if strict {
+		return []bool{true}
+	}
+
+	return []bool{true, false}
 }
 
 // jsonFits reports whether the JSON value raw has the members required, and those of pinned it has with the value
@@ -4569,6 +4617,12 @@ func jsonChooseVariants(raw jsontext.Value, discriminator string, variants []jso
 			}
 
 			chosen = append(chosen, i)
+		}
+
+		// a member outside its enum rules an alternative out; leniently, only while another fits
+		fit := slices.DeleteFunc(slices.Clone(chosen), func(i int) bool { return !jsonEnumsFit(raw, variants[i].enums) })
+		if len(fit) > 0 || strict {
+			chosen = fit
 		}
 
 		switch {
