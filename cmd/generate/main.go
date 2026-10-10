@@ -45,7 +45,12 @@ var opIDMapping = map[string]string{
 }
 
 func main() {
-	c, err := pixellab.NewClient()
+	var opts []pixellab.ClientOption
+	if os.Getenv("PIXEL_LAB_API_TOKEN") == "" {
+		opts = append(opts, pixellab.WithBearer("public"))
+	}
+
+	c, err := pixellab.NewClient(opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -170,7 +175,8 @@ func main() {
 		[]string{
 			"CameraView",
 			"TilesetCameraView",
-			"CreateDirectionObjectView",
+			"Create1DirectionObjectRequestView",
+			"CreateMapObjectView",
 			"AnimateWithTextV2RequestView",
 			"CreateTilesProRequestTileView",
 		})
@@ -184,18 +190,18 @@ func main() {
 		"Outline style. Which values are accepted is request-specific - see the field description where this is used.",
 		[]string{
 			"Outline",
-			"CreateIsometricTileOutline",
+			"CreateMapObjectOutline",
 		})
 	consolidateEnumFamily(doc, "Detail",
 		"Level of detail. Which values are accepted is request-specific - see the field description where this is used.",
 		[]string{
-			"CreateIsometricTileDetail",
+			"Detail",
 			"CreateMapObjectRequestDetail",
 		})
 	consolidateEnumFamily(doc, "Shading",
 		"Shading complexity. Which values are accepted is request-specific - see the field description where this is used.",
 		[]string{
-			"CreateIsometricTileShading",
+			"Shading",
 			"CreateMapObjectRequestShading",
 		})
 
@@ -215,23 +221,23 @@ func main() {
 	// operations all returned *CreateImageBitforge. Rename each to a name
 	// that reflects the shared shape instead of one specific endpoint.
 	for _, v := range []struct{ old, new string }{
-		{"AnimateWithText", "AsyncJobResponse"},
-		{"CreateImageBitforge", "ImageResponse"},
+		{"EditImage2", "AsyncJobResponse"},
+		{"Resize", "ImageResponse"},
 		{"CreateCharacterPro", "CharacterJobResponse"},
-		{"CreateDirectionObject", "ObjectJobResponse"},
-		{"EnhanceAnimationPrompt", "EnhancedPromptResponse"},
-		{"UpdateObjectTags2", "UpdateTagsResponse"},
-		{"SidescrollerTileset", "DeleteTilesetResponse"},
-		{"IsometricTile", "DeleteTileResponse"},
-		{"CreateIsometricTileBackground", "TileJobResponse"},
+		{"CreateMapObject", "ObjectJobResponse"},
+		{"EnhancePixenPrompt", "EnhancedPromptResponse"},
+		{"UpdateTags2", "UpdateTagsResponse"},
+		{"Tileset", "DeleteTilesetResponse"},
+		{"TilesPro", "DeleteTileResponse"},
+		{"CreateTilesProBackground", "TileJobResponse"},
 
 		// These never got cleaned up: openapi-flatten left the raw FastAPI
 		// operation-path prefix on the component key even though each schema
 		// already carries a clean title. The two "ReferenceImage" schemas
 		// aren't interchangeable (one nests an ImageSize, the other inlines
 		// width/height directly), so they can't share a name.
-		{"app__endpoints__external__v__edit_animation_v__FrameImage", "FrameImage"},
-		{"app__endpoints__external__v__edit_animation_v__FrameImageSize", "FrameImageSize"},
+		{"app__endpoints__external__v__transfer_outfit_v__FrameImage", "FrameImage"},
+		{"app__endpoints__external__v__transfer_outfit_v__FrameImageSize", "FrameImageSize"},
 		{"app__endpoints__external__v2__generate_image_v2__ReferenceImage", "ReferenceImage"},
 		{"app__endpoints__external__v2__generate_8_rotations_v2__ReferenceImage", "RotationReferenceImage"},
 	} {
@@ -358,19 +364,19 @@ func (u imageSizeUsage) varName() string {
 // If the upstream API adds or renames an endpoint that uses ImageSize,
 // consolidateImageSizes fails loudly asking for this table to be updated.
 var imageSizeGroups = map[string][]imageSizeUsage{
-	"app__endpoints__external__v__animate_with_skeleton__ImageSize": {
+	"app__endpoints__external__v__edit_animation_v__ImageSize": {
 		{"AnimateWithSkeletonRequest", "ImageSize"},
 		{"EditAnimationV2Request", "ImageSize"},
 	},
 	"app__endpoints__external__v2__animate_with_text__ImageSize": {
 		{"AnimateWithTextRequest", "ImageSize"},
 	},
-	"app__endpoints__external__v__create_character_with__directions__ImageSize": {
+	"app__endpoints__external__v__interpolation_v__ImageSize": {
 		{"CreateCharacterWith4DirectionsRequest", "ImageSize"},
 		{"CreateCharacterWith8DirectionsRequest", "ImageSize"},
 		{"InterpolationV2Request", "ImageSize"},
 	},
-	"app__endpoints__external__v__create_image_bitforge__ImageSize": {
+	"app__endpoints__external__v__resize__ImageSize": {
 		{"CreateImageBitforgeRequest", "ImageSize"},
 		{"InpaintRequest", "ImageSize"},
 		{"ResizeRequest", "ReferenceImageSize"},
@@ -381,7 +387,7 @@ var imageSizeGroups = map[string][]imageSizeUsage{
 		{"CreateImagePixenRequest", "ImageSize"},
 		{"EnhancePixenPromptRequest", "ImageSize"},
 	},
-	"app__endpoints__external__v__create_image_pixflux__ImageSize": {
+	"app__endpoints__external__v__edit_image__ImageSize": {
 		{"CreateImagePixfluxRequest", "ImageSize"},
 		{"EditImageRequest", "ImageSize"},
 	},
@@ -406,6 +412,7 @@ var imageSizeGroups = map[string][]imageSizeUsage{
 	"app__endpoints__external__v2__image_to_pixelart__ImageSize": {
 		{"ImageToPixelartRequest", "ImageSize"},
 	},
+	"app__endpoints__external__v__inpaint_v__ImageSize": {},
 	"app__endpoints__external__v2__remove_background__ImageSize": {
 		{"RemoveBackgroundRequest", "ImageSize"},
 	},
@@ -416,7 +423,7 @@ var imageSizeGroups = map[string][]imageSizeUsage{
 	// "ImageSize"), these already had a distinct, clean title of their own,
 	// so openapi-compress never needed to disambiguate them with a numeric
 	// suffix. See extraImageSizeSchemas.
-	"FrameSize": {
+	"OutputImageSize": {
 		{"AnimateWithTextV2Request", "ReferenceImageSize"},
 		{"AnimateWithTextV2Request", "ImageSize"},
 		{"CreateCharacterStateRequest", "OverrideFrameSize"},
@@ -440,10 +447,10 @@ var imageSizeGroups = map[string][]imageSizeUsage{
 // extraImageSizeSchemas are the imageSizeGroups keys above that aren't
 // endpoint-generated "ImageSize" schemas (see the comment on that block).
 var extraImageSizeSchemas = map[string]bool{
-	"FrameSize":     true,
-	"OutputSize":    true,
-	"ProImageSize":  true,
-	"CharacterSize": true,
+	"OutputImageSize": true,
+	"OutputSize":      true,
+	"ProImageSize":    true,
+	"CharacterSize":   true,
 }
 
 // imageSizeSpec is the width/height bound set for one merged group of
