@@ -272,6 +272,12 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -287,6 +293,12 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -457,6 +469,12 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -472,6 +490,12 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -650,6 +674,12 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -665,6 +695,12 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -801,6 +837,12 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -819,6 +861,12 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -941,6 +989,12 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -956,6 +1010,12 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1098,6 +1158,12 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -1116,6 +1182,12 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1256,6 +1328,12 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -1274,6 +1352,12 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1418,6 +1502,12 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -1436,6 +1526,12 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 		// Too many requests
 		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1592,6 +1688,12 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -1607,6 +1709,12 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1763,6 +1871,12 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -1781,6 +1895,12 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 		// Too many requests
 		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -1925,6 +2045,12 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -1940,6 +2066,12 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 		// Too many requests
 		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2146,6 +2278,12 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -2161,6 +2299,12 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2355,6 +2499,12 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -2370,6 +2520,12 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2572,6 +2728,12 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -2587,6 +2749,12 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2741,6 +2909,12 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -2759,6 +2933,12 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2842,6 +3022,12 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -2875,12 +3061,24 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -2983,6 +3181,12 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -2995,6 +3199,12 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 		// Image is not a valid PNG, or outside 16-256px
 		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3133,6 +3343,12 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -3157,6 +3373,12 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3248,6 +3470,12 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -3281,9 +3509,21 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3394,6 +3634,12 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -3409,6 +3655,12 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 		// Validation error, or the line is too long to encode
 		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3521,6 +3773,12 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -3536,6 +3794,12 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 		// Validation error
 		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3684,6 +3948,12 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -3699,6 +3969,12 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3782,6 +4058,12 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -3815,12 +4097,24 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -3975,6 +4269,12 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -3993,6 +4293,12 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -4143,6 +4449,12 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -4161,6 +4473,12 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -4383,6 +4701,12 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -4398,6 +4722,12 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -4578,6 +4908,12 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -4593,6 +4929,12 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -4725,6 +5067,12 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -4743,6 +5091,12 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 		// Rate limit exceeded
 		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -4933,6 +5287,12 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -4948,6 +5308,12 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5112,6 +5478,12 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5127,6 +5499,12 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5275,6 +5653,12 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5293,6 +5677,12 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 		// Rate limit exceeded
 		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5471,6 +5861,12 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5486,6 +5882,12 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5628,6 +6030,12 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5646,6 +6054,12 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 		// Rate limit exceeded
 		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5842,6 +6256,12 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5857,6 +6277,12 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -5979,6 +6405,12 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -5994,6 +6426,12 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6105,6 +6543,12 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6114,6 +6558,12 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6204,6 +6654,12 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6222,6 +6678,12 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6480,6 +6942,12 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusAccepted:
@@ -6511,6 +6979,12 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6529,6 +7003,12 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6690,6 +7170,12 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6720,12 +7206,24 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Tileset is still being generated
 		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6809,6 +7307,12 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6842,9 +7346,21 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -6942,6 +7458,12 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -6969,9 +7491,21 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7062,6 +7596,12 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7080,6 +7620,12 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7284,6 +7830,12 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7302,6 +7854,12 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7370,6 +7928,12 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 
 			return nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7400,12 +7964,24 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 
 			return api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Still being generated; see Retry-After header
 		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7489,6 +8065,12 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7522,9 +8104,21 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7661,6 +8255,12 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusAccepted:
@@ -7692,6 +8292,12 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7710,6 +8316,12 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7839,6 +8451,12 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7869,12 +8487,24 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Tile still processing
 		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -7958,6 +8588,12 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -7991,9 +8627,21 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8105,6 +8753,12 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8114,6 +8768,12 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8338,6 +8998,12 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8353,6 +9019,12 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 		// Too many requests
 		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8486,6 +9158,12 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8516,12 +9194,24 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Tiles still processing
 		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8605,6 +9295,12 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8641,9 +9337,21 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8741,6 +9449,12 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8768,9 +9482,21 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -8893,6 +9619,12 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -8908,6 +9640,12 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 		// Too many requests
 		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9003,6 +9741,12 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9036,12 +9780,24 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Still generating; see Retry-After header
 		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9146,6 +9902,12 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9161,6 +9923,12 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9258,6 +10026,12 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9285,9 +10059,21 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9371,6 +10157,12 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9401,9 +10193,21 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9487,6 +10291,12 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9517,9 +10327,21 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9623,12 +10445,24 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
 		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -9857,6 +10691,12 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -9872,6 +10712,12 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10128,6 +10974,12 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -10143,6 +10995,12 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10331,6 +11189,12 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -10346,6 +11210,12 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10524,6 +11394,12 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -10539,6 +11415,12 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10639,6 +11521,12 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnprocessableEntity:
@@ -10663,9 +11551,21 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10868,6 +11768,12 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -10886,6 +11792,12 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 		// Too many requests
 		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -10976,6 +11888,12 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -11012,12 +11930,24 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11161,6 +12091,12 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -11173,6 +12109,12 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 		// Too many requests
 		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11302,6 +12244,12 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -11335,12 +12283,24 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11432,6 +12392,12 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnprocessableEntity:
@@ -11456,9 +12422,21 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11584,6 +12562,12 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 			return rsp.Body, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusNotFound:
@@ -11611,12 +12595,24 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
 		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11757,6 +12753,12 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -11793,12 +12795,24 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -11946,6 +12960,12 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -11976,12 +12996,24 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12084,6 +13116,12 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -12099,6 +13137,12 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12201,6 +13245,12 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -12216,6 +13266,12 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12314,6 +13370,12 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -12353,12 +13415,24 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// All directions rate-limited (no jobs queued)
 		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12460,6 +13534,12 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -12496,9 +13576,21 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12589,6 +13681,12 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -12625,12 +13723,24 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12721,6 +13831,12 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -12754,9 +13870,21 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -12840,6 +13968,12 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -12873,9 +14007,21 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13003,6 +14149,12 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13012,6 +14164,12 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13117,6 +14275,12 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13150,9 +14314,21 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13256,6 +14432,12 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13289,9 +14471,21 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13408,6 +14602,12 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -13444,9 +14644,21 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13552,6 +14764,12 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusBadRequest:
@@ -13588,9 +14806,21 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13691,6 +14921,12 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13703,6 +14939,12 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 		// Validation error
 		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13803,6 +15045,12 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13815,6 +15063,12 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 		// Validation error
 		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -13929,6 +15183,12 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	case http.StatusUnauthorized:
@@ -13941,6 +15201,12 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 		// Validation error
 		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -14008,9 +15274,21 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 
 			return out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -14069,9 +15347,21 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 
 			return rsp.Body, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
@@ -14157,9 +15447,21 @@ func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context
 
 			return &out, nil
 		default:
+			if c.debug {
+				if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
+				}
+			}
+
 			return nil, api.NewErrUnknownContentType(rsp)
 		}
 	default:
+		if c.debug {
+			if err := cassette.AddInteraction("api/interactions.json", ia); err != nil {
+				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
+			}
+		}
+
 		return nil, api.NewErrUnknownStatusCode(rsp)
 	}
 }
