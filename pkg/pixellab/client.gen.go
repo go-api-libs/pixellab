@@ -5,6 +5,7 @@
 package pixellab
 
 import (
+	"cmp"
 	"context"
 	"encoding/json/v2"
 	"errors"
@@ -17,7 +18,7 @@ import (
 	"strings"
 	"uuid"
 
-	"github.com/MarkRosemaker/openapi-enrich/cassette"
+	"github.com/MarkRosemaker/cassette"
 	"github.com/go-api-libs/api"
 )
 
@@ -41,6 +42,8 @@ type Client struct {
 	userAgent string
 	// Enable debug mode
 	debug bool
+	// The file debug mode adds the calls it cannot decode to, defaultDebugFile if empty
+	debugFile string
 }
 
 // ClientOption configures a [Client].
@@ -57,6 +60,10 @@ func WithBaseURL(baseURL *url.URL) ClientOption {
 }
 
 // WithHTTPClient returns a [ClientOption] that sets a custom HTTP client.
+//
+// To mock the client in tests, pass one whose Transport is cassette.Replay(interactions), from
+// github.com/MarkRosemaker/cassette: it answers each request from the recorded interaction it matches,
+// and fails any other, without the network.
 func WithHTTPClient(cli *http.Client) ClientOption {
 	return func(c *Client) { c.cli = cli }
 }
@@ -70,8 +77,18 @@ func WithBearer(bearer string) ClientOption {
 	}
 }
 
-// WithDebug is a [ClientOption] that sets the debug mode to true.
+// defaultDebugFile is where debug mode adds the calls it cannot decode, unless [WithDebugFile] says otherwise.
+const defaultDebugFile = "api/interactions.json"
+
+// WithDebug is a [ClientOption] that sets the debug mode to true: a response the client cannot decode is added, masked
+// and once, to the interactions in "api/interactions.json", for openapi-enrich to learn from, and decoded leniently.
 func WithDebug(c *Client) { c.debug = true }
+
+// WithDebugFile returns a [ClientOption] that sets the debug mode to true, adding to the interactions in the file at
+// path, see [WithDebug].
+func WithDebugFile(path string) ClientOption {
+	return func(c *Client) { c.debug, c.debugFile = true, path }
+}
 
 // NewClient creates a new Client, reading the bearer token from [os.Getenv]("PIXEL_LAB_API_TOKEN").
 func NewClient(opts ...ClientOption) (*Client, error) {
@@ -219,28 +236,11 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -256,12 +256,12 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -272,13 +272,7 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -293,13 +287,7 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -416,28 +404,11 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -453,12 +424,12 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -469,13 +440,7 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -490,13 +455,7 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -621,28 +580,11 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -658,12 +600,12 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -674,13 +616,7 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -695,13 +631,7 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -784,28 +714,11 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -821,12 +734,12 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -837,13 +750,7 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -861,13 +768,7 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -936,28 +837,11 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -973,12 +857,12 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -989,13 +873,7 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -1010,13 +888,7 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1105,28 +977,11 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -1142,12 +997,12 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -1158,13 +1013,7 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -1182,13 +1031,7 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1275,28 +1118,11 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -1312,12 +1138,12 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -1328,13 +1154,7 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -1352,13 +1172,7 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1449,28 +1263,11 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -1486,12 +1283,12 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -1502,13 +1299,7 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Invalid image size constraints
@@ -1526,13 +1317,7 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 		// Too many requests
 		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1635,28 +1420,11 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -1672,12 +1440,12 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -1688,13 +1456,7 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -1709,13 +1471,7 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1818,28 +1574,11 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -1855,12 +1594,12 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -1871,13 +1610,7 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Invalid image size constraints
@@ -1895,13 +1628,7 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 		// Too many requests
 		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -1992,28 +1719,11 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -2029,12 +1739,12 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -2045,13 +1755,7 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -2066,13 +1770,7 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 		// Too many requests
 		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -2225,28 +1923,11 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -2262,12 +1943,12 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -2278,13 +1959,7 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -2299,13 +1974,7 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -2446,28 +2115,11 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -2483,12 +2135,12 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -2499,13 +2151,7 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -2520,13 +2166,7 @@ func (c *Client) InterpolateWithResult[R any](ctx context.Context, body Interpol
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -2675,28 +2315,11 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -2712,12 +2335,12 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -2728,13 +2351,7 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -2749,13 +2366,7 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -2856,28 +2467,11 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -2893,12 +2487,12 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -2909,13 +2503,7 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// No internal style for this size/view
@@ -2933,13 +2521,7 @@ func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body Po
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -2969,28 +2551,11 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -3006,12 +2571,12 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3022,13 +2587,7 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -3045,12 +2604,12 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -3061,25 +2620,13 @@ func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3128,28 +2675,11 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -3165,12 +2695,12 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3181,13 +2711,7 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -3199,13 +2723,7 @@ func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, cha
 		// Image is not a valid PNG, or outside 16-256px
 		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3290,28 +2808,11 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -3327,12 +2828,12 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3343,13 +2844,7 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Character has no portrait, or viseme_count mismatch
@@ -3373,13 +2868,7 @@ func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx c
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3417,28 +2906,11 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -3454,12 +2926,12 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3470,13 +2942,7 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -3493,12 +2959,12 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -3509,22 +2975,10 @@ func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context,
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3581,28 +3035,11 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -3618,12 +3055,12 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3634,13 +3071,7 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Character has no mouth positions, or unknown mood
@@ -3655,13 +3086,7 @@ func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Contex
 		// Validation error, or the line is too long to encode
 		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3720,28 +3145,11 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -3757,12 +3165,12 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3773,13 +3181,7 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Character has no mouth positions, or unknown mood
@@ -3794,13 +3196,7 @@ func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.
 		// Validation error
 		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3895,28 +3291,11 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -3932,12 +3311,12 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -3948,13 +3327,7 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -3969,13 +3342,7 @@ func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body Ge
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4005,28 +3372,11 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -4042,12 +3392,12 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -4058,13 +3408,7 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -4081,12 +3425,12 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -4097,25 +3441,13 @@ func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4216,28 +3548,11 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -4253,12 +3568,12 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -4269,13 +3584,7 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -4293,13 +3602,7 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4396,28 +3699,11 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -4433,12 +3719,12 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -4449,13 +3735,7 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -4473,13 +3753,7 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4648,28 +3922,11 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -4685,12 +3942,12 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -4701,13 +3958,7 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -4722,13 +3973,7 @@ func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body A
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4855,28 +4100,11 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -4892,12 +4120,12 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -4908,13 +4136,7 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -4929,13 +4151,7 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5014,28 +4230,11 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -5051,12 +4250,12 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -5067,13 +4266,7 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -5091,13 +4284,7 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 		// Rate limit exceeded
 		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5234,28 +4421,11 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -5271,12 +4441,12 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -5287,13 +4457,7 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -5308,13 +4472,7 @@ func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body G
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5425,28 +4583,11 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -5462,12 +4603,12 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -5478,13 +4619,7 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -5499,13 +4634,7 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5600,28 +4729,11 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -5637,12 +4749,12 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -5653,13 +4765,7 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -5677,13 +4783,7 @@ func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, b
 		// Rate limit exceeded
 		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5808,28 +4908,11 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -5845,12 +4928,12 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -5861,13 +4944,7 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -5882,13 +4959,7 @@ func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body Inpai
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -5977,28 +5048,11 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -6014,12 +5068,12 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6030,13 +5084,7 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -6054,13 +5102,7 @@ func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body Inpaint
 		// Rate limit exceeded
 		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -6203,28 +5245,11 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -6240,12 +5265,12 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6256,13 +5281,7 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -6277,13 +5296,7 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -6352,28 +5365,11 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -6389,12 +5385,12 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6405,13 +5401,7 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -6426,13 +5416,7 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -6490,28 +5474,11 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -6527,12 +5494,12 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6543,13 +5510,7 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -6558,13 +5519,7 @@ func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params 
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -6601,28 +5556,11 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -6638,12 +5576,12 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6654,13 +5592,7 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -6678,13 +5610,7 @@ func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Contex
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -6889,28 +5815,11 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -6926,12 +5835,12 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6942,13 +5851,7 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusAccepted:
 		// Successful Response
@@ -6963,12 +5866,12 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -6979,13 +5882,7 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7003,13 +5900,7 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7117,28 +6008,11 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -7154,12 +6028,12 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -7170,13 +6044,7 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7190,12 +6058,12 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -7206,25 +6074,13 @@ func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, t
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Tileset is still being generated
 		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7254,28 +6110,11 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -7291,12 +6130,12 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -7307,13 +6146,7 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7330,12 +6163,12 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -7346,22 +6179,10 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7405,28 +6226,11 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -7442,12 +6246,12 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -7458,13 +6262,7 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7475,12 +6273,12 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -7491,22 +6289,10 @@ func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Conte
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7543,28 +6329,11 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -7580,12 +6349,12 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -7596,13 +6365,7 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7620,13 +6383,7 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7777,28 +6534,11 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -7814,12 +6554,12 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -7830,13 +6570,7 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7854,13 +6588,7 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx c
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -7882,28 +6610,11 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -7912,12 +6623,12 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 		case "application/json":
 			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(struct{})
@@ -7928,13 +6639,7 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 
 			return nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return api.NewErrUnknownContentType(rsp)
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -7948,12 +6653,12 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -7964,25 +6669,13 @@ func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID strin
 
 			return api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return api.NewErrUnknownContentType(rsp)
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Still being generated; see Retry-After header
 		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return api.NewErrUnknownStatusCode(rsp)
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8012,28 +6705,11 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -8049,12 +6725,12 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8065,13 +6741,7 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -8088,12 +6758,12 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -8104,22 +6774,10 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8202,28 +6860,11 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -8239,12 +6880,12 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8255,13 +6896,7 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusAccepted:
 		// Successful Response
@@ -8276,12 +6911,12 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8292,13 +6927,7 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -8316,13 +6945,7 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8398,28 +7021,11 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -8435,12 +7041,12 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8451,13 +7057,7 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -8471,12 +7071,12 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -8487,25 +7087,13 @@ func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Tile still processing
 		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8535,28 +7123,11 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -8572,12 +7143,12 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8588,13 +7159,7 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -8611,12 +7176,12 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -8627,22 +7192,10 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8700,28 +7253,11 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -8737,12 +7273,12 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8753,13 +7289,7 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -8768,13 +7298,7 @@ func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, p
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -8945,28 +7469,11 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -8982,12 +7489,12 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -8998,13 +7505,7 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9019,13 +7520,7 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 		// Too many requests
 		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9105,28 +7600,11 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -9142,12 +7620,12 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9158,13 +7636,7 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9178,12 +7650,12 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -9194,25 +7666,13 @@ func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Tiles still processing
 		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9242,28 +7702,11 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -9279,12 +7722,12 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9295,13 +7738,7 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9321,12 +7758,12 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -9337,22 +7774,10 @@ func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9396,28 +7821,11 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -9433,12 +7841,12 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9449,13 +7857,7 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9466,12 +7868,12 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -9482,22 +7884,10 @@ func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, par
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9566,28 +7956,11 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -9603,12 +7976,12 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9619,13 +7992,7 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9640,13 +8007,7 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 		// Too many requests
 		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9688,28 +8049,11 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -9725,12 +8069,12 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9741,13 +8085,7 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9764,12 +8102,12 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -9780,25 +8118,13 @@ func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Still generating; see Retry-After header
 		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9849,28 +8175,11 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusAccepted:
@@ -9886,12 +8195,12 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -9902,13 +8211,7 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -9923,13 +8226,7 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -9973,28 +8270,11 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10010,12 +8290,12 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10026,13 +8306,7 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -10043,12 +8317,12 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -10059,22 +8333,10 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10104,28 +8366,11 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10141,12 +8386,12 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10157,13 +8402,7 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -10177,12 +8416,12 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -10193,22 +8432,10 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10238,28 +8465,11 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10275,12 +8485,12 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10291,13 +8501,7 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -10311,12 +8515,12 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -10327,22 +8531,10 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10392,28 +8584,11 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10429,12 +8604,12 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10445,25 +8620,13 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
 		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10638,28 +8801,11 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10675,12 +8821,12 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10691,13 +8837,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -10712,13 +8852,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10921,28 +9055,11 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -10958,12 +9075,12 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -10974,13 +9091,7 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -10995,13 +9106,7 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -11136,28 +9241,11 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -11173,12 +9261,12 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -11189,13 +9277,7 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -11210,13 +9292,7 @@ func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx cont
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -11341,28 +9417,11 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -11378,12 +9437,12 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -11394,13 +9453,7 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -11415,13 +9468,7 @@ func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx conte
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -11468,28 +9515,11 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -11505,12 +9535,12 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -11521,13 +9551,7 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -11535,12 +9559,12 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 		case "application/json":
 			var out SimpleError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(SimpleError)
@@ -11551,22 +9575,10 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -11715,28 +9727,11 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -11752,12 +9747,12 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -11768,13 +9763,7 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -11792,13 +9781,7 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 		// Too many requests
 		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -11835,28 +9818,11 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -11872,12 +9838,12 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -11888,13 +9854,7 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Source character is not completed
@@ -11914,12 +9874,12 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -11930,25 +9890,13 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12038,28 +9986,11 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -12075,12 +10006,12 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -12091,13 +10022,7 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -12109,13 +10034,7 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 		// Too many requests
 		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12191,28 +10110,11 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -12228,12 +10130,12 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -12244,13 +10146,7 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -12267,12 +10163,12 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -12283,25 +10179,13 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12339,28 +10223,11 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -12376,12 +10243,12 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -12392,13 +10259,7 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -12406,12 +10267,12 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -12422,22 +10283,10 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12523,17 +10372,7 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -12546,13 +10385,6 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 		}
 	}()
 
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
-
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// ZIP file download containing character data
@@ -12562,13 +10394,7 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 			return rsp.Body, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusNotFound:
 		// Character not found
@@ -12579,12 +10405,12 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -12595,25 +10421,13 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
 		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12700,28 +10514,11 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -12737,12 +10534,12 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -12753,13 +10550,7 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Invalid tag format or validation error
@@ -12779,12 +10570,12 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -12795,25 +10586,13 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -12907,28 +10686,11 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -12944,12 +10706,12 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -12960,13 +10722,7 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -12980,12 +10736,12 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -12996,25 +10752,13 @@ func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jo
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13063,28 +10807,11 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13100,12 +10827,12 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13116,13 +10843,7 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -13137,13 +10858,7 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13192,28 +10907,11 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13229,12 +10927,12 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13245,13 +10943,7 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -13266,13 +10958,7 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13317,28 +11003,11 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13354,12 +11023,12 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13370,13 +11039,7 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Validation error (object not ready, invalid directions/frame_count, missing description for a new animation)
@@ -13399,12 +11062,12 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -13415,25 +11078,13 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// All directions rate-limited (no jobs queued)
 		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13481,28 +11132,11 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13518,12 +11152,12 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13534,13 +11168,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
@@ -13560,12 +11188,12 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -13576,22 +11204,10 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13628,28 +11244,11 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13665,12 +11264,12 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13681,13 +11280,7 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Source object is not completed
@@ -13707,12 +11300,12 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -13723,25 +11316,13 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13778,28 +11359,11 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13815,12 +11379,12 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13831,13 +11395,7 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Object not in review status / invalid indices
@@ -13854,12 +11412,12 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -13870,22 +11428,10 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -13915,28 +11461,11 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -13952,12 +11481,12 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -13968,13 +11497,7 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Object not in review status
@@ -13991,12 +11514,12 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -14007,22 +11530,10 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14096,28 +11607,11 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14133,12 +11627,12 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14149,13 +11643,7 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -14164,13 +11652,7 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14222,28 +11704,11 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14259,12 +11724,12 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14275,13 +11740,7 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -14298,12 +11757,12 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -14314,22 +11773,10 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14379,28 +11826,11 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14416,12 +11846,12 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14432,13 +11862,7 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -14455,12 +11879,12 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -14471,22 +11895,10 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14549,28 +11961,11 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14586,12 +11981,12 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14602,13 +11997,7 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Invalid tag format or validation error
@@ -14628,12 +12017,12 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -14644,22 +12033,10 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14711,28 +12088,11 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14748,12 +12108,12 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14764,13 +12124,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
@@ -14790,12 +12144,12 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
@@ -14806,22 +12160,10 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 
 			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14868,28 +12210,11 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -14905,12 +12230,12 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -14921,13 +12246,7 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -14939,13 +12258,7 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 		// Validation error
 		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -14992,28 +12305,11 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -15029,12 +12325,12 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -15045,13 +12341,7 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -15063,13 +12353,7 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 		// Validation error
 		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -15130,28 +12414,11 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -15167,12 +12434,12 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -15183,13 +12450,7 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
@@ -15201,13 +12462,7 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 		// Validation error
 		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -15239,28 +12494,11 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -15274,22 +12512,10 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 
 			return out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -15308,17 +12534,7 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 		URL:        u,
 	}).WithContext(ctx)
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -15331,13 +12547,6 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 		}
 	}()
 
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
-
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// OK
@@ -15347,22 +12556,10 @@ func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uui
 
 			return rsp.Body, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -15394,28 +12591,11 @@ func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context
 	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
 	defer pr.Close()
 
-	var (
-		ia  cassette.Interaction
-		err error
-	)
-	if c.debug {
-		ia.Request, err = cassette.NewRequest(req)
-		if err != nil {
-			return nil, fmt.Errorf("recording request: %w", err)
-		}
-	}
-	rsp, err := c.cli.Do(req)
+	rsp, ia, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-
-	if c.debug {
-		ia.Response, err = cassette.NewResponse(rsp)
-		if err != nil {
-			return nil, fmt.Errorf("recording response: %w", err)
-		}
-	}
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
@@ -15431,12 +12611,12 @@ func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context
 			}
 
 			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if !c.debug {
+				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
 
-				if err2 := cassette.AddInteraction("api/interactions.json", &ia); err2 != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), err2)
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(R)
@@ -15447,21 +12627,56 @@ func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context
 
 			return &out, nil
 		default:
-			if c.debug {
-				if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-					return nil, errors.Join(api.NewErrUnknownContentType(rsp), err)
-				}
-			}
-
-			return nil, api.NewErrUnknownContentType(rsp)
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		if c.debug {
-			if err := cassette.AddInteraction("api/interactions.json", &ia); err != nil {
-				return nil, errors.Join(api.NewErrUnknownStatusCode(rsp), err)
-			}
-		}
-
-		return nil, api.NewErrUnknownStatusCode(rsp)
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
+}
+
+// do sends req and, in debug mode, records the call, for [Client.keep] to add should the client not decode the
+// response.
+func (c *Client) do(req *http.Request) (*http.Response, *cassette.Interaction, error) {
+	if !c.debug {
+		rsp, err := c.cli.Do(req)
+		return rsp, nil, err
+	}
+
+	recReq, err := cassette.NewRequest(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("recording request: %w", err)
+	}
+
+	rsp, err := c.cli.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	recRsp, err := cassette.NewResponse(rsp)
+	if err != nil {
+		rsp.Body.Close()
+		return nil, nil, fmt.Errorf("recording response: %w", err)
+	}
+
+	return rsp, &cassette.Interaction{Request: recReq, Response: recRsp}, nil
+}
+
+// keep adds ia, a call the client could not decode, to the interactions in the debug file right away: masked, and
+// once, however often the call fails. Outside debug mode, ia is nil, and there is nothing to add.
+func (c *Client) keep(ia *cassette.Interaction) error {
+	if ia == nil {
+		return nil
+	}
+
+	return cassette.AddInteraction(cmp.Or(c.debugFile, defaultDebugFile), ia)
+}
+
+// failed is err, the error of the call ia records, which it adds to the debug file, see [Client.keep]; joined with
+// any error doing so.
+func (c *Client) failed(ia *cassette.Interaction, err error) error {
+	if kerr := c.keep(ia); kerr != nil {
+		return errors.Join(err, kerr)
+	}
+
+	return err
 }
