@@ -22,8 +22,8 @@ github.com/MarkRosemaker/openapi-enrich v0.0.0-20261017153607-065722483fca h1:PF
 github.com/MarkRosemaker/openapi-enrich v0.0.0-20261017153607-065722483fca/go.mod h1:hiWK2+N49bnEaZp083e5Ch6IvzJreyomDtz95dk83Ec=
 github.com/MarkRosemaker/openapi-flatten v0.0.0-20261017153506-dda4adca9c18 h1:iR/tOw42cn3oDydxvcyJmvDbSkU70H7/F4lai8gvl98=
 github.com/MarkRosemaker/openapi-flatten v0.0.0-20261017153506-dda4adca9c18/go.mod h1:ZPJRbHnccWzPS0Qhgi7erfXlC0IOj0Gein7LC+hM0rc=
-github.com/MarkRosemaker/openapi-merge v0.0.0-20261017153504-95ce46c76db4 h1:cxFpMSO8ZkA0yIRPBM51LKcUA+scu5sliM/DsBrZQ/E=
-github.com/MarkRosemaker/openapi-merge v0.0.0-20261017153504-95ce46c76db4/go.mod h1:Qa8VeTWSc4vjFTqhm5Kv4QPwQ6OTKMt2XiF3Q3HFb/c=
+github.com/MarkRosemaker/openapi-merge v0.0.0-20261017153845-031fc926d581 h1:W05gKDa3o/dugOhYTz2g2C0HhRAJS6fnQkA3zN8NrWI=
+github.com/MarkRosemaker/openapi-merge v0.0.0-20261017153845-031fc926d581/go.mod h1:Qa8VeTWSc4vjFTqhm5Kv4QPwQ6OTKMt2XiF3Q3HFb/c=
 github.com/MarkRosemaker/ordmap v0.0.0-20261016110346-7943cbe36691 h1:E+ljcNHOKmhFkBpHhHswU2L5HTi67NnHDvA1S3Yjd/A=
 github.com/MarkRosemaker/ordmap v0.0.0-20261016110346-7943cbe36691/go.mod h1:+xSRMlPCfM9R/GnJqt4h6YEpi72qvX0HxsKzgJggpnM=
 github.com/MarkRosemaker/yaml v0.0.0-20261016110357-e4eff9824664 h1:tnExbpaRmOVfrnQyXFHz1nGCJwE4kmjFXQzbo3h1v1I=
