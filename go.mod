@@ -11,7 +11,7 @@ tool (
 
 require (
 	github.com/MarkRosemaker/cassette v0.0.0-20261022123232-81cc487a1e4d
-	github.com/MarkRosemaker/jsonutil v0.0.0-20261022123119-c37b7f04825a
+	github.com/MarkRosemaker/jsonutil v0.0.0-20261022180540-57bb1844af32
 	github.com/MarkRosemaker/openapi v0.0.0-20261022123316-d2273ca54f40
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261022123628-e955744e14a3
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261022123458-670ebb45c0f3
