@@ -20,6 +20,7 @@ require (
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261107140639-c559c8ee325d
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20261107140449-14441b657cf3
+	golang.org/x/sync v0.24.0
 )
 
 require (
@@ -35,7 +36,6 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	golang.org/x/exp v0.0.0-20261106192419-47ce03d25ef0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.52.1-0.20261106145633-d407941a339a // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
