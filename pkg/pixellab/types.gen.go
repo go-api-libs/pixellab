@@ -3001,7 +3001,65 @@ type GetVocalAnimationJobResponse struct {
 
 // HTTPValidationError defines a model
 type HTTPValidationError struct {
-	Detail []ValidationError `json:"detail,omitzero"`
+	Detail HTTPValidationErrorDetail `json:"detail,omitzero"`
+}
+
+// HTTPValidationErrorDetail defines a model
+// HTTPValidationErrorDetail is an untagged oneOf union: exactly one field is set after unmarshaling.
+type HTTPValidationErrorDetail struct {
+	String          string
+	ValidationError []ValidationError
+}
+
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+func (v *HTTPValidationErrorDetail) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
+	*v = HTTPValidationErrorDetail{}
+
+	opts := jsonOptsOf(dec)
+	strict := jsonStrict(dec)
+
+	raw, err := dec.ReadValue()
+	if err != nil {
+		return err
+	}
+
+	var matched int
+
+	// leniently, more than one may match, and the first does
+	if strict || matched == 0 {
+		var vv string
+		if err := json.Unmarshal(raw, &vv, opts); err == nil {
+			v.String = vv
+			matched++
+		}
+	}
+
+	// leniently, more than one may match, and the first does
+	if strict || matched == 0 {
+		var vv []ValidationError
+		if err := json.Unmarshal(raw, &vv, opts); err == nil {
+			v.ValidationError = vv
+			matched++
+		}
+	}
+
+	if matched != 1 {
+		return &json.SemanticError{Err: fmt.Errorf("matches %d of its alternatives, want exactly one", matched)}
+	}
+
+	return nil
+}
+
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+func (v *HTTPValidationErrorDetail) MarshalJSONTo(enc *jsontext.Encoder) error {
+	switch {
+	case v.String != "":
+		return json.MarshalEncode(enc, v.String, jsonOptsTo(enc))
+	case v.ValidationError != nil:
+		return json.MarshalEncode(enc, v.ValidationError, jsonOptsTo(enc))
+	}
+
+	return &json.SemanticError{Err: errors.New("no alternative set")}
 }
 
 // Image defines a model

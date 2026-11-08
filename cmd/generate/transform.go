@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json/v2"
+	"errors"
 	"strings"
 
 	"github.com/MarkRosemaker/openapi"
@@ -16,7 +17,7 @@ const (
 
 // transform makes the original fit for generating a library: every path carries the version the original leaves to
 // its server, and an optional value is one that may be left out rather than one that may also be null.
-func transform(doc *openapi.Document) {
+func transform(doc *openapi.Document) error {
 	doc.Info.Description = strings.TrimSpace(doc.Info.Description)
 	doc.Servers = openapi.Servers{{URL: serverURL}}
 
@@ -29,6 +30,26 @@ func transform(doc *openapi.Document) {
 
 	edit.WalkSchemas(doc, dropNull)
 	dropEmptyJSON(doc)
+
+	return detailEitherWay(doc)
+}
+
+// detailEitherWay lets the detail of a 422 be a message as well as the validation errors upstream declares: the API
+// answers a generation it turns down with {"detail": "Generation failed"}.
+func detailEitherWay(doc *openapi.Document) error {
+	s, ok := doc.Components.Schemas["HTTPValidationError"]
+	if !ok || s.Properties["detail"] == nil || s.Properties["detail"].Type != openapi.TypeArray {
+		return errors.New("HTTPValidationError has no array of details any more")
+	}
+
+	errs := *s.Properties["detail"]
+	errs.Title = ""
+	s.Properties["detail"].Replace(&openapi.Schema{
+		Title: "Detail",
+		OneOf: openapi.SchemaList{{Type: openapi.TypeString}, &errs},
+	})
+
+	return nil
 }
 
 // dropEmptyJSON removes the JSON of no schema FastAPI declares beside a response's own media type, as a ZIP download's,

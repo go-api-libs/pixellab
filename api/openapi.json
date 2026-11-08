@@ -10746,13 +10746,24 @@
         "type": "object",
         "properties": {
           "detail": {
-            "title": "Detail",
+            "$ref": "#/components/schemas/HTTPValidationErrorDetail"
+          }
+        }
+      },
+      "HTTPValidationErrorDetail": {
+        "title": "Detail",
+        "oneOf": [
+          {
+            "type": "string",
+            "example": "Generation failed"
+          },
+          {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ValidationError"
             }
           }
-        }
+        ]
       },
       "Image": {
         "type": "object",

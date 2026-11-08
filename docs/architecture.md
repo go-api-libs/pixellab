@@ -9,7 +9,8 @@ specification in five steps:
 2. **Transform** (`transform.go`, `names.go`, `bodies.go`): put the version in
    every path, drop the null of FastAPI's optional values, the JSON of no
    schema FastAPI declares beside a download's own media type, and the operations
-   that are only aliases of another, and name every operation after its method
+   that are only aliases of another, let a 422's detail be a message as well as
+   validation errors, and name every operation after its method
    and path, and every body after its operation.
    Type every string the API holds to one format (`formats.go`): an ID name
    upstream types anywhere is typed everywhere, and `formats` gives what
