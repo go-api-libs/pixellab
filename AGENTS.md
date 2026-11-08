@@ -69,6 +69,18 @@ Edit the directory, never the file:
 - `README.md` → `README/`
 - `Makefile` → `mk/`
 
+`api/openapi.json` is generated whole: `go generate` runs
+`./cmd/generate`, which builds it anew from the upstream
+specification copied into `api/`, and fills in types, formats and examples
+from `api/interactions.json`. An edit to it is lost on the next run, so make
+the change in `./cmd/generate` instead. Outside a Claude Code session,
+each run first replaces the copy with the newest, so its diff is what
+changed upstream.
+
+An interaction still decides types: change one and the spec follows on the
+next run, and remove one and what only it showed goes with it. After
+`make ready`, read the diff of `api/openapi.json`.
+
 `.gitignore` is the exception: only the marked block at its head is
 generated. Your own rules go below that block, where they win — in a
 `.gitignore` the last matching pattern decides.
