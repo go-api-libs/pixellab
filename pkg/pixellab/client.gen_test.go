@@ -14,7 +14,6 @@ import (
 	"testing"
 	"uuid"
 
-	"github.com/MarkRosemaker/cassette"
 	"github.com/go-api-libs/api"
 )
 
@@ -46,7 +45,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImage(t.Context(), GenerateImageV2Request{}); err == nil {
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -66,7 +65,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImage(t.Context(), GenerateImageV2Request{}); err == nil {
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -94,7 +93,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImage(t.Context(), GenerateImageV2Request{}); err == nil {
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -119,7 +118,101 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateImage(t.Context(), GenerateImageV2Request{}); err == nil {
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateImagePixen", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -140,7 +233,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleV2Request{}); err == nil {
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -160,7 +253,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleV2Request{}); err == nil {
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -188,7 +281,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleV2Request{}); err == nil {
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -213,101 +306,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GenerateUI", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateUI(t.Context(), GenerateUIV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateUI(t.Context(), GenerateUIV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateUI(t.Context(), GenerateUIV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateUI(t.Context(), GenerateUIV2Request{}); err == nil {
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -505,100 +504,6 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateImagePixen", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
 	t.Run("CreateImageBitforge", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
@@ -693,7 +598,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ConvertImageToPixelArt", func(t *testing.T) {
+	t.Run("ImageToPixelart", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -704,7 +609,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArt(t.Context(), ImageToPixelartRequest{}); err == nil {
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -724,7 +629,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArt(t.Context(), ImageToPixelartRequest{}); err == nil {
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -752,7 +657,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArt(t.Context(), ImageToPixelartRequest{}); err == nil {
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -777,7 +682,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArt(t.Context(), ImageToPixelartRequest{}); err == nil {
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -787,7 +692,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ConvertImageToPixelArtPro", func(t *testing.T) {
+	t.Run("ImageToPixelartPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -798,7 +703,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArtPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -818,7 +723,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArtPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -846,7 +751,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArtPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -871,7 +776,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ConvertImageToPixelArtPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -881,7 +786,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ResizePixelArtImage", func(t *testing.T) {
+	t.Run("ImageToPixelartProFlash", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -892,7 +797,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ResizePixelArtImage(t.Context(), ResizeRequest{}); err == nil {
+			if _, err := c.ImageToPixelartProFlash(t.Context(), ImageToPixelartProFlashRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -912,195 +817,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ResizePixelArtImage(t.Context(), ResizeRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ResizePixelArtImage(t.Context(), ResizeRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ResizePixelArtImage(t.Context(), ResizeRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("RemoveBackground", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("EditAnimation", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditAnimation(t.Context(), EditAnimationV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditAnimation(t.Context(), EditAnimationV2Request{}); err == nil {
+			if _, err := c.ImageToPixelartProFlash(t.Context(), ImageToPixelartProFlashRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1128,7 +845,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditAnimation(t.Context(), EditAnimationV2Request{}); err == nil {
+			if _, err := c.ImageToPixelartProFlash(t.Context(), ImageToPixelartProFlashRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1153,7 +870,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditAnimation(t.Context(), EditAnimationV2Request{}); err == nil {
+			if _, err := c.ImageToPixelartProFlash(t.Context(), ImageToPixelartProFlashRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1163,7 +880,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("Interpolate", func(t *testing.T) {
+	t.Run("CreateCharacter", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -1174,7 +891,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Interpolate(t.Context(), InterpolationV2Request{}); err == nil {
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1194,289 +911,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Interpolate(t.Context(), InterpolationV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Interpolate(t.Context(), InterpolationV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Interpolate(t.Context(), InterpolationV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("TransferOutfit", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TransferOutfit(t.Context(), TransferOutfitV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TransferOutfit(t.Context(), TransferOutfitV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TransferOutfit(t.Context(), TransferOutfitV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TransferOutfit(t.Context(), TransferOutfitV2Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("PortraitCharacter", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PortraitCharacter(t.Context(), PortraitCharacterProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PortraitCharacter(t.Context(), PortraitCharacterProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PortraitCharacter(t.Context(), PortraitCharacterProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PortraitCharacter(t.Context(), PortraitCharacterProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetPortraitCharacterJobStatus", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1504,7 +939,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1529,7 +964,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetPortraitCharacterJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1539,7 +974,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("SetCharactersPortrait", func(t *testing.T) {
+	t.Run("CreateCharacterPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -1550,7 +985,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetCharactersPortrait(t.Context(), uuid.Nil(), SetPortraitRequest{}); err == nil {
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1570,7 +1005,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetCharactersPortrait(t.Context(), uuid.Nil(), SetPortraitRequest{}); err == nil {
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1598,7 +1033,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetCharactersPortrait(t.Context(), uuid.Nil(), SetPortraitRequest{}); err == nil {
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1623,7 +1058,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetCharactersPortrait(t.Context(), uuid.Nil(), SetPortraitRequest{}); err == nil {
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1633,7 +1068,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GenerateTalkingMouthPositionsForPortrait", func(t *testing.T) {
+	t.Run("CreateCharacterAnimation", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -1644,7 +1079,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateTalkingMouthPositionsForPortrait(t.Context(), VocalAnimationRequest{}); err == nil {
+			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1664,101 +1099,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GenerateTalkingMouthPositionsForPortrait(t.Context(), VocalAnimationRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateTalkingMouthPositionsForPortrait(t.Context(), VocalAnimationRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateTalkingMouthPositionsForPortrait(t.Context(), VocalAnimationRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetMouthPositionJobStatus", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1786,7 +1127,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1811,7 +1152,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMouthPositionJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1821,7 +1162,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("LipSyncTextToTalkingGifFree", func(t *testing.T) {
+	t.Run("AnimateCharacter", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -1832,7 +1173,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.LipSyncTextToTalkingGifFree(t.Context(), TalkingGifRequest{}); err == nil {
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1852,7 +1193,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.LipSyncTextToTalkingGifFree(t.Context(), TalkingGifRequest{}); err == nil {
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1880,7 +1221,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.LipSyncTextToTalkingGifFree(t.Context(), TalkingGifRequest{}); err == nil {
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1905,7 +1246,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.LipSyncTextToTalkingGifFree(t.Context(), TalkingGifRequest{}); err == nil {
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -1915,7 +1256,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetTheLipSyncFramePlanForTextFree", func(t *testing.T) {
+	t.Run("CreateCharacterState", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -1926,7 +1267,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetTheLipSyncFramePlanForTextFree(t.Context(), LipSyncRequest{}); err == nil {
+			if _, err := c.CreateCharacterState(t.Context(), CreateCharacterStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -1946,7 +1287,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetTheLipSyncFramePlanForTextFree(t.Context(), LipSyncRequest{}); err == nil {
+			if _, err := c.CreateCharacterState(t.Context(), CreateCharacterStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -1974,7 +1315,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetTheLipSyncFramePlanForTextFree(t.Context(), LipSyncRequest{}); err == nil {
+			if _, err := c.CreateCharacterState(t.Context(), CreateCharacterStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -1999,7 +1340,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetTheLipSyncFramePlanForTextFree(t.Context(), LipSyncRequest{}); err == nil {
+			if _, err := c.CreateCharacterState(t.Context(), CreateCharacterStateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2009,7 +1350,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GeneratePixelFont", func(t *testing.T) {
+	t.Run("CreateCharacterWith4Directions", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2020,7 +1361,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GeneratePixelFont(t.Context(), GenerateFontProRequest{}); err == nil {
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2040,101 +1381,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GeneratePixelFont(t.Context(), GenerateFontProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GeneratePixelFont(t.Context(), GenerateFontProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GeneratePixelFont(t.Context(), GenerateFontProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetFontProJobStatus", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2162,7 +1409,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2187,7 +1434,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetFontProJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2197,7 +1444,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateWithSkeleton", func(t *testing.T) {
+	t.Run("CreateCharacterWith8Directions", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2208,7 +1455,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2228,7 +1475,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2256,7 +1503,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2281,7 +1528,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2291,7 +1538,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateWithText", func(t *testing.T) {
+	t.Run("ListCharacters", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2302,7 +1549,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2322,7 +1569,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2350,7 +1597,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2375,7 +1622,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2385,7 +1632,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateWithTextPro", func(t *testing.T) {
+	t.Run("GetCharacter", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2396,7 +1643,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextPro(t.Context(), AnimateWithTextV2Request{}); err == nil {
+			if _, err := c.GetCharacter(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2416,7 +1663,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextPro(t.Context(), AnimateWithTextV2Request{}); err == nil {
+			if _, err := c.GetCharacter(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2430,7 +1677,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("unknown content type", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
+				w.WriteHeader(http.StatusOK)
 			}))
 			t.Cleanup(srv.Close)
 
@@ -2444,7 +1691,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextPro(t.Context(), AnimateWithTextV2Request{}); err == nil {
+			if _, err := c.GetCharacter(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2454,7 +1701,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
+				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("invalid json"))
 			}))
 			t.Cleanup(srv.Close)
@@ -2469,7 +1716,1640 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateWithTextPro(t.Context(), AnimateWithTextV2Request{}); err == nil {
+			if _, err := c.GetCharacter(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteCharacter", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacter(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacter(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacter(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacter(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetCharacterZip", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetCharacterZip(t.Context(), "", nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetCharacterZip(t.Context(), "", nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+	})
+
+	t.Run("GetCharacterSpritesheet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetCharacterSpritesheet(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetCharacterSpritesheet(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+	})
+
+	t.Run("UpdateCharacterTags", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateCharacterTags(t.Context(), "", UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateCharacterTags(t.Context(), "", UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateCharacterTags(t.Context(), "", UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateCharacterTags(t.Context(), "", UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("Create1DirectionObject", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("Create8DirectionObject", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateObjectAnimation", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectAnimation(t.Context(), uuid.Nil(), CreateObjectAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectAnimation(t.Context(), uuid.Nil(), CreateObjectAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectAnimation(t.Context(), uuid.Nil(), CreateObjectAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectAnimation(t.Context(), uuid.Nil(), CreateObjectAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteObjectAnimations", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObjectAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObjectAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObjectAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObjectAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateObjectState", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectState(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectState(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectState(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectState(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("SelectObjectFrames", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SelectObjectFrames(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SelectObjectFrames(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SelectObjectFrames(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SelectObjectFrames(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DismissObjectReview", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DismissObjectReview(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DismissObjectReview(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DismissObjectReview(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DismissObjectReview(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("ListObjects", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetObject", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteObject", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteObject(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("UpdateObjectTags", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateTagsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetObjectSpritesheet", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetObjectSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetObjectSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+	})
+
+	t.Run("DeleteCharacterAnimations", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteCharacterAnimation", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimation(t.Context(), uuid.Nil(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimation(t.Context(), uuid.Nil(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimation(t.Context(), uuid.Nil(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimation(t.Context(), uuid.Nil(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteCharacterAnimationDirection", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimationDirection(t.Context(), uuid.Nil(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimationDirection(t.Context(), uuid.Nil(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimationDirection(t.Context(), uuid.Nil(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterAnimationDirection(t.Context(), uuid.Nil(), uuid.Nil(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2573,6 +3453,570 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
+	t.Run("AnimatePixminimax", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("Interpolation", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("EditAnimation", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("TransferOutfit", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("AnimateWithTextV2", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("AnimateWithText", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
 	t.Run("EstimateSkeleton", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
@@ -2667,7 +4111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("Generate8Rotations", func(t *testing.T) {
+	t.Run("AnimateWithSkeletonV3", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2678,7 +4122,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Generate8Rotations(t.Context(), Generate8RotationsV2Request{}); err == nil {
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2698,7 +4142,195 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Generate8Rotations(t.Context(), Generate8RotationsV2Request{}); err == nil {
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("AnimateWithSkeleton", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateVfx", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -2726,7 +4358,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Generate8Rotations(t.Context(), Generate8RotationsV2Request{}); err == nil {
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -2751,7 +4383,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Generate8Rotations(t.Context(), Generate8RotationsV2Request{}); err == nil {
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -2855,7 +4487,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("RotateCharacterOrObject", func(t *testing.T) {
+	t.Run("Generate8RotationsV2", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -2866,7 +4498,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.RotateCharacterOrObject(t.Context(), RotateRequest{}); err == nil {
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -2886,101 +4518,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.RotateCharacterOrObject(t.Context(), RotateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RotateCharacterOrObject(t.Context(), RotateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RotateCharacterOrObject(t.Context(), RotateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("InpaintImageV3", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.InpaintImageV3(t.Context(), InpaintV3Request{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.InpaintImageV3(t.Context(), InpaintV3Request{}); err == nil {
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3008,7 +4546,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImageV3(t.Context(), InpaintV3Request{}); err == nil {
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3033,7 +4571,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImageV3(t.Context(), InpaintV3Request{}); err == nil {
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3043,7 +4581,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("InpaintImage", func(t *testing.T) {
+	t.Run("Rotate", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3054,7 +4592,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImage(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3074,7 +4612,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImage(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3102,7 +4640,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImage(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3127,7 +4665,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.InpaintImage(t.Context(), InpaintRequest{}); err == nil {
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3148,7 +4686,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditImages(t.Context(), EditImagesV2Request{}); err == nil {
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3168,7 +4706,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditImages(t.Context(), EditImagesV2Request{}); err == nil {
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3196,7 +4734,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditImages(t.Context(), EditImagesV2Request{}); err == nil {
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3221,7 +4759,101 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.EditImages(t.Context(), EditImagesV2Request{}); err == nil {
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("EditImagePixen", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3325,7 +4957,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ListUsersTilesets", func(t *testing.T) {
+	t.Run("InpaintV3", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3336,7 +4968,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersTilesets(t.Context(), nil); err == nil {
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3356,101 +4988,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersTilesets(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersTilesets(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersTilesets(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("CreateTilesetAsynchronously", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTilesetAsynchronously(t.Context(), CreateTilesetRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTilesetAsynchronously(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3478,7 +5016,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTilesetAsynchronously(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3503,7 +5041,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTilesetAsynchronously(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3513,7 +5051,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateTopDownTilesetAsyncProcessing", func(t *testing.T) {
+	t.Run("Inpaint", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3524,7 +5062,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTopDownTilesetAsyncProcessing(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3544,7 +5082,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTopDownTilesetAsyncProcessing(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3572,7 +5110,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTopDownTilesetAsyncProcessing(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3597,7 +5135,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTopDownTilesetAsyncProcessing(t.Context(), CreateTilesetRequest{}); err == nil {
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3607,7 +5145,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetGeneratedTilesetByID", func(t *testing.T) {
+	t.Run("ListTilesets", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3618,7 +5156,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesetByID(t.Context(), ""); err == nil {
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3638,7 +5176,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesetByID(t.Context(), ""); err == nil {
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3666,7 +5204,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesetByID(t.Context(), ""); err == nil {
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3691,7 +5229,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesetByID(t.Context(), ""); err == nil {
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3701,7 +5239,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("DeleteTopDownTileset", func(t *testing.T) {
+	t.Run("CreateTileset", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3712,7 +5250,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3732,7 +5270,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3760,7 +5298,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3785,7 +5323,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTopDownTileset(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3795,7 +5333,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ListYourSidescrollerTilesets", func(t *testing.T) {
+	t.Run("GetTileset", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3806,7 +5344,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourSidescrollerTilesets(t.Context(), nil); err == nil {
+			if _, err := c.GetTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3826,7 +5364,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourSidescrollerTilesets(t.Context(), nil); err == nil {
+			if _, err := c.GetTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3854,7 +5392,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourSidescrollerTilesets(t.Context(), nil); err == nil {
+			if _, err := c.GetTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3879,7 +5417,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourSidescrollerTilesets(t.Context(), nil); err == nil {
+			if _, err := c.GetTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3889,7 +5427,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateSidescrollerTilesetAsynchronously", func(t *testing.T) {
+	t.Run("DeleteTileset", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3900,7 +5438,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsynchronously(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
+			if _, err := c.DeleteTileset(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -3920,7 +5458,195 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsynchronously(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
+			if _, err := c.DeleteTileset(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteTileset(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteTileset(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("ListSidescrollerTilesets", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListSidescrollerTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListSidescrollerTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListSidescrollerTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListSidescrollerTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateSidescrollerTileset", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -3948,7 +5674,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsynchronously(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -3973,7 +5699,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsynchronously(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -3983,7 +5709,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateSidescrollerTilesetAsyncProcessing", func(t *testing.T) {
+	t.Run("GetSidescrollerTileset", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -3994,7 +5720,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsyncProcessing(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
+			if err := c.GetSidescrollerTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4014,101 +5740,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateSidescrollerTilesetAsyncProcessing(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusAccepted)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateSidescrollerTilesetAsyncProcessing(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusAccepted)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateSidescrollerTilesetAsyncProcessing(t.Context(), CreateTilesetSidescrollerRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetSidescrollerTilesetByID", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if err := c.GetSidescrollerTilesetByID(t.Context(), ""); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if err := c.GetSidescrollerTilesetByID(t.Context(), ""); err == nil {
+			if err := c.GetSidescrollerTileset(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4214,7 +5846,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateIsometricTileAsyncProcessing", func(t *testing.T) {
+	t.Run("CreateTilesPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -4225,7 +5857,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateIsometricTileAsyncProcessing(t.Context(), CreateIsometricTileRequest{}); err == nil {
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4245,383 +5877,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateIsometricTileAsyncProcessing(t.Context(), CreateIsometricTileRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateIsometricTileAsyncProcessing(t.Context(), CreateIsometricTileRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateIsometricTileAsyncProcessing(t.Context(), CreateIsometricTileRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetGeneratedIsometricTileByID", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetGeneratedIsometricTileByID(t.Context(), ""); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetGeneratedIsometricTileByID(t.Context(), ""); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetGeneratedIsometricTileByID(t.Context(), ""); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetGeneratedIsometricTileByID(t.Context(), ""); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("DeleteAnIsometricTile", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnIsometricTile(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("ListUsersIsometricTiles", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersIsometricTiles(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersIsometricTiles(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersIsometricTiles(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersIsometricTiles(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("CreateTilesProAsyncProcessing", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTilesProAsyncProcessing(t.Context(), CreateTilesProRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTilesProAsyncProcessing(t.Context(), CreateTilesProRequest{}); err == nil {
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4649,7 +5905,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTilesProAsyncProcessing(t.Context(), CreateTilesProRequest{}); err == nil {
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4674,7 +5930,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateTilesProAsyncProcessing(t.Context(), CreateTilesProRequest{}); err == nil {
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4684,7 +5940,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetGeneratedTilesProByID", func(t *testing.T) {
+	t.Run("GetTilesPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -4695,7 +5951,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesProByID(t.Context(), ""); err == nil {
+			if _, err := c.GetTilesPro(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4715,7 +5971,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesProByID(t.Context(), ""); err == nil {
+			if _, err := c.GetTilesPro(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4743,7 +5999,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesProByID(t.Context(), ""); err == nil {
+			if _, err := c.GetTilesPro(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4768,7 +6024,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetGeneratedTilesProByID(t.Context(), ""); err == nil {
+			if _, err := c.GetTilesPro(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4778,7 +6034,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("DeleteTilesProTile", func(t *testing.T) {
+	t.Run("DeleteTilesPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -4789,7 +6045,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.DeleteTilesPro(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4809,7 +6065,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.DeleteTilesPro(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4837,7 +6093,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.DeleteTilesPro(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4862,7 +6118,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteTilesProTile(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.DeleteTilesPro(t.Context(), uuid.Nil()); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -4872,7 +6128,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ListYourTilesProTiles", func(t *testing.T) {
+	t.Run("ListTilesPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -4883,7 +6139,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourTilesProTiles(t.Context(), nil); err == nil {
+			if _, err := c.ListTilesPro(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -4903,7 +6159,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourTilesProTiles(t.Context(), nil); err == nil {
+			if _, err := c.ListTilesPro(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -4931,7 +6187,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourTilesProTiles(t.Context(), nil); err == nil {
+			if _, err := c.ListTilesPro(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -4956,7 +6212,383 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListYourTilesProTiles(t.Context(), nil); err == nil {
+			if _, err := c.ListTilesPro(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateIsometricTile", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetIsometricTile", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetIsometricTile(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetIsometricTile(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetIsometricTile(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetIsometricTile(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("DeleteIsometricTile", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteIsometricTile(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteIsometricTile(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteIsometricTile(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteIsometricTile(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("ListIsometricTiles", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5060,7 +6692,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetMapObjectStatusMetadata", func(t *testing.T) {
+	t.Run("GetMapObject", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5071,7 +6703,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMapObjectStatusMetadata(t.Context(), ""); err == nil {
+			if _, err := c.GetMapObject(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5091,7 +6723,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMapObjectStatusMetadata(t.Context(), ""); err == nil {
+			if _, err := c.GetMapObject(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5119,7 +6751,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMapObjectStatusMetadata(t.Context(), ""); err == nil {
+			if _, err := c.GetMapObject(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5144,7 +6776,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetMapObjectStatusMetadata(t.Context(), ""); err == nil {
+			if _, err := c.GetMapObject(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5154,7 +6786,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateUIPanel", func(t *testing.T) {
+	t.Run("CreateUIAsset", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5165,7 +6797,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateUIPanel(t.Context(), CreateUIAssetRequest{}); err == nil {
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5185,7 +6817,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateUIPanel(t.Context(), CreateUIAssetRequest{}); err == nil {
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5213,7 +6845,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateUIPanel(t.Context(), CreateUIAssetRequest{}); err == nil {
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5238,7 +6870,101 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateUIPanel(t.Context(), CreateUIAssetRequest{}); err == nil {
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GenerateUI", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5530,7 +7256,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetBalance", func(t *testing.T) {
+	t.Run("CreatePortraitCharacterPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5541,7 +7267,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalance(t.Context()); err == nil {
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5561,7 +7287,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalance(t.Context()); err == nil {
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5575,7 +7301,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("unknown content type", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 			}))
 			t.Cleanup(srv.Close)
 
@@ -5589,7 +7315,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalance(t.Context()); err == nil {
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5599,7 +7325,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 				_, _ = w.Write([]byte("invalid json"))
 			}))
 			t.Cleanup(srv.Close)
@@ -5614,7 +7340,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBalance(t.Context()); err == nil {
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5624,7 +7350,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateCharacterWith4Directions", func(t *testing.T) {
+	t.Run("GetPortraitCharacterProJob", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5635,7 +7361,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+			if _, err := c.GetPortraitCharacterProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5655,7 +7381,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+			if _, err := c.GetPortraitCharacterProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5683,7 +7409,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+			if _, err := c.GetPortraitCharacterProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5708,7 +7434,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+			if _, err := c.GetPortraitCharacterProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5718,7 +7444,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateCharacterWith8Directions", func(t *testing.T) {
+	t.Run("SetCharacterPortrait", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5729,7 +7455,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+			if _, err := c.SetCharacterPortrait(t.Context(), "", SetCharacterPortraitRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5749,7 +7475,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+			if _, err := c.SetCharacterPortrait(t.Context(), "", SetCharacterPortraitRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5777,7 +7503,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+			if _, err := c.SetCharacterPortrait(t.Context(), "", SetCharacterPortraitRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5802,7 +7528,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+			if _, err := c.SetCharacterPortrait(t.Context(), "", SetCharacterPortraitRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5812,7 +7538,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateCharacterWithProMode8Directions", func(t *testing.T) {
+	t.Run("CreateVocalAnimation", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5823,7 +7549,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithProMode8Directions(t.Context(), CreateCharacterProRequest{}); err == nil {
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5843,7 +7569,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithProMode8Directions(t.Context(), CreateCharacterProRequest{}); err == nil {
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5857,7 +7583,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("unknown content type", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 			}))
 			t.Cleanup(srv.Close)
 
@@ -5871,7 +7597,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithProMode8Directions(t.Context(), CreateCharacterProRequest{}); err == nil {
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5881,7 +7607,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 				_, _ = w.Write([]byte("invalid json"))
 			}))
 			t.Cleanup(srv.Close)
@@ -5896,7 +7622,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithProMode8Directions(t.Context(), CreateCharacterProRequest{}); err == nil {
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -5906,7 +7632,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateCharacterWithV3Model8Rotations", func(t *testing.T) {
+	t.Run("GetVocalAnimationJob", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -5917,7 +7643,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithV3Model8Rotations(t.Context(), CreateCharacterV3Request{}); err == nil {
+			if _, err := c.GetVocalAnimationJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -5937,7 +7663,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithV3Model8Rotations(t.Context(), CreateCharacterV3Request{}); err == nil {
+			if _, err := c.GetVocalAnimationJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -5965,7 +7691,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithV3Model8Rotations(t.Context(), CreateCharacterV3Request{}); err == nil {
+			if _, err := c.GetVocalAnimationJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -5990,7 +7716,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterWithV3Model8Rotations(t.Context(), CreateCharacterV3Request{}); err == nil {
+			if _, err := c.GetVocalAnimationJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6000,7 +7726,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateCharacterAnimation", func(t *testing.T) {
+	t.Run("TalkingGif", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6011,7 +7737,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6031,7 +7757,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6059,7 +7785,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6084,7 +7810,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateCharacterAnimation(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6094,7 +7820,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("AnimateCharacter", func(t *testing.T) {
+	t.Run("LipSync", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6105,7 +7831,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6125,7 +7851,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6153,7 +7879,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6178,7 +7904,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6188,7 +7914,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateStateOfAnExistingCharacter", func(t *testing.T) {
+	t.Run("GenerateFontPro", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6199,7 +7925,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingCharacter(t.Context(), CreateCharacterStateRequest{}); err == nil {
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6219,7 +7945,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingCharacter(t.Context(), CreateCharacterStateRequest{}); err == nil {
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6233,7 +7959,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("unknown content type", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 			}))
 			t.Cleanup(srv.Close)
 
@@ -6247,7 +7973,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingCharacter(t.Context(), CreateCharacterStateRequest{}); err == nil {
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6257,7 +7983,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 				_, _ = w.Write([]byte("invalid json"))
 			}))
 			t.Cleanup(srv.Close)
@@ -6272,7 +7998,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateStateOfAnExistingCharacter(t.Context(), CreateCharacterStateRequest{}); err == nil {
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6282,7 +8008,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ListUsersCharacters", func(t *testing.T) {
+	t.Run("GetGenerateFontProJob", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6293,7 +8019,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersCharacters(t.Context(), nil); err == nil {
+			if _, err := c.GetGenerateFontProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6313,7 +8039,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersCharacters(t.Context(), nil); err == nil {
+			if _, err := c.GetGenerateFontProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6341,7 +8067,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersCharacters(t.Context(), nil); err == nil {
+			if _, err := c.GetGenerateFontProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6366,7 +8092,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListUsersCharacters(t.Context(), nil); err == nil {
+			if _, err := c.GetGenerateFontProJob(t.Context(), ""); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6376,7 +8102,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetCharacterDetails", func(t *testing.T) {
+	t.Run("Unzoom", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6387,7 +8113,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetCharacterDetails(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6407,7 +8133,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetCharacterDetails(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6435,7 +8161,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetCharacterDetails(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6460,7 +8186,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetCharacterDetails(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6470,7 +8196,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("DeleteCharacterAndAllAssociatedData", func(t *testing.T) {
+	t.Run("CorrectPixelart", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6481,7 +8207,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteCharacterAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6501,7 +8227,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteCharacterAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6529,7 +8255,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteCharacterAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6554,7 +8280,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.DeleteCharacterAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6564,7 +8290,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("ExportCharacterAsZip", func(t *testing.T) {
+	t.Run("ReduceColors", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6575,7 +8301,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ExportCharacterAsZip(t.Context(), uuid.Nil(), nil); err == nil {
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6595,7 +8321,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ExportCharacterAsZip(t.Context(), uuid.Nil(), nil); err == nil {
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6623,74 +8349,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ExportCharacterAsZip(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-	})
-
-	t.Run("UpdateCharacterTags", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateCharacterTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateCharacterTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateCharacterTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6715,7 +8374,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.UpdateCharacterTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6725,7 +8384,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetBackgroundJobStatus", func(t *testing.T) {
+	t.Run("RemoveBackground", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6736,7 +8395,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6756,7 +8415,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6784,7 +8443,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6809,7 +8468,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetBackgroundJobStatus(t.Context(), uuid.Nil()); err == nil {
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6819,7 +8478,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("Create1DirectionObject", func(t *testing.T) {
+	t.Run("NormalMap", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6830,7 +8489,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6850,7 +8509,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6864,7 +8523,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("unknown content type", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 			}))
 			t.Cleanup(srv.Close)
 
@@ -6878,7 +8537,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6888,7 +8547,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("decoding error", func(t *testing.T) {
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
+				w.WriteHeader(http.StatusAccepted)
 				_, _ = w.Write([]byte("invalid json"))
 			}))
 			t.Cleanup(srv.Close)
@@ -6903,7 +8562,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -6913,7 +8572,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("CreateAn8DirectionObject", func(t *testing.T) {
+	t.Run("Resize", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -6924,7 +8583,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateAn8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -6944,7 +8603,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateAn8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -6972,7 +8631,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateAn8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -6997,947 +8656,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.CreateAn8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("AddAnAnimationToAnExistingObject", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AddAnAnimationToAnExistingObject(t.Context(), uuid.Nil(), AnimateObjectRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("DeleteAnimationsFromAnObject", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromAnObject(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("CreateStateOfAnExistingObject", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateStateOfAnExistingObject(t.Context(), uuid.Nil(), CreateObjectStateRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("PromoteSelectedFramesOfReviewObjectToCompletedObjects", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.PromoteSelectedFramesOfReviewObjectToCompletedObjects(t.Context(), uuid.Nil(), SelectObjectFramesRequest{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("DismissReviewObjectWithoutSavingAnyFrames", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DismissReviewObjectWithoutSavingAnyFrames(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("ListUsersObjects", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersObjects(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersObjects(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersObjects(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ListUsersObjects(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("GetObjectDetails", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GetObjectDetails(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("DeleteAnObjectAndAllAssociatedData", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnObjectAndAllAssociatedData(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("UpdateObjectTags", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateObjectTags(t.Context(), uuid.Nil(), UpdateObjectTags{}); err == nil {
-				t.Fatal("expected error")
-			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
-				t.Fatalf("got: %T, want: *api.DecodingError", err)
-			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
-				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
-			}
-		})
-	})
-
-	t.Run("DeleteAnimationsFromCharacter", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-
-		t.Run("decoding error", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte("invalid json"))
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteAnimationsFromCharacter(t.Context(), uuid.Nil(), nil); err == nil {
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -8229,7 +8948,7 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
-	t.Run("GetLlmFriendlyAPIDocumentation", func(t *testing.T) {
+	t.Run("ImageToText", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
@@ -8240,7 +8959,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetLlmFriendlyAPIDocumentation(t.Context()); err == nil {
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, io.EOF) {
 				t.Fatalf("want: %v, got: %v", io.EOF, err)
@@ -8260,7 +8979,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetLlmFriendlyAPIDocumentation(t.Context()); err == nil {
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
 				t.Fatalf("got: %T, want: *api.Error", err)
@@ -8288,141 +9007,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetLlmFriendlyAPIDocumentation(t.Context()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-	})
-
-	t.Run("ExportCharacterSpritesheet", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ExportCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ExportCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ExportCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, api.ErrUnknownContentType) {
-				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
-			}
-		})
-	})
-
-	t.Run("AnimateCharacterBackground", func(t *testing.T) {
-		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
-
-		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
-				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
-			)}))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if !errors.Is(err, io.EOF) {
-				t.Fatalf("want: %v, got: %v", io.EOF, err)
-			}
-		})
-
-		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
-				t.Fatal("expected error")
-			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
-				t.Fatalf("got: %T, want: *api.Error", err)
-			} else if apiErr.Err != api.ErrUnknownStatusCode {
-				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
-			} else if apiErr.Response.StatusCode != http.StatusTeapot {
-				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
-			}
-		})
-
-		t.Run("unknown content type", func(t *testing.T) {
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "foo")
-				w.WriteHeader(http.StatusOK)
-			}))
-			t.Cleanup(srv.Close)
-
-			baseURL, err := url.Parse(srv.URL)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			c, err := NewClient(WithBaseURL(baseURL))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if !errors.Is(err, api.ErrUnknownContentType) {
 				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
@@ -8447,7 +9032,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if _, err := c.AnimateCharacterBackground(t.Context(), nil); err == nil {
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
 				t.Fatal("expected error")
 			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
 				t.Fatalf("got: %T, want: *api.DecodingError", err)
@@ -8456,108 +9041,1191 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 	})
-}
 
-func replay(t *testing.T) http.RoundTripper {
-	t.Helper()
+	t.Run("GetBackgroundJob", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
-	interactions, err := cassette.InteractionsReadFile("../../api/interactions.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	rec := cassette.Replay(interactions, cassette.InOrder(), cassette.WithMatcher(cassette.MatchRequest(
-		cassette.CompareHeaders("User-Agent"),
-	)))
+			if _, err := c.GetBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
 
-	t.Cleanup(func() {
-		if unused := rec.Unused(); len(unused) > 0 {
-			t.Errorf("%d recorded interactions were never replayed, the first: %s %s", len(unused), unused[0].Request.Method, &unused[0].Request.URL)
-		}
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
 	})
 
-	return rec
-}
+	t.Run("CancelBackgroundJob", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
-func TestClient_Interactions(t *testing.T) {
-	ctx := t.Context()
-	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	c, err := NewClient(WithHTTPClient(&http.Client{Transport: replay(t)}))
-	if err != nil {
-		t.Fatal(err)
-	}
+			if _, err := c.CancelBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			if _, err := c.CancelBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			if _, err := c.CancelBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
 
-	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
-		t.Fatalf("GetCharacterDetails: %v", err)
-	}
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
 
-	if _, err := c.ExportCharacterAsZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &ExportCharacterAsZipParams{}); err != nil {
-		t.Fatalf("ExportCharacterAsZip: %v", err)
-	}
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.ExportCharacterSpritesheet(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363")); err != nil {
-		t.Fatalf("ExportCharacterSpritesheet: %v", err)
-	}
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+			if _, err := c.CancelBackgroundJob(t.Context(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
 
-	if _, err := c.GetBackgroundJobStatus(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
-		t.Fatalf("GetBackgroundJobStatus: %v", err)
-	}
+	t.Run("CreateImageProFlash", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
-	if _, err := c.GetCharacterDetails(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
-		t.Fatalf("GetCharacterDetails: %v", err)
-	}
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if _, err := c.AnimateCharacterBackground(ctx, new(AnimateCharacterBackground{
-		CharacterID:      uuid.MustParse("8901396f-5807-4f57-90da-8443d1f6a517"),
-		Direction:        DirectionSouthEast,
-		Action:           "walking",
-		FrameCount:       new(8),
-		AnimationName:    AnimationNameV3Walking,
-		NoBackground:     new(true),
-		CustomFrames:     new(false),
-		AnimationGroupID: uuid.MustParse("46a19e47-cbe7-4fee-b619-615509d1d796"),
-		DisplayName:      "Walking",
-		KeepFirstFrame:   new(true),
-		TemplateAction:   TemplateActionWalking,
-		Engine:           "v3",
-	})); err != nil {
-		t.Fatalf("AnimateCharacterBackground: %v", err)
-	}
+			if _, err := c.CreateImageProFlash(t.Context(), CreateImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageProFlash(t.Context(), CreateImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageProFlash(t.Context(), CreateImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageProFlash(t.Context(), CreateImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("EditImageProFlash", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImageProFlash(t.Context(), EditImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImageProFlash(t.Context(), EditImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImageProFlash(t.Context(), EditImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImageProFlash(t.Context(), EditImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("InpaintImageProFlash", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintImageProFlash(t.Context(), InpaintImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintImageProFlash(t.Context(), InpaintImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintImageProFlash(t.Context(), InpaintImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintImageProFlash(t.Context(), InpaintImageProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateCharacterProFlash", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterProFlash(t.Context(), CreateCharacterProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterProFlash(t.Context(), CreateCharacterProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterProFlash(t.Context(), CreateCharacterProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterProFlash(t.Context(), CreateCharacterProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateObjectProFlash", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectProFlash(t.Context(), CreateObjectProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectProFlash(t.Context(), CreateObjectProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectProFlash(t.Context(), CreateObjectProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusAccepted)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateObjectProFlash(t.Context(), CreateObjectProFlashRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetProFlashCapabilities", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetProFlashCapabilities(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetProFlashCapabilities(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+	})
+
+	t.Run("GetProFlashCost", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetProFlashCost(t.Context(), GetProFlashCostParams{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if err := c.GetProFlashCost(t.Context(), GetProFlashCostParams{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+	})
+
+	t.Run("GetBalance", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBalance(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBalance(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBalance(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetBalance(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("CreateUpload", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUpload(t.Context(), UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUpload(t.Context(), UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUpload(t.Context(), UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUpload(t.Context(), UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("UploadWithTicket", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UploadWithTicket(t.Context(), "", UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UploadWithTicket(t.Context(), "", UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UploadWithTicket(t.Context(), "", UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UploadWithTicket(t.Context(), "", UploadRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
+
+	t.Run("GetAPIDocs", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetAPIDocs(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetAPIDocs(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetAPIDocs(t.Context()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+	})
+
+	t.Run("PostAnimateWithTextV3CharacterBackground", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.PostAnimateWithTextV3CharacterBackground(t.Context(), PostAnimateWithTextV3CharacterBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := newTestServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.PostAnimateWithTextV3CharacterBackground(t.Context(), PostAnimateWithTextV3CharacterBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.PostAnimateWithTextV3CharacterBackground(t.Context(), PostAnimateWithTextV3CharacterBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.PostAnimateWithTextV3CharacterBackground(t.Context(), PostAnimateWithTextV3CharacterBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+	})
 }

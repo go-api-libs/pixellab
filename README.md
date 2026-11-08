@@ -7,6 +7,7 @@
 ## Additional Information
 
 - [**Go Reference**](https://pkg.go.dev/github.com/go-api-libs/pixellab): API documentation.
+- [**Architecture**](docs/architecture.md): how the parts fit together.
 - [**OpenAPI Specification**](./api/openapi.json): The OpenAPI 3.1.0 specification.
 
 ## Contributing
