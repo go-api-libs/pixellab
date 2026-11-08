@@ -10,13 +10,13 @@ tool (
 )
 
 require (
-	github.com/MarkRosemaker/cassette v0.0.0-20261107140533-379563b433f3
+	github.com/MarkRosemaker/cassette v0.0.0-20261108193953-73293427bed5
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261107140449-c48d15773b62
 	github.com/MarkRosemaker/openapi v0.0.0-20261107140611-13177bae7f07
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261108191516-dda009882b0b
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261108204210-1103736f6527
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261107140753-5ea760482273
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261107140639-85d8ba50e45c
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261108191307-56d4c3aa440a
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261108203945-385299e743b3
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261108191243-642bc76a76e7
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20261107140449-14441b657cf3
