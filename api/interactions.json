@@ -1491,40 +1491,5 @@
 				"animations": []
 			}
 		}
-	},
-	{
-		"request": {
-			"method": "POST",
-			"url": "https://api.pixellab.ai/animate-with-text-v3/character/background",
-			"header": {
-				"Authorization": "Bearer ************************************",
-				"Content-Type": "application/json",
-				"User-Agent": "Pixel Lab API"
-			},
-			"body": {
-				"character_id": "8901396f-5807-4f57-90da-8443d1f6a517",
-				"direction": "south-east",
-				"action": "walking",
-				"frame_count": 8,
-				"animation_name": "v3:walking",
-				"no_background": true,
-				"custom_frames": false,
-				"animation_group_id": "46a19e47-cbe7-4fee-b619-615509d1d796",
-				"display_name": "Walking",
-				"keep_first_frame": true,
-				"template_action": "walking",
-				"engine": "v3"
-			}
-		},
-		"response": {
-			"statusCode": 200,
-			"header": {
-				"Content-Type": "application/json"
-			},
-			"body": {
-				"background_job_id": "f51fc2ef-27bd-4caa-9fe5-65cd9662015a",
-				"status": "processing"
-			}
-		}
 	}
 ]

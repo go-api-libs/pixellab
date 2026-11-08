@@ -47,6 +47,7 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 
 - [`POST /image-to-pixelart`](https://api.pixellab.ai/v2/redoc#operation/image_to_pixelart_image_to_pixelart_post): Convert image to pixel art
 - [`POST /image-to-pixelart-pro`](https://api.pixellab.ai/v2/redoc#operation/image_to_pixelart_pro_image_to_pixelart_pro_post): Convert image to pixel art (Pro)
+- [`POST /image-to-pixelart-pro-flash`](https://api.pixellab.ai/v2/redoc#operation/image_to_pixelart_pro_flash): Convert image to pixel art (Pro Flash)
 
 ### Characters
 
@@ -111,6 +112,10 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /estimate-skeleton`](https://api.pixellab.ai/v2/redoc#operation/estimate_skeleton_estimate_skeleton_post): Estimate skeleton
 - [`POST /animate-with-skeleton-v3`](https://api.pixellab.ai/v2/redoc#operation/animate_with_skeleton_v3_animate_with_skeleton_v3_post): Animate with skeleton v3
 - [`POST /animate-with-skeleton`](https://api.pixellab.ai/v2/redoc#operation/animate_with_skeleton_animate_with_skeleton_post): Animate with skeleton
+
+#### VFX
+
+- [`POST /vfx`](https://api.pixellab.ai/v2/redoc#operation/create_vfx_vfx_post): Create VFX
 
 ### Rotation
 
@@ -199,6 +204,7 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /correct-pixelart`](https://api.pixellab.ai/v2/redoc#operation/correct_pixelart_endpoint_correct_pixelart_post): Correct pixel art
 - [`POST /reduce-colors`](https://api.pixellab.ai/v2/redoc#operation/reduce_colors_endpoint_reduce_colors_post): Reduce colors
 - [`POST /remove-background`](https://api.pixellab.ai/v2/redoc#operation/remove_background_endpoint_remove_background_post): Remove background
+- [`POST /normal-map`](https://api.pixellab.ai/v2/redoc#operation/normal_map_normal_map_post): Normal map
 - [`POST /resize`](https://api.pixellab.ai/v2/redoc#operation/resize_image_resize_post): Resize pixel art image
 
 #### Enhance Prompt
@@ -216,9 +222,10 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`GET /background-jobs/{job_id}`](https://api.pixellab.ai/v2/redoc#operation/get_background_job_status_background_jobs__job_id__get): Get background job status
 - [`DELETE /background-jobs/{job_id}`](https://api.pixellab.ai/v2/redoc#operation/cancel_background_job_background_jobs__job_id__delete): Cancel a background job
 
-### Uploads
+#### Uploads
 
 - [`POST /uploads`](https://api.pixellab.ai/v2/redoc#operation/create_upload_uploads_post): Upload an image to reference from other tools
+- [`POST /uploads/{ticket}`](https://api.pixellab.ai/v2/redoc#operation/create_upload_with_ticket_uploads__ticket__post): Upload an image with an upload URL from the MCP tool
 
 ## Guides
 

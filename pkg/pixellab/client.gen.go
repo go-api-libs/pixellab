@@ -27,7 +27,7 @@ const defaultUserAgent = "Pixel Lab API"
 var defaultBaseURL = &url.URL{
 	Scheme: "https",
 	Host:   "api.pixellab.ai",
-	Path:   "/",
+	Path:   "/v2",
 }
 
 // Client is an HTTP client for the pixellab API.
@@ -119,15 +119,24 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 // to check status and retrieve results.
 //
 // **Key Features:**
-// - Text-to-image pixel art generation
-// - Optional reference images for subject guidance (up to 4)
-// - Optional style image for consistent pixel art style
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
+//   - Text-to-image pixel art generation
+//   - Optional reference images for subject guidance (up to 4)
+//   - Optional style image for consistent pixel art style
+//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours the image is
+//     drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, NES, any
+//     Lospec palette as hex), plus an optional `max_colors` cap per image. With a
+//     palette, set `style_options.color_palette` to false - the palette sets the colours
+//   - Automatic background removal
+//   - Non-blocking: returns job ID immediately
 //
 // **Output Counts by Size (by max dimension):**
-// - Up to 42px: 64 images (8x8 grid)
-// - 43-85px: 16 images (4x4 grid)
+// - Up to 32px: 64 images (8x8 grid)
+// - 33-35px: 49 images (7x7 grid)
+// - 36-41px: 36 images (6x6 grid)
+// - 42-50px: 25 images (5x5 grid)
+// - 51-64px: 16 images (4x4 grid)
+// - 65-84px: 9 images (3x3 grid)
+// - 85px: 16 images (4x4 grid)
 // - 86-170px: 4 images (2x2 grid)
 // - Above 170px: 1 image
 //
@@ -159,9 +168,9 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 //
 // ```
 //
-//	POST /v2/generate-image-v2
-func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request) (*AsyncJobResponse, error) {
-	return c.GenerateImageWithResult[AsyncJobResponse](ctx, body)
+//	POST /generate-image-v2
+func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (*JobResponse, error) {
+	return c.GenerateImageWithResult[JobResponse](ctx, body)
 }
 
 // Generate pixel art images from text description.
@@ -172,15 +181,24 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request)
 // to check status and retrieve results.
 //
 // **Key Features:**
-// - Text-to-image pixel art generation
-// - Optional reference images for subject guidance (up to 4)
-// - Optional style image for consistent pixel art style
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
+//   - Text-to-image pixel art generation
+//   - Optional reference images for subject guidance (up to 4)
+//   - Optional style image for consistent pixel art style
+//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours the image is
+//     drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, NES, any
+//     Lospec palette as hex), plus an optional `max_colors` cap per image. With a
+//     palette, set `style_options.color_palette` to false - the palette sets the colours
+//   - Automatic background removal
+//   - Non-blocking: returns job ID immediately
 //
 // **Output Counts by Size (by max dimension):**
-// - Up to 42px: 64 images (8x8 grid)
-// - 43-85px: 16 images (4x4 grid)
+// - Up to 32px: 64 images (8x8 grid)
+// - 33-35px: 49 images (7x7 grid)
+// - 36-41px: 36 images (6x6 grid)
+// - 42-50px: 25 images (5x5 grid)
+// - 51-64px: 16 images (4x4 grid)
+// - 65-84px: 9 images (3x3 grid)
+// - 85px: 16 images (4x4 grid)
 // - 86-170px: 4 images (2x2 grid)
 // - Above 170px: 1 image
 //
@@ -213,9 +231,9 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageV2Request)
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/generate-image-v2
-func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body GenerateImageV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-image-v2")
+//	POST /generate-image-v2
+func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body GenerateImageRequest) (*R, error) {
+	u := c.baseURL.JoinPath("generate-image-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -251,7 +269,7 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
+			if _, ok := any(&out).(*JobResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -286,607 +304,6 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate new pixel art images that match the style of reference images.
-//
-// This endpoint creates new pixel art based on a text description while matching
-// the visual style (colors, shading, detail level) of provided style reference images.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Style-consistent generation from reference images
-// - Multiple style references supported (1-4 images)
-// - Optional style description for fine-tuning
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Output Size:**
-//   - Deduced from the style images: the largest dimension across all style
-//     images becomes the (square) output size, minimum 16, maximum 512 pixels
-//   - Non-square style images are centered on a square canvas
-//
-// **Output Counts by Size:**
-// - 16-42 pixels: Returns 64 images (8x8 grid)
-// - 43-85 pixels: Returns 16 images (4x4 grid)
-// - 86-170 pixels: Returns 4 images (2x2 grid)
-// - 171-512 pixels: Returns 1 image
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// **Example:**
-// ```python
-// response = client.generate_with_style_v2(
-//
-//	style_images=[{"image": style_img, "width": 64, "height": 64}],
-//	description="a wizard casting a spell",
-//	style_description="16-bit RPG style with bright colors",
-//
-// )
-// # Output size is deduced from the style images (64x64 here)
-// ```
-//
-//	POST /v2/generate-with-style-v2
-func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleV2Request) (*AsyncJobResponse, error) {
-	return c.GenerateWithStyleWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate new pixel art images that match the style of reference images.
-//
-// This endpoint creates new pixel art based on a text description while matching
-// the visual style (colors, shading, detail level) of provided style reference images.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Style-consistent generation from reference images
-// - Multiple style references supported (1-4 images)
-// - Optional style description for fine-tuning
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Output Size:**
-//   - Deduced from the style images: the largest dimension across all style
-//     images becomes the (square) output size, minimum 16, maximum 512 pixels
-//   - Non-square style images are centered on a square canvas
-//
-// **Output Counts by Size:**
-// - 16-42 pixels: Returns 64 images (8x8 grid)
-// - 43-85 pixels: Returns 16 images (4x4 grid)
-// - 86-170 pixels: Returns 4 images (2x2 grid)
-// - 171-512 pixels: Returns 1 image
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// **Example:**
-// ```python
-// response = client.generate_with_style_v2(
-//
-//	style_images=[{"image": style_img, "width": 64, "height": 64}],
-//	description="a wizard casting a spell",
-//	style_description="16-bit RPG style with bright colors",
-//
-// )
-// # Output size is deduced from the style images (64x64 here)
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/generate-with-style-v2
-func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body GenerateWithStyleV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-with-style-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Style generation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate pixel art UI elements from text description.
-//
-// This endpoint creates pixel art UI elements such as buttons, health bars,
-// inventory slots, dialogue boxes, and other game interface components.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Text-to-image UI generation
-// - Optional concept image for design guidance
-// - Optional color palette specification
-// - Automatic background removal
-// - Optimized for game UI assets
-// - Non-blocking: returns job ID immediately
-//
-// **Supported Sizes:**
-// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
-//
-// **Example Descriptions:**
-// - "medieval stone button with gold trim"
-// - "sci-fi health bar with neon glow"
-// - "wooden inventory slot with metal corners"
-// - "pixel art dialogue box with decorative border"
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_ui_v2(
-//
-//	description="medieval stone button",
-//	image_size=dict(width=256, height=256),
-//	color_palette="brown and gold"
-//
-// )
-//
-// response.images[0].pil_image().save("button.png")
-// ```
-//
-//	POST /v2/generate-ui-v2
-func (c *Client) GenerateUI(ctx context.Context, body GenerateUIV2Request) (*AsyncJobResponse, error) {
-	return c.GenerateUIWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate pixel art UI elements from text description.
-//
-// This endpoint creates pixel art UI elements such as buttons, health bars,
-// inventory slots, dialogue boxes, and other game interface components.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Text-to-image UI generation
-// - Optional concept image for design guidance
-// - Optional color palette specification
-// - Automatic background removal
-// - Optimized for game UI assets
-// - Non-blocking: returns job ID immediately
-//
-// **Supported Sizes:**
-// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
-//
-// **Example Descriptions:**
-// - "medieval stone button with gold trim"
-// - "sci-fi health bar with neon glow"
-// - "wooden inventory slot with metal corners"
-// - "pixel art dialogue box with decorative border"
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_ui_v2(
-//
-//	description="medieval stone button",
-//	image_size=dict(width=256, height=256),
-//	color_palette="brown and gold"
-//
-// )
-//
-// response.images[0].pil_image().save("button.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/generate-ui-v2
-func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateUIV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-ui-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// UI generation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_pixflux(
-//
-//	description="cute dragon",
-//	image_size=dict(width=128, height=128),
-//
-// )
-// response.image.pil_image()
-// ```
-//
-//	POST /v2/create-image-pixflux
-func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*ImageResponse, error) {
-	return c.CreateImagePixfluxWithResult[ImageResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_pixflux(
-//
-//	description="cute dragon",
-//	image_size=dict(width=128, height=128),
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-image-pixflux
-func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-image-pixflux")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art image based on the provided parameters, as a background job.
-//
-// Same parameters and output as `POST /create-image-pixflux`, but returns immediately
-// with a background job ID instead of holding the connection open during generation.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the image is in `last_response.image.base64`
-//
-//	POST /v2/create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*AsyncJobResponse, error) {
-	return c.CreateImagePixfluxBackgroundWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters, as a background job.
-//
-// Same parameters and output as `POST /create-image-pixflux`, but returns immediately
-// with a background job ID instead of holding the connection open during generation.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the image is in `last_response.image.base64`
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-image-pixflux-background")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Image generation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -920,7 +337,7 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 // response.image.pil_image()
 // ```
 //
-//	POST /v2/create-image-pixen
+//	POST /create-image-pixen
 func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequest) (*CreateImagePixenResponse, error) {
 	return c.CreateImagePixenWithResult[CreateImagePixenResponse](ctx, body)
 }
@@ -954,9 +371,9 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-image-pixen
+//	POST /create-image-pixen
 func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body CreateImagePixenRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-image-pixen")
+	u := c.baseURL.JoinPath("create-image-pixen")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1035,6 +452,441 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 	}
 }
 
+// Generate new pixel art images that match the style of reference images.
+//
+// This endpoint creates new pixel art based on a text description while matching
+// the visual style (colors, shading, detail level) of provided style reference images.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Style-consistent generation from reference images
+// - Multiple style references supported (1-4 images)
+// - Optional style description for fine-tuning
+// - Automatic background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Output Size:**
+//   - Deduced from the style images: the largest dimension across all style
+//     images becomes the (square) output size, minimum 16, maximum 512 pixels
+//   - Non-square style images are centered on a square canvas
+//
+// **Output Counts by Size:**
+// - 16-32 pixels: Returns 64 images (8x8 grid)
+// - 33-35 pixels: Returns 49 images (7x7 grid)
+// - 36-41 pixels: Returns 36 images (6x6 grid)
+// - 42-50 pixels: Returns 25 images (5x5 grid)
+// - 51-64 pixels: Returns 16 images (4x4 grid)
+// - 65-84 pixels: Returns 9 images (3x3 grid)
+// - 85 pixels: Returns 16 images (4x4 grid)
+// - 86-170 pixels: Returns 4 images (2x2 grid)
+// - 171-512 pixels: Returns 1 image
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, images are in `last_response`
+//
+// **Example:**
+// ```python
+// response = client.generate_with_style_v2(
+//
+//	style_images=[{"image": style_img, "width": 64, "height": 64}],
+//	description="a wizard casting a spell",
+//	style_description="16-bit RPG style with bright colors",
+//
+// )
+// # Output size is deduced from the style images (64x64 here)
+// ```
+//
+//	POST /generate-with-style-v2
+func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRequest) (*JobResponse, error) {
+	return c.GenerateWithStyleWithResult[JobResponse](ctx, body)
+}
+
+// Generate new pixel art images that match the style of reference images.
+//
+// This endpoint creates new pixel art based on a text description while matching
+// the visual style (colors, shading, detail level) of provided style reference images.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Style-consistent generation from reference images
+// - Multiple style references supported (1-4 images)
+// - Optional style description for fine-tuning
+// - Automatic background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Output Size:**
+//   - Deduced from the style images: the largest dimension across all style
+//     images becomes the (square) output size, minimum 16, maximum 512 pixels
+//   - Non-square style images are centered on a square canvas
+//
+// **Output Counts by Size:**
+// - 16-32 pixels: Returns 64 images (8x8 grid)
+// - 33-35 pixels: Returns 49 images (7x7 grid)
+// - 36-41 pixels: Returns 36 images (6x6 grid)
+// - 42-50 pixels: Returns 25 images (5x5 grid)
+// - 51-64 pixels: Returns 16 images (4x4 grid)
+// - 65-84 pixels: Returns 9 images (3x3 grid)
+// - 85 pixels: Returns 16 images (4x4 grid)
+// - 86-170 pixels: Returns 4 images (2x2 grid)
+// - 171-512 pixels: Returns 1 image
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, images are in `last_response`
+//
+// **Example:**
+// ```python
+// response = client.generate_with_style_v2(
+//
+//	style_images=[{"image": style_img, "width": 64, "height": 64}],
+//	description="a wizard casting a spell",
+//	style_description="16-bit RPG style with bright colors",
+//
+// )
+// # Output size is deduced from the style images (64x64 here)
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /generate-with-style-v2
+func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body GenerateWithStyleRequest) (*R, error) {
+	u := c.baseURL.JoinPath("generate-with-style-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Style generation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
+//
+// Supported image size:
+// - Minimum area 32x32 and maximum area 400x400
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_image_pixflux(
+//
+//	description="cute dragon",
+//	image_size=dict(width=128, height=128),
+//
+// )
+// response.image.pil_image()
+// ```
+//
+//	POST /create-image-pixflux
+func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*ImageResponse, error) {
+	return c.CreateImagePixfluxWithResult[ImageResponse](ctx, body)
+}
+
+// Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
+//
+// Supported image size:
+// - Minimum area 32x32 and maximum area 400x400
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_image_pixflux(
+//
+//	description="cute dragon",
+//	image_size=dict(width=128, height=128),
+//
+// )
+// response.image.pil_image()
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-image-pixflux
+func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-image-pixflux")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art image based on the provided parameters, as a background job.
+//
+// Same parameters and output as `POST /create-image-pixflux`, but returns immediately
+// with a background job ID instead of holding the connection open during generation.
+//
+// Supported image size:
+// - Minimum area 32x32 and maximum area 400x400
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the image is in `last_response.image.base64`
+//
+//	POST /create-image-pixflux-background
+func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*JobResponse, error) {
+	return c.CreateImagePixfluxBackgroundWithResult[JobResponse](ctx, body)
+}
+
+// Creates a pixel art image based on the provided parameters, as a background job.
+//
+// Same parameters and output as `POST /create-image-pixflux`, but returns immediately
+// with a background job ID instead of holding the connection open during generation.
+//
+// Supported image size:
+// - Minimum area 32x32 and maximum area 400x400
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the image is in `last_response.image.base64`
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-image-pixflux-background
+func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-image-pixflux-background")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Image generation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Generates a pixel art image based on the provided parameters. Called "Create S-M image" in the plugin.
 //
 // Supported image size:
@@ -1062,7 +914,7 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 // response.image.pil_image()
 // ```
 //
-//	POST /v2/create-image-bitforge
+//	POST /create-image-bitforge
 func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*ImageResponse, error) {
 	return c.CreateImageBitforgeWithResult[ImageResponse](ctx, body)
 }
@@ -1095,9 +947,9 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-image-bitforge
+//	POST /create-image-bitforge
 func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body CreateImageBitforgeRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-image-bitforge")
+	u := c.baseURL.JoinPath("create-image-bitforge")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1179,12 +1031,17 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 // Convert regular images to pixel art style.
 //
 // Supported image sizes:
-// - Input: Minimum 16x16, maximum 1280x1280
-// - Output: Minimum 16x16, maximum 320x320
+// - Input: Minimum 16x16, maximum 2048x2048
+// - Output: Minimum 16x16, maximum 512x512
 //
 // **Best practices:**
 // - Recommended output sizes is 1/4 of the input size
 // - Keep the same aspect ratio as the input image
+//
+// **Staying close to the source:** by default the model reinterprets the image as
+// pixel art. To reproduce it faithfully instead, set `fixer=true` (faithful mode)
+// and raise `init_image_strength` (0-999), which starts the diffusion from the
+// source image rather than from noise.
 //
 // Using the Python client:
 // ```python
@@ -1205,20 +1062,25 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 // result.image.pil_image().save("pixelart.png")
 // ```
 //
-//	POST /v2/image-to-pixelart
-func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
-	return c.ConvertImageToPixelArtWithResult[ImageResponse](ctx, body)
+//	POST /image-to-pixelart
+func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
+	return c.ImageToPixelartWithResult[ImageResponse](ctx, body)
 }
 
 // Convert regular images to pixel art style.
 //
 // Supported image sizes:
-// - Input: Minimum 16x16, maximum 1280x1280
-// - Output: Minimum 16x16, maximum 320x320
+// - Input: Minimum 16x16, maximum 2048x2048
+// - Output: Minimum 16x16, maximum 512x512
 //
 // **Best practices:**
 // - Recommended output sizes is 1/4 of the input size
 // - Keep the same aspect ratio as the input image
+//
+// **Staying close to the source:** by default the model reinterprets the image as
+// pixel art. To reproduce it faithfully instead, set `fixer=true` (faithful mode)
+// and raise `init_image_strength` (0-999), which starts the diffusion from the
+// source image rather than from noise.
 //
 // Using the Python client:
 // ```python
@@ -1240,9 +1102,9 @@ func (c *Client) ConvertImageToPixelArt(ctx context.Context, body ImageToPixelar
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/image-to-pixelart
-func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "image-to-pixelart")
+//	POST /image-to-pixelart
+func (c *Client) ImageToPixelartWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
+	u := c.baseURL.JoinPath("image-to-pixelart")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1303,19 +1165,19 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 		}
 	case http.StatusBadRequest:
 		// Invalid image size constraints
-		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("ConvertImageToPixelArt: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1356,9 +1218,9 @@ func (c *Client) ConvertImageToPixelArtWithResult[R any](ctx context.Context, bo
 // )
 // ```
 //
-//	POST /v2/image-to-pixelart-pro
-func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixelartProRequest) (*AsyncJobResponse, error) {
-	return c.ConvertImageToPixelArtProWithResult[AsyncJobResponse](ctx, body)
+//	POST /image-to-pixelart-pro
+func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartProRequest) (*JobResponse, error) {
+	return c.ImageToPixelartProWithResult[JobResponse](ctx, body)
 }
 
 // Convert an arbitrary image into high-quality pixel art.
@@ -1397,9 +1259,9 @@ func (c *Client) ConvertImageToPixelArtPro(ctx context.Context, body ImageToPixe
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/image-to-pixelart-pro
-func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "image-to-pixelart-pro")
+//	POST /image-to-pixelart-pro
+func (c *Client) ImageToPixelartProWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
+	u := c.baseURL.JoinPath("image-to-pixelart-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1435,7 +1297,7 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
+			if _, ok := any(&out).(*JobResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -1460,100 +1322,52 @@ func (c *Client) ConvertImageToPixelArtProWithResult[R any](ctx context.Context,
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("ConvertImageToPixelArtPro: status %s", rsp.Status)
+		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
-// Intelligently resize pixel art images while maintaining pixel art aesthetics.
+// Convert a photo, painting or render into pixel art, faster and cheaper than Pro.
 //
-// Supported image sizes:
-// - Minimum area 16x16 and maximum area 200x200 (both source and target)
+// Same conversion as `image-to-pixelart-pro`: the native pixel scale is detected
+// and the output size is chosen for you, so there is no size parameter. Add an
+// optional `description` to steer the style. Sources over 2048px on the longest
+// side are scaled down first. Costs 6 generations per image.
 //
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
+// Returns a background job. Poll `GET /v2/background-jobs/{background_job_id}`;
+// when it completes, the image is in `last_response` and also saved to your
+// gallery as `source_image_id`.
 //
-// **Best practices:**
-// - For best results, resize iteratively in small steps
-// - Recommended: At most 50% decrease or 2x increase per resize
-// - Example: 32x32 → 64x64 (2x) is good, 32x32 → 128x128 (4x) should be done in two steps
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character_32x32.png")
-//
-// result = client.resize(
-//
-//	description="cute wizard with blue robe",
-//	reference_image=source_img,
-//	reference_image_size=dict(width=32, height=32),
-//	target_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_64x64.png")
-// ```
-//
-//	POST /v2/resize
-func (c *Client) ResizePixelArtImage(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {
-	return c.ResizePixelArtImageWithResult[ImageResponse](ctx, body)
+//	POST /image-to-pixelart-pro-flash
+func (c *Client) ImageToPixelartProFlash(ctx context.Context, body ImageToPixelartProFlashRequest) (*ImageToPixelartProFlashResponse, error) {
+	return c.ImageToPixelartProFlashWithResult[ImageToPixelartProFlashResponse](ctx, body)
 }
 
-// Intelligently resize pixel art images while maintaining pixel art aesthetics.
+// Convert a photo, painting or render into pixel art, faster and cheaper than Pro.
 //
-// Supported image sizes:
-// - Minimum area 16x16 and maximum area 200x200 (both source and target)
+// Same conversion as `image-to-pixelart-pro`: the native pixel scale is detected
+// and the output size is chosen for you, so there is no size parameter. Add an
+// optional `description` to steer the style. Sources over 2048px on the longest
+// side are scaled down first. Costs 6 generations per image.
 //
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// **Best practices:**
-// - For best results, resize iteratively in small steps
-// - Recommended: At most 50% decrease or 2x increase per resize
-// - Example: 32x32 → 64x64 (2x) is good, 32x32 → 128x128 (4x) should be done in two steps
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character_32x32.png")
-//
-// result = client.resize(
-//
-//	description="cute wizard with blue robe",
-//	reference_image=source_img,
-//	reference_image_size=dict(width=32, height=32),
-//	target_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_64x64.png")
-// ```
+// Returns a background job. Poll `GET /v2/background-jobs/{background_job_id}`;
+// when it completes, the image is in `last_response` and also saved to your
+// gallery as `source_image_id`.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/resize
-func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "resize")
+//	POST /image-to-pixelart-pro-flash
+func (c *Client) ImageToPixelartProFlashWithResult[R any](ctx context.Context, body ImageToPixelartProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("image-to-pixelart-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -1581,4278 +1395,6 @@ func (c *Client) ResizePixelArtImageWithResult[R any](ctx context.Context, body 
 	defer rsp.Body.Close()
 
 	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully resized image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// Invalid image size constraints
-		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("ResizePixelArtImage: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Remove the background from a pixel art image, producing a transparent PNG.
-//
-// Supported image size:
-// - Maximum area 400x400
-//
-// **Background Removal Tasks:**
-// - `remove_simple_background` (default) — Faster, works well for simple/solid backgrounds
-// - `remove_complex_background` — Slower, better for complex edges and detailed backgrounds
-//
-// **Optional text hint:** Provide a description of the foreground object to improve accuracy.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character.png")
-//
-// result = client.remove_background(
-//
-//	image=source_img,
-//	image_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_no_bg.png")
-// ```
-//
-//	POST /v2/remove-background
-func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
-	return c.RemoveBackgroundWithResult[ImageResponse](ctx, body)
-}
-
-// Remove the background from a pixel art image, producing a transparent PNG.
-//
-// Supported image size:
-// - Maximum area 400x400
-//
-// **Background Removal Tasks:**
-// - `remove_simple_background` (default) — Faster, works well for simple/solid backgrounds
-// - `remove_complex_background` — Slower, better for complex edges and detailed backgrounds
-//
-// **Optional text hint:** Provide a description of the foreground object to improve accuracy.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character.png")
-//
-// result = client.remove_background(
-//
-//	image=source_img,
-//	image_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_no_bg.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/remove-background
-func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "remove-background")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully removed background
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Edit multiple animation frames with a text description.
-//
-// This endpoint applies a consistent edit across all animation frames,
-// maintaining temporal coherence while transforming the animation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Apply text-based edits to animation sequences
-// - Maintains frame-to-frame consistency
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Edits:**
-// - "add a red cape"
-// - "make it glow blue"
-// - "add armor plating"
-// - "change to ice theme"
-//
-// **Supported Sizes:**
-// - Frame sizes from 16x16 to 256x256 pixels (model supports up to 256x256)
-//
-// **Frame limits by output size (image_size):**
-// - 16-64px: Up to 16 frames (4x4 grid)
-// - 65-80px: Up to 9 frames (3x3 grid)
-// - 81-256px: Up to 4 frames (2x2 grid)
-//
-// All frames are packed into a single grid image for editing, so larger frames
-// fill the fixed generation canvas faster and fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Load your animation frames
-// frames = [...]  # List of FrameImage objects
-//
-// response = client.edit_animation_v2(
-//
-//	description="add a glowing sword",
-//	frames=frames,
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save edited frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-//
-//	POST /v2/edit-animation-v2
-func (c *Client) EditAnimation(ctx context.Context, body EditAnimationV2Request) (*AsyncJobResponse, error) {
-	return c.EditAnimationWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Edit multiple animation frames with a text description.
-//
-// This endpoint applies a consistent edit across all animation frames,
-// maintaining temporal coherence while transforming the animation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Apply text-based edits to animation sequences
-// - Maintains frame-to-frame consistency
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Edits:**
-// - "add a red cape"
-// - "make it glow blue"
-// - "add armor plating"
-// - "change to ice theme"
-//
-// **Supported Sizes:**
-// - Frame sizes from 16x16 to 256x256 pixels (model supports up to 256x256)
-//
-// **Frame limits by output size (image_size):**
-// - 16-64px: Up to 16 frames (4x4 grid)
-// - 65-80px: Up to 9 frames (3x3 grid)
-// - 81-256px: Up to 4 frames (2x2 grid)
-//
-// All frames are packed into a single grid image for editing, so larger frames
-// fill the fixed generation canvas faster and fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Load your animation frames
-// frames = [...]  # List of FrameImage objects
-//
-// response = client.edit_animation_v2(
-//
-//	description="add a glowing sword",
-//	frames=frames,
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save edited frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/edit-animation-v2
-func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAnimationV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "edit-animation-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Animation edit job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate intermediate animation frames between two keyframe images.
-//
-// This endpoint creates smooth transitions between a start and end image,
-// generating intermediate frames that animate the transformation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Generates intermediate frames between two keyframes
-// - Text-guided interpolation with action descriptions
-// - Maintains visual consistency across frames
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Actions:**
-// - "morphing"
-// - "transforming into a werewolf"
-// - "powering up with energy"
-// - "dissolving into particles"
-// - "walking forward"
-//
-// **Output:**
-// - Returns multiple interpolated frames (typically 4-8 frames)
-//
-// **Supported Sizes:**
-// - Frame sizes from 16x16 to 128x128 pixels
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, interpolated frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.interpolation_v2(
-//
-//	start_image=start_keyframe,
-//	end_image=end_keyframe,
-//	action="transforming",
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save interpolated frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-//
-//	POST /v2/interpolation-v2
-func (c *Client) Interpolate(ctx context.Context, body InterpolationV2Request) (*AsyncJobResponse, error) {
-	return c.InterpolateWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate intermediate animation frames between two keyframe images.
-//
-// This endpoint creates smooth transitions between a start and end image,
-// generating intermediate frames that animate the transformation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Generates intermediate frames between two keyframes
-// - Text-guided interpolation with action descriptions
-// - Maintains visual consistency across frames
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Actions:**
-// - "morphing"
-// - "transforming into a werewolf"
-// - "powering up with energy"
-// - "dissolving into particles"
-// - "walking forward"
-//
-// **Output:**
-// - Returns multiple interpolated frames (typically 4-8 frames)
-//
-// **Supported Sizes:**
-// - Frame sizes from 16x16 to 128x128 pixels
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, interpolated frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.interpolation_v2(
-//
-//	start_image=start_keyframe,
-//	end_image=end_keyframe,
-//	action="transforming",
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save interpolated frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/interpolation-v2
-func (c *Client) InterpolateWithResult[R any](ctx context.Context, body InterpolationV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "interpolation-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Interpolation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("Interpolate: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Transfer an outfit/appearance from a reference image to animation frames.
-//
-// This endpoint takes a reference image containing a desired outfit or appearance
-// and applies it consistently across multiple animation frames.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Transfer outfit/appearance from reference to animation
-// - Maintains animation motion while changing appearance
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Use Cases:**
-// - Apply armor/clothing to walking animation
-// - Change character skin/color across animation
-// - Transfer weapon or equipment to action sequence
-// - Consistent reskin of sprite animations
-//
-// **Supported Sizes:**
-// - Frame sizes from 32x32 to 256x256 pixels
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 15 frames (4x4 grid)
-// - 65-80px: Up to 8 frames (3x3 grid)
-// - 81-256px: Up to 3 frames (2x2 grid)
-//
-// The reference image and all frames are packed into a single grid; the reference
-// uses one slot, so each tier holds one fewer frame than a plain edit. Larger
-// frames fill the fixed generation canvas faster, so fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.transfer_outfit_v2(
-//
-//	reference_image=outfit_reference,  # Image with desired outfit
-//	frames=animation_frames,           # Animation to apply outfit to
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save frames with transferred outfit
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-//
-//	POST /v2/transfer-outfit-v2
-func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitV2Request) (*AsyncJobResponse, error) {
-	return c.TransferOutfitWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Transfer an outfit/appearance from a reference image to animation frames.
-//
-// This endpoint takes a reference image containing a desired outfit or appearance
-// and applies it consistently across multiple animation frames.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Transfer outfit/appearance from reference to animation
-// - Maintains animation motion while changing appearance
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Use Cases:**
-// - Apply armor/clothing to walking animation
-// - Change character skin/color across animation
-// - Transfer weapon or equipment to action sequence
-// - Consistent reskin of sprite animations
-//
-// **Supported Sizes:**
-// - Frame sizes from 32x32 to 256x256 pixels
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 15 frames (4x4 grid)
-// - 65-80px: Up to 8 frames (3x3 grid)
-// - 81-256px: Up to 3 frames (2x2 grid)
-//
-// The reference image and all frames are packed into a single grid; the reference
-// uses one slot, so each tier holds one fewer frame than a plain edit. Larger
-// frames fill the fixed generation canvas faster, so fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.transfer_outfit_v2(
-//
-//	reference_image=outfit_reference,  # Image with desired outfit
-//	frames=animation_frames,           # Animation to apply outfit to
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save frames with transferred outfit
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/transfer-outfit-v2
-func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body TransferOutfitV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "transfer-outfit-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Outfit transfer job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Convert between a bust portrait and a full-body character sprite.
-//
-// Pick the conversion with `direction`:
-// - `portrait_to_character`: a bust portrait in → a full-body character sprite out.
-// - `character_to_portrait`: a full-body character in → a bust portrait out.
-//
-// The output preserves the subject's identity/outfit while matching an internal
-// size-specific pixel-art style. Returns immediately with a background job ID. Poll
-// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result image.
-//
-// **Supported Sizes:** 16, 32, 48, 64, 128, 160 px (128/160 render at 2K).
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the sprite is in `last_response.images[0]`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.portrait_character_pro(
-//
-//	direction="portrait_to_character",
-//	image=portrait_image,
-//	view="low top-down",
-//	result_size=64,
-//
-// )
-// response.images[0].pil_image().save("character.png")
-// ```
-//
-//	POST /v2/portrait-character-pro
-func (c *Client) PortraitCharacter(ctx context.Context, body PortraitCharacterProRequest) (*AsyncJobResponse, error) {
-	return c.PortraitCharacterWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Convert between a bust portrait and a full-body character sprite.
-//
-// Pick the conversion with `direction`:
-// - `portrait_to_character`: a bust portrait in → a full-body character sprite out.
-// - `character_to_portrait`: a full-body character in → a bust portrait out.
-//
-// The output preserves the subject's identity/outfit while matching an internal
-// size-specific pixel-art style. Returns immediately with a background job ID. Poll
-// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result image.
-//
-// **Supported Sizes:** 16, 32, 48, 64, 128, 160 px (128/160 render at 2K).
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the sprite is in `last_response.images[0]`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.portrait_character_pro(
-//
-//	direction="portrait_to_character",
-//	image=portrait_image,
-//	view="low top-down",
-//	result_size=64,
-//
-// )
-// response.images[0].pil_image().save("character.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/portrait-character-pro
-func (c *Client) PortraitCharacterWithResult[R any](ctx context.Context, body PortraitCharacterProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "portrait-character-pro")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Portrait ↔ character job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// No internal style for this size/view
-		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("PortraitCharacter: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Get portrait ↔ character job status + result
-//
-//	GET /v2/portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterJobStatus(ctx context.Context, jobID uuid.UUID) (*GetPortraitCharacterResponse, error) {
-	return c.GetPortraitCharacterJobStatusWithResult[GetPortraitCharacterResponse](ctx, jobID)
-}
-
-// Get portrait ↔ character job status + result
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "portrait-character-pro", jobID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Completed sprite metadata + download URL
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetPortraitCharacterResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Job not found
-		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
-	case http.StatusGone:
-		// Generation failed permanently
-		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetPortraitCharacterJobStatus: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Attach a bust portrait to a character. Free — no generation runs.
-//
-// A portrait is the starting frame for talking animations: `POST /v2/vocal-animation`
-// generates the mouth positions from it. Overwrites any existing portrait.
-//
-// To generate a portrait from a full-body sprite first, use
-// `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
-//
-//	POST /v2/characters/{character_id}/portrait
-func (c *Client) SetCharactersPortrait(ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*SetPortraitResponse, error) {
-	return c.SetCharactersPortraitWithResult[SetPortraitResponse](ctx, characterID, body)
-}
-
-// Attach a bust portrait to a character. Free — no generation runs.
-//
-// A portrait is the starting frame for talking animations: `POST /v2/vocal-animation`
-// generates the mouth positions from it. Overwrites any existing portrait.
-//
-// To generate a portrait from a full-body sprite first, use
-// `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/characters/{character_id}/portrait
-func (c *Client) SetCharactersPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID, body SetPortraitRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "portrait")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Portrait stored
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetPortraitResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Character not found
-		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Image is not a valid PNG, or outside 16-256px
-		return nil, fmt.Errorf("SetCharactersPortrait: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate the set of mouth positions ("visemes") that lets a
-// portrait be lip-synced to any line of text.
-//
-// This is the only step that costs generations, and you pay it once per expression.
-// Turning the result into talking animations with `POST /v2/talking-gif` is free and
-// unlimited.
-//
-// Provide **either**:
-//   - `character_id` — generates from that character's stored portrait and saves the
-//     set onto it, so `/v2/talking-gif` only needs the character id afterwards.
-//   - `portrait` — generates from the image you supply and stores nothing; the mouth
-//     positions come back inline from the GET below for you to keep.
-//
-// Call once per expression (`mood`). `viseme_count` must match across expressions on
-// one character.
-//
-// **Requires a paid plan.**
-//
-// **Usage pattern:**
-//
-//  1. POST here (returns `background_job_id`)
-//
-//  2. Poll `GET /v2/vocal-animation/{background_job_id}` every 10-15 seconds
-//
-//  3. When `status` is `completed`, either the set is on your character, or the
-//     frames are in `visemes`
-//
-//     POST /v2/vocal-animation
-func (c *Client) GenerateTalkingMouthPositionsForPortrait(ctx context.Context, body VocalAnimationRequest) (*VocalAnimationResponse, error) {
-	return c.GenerateTalkingMouthPositionsForPortraitWithResult[VocalAnimationResponse](ctx, body)
-}
-
-// Generate the set of mouth positions ("visemes") that lets a
-// portrait be lip-synced to any line of text.
-//
-// This is the only step that costs generations, and you pay it once per expression.
-// Turning the result into talking animations with `POST /v2/talking-gif` is free and
-// unlimited.
-//
-// Provide **either**:
-//   - `character_id` — generates from that character's stored portrait and saves the
-//     set onto it, so `/v2/talking-gif` only needs the character id afterwards.
-//   - `portrait` — generates from the image you supply and stores nothing; the mouth
-//     positions come back inline from the GET below for you to keep.
-//
-// Call once per expression (`mood`). `viseme_count` must match across expressions on
-// one character.
-//
-// **Requires a paid plan.**
-//
-// **Usage pattern:**
-//  1. POST here (returns `background_job_id`)
-//  2. Poll `GET /v2/vocal-animation/{background_job_id}` every 10-15 seconds
-//  3. When `status` is `completed`, either the set is on your character, or the
-//     frames are in `visemes`
-//
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/vocal-animation
-func (c *Client) GenerateTalkingMouthPositionsForPortraitWithResult[R any](ctx context.Context, body VocalAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "vocal-animation")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*VocalAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// Character has no portrait, or viseme_count mismatch
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient resources
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusForbidden:
-		// Requires a paid plan
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Character not found
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("GenerateTalkingMouthPositionsForPortrait: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Poll a `/v2/vocal-animation` job.
-//
-// Mouth positions stream in as they are produced, so `completed_visemes` fills up
-// while the job runs. On completion, a `character_id` job has saved the set onto the
-// character; a `portrait` job returns the frames in `visemes`.
-//
-//	GET /v2/vocal-animation/{job_id}
-func (c *Client) GetMouthPositionJobStatus(ctx context.Context, jobID uuid.UUID) (*GetVocalAnimationResponse, error) {
-	return c.GetMouthPositionJobStatusWithResult[GetVocalAnimationResponse](ctx, jobID)
-}
-
-// Poll a `/v2/vocal-animation` job.
-//
-// Mouth positions stream in as they are produced, so `completed_visemes` fills up
-// while the job runs. On completion, a `character_id` job has saved the set onto the
-// character; a `portrait` job returns the frames in `visemes`.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/vocal-animation/{job_id}
-func (c *Client) GetMouthPositionJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "vocal-animation", jobID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Job status (and result when completed)
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetVocalAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Job not found
-		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
-	case http.StatusGone:
-		// Generation failed
-		return nil, fmt.Errorf("GetMouthPositionJobStatus: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Turn a line of text into an animated GIF of the character speaking it.
-//
-// **Free** — this spends no generations. It only re-orders mouth positions that
-// `POST /v2/vocal-animation` already produced, so the cost lands once per expression
-// and every line of dialogue after that is free. Returns immediately; there is no job
-// to poll.
-//
-// Provide **either** `character_id` (plus an optional `mood`) to use the positions
-// stored on a character, **or** `visemes` to pass them in directly.
-//
-// Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
-//
-//	POST /v2/talking-gif
-func (c *Client) LipSyncTextToTalkingGifFree(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
-	return c.LipSyncTextToTalkingGifFreeWithResult[TalkingGifResponse](ctx, body)
-}
-
-// Turn a line of text into an animated GIF of the character speaking it.
-//
-// **Free** — this spends no generations. It only re-orders mouth positions that
-// `POST /v2/vocal-animation` already produced, so the cost lands once per expression
-// and every line of dialogue after that is free. Returns immediately; there is no job
-// to poll.
-//
-// Provide **either** `character_id` (plus an optional `mood`) to use the positions
-// stored on a character, **or** `visemes` to pass them in directly.
-//
-// Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/talking-gif
-func (c *Client) LipSyncTextToTalkingGifFreeWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "talking-gif")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// The GIF
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TalkingGifResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Character not found
-		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error, or the line is too long to encode
-		return nil, fmt.Errorf("LipSyncTextToTalkingGifFree: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Return the frame-by-frame plan for speaking a line — which mouth
-// position to show, for how long, and how far through the text it lands.
-//
-// **Free**, and nothing is rendered: use this instead of `/v2/talking-gif` when you
-// are animating in a game engine and want to drive the mouth yourself rather than
-// play a GIF.
-//
-// With `character_id` the response also carries `grid_url`, `row` and `viseme_order`,
-// which is everything needed to blit the right cell: column comes from each frame,
-// row from the chosen expression.
-//
-// Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
-//
-//	POST /v2/lip-sync
-func (c *Client) GetTheLipSyncFramePlanForTextFree(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
-	return c.GetTheLipSyncFramePlanForTextFreeWithResult[LipSyncResponse](ctx, body)
-}
-
-// Return the frame-by-frame plan for speaking a line — which mouth
-// position to show, for how long, and how far through the text it lands.
-//
-// **Free**, and nothing is rendered: use this instead of `/v2/talking-gif` when you
-// are animating in a game engine and want to drive the mouth yourself rather than
-// play a GIF.
-//
-// With `character_id` the response also carries `grid_url`, `row` and `viseme_order`,
-// which is everything needed to blit the right cell: column comes from each frame,
-// row from the chosen expression.
-//
-// Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/lip-sync
-func (c *Client) GetTheLipSyncFramePlanForTextFreeWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "lip-sync")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// The frame plan
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*LipSyncResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Character not found
-		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("GetTheLipSyncFramePlanForTextFree: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate a styled pixel-art font from a text description.
-//
-// Produces an 80-glyph atlas plus a ready-to-use TrueType (`.ttf`) font with A-Z,
-// a-z, digits 0-9, and common game-UI punctuation. Returns immediately with a
-// background job ID. Poll `GET /v2/background-jobs/{job_id}`; when `status` is
-// `completed`, `last_response` contains `images[0]` (the glyph atlas PNG) and
-// `ttf_base64` (the font file as base64).
-//
-// **Price:** 25 subscription generations or at least $0.125 in credits. `glyph_px`
-// 8/16/32/64 is the native bitmap size per glyph.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. On `completed`: decode `ttf_base64` to a `.ttf`; `images[0]` is the atlas
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_font_pro(
-//
-//	description="warm orange arcade font",
-//	weight="Bold",
-//	glyph_px=16,
-//
-// )
-// ```
-//
-//	POST /v2/generate-font-pro
-func (c *Client) GeneratePixelFont(ctx context.Context, body GenerateFontProRequest) (*AsyncJobResponse, error) {
-	return c.GeneratePixelFontWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate a styled pixel-art font from a text description.
-//
-// Produces an 80-glyph atlas plus a ready-to-use TrueType (`.ttf`) font with A-Z,
-// a-z, digits 0-9, and common game-UI punctuation. Returns immediately with a
-// background job ID. Poll `GET /v2/background-jobs/{job_id}`; when `status` is
-// `completed`, `last_response` contains `images[0]` (the glyph atlas PNG) and
-// `ttf_base64` (the font file as base64).
-//
-// **Price:** 25 subscription generations or at least $0.125 in credits. `glyph_px`
-// 8/16/32/64 is the native bitmap size per glyph.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. On `completed`: decode `ttf_base64` to a `.ttf`; `images[0]` is the atlas
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_font_pro(
-//
-//	description="warm orange arcade font",
-//	weight="Bold",
-//	glyph_px=16,
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/generate-font-pro
-func (c *Client) GeneratePixelFontWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-font-pro")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Font generation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("GeneratePixelFont: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Get font-pro job status + result
-//
-//	GET /v2/generate-font-pro/{job_id}
-func (c *Client) GetFontProJobStatus(ctx context.Context, jobID uuid.UUID) (*GetFontResponse, error) {
-	return c.GetFontProJobStatusWithResult[GetFontResponse](ctx, jobID)
-}
-
-// Get font-pro job status + result
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/generate-font-pro/{job_id}
-func (c *Client) GetFontProJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-font-pro", jobID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Completed font metadata + download URLs (atlas + ttf)
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetFontResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Job not found
-		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
-	case http.StatusGone:
-		// Generation failed permanently
-		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetFontProJobStatus: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-// - 256x256
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_skeleton(
-//
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	inpainting_images=existing_animation_frames,
-//	mask_images=mask_images,
-//	skeleton_keypoints=skeleton_keypoints,
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-//
-//	POST /v2/animate-with-skeleton
-func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*AnimateWithSkeleton, error) {
-	return c.AnimateWithSkeletonWithResult[AnimateWithSkeleton](ctx, body)
-}
-
-// Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-// - 256x256
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_skeleton(
-//
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	inpainting_images=existing_animation_frames,
-//	mask_images=mask_images,
-//	skeleton_keypoints=skeleton_keypoints,
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/animate-with-skeleton
-func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "animate-with-skeleton")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimateWithSkeleton); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art animation based on text description and parameters.
-//
-// Supported image sizes:
-// - 64x64
-//
-// Supported features:
-// - Text-guided animation generation
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Multiple frames
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text(
-//
-//	description="human mage",
-//	action="walk",
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	n_frames=4
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-//
-//	POST /v2/animate-with-text
-func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*AnimateWithSkeleton, error) {
-	return c.AnimateWithTextWithResult[AnimateWithSkeleton](ctx, body)
-}
-
-// Creates a pixel art animation based on text description and parameters.
-//
-// Supported image sizes:
-// - 64x64
-//
-// Supported features:
-// - Text-guided animation generation
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Multiple frames
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text(
-//
-//	description="human mage",
-//	action="walk",
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	n_frames=4
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/animate-with-text
-func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "animate-with-text")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated animation
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimateWithSkeleton); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate pixel art animation from text.
-//
-// This endpoint creates animations from a reference image and action description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Text-guided animation generation
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Frame Counts by Size:**
-// - 32x32 pixels: Returns 16 animation frames
-// - 64x64 pixels: Returns 16 animation frames
-// - 128x128 pixels: Returns 4 animation frames
-// - 170x170 pixels: Returns 4 animation frames
-// - 256x256 pixels: Returns 4 animation frames
-//
-// **Supported Actions:**
-// - Simple actions: walk, run, jump, attack
-// - Complex actions: cast spell, dance, celebrate
-// - Any action description in natural language
-//
-// **Camera Views:**
-// - `none`: No camera hint (default)
-// - `low top-down`: Classic 3/4 RPG view (~20 degrees from horizontal)
-// - `high top-down`: Steeper overhead angle (~35 degrees)
-// - `side`: Side scroller, eye level view
-//
-// **Directions:**
-// - `none`: No direction hint (default)
-// - `south`: Front visible, `north`: Back visible
-// - `east`: Facing right, `west`: Facing left
-// - Also: `south-east`, `south-west`, `north-east`, `north-west`
-//
-// **Image Size Limits:**
-// - Supported sizes: 32x32 to 256x256 pixels for both reference and output images
-// - Recommended: 64x64 for best quality/performance balance
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, animation frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text_v2(
-//
-//	reference_image=reference_image,
-//	reference_image_size=dict(width=64, height=64),
-//	action="walk",
-//	image_size=dict(width=64, height=64),
-//	view="low top-down",
-//	direction="south",
-//
-// )
-//
-// # Access individual frames
-// for i, frame in enumerate(response.images):
-//
-//	frame.pil_image().save(f"frame_{i}.png")
-//
-// ```
-//
-//	POST /v2/animate-with-text-v2
-func (c *Client) AnimateWithTextPro(ctx context.Context, body AnimateWithTextV2Request) (*AsyncJobResponse, error) {
-	return c.AnimateWithTextProWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate pixel art animation from text.
-//
-// This endpoint creates animations from a reference image and action description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Text-guided animation generation
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Frame Counts by Size:**
-// - 32x32 pixels: Returns 16 animation frames
-// - 64x64 pixels: Returns 16 animation frames
-// - 128x128 pixels: Returns 4 animation frames
-// - 170x170 pixels: Returns 4 animation frames
-// - 256x256 pixels: Returns 4 animation frames
-//
-// **Supported Actions:**
-// - Simple actions: walk, run, jump, attack
-// - Complex actions: cast spell, dance, celebrate
-// - Any action description in natural language
-//
-// **Camera Views:**
-// - `none`: No camera hint (default)
-// - `low top-down`: Classic 3/4 RPG view (~20 degrees from horizontal)
-// - `high top-down`: Steeper overhead angle (~35 degrees)
-// - `side`: Side scroller, eye level view
-//
-// **Directions:**
-// - `none`: No direction hint (default)
-// - `south`: Front visible, `north`: Back visible
-// - `east`: Facing right, `west`: Facing left
-// - Also: `south-east`, `south-west`, `north-east`, `north-west`
-//
-// **Image Size Limits:**
-// - Supported sizes: 32x32 to 256x256 pixels for both reference and output images
-// - Recommended: 64x64 for best quality/performance balance
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, animation frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text_v2(
-//
-//	reference_image=reference_image,
-//	reference_image_size=dict(width=64, height=64),
-//	action="walk",
-//	image_size=dict(width=64, height=64),
-//	view="low top-down",
-//	direction="south",
-//
-// )
-//
-// # Access individual frames
-// for i, frame in enumerate(response.images):
-//
-//	frame.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/animate-with-text-v2
-func (c *Client) AnimateWithTextProWithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "animate-with-text-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Animation job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("AnimateWithTextPro: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate an animation from a reference frame and a text action description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the first frame and action description; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the generated frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-// - Total pixel budget: width × height × frame_count ≤ 524,288
-//
-// **Frame Count Guidelines:**
-// - 4 frames: Simple loops (idle, breathing)
-// - 8 frames: Standard animations (walk, run)
-// - 16 frames: Complex animations (attack combos)
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.animate_with_text_v3(
-//
-//	first_frame=first_frame_image,
-//	action="walking forward",
-//	frame_count=8,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-//
-//	POST /v2/animate-with-text-v3
-func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Request) (*AnimateWithTextV3Response, error) {
-	return c.AnimateWithTextV3WithResult[AnimateWithTextV3Response](ctx, body)
-}
-
-// Generate an animation from a reference frame and a text action description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the first frame and action description; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the generated frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-// - Total pixel budget: width × height × frame_count ≤ 524,288
-//
-// **Frame Count Guidelines:**
-// - 4 frames: Simple loops (idle, breathing)
-// - 8 frames: Standard animations (walk, run)
-// - 16 frames: Complex animations (attack combos)
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.animate_with_text_v3(
-//
-//	first_frame=first_frame_image,
-//	action="walking forward",
-//	frame_count=8,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/animate-with-text-v3
-func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "animate-with-text-v3")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Background job accepted
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimateWithTextV3Response); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent background jobs
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-// - 256x256
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.estimate_skeleton(
-//
-//	image=image_of_the_character_on_a_transparent_background,
-//
-// )
-// response.keypoints
-// ```
-//
-//	POST /v2/estimate-skeleton
-func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
-	return c.EstimateSkeletonWithResult[EstimateSkeletonResponse](ctx, body)
-}
-
-// Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-// - 256x256
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.estimate_skeleton(
-//
-//	image=image_of_the_character_on_a_transparent_background,
-//
-// )
-// response.keypoints
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/estimate-skeleton
-func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "estimate-skeleton")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*EstimateSkeletonResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate 8 rotational views of a character or object.
-//
-// This endpoint creates 8 directional views from a reference image, useful for
-// game sprites that need to face multiple directions.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Methods:**
-// - **rotate_character**: Rotate existing sprite to 8 directions (`reference_image`)
-// - **create_with_style**: Create new character from description (requires `description`)
-// - **create_from_concept**: Create rotations from concept art (requires `concept_image`)
-//
-// **Output:**
-// Returns 8 images in order: South, South-West, West, North-West, North,
-// North-East, East, South-East
-//
-// **View Angles:**
-// - `low top-down`: ~20 degree angle (most common for RPGs)
-// - `high top-down`: ~35 degree angle
-// - `side`: Side-scroller eye level
-//
-// **Supported Sizes:**
-// - image_size: 32x32 to 168x168 (matches reference_to_8_rotations). reference_image max 168x168, concept_image max 1024x1024.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, rotations are in `last_response`
-//
-// **rotate_character Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="rotate_character",
-//	reference_image={"image": char_img, "width": 64, "height": 64},
-//	image_size={"width": 64, "height": 64},
-//	view="low top-down"
-//
-// )
-// ```
-//
-// **create_with_style Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="create_with_style",
-//	description="a knight in armor",
-//	image_size={"width": 64, "height": 64}
-//
-// )
-// ```
-//
-//	POST /v2/generate-8-rotations-v2
-func (c *Client) Generate8Rotations(ctx context.Context, body Generate8RotationsV2Request) (*AsyncJobResponse, error) {
-	return c.Generate8RotationsWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate 8 rotational views of a character or object.
-//
-// This endpoint creates 8 directional views from a reference image, useful for
-// game sprites that need to face multiple directions.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Methods:**
-// - **rotate_character**: Rotate existing sprite to 8 directions (`reference_image`)
-// - **create_with_style**: Create new character from description (requires `description`)
-// - **create_from_concept**: Create rotations from concept art (requires `concept_image`)
-//
-// **Output:**
-// Returns 8 images in order: South, South-West, West, North-West, North,
-// North-East, East, South-East
-//
-// **View Angles:**
-// - `low top-down`: ~20 degree angle (most common for RPGs)
-// - `high top-down`: ~35 degree angle
-// - `side`: Side-scroller eye level
-//
-// **Supported Sizes:**
-// - image_size: 32x32 to 168x168 (matches reference_to_8_rotations). reference_image max 168x168, concept_image max 1024x1024.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, rotations are in `last_response`
-//
-// **rotate_character Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="rotate_character",
-//	reference_image={"image": char_img, "width": 64, "height": 64},
-//	image_size={"width": 64, "height": 64},
-//	view="low top-down"
-//
-// )
-// ```
-//
-// **create_with_style Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="create_with_style",
-//	description="a knight in armor",
-//	image_size={"width": 64, "height": 64}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/generate-8-rotations-v2
-func (c *Client) Generate8RotationsWithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-8-rotations-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// 8 rotations job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("Generate8Rotations: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate 8 directional rotations from a reference frame.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the reference frame; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.generate_8_rotations_v3(
-//
-//	first_frame=reference_image,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-//
-//	POST /v2/generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*AsyncJobResponse, error) {
-	return c.Generate8RotationsV3WithResult[AsyncJobResponse](ctx, body)
-}
-
-// Generate 8 directional rotations from a reference frame.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the reference frame; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.generate_8_rotations_v3(
-//
-//	first_frame=reference_image,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "generate-8-rotations-v3")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Background job accepted
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent background jobs
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.rotate(
-//
-//	from_view="side",
-//	to_view="side",
-//	from_direction="south",
-//	to_direction="east",
-//	image_size=dict(width=16, height=16),
-//	from_image=image_of_subject_facing_south,
-//
-// )
-// response.image.pil_image()
-// ```
-//
-//	POST /v2/rotate
-func (c *Client) RotateCharacterOrObject(ctx context.Context, body RotateRequest) (*ImageResponse, error) {
-	return c.RotateCharacterOrObjectWithResult[ImageResponse](ctx, body)
-}
-
-// Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.rotate(
-//
-//	from_view="side",
-//	to_view="side",
-//	from_direction="south",
-//	to_direction="east",
-//	image_size=dict(width=16, height=16),
-//	from_image=image_of_subject_facing_south,
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/rotate
-func (c *Client) RotateCharacterOrObjectWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "rotate")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("RotateCharacterOrObject: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Inpaint/edit pixel art images using AI.
-//
-// This endpoint uses AI-powered inpainting for high-quality
-// results. It allows you to edit specific areas of an image based on a
-// text description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - AI-powered inpainting with text descriptions
-// - Optional context image for style guidance
-// - Bounding box support for precise editing
-// - Background removal option
-// - Mask-based editing (white = generate, black = preserve)
-// - Non-blocking: returns job ID immediately
-//
-// **Image Sizes:**
-// - Inpainting image: 32x32 to 512x512 pixels
-// - Context image: up to 1024x1024 pixels (optional)
-//
-// **Mask Format:**
-// - White pixels = areas to generate/replace
-// - Black pixels = areas to preserve
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, inpainted image is in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint_v3(
-//
-//	description="add a glowing sword",
-//	inpainting_image=character_image,
-//	mask_image=sword_area_mask,
-//
-// )
-//
-// response.images[0].pil_image().save("edited.png")
-// ```
-//
-//	POST /v2/inpaint-v3
-func (c *Client) InpaintImageV3(ctx context.Context, body InpaintV3Request) (*AsyncJobResponse, error) {
-	return c.InpaintImageV3WithResult[AsyncJobResponse](ctx, body)
-}
-
-// Inpaint/edit pixel art images using AI.
-//
-// This endpoint uses AI-powered inpainting for high-quality
-// results. It allows you to edit specific areas of an image based on a
-// text description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - AI-powered inpainting with text descriptions
-// - Optional context image for style guidance
-// - Bounding box support for precise editing
-// - Background removal option
-// - Mask-based editing (white = generate, black = preserve)
-// - Non-blocking: returns job ID immediately
-//
-// **Image Sizes:**
-// - Inpainting image: 32x32 to 512x512 pixels
-// - Context image: up to 1024x1024 pixels (optional)
-//
-// **Mask Format:**
-// - White pixels = areas to generate/replace
-// - Black pixels = areas to preserve
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, inpainted image is in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint_v3(
-//
-//	description="add a glowing sword",
-//	inpainting_image=character_image,
-//	mask_image=sword_area_mask,
-//
-// )
-//
-// response.images[0].pil_image().save("edited.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/inpaint-v3
-func (c *Client) InpaintImageV3WithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "inpaint-v3")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Inpainting job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("InpaintImageV3: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
-//
-// Supported image size:
-// - Maximum area 200x200
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint(
-//
-//	description="boy with wings",
-//	image_size=dict(width=16, height=16),
-//	inpainting_image=image_of_boy_without_wings,
-//	mask_image=mask_image,
-//
-// )
-// response.image.pil_image()
-// ```
-//
-//	POST /v2/inpaint
-func (c *Client) InpaintImage(ctx context.Context, body InpaintRequest) (*ImageResponse, error) {
-	return c.InpaintImageWithResult[ImageResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
-//
-// Supported image size:
-// - Maximum area 200x200
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint(
-//
-//	description="boy with wings",
-//	image_size=dict(width=16, height=16),
-//	inpainting_image=image_of_boy_without_wings,
-//	mask_image=mask_image,
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/inpaint
-func (c *Client) InpaintImageWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "inpaint")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated image
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("InpaintImage: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Edit pixel art images using text or reference image.
-//
-// This endpoint supports two editing methods:
-// 1. **edit_with_text**: Apply edits based on a text description
-// 2. **edit_with_reference**: Match the style of a reference image
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Output sizes (image_size):**
-// - **Range:** 32x32 to 512x512 pixels. Each returned image has the dimensions you set in `image_size`.
-// - Input images (`edit_images`, `reference_image`) must be at most 512x512 each.
-//
-// **Key Features:**
-// - Edit multiple images consistently
-// - Text-guided or reference-guided editing
-// - Preserves original structure and poses
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 16 frames (4x4 grid), 15 with reference
-// - 65-80px: Up to 9 frames (3x3 grid), 8 with reference
-// - 81-128px: Up to 4 frames (2x2 grid), 3 with reference
-// - 129-512px: 1 frame (both methods)
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited images are in `last_response`
-//
-// **edit_with_text Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_text",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	description="add a wizard hat"
-//
-// )
-// ```
-//
-// **edit_with_reference Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_reference",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	reference_image={"image": ref_img, "width": 64, "height": 64}
-//
-// )
-// ```
-//
-//	POST /v2/edit-images-v2
-func (c *Client) EditImages(ctx context.Context, body EditImagesV2Request) (*AsyncJobResponse, error) {
-	return c.EditImagesWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Edit pixel art images using text or reference image.
-//
-// This endpoint supports two editing methods:
-// 1. **edit_with_text**: Apply edits based on a text description
-// 2. **edit_with_reference**: Match the style of a reference image
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Output sizes (image_size):**
-// - **Range:** 32x32 to 512x512 pixels. Each returned image has the dimensions you set in `image_size`.
-// - Input images (`edit_images`, `reference_image`) must be at most 512x512 each.
-//
-// **Key Features:**
-// - Edit multiple images consistently
-// - Text-guided or reference-guided editing
-// - Preserves original structure and poses
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 16 frames (4x4 grid), 15 with reference
-// - 65-80px: Up to 9 frames (3x3 grid), 8 with reference
-// - 81-128px: Up to 4 frames (2x2 grid), 3 with reference
-// - 129-512px: 1 frame (both methods)
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited images are in `last_response`
-//
-// **edit_with_text Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_text",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	description="add a wizard hat"
-//
-// )
-// ```
-//
-// **edit_with_reference Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_reference",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	reference_image={"image": ref_img, "width": 64, "height": 64}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/edit-images-v2
-func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImagesV2Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "edit-images-v2")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Image edit job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Edit an existing pixel art image based on a text description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// ### Supported Image Sizes
-// - **Reference image**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Target canvas**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Free tier limit**: Maximum 200x200 pixels for target canvas
-//
-// ### Output
-// Returns a single edited image matching the target canvas dimensions.
-//
-// ### Usage Pattern
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited image is in `last_response`
-//
-//	POST /v2/edit-image
-func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*AsyncJobResponse, error) {
-	return c.EditImageWithResult[AsyncJobResponse](ctx, body)
-}
-
-// Edit an existing pixel art image based on a text description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// ### Supported Image Sizes
-// - **Reference image**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Target canvas**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Free tier limit**: Maximum 200x200 pixels for target canvas
-//
-// ### Output
-// Returns a single edited image matching the target canvas dimensions.
-//
-// ### Usage Pattern
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited image is in `last_response`
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/edit-image
-func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "edit-image")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Edit image job accepted and processing
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AsyncJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// List all tilesets (top-down and sidescroller) created by the authenticated user.
-//
-// This endpoint returns a paginated list of all tilesets you've created.
-//
-// **Pagination:**
-// - Use `limit` to control how many tilesets to return (1-100)
-// - Use `offset` to skip tilesets for pagination
-// - Total count is included in response for pagination UI
-//
-//	GET /v2/tilesets
-func (c *Client) ListUsersTilesets(ctx context.Context, params *ListUsersTilesetsParams) (*TilesetsListResponse, error) {
-	return c.ListUsersTilesetsWithResult[TilesetsListResponse](ctx, params)
-}
-
-// List all tilesets (top-down and sidescroller) created by the authenticated user.
-//
-// This endpoint returns a paginated list of all tilesets you've created.
-//
-// **Pagination:**
-// - Use `limit` to control how many tilesets to return (1-100)
-// - Use `offset` to skip tilesets for pagination
-// - Total count is included in response for pagination UI
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/tilesets
-func (c *Client) ListUsersTilesetsWithResult[R any](ctx context.Context, params *ListUsersTilesetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets")
-	if params != nil {
-		q := make(url.Values, 2)
-
-		if params.Limit != 0 {
-			q["limit"] = []string{strconv.Itoa(params.Limit)}
-		}
-
-		if params.Offset != 0 {
-			q["offset"] = []string{strconv.Itoa(params.Offset)}
-		}
-
-		u.RawQuery = q.Encode()
-	}
-
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved tileset list
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TilesetsListResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListUsersTilesets: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
-//
-//	POST /v2/tilesets
-func (c *Client) CreateTilesetAsynchronously(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.CreateTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
-}
-
-// Creates a Wang tileset (16 tiles for standard, 25 for transition_size=1.0) in the background and returns immediately with job ID
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/tilesets
-func (c *Client) CreateTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Tileset creation started, returns job ID
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetBackgroundResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateTilesetAsynchronously: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a complete tileset for game development with seamlessly connecting tiles.
-//
-// A tileset is a collection of individual tiles (16 for standard, 25 for transition_size=1.0) that can be combined
-// to create larger maps and environments. This endpoint generates tiles representing two terrain levels - "lower"
-// and "upper" - that connect seamlessly when placed adjacent to each other.
-//
-// **Understanding Lower and Upper Terrain:**
-//   - **Lower terrain**: The base level terrain (e.g., water, grass, lava)
-//   - **Upper terrain**: The elevated terrain level (e.g., beach, dirt path, rock)
-//   - **Transition size**: Controls the visual height difference between levels. Larger transitions (0.25-0.5)
-//     create a more pronounced elevation effect, making it appear as if the upper terrain is on a higher plane
-//
-// **Using the tiles (Wang corner autotiling):**
-// Define your terrain on a vertex grid — one terrain value ("lower"/"upper") per vertex, so a
-// map of W×H cells has (W+1)×(H+1) vertices. Each map cell reads its 4 corner vertices
-// (NW, NE, SW, SE) and you place the tile whose `pattern_4x4` (or `corners`) matches those
-// values. Adjacent cells share vertices, so tiles connect seamlessly by construction.
-//
-// **transition_size=1.0 (cliff tilesets):**
-//   - Returns 25 tiles instead of 16, and corners take a third value: "transition"
-//   - A cliff wall occupies the map cell BELOW the terrain boundary, so a cliff spans two rows
-//   - The 25 tiles cover only 21 distinct corner combinations — 4 wall-continuation tiles share
-//     their corners with a twin. Select tiles by `pattern_4x4`, not by `corners` alone, or those
-//     twins collapse into one another
-//
-// Features:
-// - Returns individual tiles with unique IDs (16 for standard, 25 for transition_size=1.0)
-// - Corner-based terrain classification (NW, NE, SW, SE)
-// - A 4x4 terrain pattern per tile, for matching tiles against a painted map
-// - Lower and upper terrain levels for elevation variety
-// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
-// - Seamless tile connections for map creation
-// - Vertical transitions support with transition_size=1.0
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
-// Response format:
-//   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
-//   - Corner data specifies "lower", "upper", or "transition" terrain for each corner (NW, NE, SW, SE)
-//   - `pattern_4x4` encodes terrain as 0=lower, 1=upper, 2=transition, 255=wildcard. `row_1`/`row_2`
-//     hold the four corners; `row_0`/`row_3` hold the terrain above/below (only meaningful for
-//     transition tiles). This is the field to match on when placing tiles
-//   - `connections` is deprecated and not populated for new top-down tilesets — use `pattern_4x4` (or `corners`) instead
-//   - Metadata includes terrain prompts and creation timestamp
-//
-// Common use cases:
-// - **Beach environments**: water/sand with wet sand transitions
-// - **Forest paths**: grass/dirt with muddy transitions
-// - **Dungeon floors**: stone floor/walls with cracked stone transitions
-// - **Snow landscapes**: snow/rock with icy transitions
-// - **Desert oases**: sand/water with muddy bank transitions
-// - **Lava caves**: rock/lava with molten rock transitions
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Generate a beach/ocean tileset
-// response = client.generate_tileset(
-//
-//	lower_description="deep blue ocean water with gentle waves",
-//	upper_description="golden sandy beach",
-//	transition_description="wet sand with foam",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.5,
-//	view="high top-down"
-//
-// )
-//
-// # Access individual tiles
-// for tile in response.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	print(f"  Corners: NW={tile.corners.NW}, NE={tile.corners.NE}, SW={tile.corners.SW}, SE={tile.corners.SE}")
-//	print(f"  Pattern: {tile.pattern_4x4.row_1} / {tile.pattern_4x4.row_2}")
-//
-//	# Save individual tile images
-//	import base64
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-//
-//	POST /v2/create-tileset
-func (c *Client) CreateTopDownTilesetAsyncProcessing(ctx context.Context, body CreateTilesetRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.CreateTopDownTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
-}
-
-// Creates a complete tileset for game development with seamlessly connecting tiles.
-//
-// A tileset is a collection of individual tiles (16 for standard, 25 for transition_size=1.0) that can be combined
-// to create larger maps and environments. This endpoint generates tiles representing two terrain levels - "lower"
-// and "upper" - that connect seamlessly when placed adjacent to each other.
-//
-// **Understanding Lower and Upper Terrain:**
-//   - **Lower terrain**: The base level terrain (e.g., water, grass, lava)
-//   - **Upper terrain**: The elevated terrain level (e.g., beach, dirt path, rock)
-//   - **Transition size**: Controls the visual height difference between levels. Larger transitions (0.25-0.5)
-//     create a more pronounced elevation effect, making it appear as if the upper terrain is on a higher plane
-//
-// **Using the tiles (Wang corner autotiling):**
-// Define your terrain on a vertex grid — one terrain value ("lower"/"upper") per vertex, so a
-// map of W×H cells has (W+1)×(H+1) vertices. Each map cell reads its 4 corner vertices
-// (NW, NE, SW, SE) and you place the tile whose `pattern_4x4` (or `corners`) matches those
-// values. Adjacent cells share vertices, so tiles connect seamlessly by construction.
-//
-// **transition_size=1.0 (cliff tilesets):**
-//   - Returns 25 tiles instead of 16, and corners take a third value: "transition"
-//   - A cliff wall occupies the map cell BELOW the terrain boundary, so a cliff spans two rows
-//   - The 25 tiles cover only 21 distinct corner combinations — 4 wall-continuation tiles share
-//     their corners with a twin. Select tiles by `pattern_4x4`, not by `corners` alone, or those
-//     twins collapse into one another
-//
-// Features:
-// - Returns individual tiles with unique IDs (16 for standard, 25 for transition_size=1.0)
-// - Corner-based terrain classification (NW, NE, SW, SE)
-// - A 4x4 terrain pattern per tile, for matching tiles against a painted map
-// - Lower and upper terrain levels for elevation variety
-// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
-// - Seamless tile connections for map creation
-// - Vertical transitions support with transition_size=1.0
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
-// Response format:
-//   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
-//   - Corner data specifies "lower", "upper", or "transition" terrain for each corner (NW, NE, SW, SE)
-//   - `pattern_4x4` encodes terrain as 0=lower, 1=upper, 2=transition, 255=wildcard. `row_1`/`row_2`
-//     hold the four corners; `row_0`/`row_3` hold the terrain above/below (only meaningful for
-//     transition tiles). This is the field to match on when placing tiles
-//   - `connections` is deprecated and not populated for new top-down tilesets — use `pattern_4x4` (or `corners`) instead
-//   - Metadata includes terrain prompts and creation timestamp
-//
-// Common use cases:
-// - **Beach environments**: water/sand with wet sand transitions
-// - **Forest paths**: grass/dirt with muddy transitions
-// - **Dungeon floors**: stone floor/walls with cracked stone transitions
-// - **Snow landscapes**: snow/rock with icy transitions
-// - **Desert oases**: sand/water with muddy bank transitions
-// - **Lava caves**: rock/lava with molten rock transitions
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Generate a beach/ocean tileset
-// response = client.generate_tileset(
-//
-//	lower_description="deep blue ocean water with gentle waves",
-//	upper_description="golden sandy beach",
-//	transition_description="wet sand with foam",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.5,
-//	view="high top-down"
-//
-// )
-//
-// # Access individual tiles
-// for tile in response.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	print(f"  Corners: NW={tile.corners.NW}, NE={tile.corners.NE}, SW={tile.corners.SW}, SE={tile.corners.SE}")
-//	print(f"  Pattern: {tile.pattern_4x4.row_1} / {tile.pattern_4x4.row_2}")
-//
-//	# Save individual tile images
-//	import base64
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-tileset
-func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-tileset")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully generated tileset
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetBackgroundResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
 	case http.StatusAccepted:
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -5861,7 +1403,7 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetBackgroundResponse); ok {
+			if _, ok := any(&out).(*ImageToPixelartProFlashResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -5884,279 +1426,6 @@ func (c *Client) CreateTopDownTilesetAsyncProcessingWithResult[R any](ctx contex
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateTopDownTilesetAsyncProcessing: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Retrieve a completed tileset by its UUID.
-//
-// This endpoint returns the complete tileset data including all tiles with their images, corner data
-// and metadata. Use this after background processing completes.
-//
-// The tileset ID is returned immediately when you submit a tileset generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Newly generated tilesets have 16 tiles (standard) or 25 (transition_size=1.0). This endpoint also
-// serves tilesets generated by earlier versions, which may report other counts at transition_size=1.0.
-// Always read `total_tiles` / the length of `tiles` rather than assuming a fixed count.
-//
-// Response includes:
-//   - All tiles with base64 PNG images
-//   - Corner classifications (NW, NE, SW, SE) for each tile — "lower", "upper", or, on
-//     transition_size=1.0 tilesets, "transition"
-//   - `pattern_4x4` per tile (0=lower, 1=upper, 2=transition, 255=wildcard). On transition_size=1.0
-//     tilesets the 25 tiles cover only 21 distinct corner combinations, so match on `pattern_4x4`
-//     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
-//   - Generation metadata and parameters
-//   - Terrain descriptions and style settings
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tileset
-// tileset = client.get_tileset("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Access tiles
-// for tile in tileset.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	# Save tile image
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-//
-//	GET /v2/tilesets/{tileset_id}
-func (c *Client) GetGeneratedTilesetByID(ctx context.Context, tilesetID string) (*CreateTilesetResponse, error) {
-	return c.GetGeneratedTilesetByIDWithResult[CreateTilesetResponse](ctx, tilesetID)
-}
-
-// Retrieve a completed tileset by its UUID.
-//
-// This endpoint returns the complete tileset data including all tiles with their images, corner data
-// and metadata. Use this after background processing completes.
-//
-// The tileset ID is returned immediately when you submit a tileset generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Newly generated tilesets have 16 tiles (standard) or 25 (transition_size=1.0). This endpoint also
-// serves tilesets generated by earlier versions, which may report other counts at transition_size=1.0.
-// Always read `total_tiles` / the length of `tiles` rather than assuming a fixed count.
-//
-// Response includes:
-//   - All tiles with base64 PNG images
-//   - Corner classifications (NW, NE, SW, SE) for each tile — "lower", "upper", or, on
-//     transition_size=1.0 tilesets, "transition"
-//   - `pattern_4x4` per tile (0=lower, 1=upper, 2=transition, 255=wildcard). On transition_size=1.0
-//     tilesets the 25 tiles cover only 21 distinct corner combinations, so match on `pattern_4x4`
-//     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
-//   - Generation metadata and parameters
-//   - Terrain descriptions and style settings
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tileset
-// tileset = client.get_tileset("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Access tiles
-// for tile in tileset.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	# Save tile image
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/tilesets/{tileset_id}
-func (c *Client) GetGeneratedTilesetByIDWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets", tilesetID)
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved tileset
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tileset not found
-		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Tileset is still being generated
-		return nil, fmt.Errorf("GetGeneratedTilesetByID: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
-//
-//	DELETE /v2/tilesets/{tileset_id}
-func (c *Client) DeleteTopDownTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
-	return c.DeleteTopDownTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
-}
-
-// Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /v2/tilesets/{tileset_id}
-func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets", tilesetID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodDelete,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Tileset deleted successfully
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
-	case http.StatusForbidden:
-		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tileset not found
-		return nil, fmt.Errorf("DeleteTopDownTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -6186,245 +1455,32 @@ func (c *Client) DeleteTopDownTilesetWithResult[R any](ctx context.Context, tile
 	}
 }
 
-// List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
+// Create a character with 8 directional rotations using the v3 model.
 //
-//	GET /v2/tilesets-sidescroller
-func (c *Client) ListYourSidescrollerTilesets(ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*SidescrollerTilesetsListResponse, error) {
-	return c.ListYourSidescrollerTilesetsWithResult[SidescrollerTilesetsListResponse](ctx, params)
-}
-
-// List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
-// You can define a custom result to unmarshal the response into.
+// **Two modes:**
 //
-//	GET /v2/tilesets-sidescroller
-func (c *Client) ListYourSidescrollerTilesetsWithResult[R any](ctx context.Context, params *ListYourSidescrollerTilesetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller")
-	if params != nil {
-		q := make(url.Values, 2)
-
-		if params.Limit != 0 {
-			q["limit"] = []string{strconv.Itoa(params.Limit)}
-		}
-
-		if params.Offset != 0 {
-			q["offset"] = []string{strconv.Itoa(params.Offset)}
-		}
-
-		u.RawQuery = q.Encode()
-	}
-
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved sidescroller tileset list
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SidescrollerTilesetsListResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ListYourSidescrollerTilesets: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
+//  1. **Reference image** — provide `reference_image` (south-facing sprite) and the v3 model
+//     rotates it into 8 directional views. Cost: `ceil(w*h*8 / 65536)` generations.
 //
-//	POST /v2/tilesets-sidescroller
-func (c *Client) CreateSidescrollerTilesetAsynchronously(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.CreateSidescrollerTilesetAsynchronouslyWithResult[CreateTilesetBackgroundResponse](ctx, body)
-}
-
-// Creates a sidescroller platform tileset in the background and returns immediately with job ID. Retrieve results with GET /tilesets/{tileset_id}.
-// You can define a custom result to unmarshal the response into.
+//  2. **From scratch** — omit `reference_image` and the Pixen model generates a south-facing
+//     sprite from `description`, then v3 rotates it. Cost: 1 (pixen) + `ceil(s*s*8 / 65536)`
+//     where s = max(width, height). Supports `outline` and `detail` style params.
 //
-//	POST /v2/tilesets-sidescroller
-func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Tileset creation started, returns job ID
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetBackgroundResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsynchronously: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a complete sidescroller tileset for 2D platformer game development.
+// The result is persisted as a character — same system as
+// `/v2/create-character-with-8-directions` — so it can be animated, downloaded, and listed
+// alongside template-created characters.
 //
-// A sidescroller tileset is a collection of individual tiles designed for side-view platformer games.
-// The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
-// over any game background.
+// **Reference image must be south-facing for best results.** The frontend Character Creator
+// enforces this and the v3 model is trained around a south-facing input.
 //
-// **Key differences from top-down tilesets:**
-// - **View**: Always "side" perspective (fixed, cannot be changed)
-// - **Background**: Always transparent (no background terrain)
-// - **Use case**: 2D platformer games, side-scrolling adventures
-// - **No slopes**: Only flat horizontal platform surfaces
-//
-// **Understanding the layers:**
-// - **Lower terrain**: The main platform/ground material (e.g., stone, grass, metal)
-// - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
-// - **Background**: Automatically transparent (not configurable)
-//
-// Features:
-// - Returns individual tiles with unique IDs
-// - Transparent background for easy overlay on game scenes
-// - Tile sizes: 16x16 or 32x32 pixels
-// - Seamless tile connections for platform creation
-// - Optional transition layer for surface details
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
-// **Retrieving results:**
-// After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
-// The same endpoint is used for both top-down and sidescroller tilesets.
-//
-// Common use cases:
-// - **Stone platforms**: stone bricks with moss transitions
-// - **Grass ground**: green grass with flower decorations
-// - **Metal grating**: industrial platforms with rust details
-// - **Ice platforms**: frozen surfaces with snow cover
-// - **Wood platforms**: wooden planks with vine overgrowth
-// - **Candy platforms**: colorful candy blocks with frosting
+// **Sizes:**
+//   - `reference_image`: max 256x256 pixels.
+//   - From-scratch `image_size`: 32-256 pixels (default 64x64). This size is sent to
+//     the sprite generator; a non-square result is padded to a `max(width, height)` square
+//     before rotation, and the character is stored at that square size. Animations get
+//     their own larger canvas when the motion needs room.
+//   - Reference mode uses the uploaded frame dimensions for generation; `image_size` is
+//     advisory.
 //
 // Using the Python client:
 // ```python
@@ -6432,63 +1488,54 @@ func (c *Client) CreateSidescrollerTilesetAsynchronouslyWithResult[R any](ctx co
 //
 // client = pixellab.Client(secret="YOUR_API_TOKEN")
 //
-// # Generate a stone platform tileset
-// response = client.generate_tileset_sidescroller(
+// # Reference image mode
+// response = client.create_character_v3(
 //
-//	lower_description="stone brick platform with carved details",
-//	transition_description="moss and small green plants",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.25,
+//	description="cyberpunk samurai",
+//	reference_image=dict(base64=south_facing_image_b64),
 //
 // )
 //
-// # Retrieve completed tileset using the tileset_id
-// tileset = client.get_tileset(response.tileset_id)
+// # From-scratch mode
+// response = client.create_character_v3(
+//
+//	description="cute wizard with blue robes",
+//	image_size=dict(width=48, height=48),
+//
+// )
 // ```
 //
-//	POST /v2/create-tileset-sidescroller
-func (c *Client) CreateSidescrollerTilesetAsyncProcessing(ctx context.Context, body CreateTilesetSidescrollerRequest) (*CreateTilesetBackgroundResponse, error) {
-	return c.CreateSidescrollerTilesetAsyncProcessingWithResult[CreateTilesetBackgroundResponse](ctx, body)
+//	POST /create-character-v3
+func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterRequest) (*CreateCharacterResponse, error) {
+	return c.CreateCharacterWithResult[CreateCharacterResponse](ctx, body)
 }
 
-// Creates a complete sidescroller tileset for 2D platformer game development.
+// Create a character with 8 directional rotations using the v3 model.
 //
-// A sidescroller tileset is a collection of individual tiles designed for side-view platformer games.
-// The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
-// over any game background.
+// **Two modes:**
 //
-// **Key differences from top-down tilesets:**
-// - **View**: Always "side" perspective (fixed, cannot be changed)
-// - **Background**: Always transparent (no background terrain)
-// - **Use case**: 2D platformer games, side-scrolling adventures
-// - **No slopes**: Only flat horizontal platform surfaces
+//  1. **Reference image** — provide `reference_image` (south-facing sprite) and the v3 model
+//     rotates it into 8 directional views. Cost: `ceil(w*h*8 / 65536)` generations.
 //
-// **Understanding the layers:**
-// - **Lower terrain**: The main platform/ground material (e.g., stone, grass, metal)
-// - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
-// - **Background**: Automatically transparent (not configurable)
+//  2. **From scratch** — omit `reference_image` and the Pixen model generates a south-facing
+//     sprite from `description`, then v3 rotates it. Cost: 1 (pixen) + `ceil(s*s*8 / 65536)`
+//     where s = max(width, height). Supports `outline` and `detail` style params.
 //
-// Features:
-// - Returns individual tiles with unique IDs
-// - Transparent background for easy overlay on game scenes
-// - Tile sizes: 16x16 or 32x32 pixels
-// - Seamless tile connections for platform creation
-// - Optional transition layer for surface details
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
+// The result is persisted as a character — same system as
+// `/v2/create-character-with-8-directions` — so it can be animated, downloaded, and listed
+// alongside template-created characters.
 //
-// **Retrieving results:**
-// After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
-// The same endpoint is used for both top-down and sidescroller tilesets.
+// **Reference image must be south-facing for best results.** The frontend Character Creator
+// enforces this and the v3 model is trained around a south-facing input.
 //
-// Common use cases:
-// - **Stone platforms**: stone bricks with moss transitions
-// - **Grass ground**: green grass with flower decorations
-// - **Metal grating**: industrial platforms with rust details
-// - **Ice platforms**: frozen surfaces with snow cover
-// - **Wood platforms**: wooden planks with vine overgrowth
-// - **Candy platforms**: colorful candy blocks with frosting
+// **Sizes:**
+//   - `reference_image`: max 256x256 pixels.
+//   - From-scratch `image_size`: 32-256 pixels (default 64x64). This size is sent to
+//     the sprite generator; a non-square result is padded to a `max(width, height)` square
+//     before rotation, and the character is stored at that square size. Animations get
+//     their own larger canvas when the motion needs room.
+//   - Reference mode uses the uploaded frame dimensions for generation; `image_size` is
+//     advisory.
 //
 // Using the Python client:
 // ```python
@@ -6496,350 +1543,27 @@ func (c *Client) CreateSidescrollerTilesetAsyncProcessing(ctx context.Context, b
 //
 // client = pixellab.Client(secret="YOUR_API_TOKEN")
 //
-// # Generate a stone platform tileset
-// response = client.generate_tileset_sidescroller(
+// # Reference image mode
+// response = client.create_character_v3(
 //
-//	lower_description="stone brick platform with carved details",
-//	transition_description="moss and small green plants",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.25,
+//	description="cyberpunk samurai",
+//	reference_image=dict(base64=south_facing_image_b64),
 //
 // )
 //
-// # Retrieve completed tileset using the tileset_id
-// tileset = client.get_tileset(response.tileset_id)
-// ```
-// You can define a custom result to unmarshal the response into.
+// # From-scratch mode
+// response = client.create_character_v3(
 //
-//	POST /v2/create-tileset-sidescroller
-func (c *Client) CreateSidescrollerTilesetAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesetSidescrollerRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-tileset-sidescroller")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Tileset creation started, returns job ID
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateTilesetBackgroundResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateSidescrollerTilesetAsyncProcessing: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
-//
-//	GET /v2/tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTilesetByID(ctx context.Context, tilesetID string) error {
-	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller", tilesetID)
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved sidescroller tileset
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out struct{}
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil
-		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Sidescroller tileset not found
-		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return api.NewErrCustom(rsp, &out)
-		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Still being generated; see Retry-After header
-		return fmt.Errorf("GetSidescrollerTilesetByID: status %s", rsp.Status)
-	default:
-		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
-//
-//	DELETE /v2/tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
-	return c.DeleteSidescrollerTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
-}
-
-// Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /v2/tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tilesets-sidescroller", tilesetID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodDelete,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Tileset deleted successfully
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusForbidden:
-		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tileset not found
-		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a isometric tile based on the provided parameters.
-//
-// Supported image size:
-// - Minimum area 16x16 and maximum area 64x64
-// - Sizes above 24x24 often produce better quality results
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_isometric_tile(
-//
-//	description="grass on top of dirt",
-//	image_size=dict(width=32, height=32),
+//	description="cute wizard with blue robes",
+//	image_size=dict(width=48, height=48),
 //
 // )
-// response.image.pil_image()
-// ```
-//
-//	POST /v2/create-isometric-tile
-func (c *Client) CreateIsometricTileAsyncProcessing(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
-	return c.CreateIsometricTileAsyncProcessingWithResult[TileJobResponse](ctx, body)
-}
-
-// Creates a isometric tile based on the provided parameters.
-//
-// Supported image size:
-// - Minimum area 16x16 and maximum area 64x64
-// - Sizes above 24x24 often produce better quality results
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_isometric_tile(
-//
-//	description="grass on top of dirt",
-//	image_size=dict(width=32, height=32),
-//
-// )
-// response.image.pil_image()
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-isometric-tile
-func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-isometric-tile")
+//	POST /create-character-v3
+func (c *Client) CreateCharacterWithResult[R any](ctx context.Context, body CreateCharacterRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-character-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -6868,14 +1592,14 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
-		// Successfully generated image
+		// Generation job submitted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
 			var out R
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
+			if _, ok := any(&out).(*CreateCharacterResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -6898,7 +1622,266 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusAccepted:
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (bad dimensions, invalid image)
+		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Concurrency limit reached
+		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Create a character with 8 directional rotations using Pro mode.
+//
+// Pro mode uses a reference-based generator for higher quality and finer style control than
+// template-based standard mode. The result is persisted as a
+// character — same system as `/v2/create-character-with-8-directions` — so it can be
+// animated, downloaded, and listed alongside template-created characters.
+//
+// **Three methods** (controlled by the `method` field):
+// - `create_with_style` (default): text + optional style reference image.
+// - `create_from_concept`: text + concept image (e.g. a sketch/mood board) + optional style reference.
+// - `rotate_character`: rotate an existing character image into 8 directions.
+//
+// **Style character** (`style_character_id`): pass the id of one of your existing
+// 8-direction characters to use it as the style reference — its 8 directional sprites
+// guide the new character's style in every direction. Combine with `create_with_style`
+// (text-driven) or `create_from_concept` (concept image in that character's style).
+//
+// **Sizes:**
+//   - `image_size`: 32-168 pixels (requested output frame). The persisted rotations share
+//     a square canvas whose side is at least `max(width, height)` and may grow up to 256
+//     pixels to fit generated content.
+//     Must be at least the style character's sprite content size when `style_character_id` is set.
+//   - `reference_image`: max 168x168.
+//   - `concept_image`: max 1024x1024.
+//
+// **Cost:** dynamic — typically 10-25 generations depending on output size.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Style-guided creation
+// response = client.create_character_pro(
+//
+//	description="cyberpunk samurai with red coat",
+//	image_size=dict(width=96, height=96),
+//	method="create_with_style",
+//
+// )
+//
+// # Rotate an existing character
+// response = client.create_character_pro(
+//
+//	description="cyberpunk samurai",
+//	image_size=dict(width=96, height=96),
+//	method="rotate_character",
+//	reference_image=dict(base64=existing_character_b64),
+//
+// )
+// ```
+//
+//	POST /create-character-pro
+func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
+	return c.CreateCharacterProWithResult[CharacterJobResponse](ctx, body)
+}
+
+// Create a character with 8 directional rotations using Pro mode.
+//
+// Pro mode uses a reference-based generator for higher quality and finer style control than
+// template-based standard mode. The result is persisted as a
+// character — same system as `/v2/create-character-with-8-directions` — so it can be
+// animated, downloaded, and listed alongside template-created characters.
+//
+// **Three methods** (controlled by the `method` field):
+// - `create_with_style` (default): text + optional style reference image.
+// - `create_from_concept`: text + concept image (e.g. a sketch/mood board) + optional style reference.
+// - `rotate_character`: rotate an existing character image into 8 directions.
+//
+// **Style character** (`style_character_id`): pass the id of one of your existing
+// 8-direction characters to use it as the style reference — its 8 directional sprites
+// guide the new character's style in every direction. Combine with `create_with_style`
+// (text-driven) or `create_from_concept` (concept image in that character's style).
+//
+// **Sizes:**
+//   - `image_size`: 32-168 pixels (requested output frame). The persisted rotations share
+//     a square canvas whose side is at least `max(width, height)` and may grow up to 256
+//     pixels to fit generated content.
+//     Must be at least the style character's sprite content size when `style_character_id` is set.
+//   - `reference_image`: max 168x168.
+//   - `concept_image`: max 1024x1024.
+//
+// **Cost:** dynamic — typically 10-25 generations depending on output size.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Style-guided creation
+// response = client.create_character_pro(
+//
+//	description="cyberpunk samurai with red coat",
+//	image_size=dict(width=96, height=96),
+//	method="create_with_style",
+//
+// )
+//
+// # Rotate an existing character
+// response = client.create_character_pro(
+//
+//	description="cyberpunk samurai",
+//	image_size=dict(width=96, height=96),
+//	method="rotate_character",
+//	reference_image=dict(base64=existing_character_b64),
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-character-pro
+func (c *Client) CreateCharacterProWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-character-pro")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Generation job submitted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CharacterJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (bad dimensions, missing required image)
+		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Concurrency limit reached
+		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Animate an existing character (background processing).
+//
+// Modes:
+// - **template**: Provide template_animation_id for skeleton-based animation (1 gen/direction; canvases over ~100px bill per batch, up to one per clip frame at 256px).
+// - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
+// - **pixminimax**: Custom animation from action text on PixMiniMax (beta). frame_count multiples of 4 up to 40. One job per direction.
+// - **pro** (legacy, prefer v3 or pixminimax): Custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction).
+//
+//	POST /characters/animations
+func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
+	return c.CreateCharacterAnimationWithResult[CreateCharacterAnimationResponse](ctx, body)
+}
+
+// Animate an existing character (background processing).
+//
+// Modes:
+// - **template**: Provide template_animation_id for skeleton-based animation (1 gen/direction; canvases over ~100px bill per batch, up to one per clip frame at 256px).
+// - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
+// - **pixminimax**: Custom animation from action text on PixMiniMax (beta). frame_count multiples of 4 up to 40. One job per direction.
+// - **pro** (legacy, prefer v3 or pixminimax): Custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction).
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/animations
+func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", "animations")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
@@ -6906,7 +1889,7 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
+			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -6929,247 +1912,6 @@ func (c *Client) CreateIsometricTileAsyncProcessingWithResult[R any](ctx context
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
-	case 529:
-		// Rate limit exceeded
-		return nil, fmt.Errorf("CreateIsometricTileAsyncProcessing: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Retrieve a completed isometric tile by its UUID.
-//
-// This endpoint returns the isometric tile image after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Response includes:
-// - Base64 PNG image with transparent background
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tile
-// tile = client.get_isometric_tile("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile image
-// tile.image.pil_image().save("tile.png")
-// ```
-//
-//	GET /v2/isometric-tiles/{tile_id}
-func (c *Client) GetGeneratedIsometricTileByID(ctx context.Context, tileID string) (*ImageResponse, error) {
-	return c.GetGeneratedIsometricTileByIDWithResult[ImageResponse](ctx, tileID)
-}
-
-// Retrieve a completed isometric tile by its UUID.
-//
-// This endpoint returns the isometric tile image after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Response includes:
-// - Base64 PNG image with transparent background
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tile
-// tile = client.get_isometric_tile("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile image
-// tile.image.pil_image().save("tile.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/isometric-tiles/{tile_id}
-func (c *Client) GetGeneratedIsometricTileByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "isometric-tiles", tileID)
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved tile
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tile not found
-		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Tile still processing
-		return nil, fmt.Errorf("GetGeneratedIsometricTileByID: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Permanently delete an isometric tile you own. Cannot be undone.
-//
-//	DELETE /v2/isometric-tiles/{tile_id}
-func (c *Client) DeleteAnIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
-	return c.DeleteAnIsometricTileWithResult[DeleteTileResponse](ctx, tileID)
-}
-
-// Permanently delete an isometric tile you own. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /v2/isometric-tiles/{tile_id}
-func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "isometric-tiles", tileID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodDelete,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Tile deleted successfully
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTileResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
-	case http.StatusForbidden:
-		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tile not found
-		return nil, fmt.Errorf("DeleteAnIsometricTile: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7199,256 +1941,145 @@ func (c *Client) DeleteAnIsometricTileWithResult[R any](ctx context.Context, til
 	}
 }
 
-// List all isometric tiles created by the authenticated user.
+// Animate an existing character with multiple frames showing movement or action.
 //
-// This endpoint returns a paginated list of all isometric tiles you've created.
+// This endpoint creates animation sequences for characters that were previously created using
+// the create-character-with-4-directions or create-character-with-8-directions endpoints.
 //
-// **Pagination:**
-// - Use `limit` to control how many tiles to return (1-100)
-// - Use `offset` to skip tiles for pagination
-// - Total count is included in response for pagination UI
+// **Key Features:**
+// - Animate existing characters by character_id
+// - Support for multiple directions (or all character directions)
+// - Flexible frame count (2-12 frames)
+// - Template-based animations for consistent motion
+// - Asynchronous processing for multiple directions
+// - Automatic storage and organization
 //
-//	GET /v2/isometric-tiles
-func (c *Client) ListUsersIsometricTiles(ctx context.Context, params *ListUsersIsometricTilesParams) (*IsometricTilesListResponse, error) {
-	return c.ListUsersIsometricTilesWithResult[IsometricTilesListResponse](ctx, params)
+// **Character Requirements:**
+// - Character must exist and belong to the authenticated user
+// - Character must have been created with 4 or 8 directions
+// - Animation will use the same template and settings as the character
+//
+// **Direction Handling:**
+// - Multiple directions per request (specify via directions field)
+// - If directions field is None/empty, animates all available directions
+// - Each direction creates a separate background job
+// - Returns list of job IDs (one per direction)
+//
+// **AI Freedom Parameter:**
+// - ai_freedom controls how closely the AI follows the template (0=strict, 1000=creative)
+// - Lower values produce more consistent animations
+// - Higher values allow more creative variations
+//
+// **Style Settings:**
+// - Uses the same style settings (outline, shading, detail) as the original character by default
+// - Can override individual style settings in the request
+//
+// **Frame Count:**
+// - Determined by the animation template (not configurable in request)
+// - Typically 4-6 frames for most animations
+//
+// **Image Size:**
+// - Uses the same image size as the original character
+// - All frames have consistent dimensions
+// - Stored in organized folder structure
+//
+// **Pricing:**
+// - Template mode: 1 generation per direction; canvases over ~100px run in batches billed 1 each (up to 3 at 128px, 5 at 180px, one per clip frame at 256px)
+// - Custom mode: 10-25 generations per direction (depending on character size)
+//
+// **V3 Mode (default when no template):**
+// Custom animation. Provide `action_description` and optionally `frame_count` (4-16, default 8).
+// - One job per direction, directions independent
+// - Directions default to south only if not specified
+// - Best for: single-direction animations, frame count control
+//
+// **PixMiniMax Mode (beta):**
+// Custom animation on PixMiniMax. Set `mode="pixminimax"` with `action_description`.
+// - `frame_count` a multiple of 4, up to 40, at any size up to 256x256
+// - Priced by size and frame count: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations per direction
+// - Optional `subject_description` / `initial_pose` describe the first frame; left out, they are read from the image
+// - Same custom keyframes, `keep_first_frame` and `enhance_prompt` as v3; one job per direction, ~1-7 min each
+//
+// **Pro Mode (legacy, prefer v3 or PixMiniMax):**
+// Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
+// - Generates directions one-by-one, using completed sides as reference
+// - 10-25 generations per direction depending on character size
+// - Directions default to south only if not specified
+//
+//	POST /animate-character
+func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
+	return c.AnimateCharacterWithResult[CreateCharacterAnimationResponse](ctx, body)
 }
 
-// List all isometric tiles created by the authenticated user.
+// Animate an existing character with multiple frames showing movement or action.
 //
-// This endpoint returns a paginated list of all isometric tiles you've created.
+// This endpoint creates animation sequences for characters that were previously created using
+// the create-character-with-4-directions or create-character-with-8-directions endpoints.
 //
-// **Pagination:**
-// - Use `limit` to control how many tiles to return (1-100)
-// - Use `offset` to skip tiles for pagination
-// - Total count is included in response for pagination UI
+// **Key Features:**
+// - Animate existing characters by character_id
+// - Support for multiple directions (or all character directions)
+// - Flexible frame count (2-12 frames)
+// - Template-based animations for consistent motion
+// - Asynchronous processing for multiple directions
+// - Automatic storage and organization
+//
+// **Character Requirements:**
+// - Character must exist and belong to the authenticated user
+// - Character must have been created with 4 or 8 directions
+// - Animation will use the same template and settings as the character
+//
+// **Direction Handling:**
+// - Multiple directions per request (specify via directions field)
+// - If directions field is None/empty, animates all available directions
+// - Each direction creates a separate background job
+// - Returns list of job IDs (one per direction)
+//
+// **AI Freedom Parameter:**
+// - ai_freedom controls how closely the AI follows the template (0=strict, 1000=creative)
+// - Lower values produce more consistent animations
+// - Higher values allow more creative variations
+//
+// **Style Settings:**
+// - Uses the same style settings (outline, shading, detail) as the original character by default
+// - Can override individual style settings in the request
+//
+// **Frame Count:**
+// - Determined by the animation template (not configurable in request)
+// - Typically 4-6 frames for most animations
+//
+// **Image Size:**
+// - Uses the same image size as the original character
+// - All frames have consistent dimensions
+// - Stored in organized folder structure
+//
+// **Pricing:**
+// - Template mode: 1 generation per direction; canvases over ~100px run in batches billed 1 each (up to 3 at 128px, 5 at 180px, one per clip frame at 256px)
+// - Custom mode: 10-25 generations per direction (depending on character size)
+//
+// **V3 Mode (default when no template):**
+// Custom animation. Provide `action_description` and optionally `frame_count` (4-16, default 8).
+// - One job per direction, directions independent
+// - Directions default to south only if not specified
+// - Best for: single-direction animations, frame count control
+//
+// **PixMiniMax Mode (beta):**
+// Custom animation on PixMiniMax. Set `mode="pixminimax"` with `action_description`.
+// - `frame_count` a multiple of 4, up to 40, at any size up to 256x256
+// - Priced by size and frame count: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations per direction
+// - Optional `subject_description` / `initial_pose` describe the first frame; left out, they are read from the image
+// - Same custom keyframes, `keep_first_frame` and `enhance_prompt` as v3; one job per direction, ~1-7 min each
+//
+// **Pro Mode (legacy, prefer v3 or PixMiniMax):**
+// Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
+// - Generates directions one-by-one, using completed sides as reference
+// - 10-25 generations per direction depending on character size
+// - Directions default to south only if not specified
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/isometric-tiles
-func (c *Client) ListUsersIsometricTilesWithResult[R any](ctx context.Context, params *ListUsersIsometricTilesParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "isometric-tiles")
-	if params != nil {
-		q := make(url.Values, 2)
-
-		if params.Limit != 0 {
-			q["limit"] = []string{strconv.Itoa(params.Limit)}
-		}
-
-		if params.Offset != 0 {
-			q["offset"] = []string{strconv.Itoa(params.Offset)}
-		}
-
-		u.RawQuery = q.Encode()
-	}
-
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved isometric tile list
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*IsometricTilesListResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListUsersIsometricTiles: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates pixel art tiles based on the provided parameters.
-//
-// Generates multiple tile variations by drawing tile shape outlines and having
-// AI fill them with pixel art — or, with `tile_feature`, a connectable set:
-//
-//   - **`tile_feature: "roads"`** — an 18-configuration path/road autotile set
-//     (square_topdown, isometric)
-//   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
-//     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
-//     hex/hex_pointy; describe it as a transition ("grass to water")
-//   - **`tile_feature: "building"`** — a construction kit: floor, connectable
-//     wall segments, doorways, pillar and staircase (square_topdown, isometric,
-//     oblique; see the `building_*` parameters)
-//   - omit `tile_feature` for independent tile variations
-//
-// Supported tile types:
-//   - **hex**: Flat-top hexagonal tiles
-//   - **hex_pointy**: Pointy-top hexagonal tiles
-//   - **isometric**: Diamond/rhombus tiles
-//   - **oblique**: Square top with sheared depth — connectable sets only
-//     (`tile_feature` tileset or building; see `oblique_lean`)
-//   - **octagon**: 8-sided polygon tiles
-//   - **square_topdown**: Square tiles at angle
-//
-// Supported tile sizes: 16-128px (32px recommended). Connectable sets have
-// tighter per-shape ranges — most top out at 96px, and square top-down roads
-// are exactly 32px.
-//
-// Generation time: ~15-30 seconds (async processing)
-//
-// **Prompting tip:** For best control over each tile variation, number each tile in the description:
-// `"1). grass tile 2). dirt tile 3). stone tile 4). water tile"` — the number of tiles is auto-computed based on tile size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # independent tile variations
-// response = client.create_tiles_pro(
-//
-//	description="1). grass tile 2). dirt tile 3). stone tile 4). water tile 5). sand tile 6). lava tile",
-//	tile_type="isometric",
-//	tile_size=32,
-//
-// )
-//
-// # connectable sets
-// response = client.create_tiles_pro(
-//
-//	description="grass to water",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="tileset",
-//
-// )
-// response = client.create_tiles_pro(
-//
-//	description="stone walls with wooden floor",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="building",
-//	building_wall_description="rough stone brick walls",
-//	building_floor_description="wooden plank floor",
-//
-// )
-// ```
-//
-//	POST /v2/create-tiles-pro
-func (c *Client) CreateTilesProAsyncProcessing(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
-	return c.CreateTilesProAsyncProcessingWithResult[TileJobResponse](ctx, body)
-}
-
-// Creates pixel art tiles based on the provided parameters.
-//
-// Generates multiple tile variations by drawing tile shape outlines and having
-// AI fill them with pixel art — or, with `tile_feature`, a connectable set:
-//
-//   - **`tile_feature: "roads"`** — an 18-configuration path/road autotile set
-//     (square_topdown, isometric)
-//   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
-//     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
-//     hex/hex_pointy; describe it as a transition ("grass to water")
-//   - **`tile_feature: "building"`** — a construction kit: floor, connectable
-//     wall segments, doorways, pillar and staircase (square_topdown, isometric,
-//     oblique; see the `building_*` parameters)
-//   - omit `tile_feature` for independent tile variations
-//
-// Supported tile types:
-//   - **hex**: Flat-top hexagonal tiles
-//   - **hex_pointy**: Pointy-top hexagonal tiles
-//   - **isometric**: Diamond/rhombus tiles
-//   - **oblique**: Square top with sheared depth — connectable sets only
-//     (`tile_feature` tileset or building; see `oblique_lean`)
-//   - **octagon**: 8-sided polygon tiles
-//   - **square_topdown**: Square tiles at angle
-//
-// Supported tile sizes: 16-128px (32px recommended). Connectable sets have
-// tighter per-shape ranges — most top out at 96px, and square top-down roads
-// are exactly 32px.
-//
-// Generation time: ~15-30 seconds (async processing)
-//
-// **Prompting tip:** For best control over each tile variation, number each tile in the description:
-// `"1). grass tile 2). dirt tile 3). stone tile 4). water tile"` — the number of tiles is auto-computed based on tile size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # independent tile variations
-// response = client.create_tiles_pro(
-//
-//	description="1). grass tile 2). dirt tile 3). stone tile 4). water tile 5). sand tile 6). lava tile",
-//	tile_type="isometric",
-//	tile_size=32,
-//
-// )
-//
-// # connectable sets
-// response = client.create_tiles_pro(
-//
-//	description="grass to water",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="tileset",
-//
-// )
-// response = client.create_tiles_pro(
-//
-//	description="stone walls with wooden floor",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="building",
-//	building_wall_description="rough stone brick walls",
-//	building_floor_description="wooden plank floor",
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-tiles-pro
-func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-tiles-pro")
+//	POST /animate-character
+func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("animate-character")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -7476,15 +2107,15 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 	defer rsp.Body.Close()
 
 	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// Generation started successfully
+	case http.StatusOK:
+		// Successfully started character animation in background
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
 			var out R
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
+			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -7509,652 +2140,40 @@ func (c *Client) CreateTilesProAsyncProcessingWithResult[R any](ctx context.Cont
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("CreateTilesProAsyncProcessing: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Retrieve completed tiles pro by their UUID.
-//
-// This endpoint returns the tile images after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-//
-// Response includes:
-// - List of base64 PNG tile variation images
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tiles
-// tiles = client.get_tiles_pro("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile images
-// for tile in tiles.tiles:
-//
-//	save_base64_image(tile.base64, f"tile_{tile.index}.png")
-//
-// ```
-//
-//	GET /v2/tiles-pro/{tile_id}
-func (c *Client) GetGeneratedTilesProByID(ctx context.Context, tileID string) (*GetTilesProResponse, error) {
-	return c.GetGeneratedTilesProByIDWithResult[GetTilesProResponse](ctx, tileID)
-}
-
-// Retrieve completed tiles pro by their UUID.
-//
-// This endpoint returns the tile images after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-//
-// Response includes:
-// - List of base64 PNG tile variation images
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tiles
-// tiles = client.get_tiles_pro("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile images
-// for tile in tiles.tiles:
-//
-//	save_base64_image(tile.base64, f"tile_{tile.index}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/tiles-pro/{tile_id}
-func (c *Client) GetGeneratedTilesProByIDWithResult[R any](ctx context.Context, tileID string) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tiles-pro", tileID)
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved tiles
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetTilesProResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusNotFound:
-		// Tiles not found
-		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Tiles still processing
-		return nil, fmt.Errorf("GetGeneratedTilesProByID: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
-//
-//	DELETE /v2/tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
-	return c.DeleteTilesProTileWithResult[DeleteTileResponse](ctx, tileID)
-}
-
-// Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /v2/tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tiles-pro", tileID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodDelete,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Tile deleted successfully
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTileResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
-	case http.StatusForbidden:
-		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Tile not found
-		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
+		// Character or animation_group_id not found
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusConflict:
-		// Tile is still generating
-		return nil, fmt.Errorf("DeleteTilesProTile: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
-//
-//	GET /v2/tiles-pro
-func (c *Client) ListYourTilesProTiles(ctx context.Context, params *ListYourTilesProTilesParams) (*TilesProListResponse, error) {
-	return c.ListYourTilesProTilesWithResult[TilesProListResponse](ctx, params)
-}
-
-// List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/tiles-pro
-func (c *Client) ListYourTilesProTilesWithResult[R any](ctx context.Context, params *ListYourTilesProTilesParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "tiles-pro")
-	if params != nil {
-		q := make(url.Values, 2)
-
-		if params.Limit != 0 {
-			q["limit"] = []string{strconv.Itoa(params.Limit)}
-		}
-
-		if params.Offset != 0 {
-			q["offset"] = []string{strconv.Itoa(params.Offset)}
-		}
-
-		u.RawQuery = q.Encode()
-	}
-
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved tiles list
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TilesProListResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ListYourTilesProTiles: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Creates a pixel art object with transparent background for game maps.
-//
-// Returns immediately with job ID. Processing takes ~15-30 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.create_map_object(
-//
-//	description="wooden treasure chest",
-//	image_size={"width": 128, "height": 128}
-//
-// )
-// ```
-//
-//	POST /v2/map-objects
-func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
-	return c.CreateMapObjectWithResult[ObjectJobResponse](ctx, body)
-}
-
-// Creates a pixel art object with transparent background for game maps.
-//
-// Returns immediately with job ID. Processing takes ~15-30 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.create_map_object(
-//
-//	description="wooden treasure chest",
-//	image_size={"width": 128, "height": 128}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/map-objects
-func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "map-objects")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Object generation queued
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+		// animation_group_id already has one of the requested directions
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
-// Poll a map object's status. Returns:
-// - 200 with metadata + download_url when completed
-// - 423 Locked with Retry-After header while still generating
-// - 410 Gone with a hint when generation failed permanently
-// - 404 when no job for this user+object_id exists
+// Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 //
-// Map objects auto-delete 8h after creation — grab the PNG promptly.
-//
-//	GET /v2/map-objects/{object_id}
-func (c *Client) GetMapObjectStatusMetadata(ctx context.Context, objectID string) (*GetMapObjectResponse, error) {
-	return c.GetMapObjectStatusMetadataWithResult[GetMapObjectResponse](ctx, objectID)
+//	POST /create-character-state
+func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
+	return c.CreateCharacterStateWithResult[CharacterJobResponse](ctx, body)
 }
 
-// Poll a map object's status. Returns:
-// - 200 with metadata + download_url when completed
-// - 423 Locked with Retry-After header while still generating
-// - 410 Gone with a hint when generation failed permanently
-// - 404 when no job for this user+object_id exists
-//
-// Map objects auto-delete 8h after creation — grab the PNG promptly.
+// Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/map-objects/{object_id}
-func (c *Client) GetMapObjectStatusMetadataWithResult[R any](ctx context.Context, objectID string) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "map-objects", objectID)
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Object metadata + download URL
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetMapObjectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Object not found
-		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
-	case http.StatusGone:
-		// Object generation failed permanently
-		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusLocked:
-		// Still generating; see Retry-After header
-		return nil, fmt.Errorf("GetMapObjectStatusMetadata: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Generate a shape-based pixel-art UI panel from a text description.
-//
-// Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
-// `GET /v2/ui-assets/{ui_asset_id}` until `status` is `completed`, then read
-// `image_url`.
-//
-// Provide `pieces` to control the panel shape (editor view coords: longer side 512,
-// shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
-//
-//	POST /v2/create-ui-asset
-func (c *Client) CreateUIPanel(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
-	return c.CreateUIPanelWithResult[CreateUIAssetResponse](ctx, body)
-}
-
-// Generate a shape-based pixel-art UI panel from a text description.
-//
-// Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
-// `GET /v2/ui-assets/{ui_asset_id}` until `status` is `completed`, then read
-// `image_url`.
-//
-// Provide `pieces` to control the panel shape (editor view coords: longer side 512,
-// shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-ui-asset
-func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-ui-asset")
+//	POST /create-character-state
+func (c *Client) CreateCharacterStateWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-character-state")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -8182,15 +2201,15 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 	defer rsp.Body.Close()
 
 	switch rsp.StatusCode {
-	case http.StatusAccepted:
-		// UI generation job accepted and processing
+	case http.StatusOK:
+		// State queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
 			var out R
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateUIAssetResponse); ok {
+			if _, ok := any(&out).(*CharacterJobResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -8213,418 +2232,45 @@ func (c *Client) CreateUIPanelWithResult[R any](ctx context.Context, body Create
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
+	case http.StatusBadRequest:
+		// Source character is not completed
+		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
+		// Insufficient generations
+		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Source character not found
+		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	case http.StatusTooManyRequests:
-		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateUIPanel: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
-//
-//	GET /v2/ui-assets
-func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (*UIAssetsListResponse, error) {
-	return c.ListUIAssetsWithResult[UIAssetsListResponse](ctx, params)
-}
-
-// List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/ui-assets
-func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *ListUIAssetsParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "ui-assets")
-	if params != nil {
-		q := make(url.Values, 2)
-
-		if params.Limit != 0 {
-			q["limit"] = []string{strconv.Itoa(params.Limit)}
-		}
-
-		if params.Offset != 0 {
-			q["offset"] = []string{strconv.Itoa(params.Offset)}
-		}
-
-		u.RawQuery = q.Encode()
-	}
-
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// OK
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UIAssetsListResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("ListUIAssets: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Get a UI panel's details. Reports progress while the panel is still generating.
-//
-//	GET /v2/ui-assets/{ui_asset_id}
-func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
-	return c.GetUIAssetWithResult[UIAssetDetail](ctx, uiAssetID)
-}
-
-// Get a UI panel's details. Reports progress while the panel is still generating.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/ui-assets/{ui_asset_id}
-func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "ui-assets", uiAssetID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// OK
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UIAssetDetail); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// UI asset not found
-		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Permanently delete a UI panel and its backing image files.
-//
-//	DELETE /v2/ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
-	return c.DeleteUIAssetWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
-}
-
-// Permanently delete a UI panel and its backing image files.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /v2/ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "ui-assets", uiAssetID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodDelete,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Deleted
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteUIAssetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// UI asset not found
-		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Returns the current balance for your account, including both USD credits and remaining subscription generations.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-// balance = client.get_balance()
-// print(f"Credits: ${balance.credits.usd}")
-// print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
-// ```
-//
-//	GET /v2/balance
-func (c *Client) GetBalance(ctx context.Context) (*BalanceResponse, error) {
-	return c.GetBalanceWithResult[BalanceResponse](ctx)
-}
-
-// Returns the current balance for your account, including both USD credits and remaining subscription generations.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-// balance = client.get_balance()
-// print(f"Credits: ${balance.credits.usd}")
-// print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/balance
-func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "balance")
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved balance
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*BalanceResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
+		// Concurrent job limit reached
+		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8701,7 +2347,7 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 // )
 // ```
 //
-//	POST /v2/create-character-with-4-directions
+//	POST /create-character-with-4-directions
 func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CharacterJobResponse, error) {
 	return c.CreateCharacterWith4DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
@@ -8778,9 +2424,9 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-character-with-4-directions
+//	POST /create-character-with-4-directions
 func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-character-with-4-directions")
+	u := c.baseURL.JoinPath("create-character-with-4-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -8863,7 +2509,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 //
 // **Two Generation Modes:**
 // - **standard** (default): Template-based skeleton generation. Costs 1 generation. Uses all style parameters.
-// - **pro**: AI reference-based generation for higher quality. Costs 20-40 generations depending on size. Ignores outline, shading, detail, proportions, and text_guidance_scale.
+// - **pro**: AI reference-based generation for higher quality. Costs 10-25 generations depending on size. Ignores outline, shading, detail, proportions, and text_guidance_scale.
 //
 // **The 8 Directions:**
 // - south (facing down)
@@ -8941,7 +2587,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 // east_facing = response.images["east"]
 // ```
 //
-//	POST /v2/create-character-with-8-directions
+//	POST /create-character-with-8-directions
 func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CharacterJobResponse, error) {
 	return c.CreateCharacterWith8DirectionsWithResult[CharacterJobResponse](ctx, body)
 }
@@ -8953,7 +2599,7 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 //
 // **Two Generation Modes:**
 // - **standard** (default): Template-based skeleton generation. Costs 1 generation. Uses all style parameters.
-// - **pro**: AI reference-based generation for higher quality. Costs 20-40 generations depending on size. Ignores outline, shading, detail, proportions, and text_guidance_scale.
+// - **pro**: AI reference-based generation for higher quality. Costs 10-25 generations depending on size. Ignores outline, shading, detail, proportions, and text_guidance_scale.
 //
 // **The 8 Directions:**
 // - south (facing down)
@@ -9032,9 +2678,9 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 // ```
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-character-with-8-directions
+//	POST /create-character-with-8-directions
 func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-character-with-8-directions")
+	u := c.baseURL.JoinPath("create-character-with-8-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -9110,796 +2756,6 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 	}
 }
 
-// Create a character with 8 directional rotations using Pro mode.
-//
-// Pro mode uses a reference-based generator for higher quality and finer style control than
-// template-based standard mode. The result is persisted as a
-// character — same system as `/v2/create-character-with-8-directions` — so it can be
-// animated, downloaded, and listed alongside template-created characters.
-//
-// **Three methods** (controlled by the `method` field):
-// - `create_with_style` (default): text + optional style reference image.
-// - `create_from_concept`: text + concept image (e.g. a sketch/mood board) + optional style reference.
-// - `rotate_character`: rotate an existing character image into 8 directions.
-//
-// **Style character** (`style_character_id`): pass the id of one of your existing
-// 8-direction characters to use it as the style reference — its 8 directional sprites
-// guide the new character's style in every direction. Combine with `create_with_style`
-// (text-driven) or `create_from_concept` (concept image in that character's style).
-//
-// **Sizes:**
-//   - `image_size`: 32-168 pixels (output frame). Canvas is padded ~2x for animation room.
-//     Must be at least the style character's sprite content size when `style_character_id` is set.
-//   - `reference_image`: max 168x168.
-//   - `concept_image`: max 1024x1024.
-//
-// **Cost:** dynamic — typically 20-40 generations depending on output size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Style-guided creation
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai with red coat",
-//	image_size=dict(width=96, height=96),
-//	method="create_with_style",
-//
-// )
-//
-// # Rotate an existing character
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai",
-//	image_size=dict(width=96, height=96),
-//	method="rotate_character",
-//	reference_image=dict(base64=existing_character_b64),
-//
-// )
-// ```
-//
-//	POST /v2/create-character-pro
-func (c *Client) CreateCharacterWithProMode8Directions(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
-	return c.CreateCharacterWithProMode8DirectionsWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Create a character with 8 directional rotations using Pro mode.
-//
-// Pro mode uses a reference-based generator for higher quality and finer style control than
-// template-based standard mode. The result is persisted as a
-// character — same system as `/v2/create-character-with-8-directions` — so it can be
-// animated, downloaded, and listed alongside template-created characters.
-//
-// **Three methods** (controlled by the `method` field):
-// - `create_with_style` (default): text + optional style reference image.
-// - `create_from_concept`: text + concept image (e.g. a sketch/mood board) + optional style reference.
-// - `rotate_character`: rotate an existing character image into 8 directions.
-//
-// **Style character** (`style_character_id`): pass the id of one of your existing
-// 8-direction characters to use it as the style reference — its 8 directional sprites
-// guide the new character's style in every direction. Combine with `create_with_style`
-// (text-driven) or `create_from_concept` (concept image in that character's style).
-//
-// **Sizes:**
-//   - `image_size`: 32-168 pixels (output frame). Canvas is padded ~2x for animation room.
-//     Must be at least the style character's sprite content size when `style_character_id` is set.
-//   - `reference_image`: max 168x168.
-//   - `concept_image`: max 1024x1024.
-//
-// **Cost:** dynamic — typically 20-40 generations depending on output size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Style-guided creation
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai with red coat",
-//	image_size=dict(width=96, height=96),
-//	method="create_with_style",
-//
-// )
-//
-// # Rotate an existing character
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai",
-//	image_size=dict(width=96, height=96),
-//	method="rotate_character",
-//	reference_image=dict(base64=existing_character_b64),
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-character-pro
-func (c *Client) CreateCharacterWithProMode8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-character-pro")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Generation job submitted
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error (bad dimensions, missing required image)
-		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Concurrency limit reached
-		return nil, fmt.Errorf("CreateCharacterWithProMode8Directions: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Create a character with 8 directional rotations using the v3 model.
-//
-// **Two modes:**
-//
-//  1. **Reference image** — provide `reference_image` (south-facing sprite) and the v3 model
-//     rotates it into 8 directional views. Cost: `ceil(w*h*8 / 65536)` generations.
-//
-//  2. **From scratch** — omit `reference_image` and the Pixen model generates a south-facing
-//     sprite from `description`, then v3 rotates it. Cost: 1 (pixen) + `ceil(s*s*8 / 65536)`
-//     where s = max(width, height). Supports `outline` and `detail` style params.
-//
-// The result is persisted as a character — same system as
-// `/v2/create-character-with-8-directions` — so it can be animated, downloaded, and listed
-// alongside template-created characters.
-//
-// **Reference image must be south-facing for best results.** The frontend Character Creator
-// enforces this and the v3 model is trained around a south-facing input.
-//
-// **Sizes:**
-// - `reference_image`: max 256x256 pixels.
-// - From-scratch `image_size`: 16-256 pixels (default 64x64).
-// - Final canvas is padded ~2x for animation room (capped at 256).
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Reference image mode
-// response = client.create_character_v3(
-//
-//	description="cyberpunk samurai",
-//	reference_image=dict(base64=south_facing_image_b64),
-//
-// )
-//
-// # From-scratch mode
-// response = client.create_character_v3(
-//
-//	description="cute wizard with blue robes",
-//	image_size=dict(width=48, height=48),
-//
-// )
-// ```
-//
-//	POST /v2/create-character-v3
-func (c *Client) CreateCharacterWithV3Model8Rotations(ctx context.Context, body CreateCharacterV3Request) (*CreateCharacterV3Response, error) {
-	return c.CreateCharacterWithV3Model8RotationsWithResult[CreateCharacterV3Response](ctx, body)
-}
-
-// Create a character with 8 directional rotations using the v3 model.
-//
-// **Two modes:**
-//
-//  1. **Reference image** — provide `reference_image` (south-facing sprite) and the v3 model
-//     rotates it into 8 directional views. Cost: `ceil(w*h*8 / 65536)` generations.
-//
-//  2. **From scratch** — omit `reference_image` and the Pixen model generates a south-facing
-//     sprite from `description`, then v3 rotates it. Cost: 1 (pixen) + `ceil(s*s*8 / 65536)`
-//     where s = max(width, height). Supports `outline` and `detail` style params.
-//
-// The result is persisted as a character — same system as
-// `/v2/create-character-with-8-directions` — so it can be animated, downloaded, and listed
-// alongside template-created characters.
-//
-// **Reference image must be south-facing for best results.** The frontend Character Creator
-// enforces this and the v3 model is trained around a south-facing input.
-//
-// **Sizes:**
-// - `reference_image`: max 256x256 pixels.
-// - From-scratch `image_size`: 16-256 pixels (default 64x64).
-// - Final canvas is padded ~2x for animation room (capped at 256).
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Reference image mode
-// response = client.create_character_v3(
-//
-//	description="cyberpunk samurai",
-//	reference_image=dict(base64=south_facing_image_b64),
-//
-// )
-//
-// # From-scratch mode
-// response = client.create_character_v3(
-//
-//	description="cute wizard with blue robes",
-//	image_size=dict(width=48, height=48),
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-character-v3
-func (c *Client) CreateCharacterWithV3Model8RotationsWithResult[R any](ctx context.Context, body CreateCharacterV3Request) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-character-v3")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Generation job submitted
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterV3Response); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error (bad dimensions, invalid image)
-		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Concurrency limit reached
-		return nil, fmt.Errorf("CreateCharacterWithV3Model8Rotations: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Animate an existing character (background processing).
-//
-// Three modes:
-// - **template**: Provide template_animation_id for skeleton-based animation (1 gen/direction).
-// - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
-// - **pro**: Custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction).
-//
-//	POST /v2/characters/animations
-func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.CreateCharacterAnimationWithResult[CreateCharacterAnimationResponse](ctx, body)
-}
-
-// Animate an existing character (background processing).
-//
-// Three modes:
-// - **template**: Provide template_animation_id for skeleton-based animation (1 gen/direction).
-// - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
-// - **pro**: Custom animation that generates directions sequentially, using completed sides as reference (20-40 gen/direction).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/characters/animations
-func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", "animations")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successful Response
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out SimpleError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SimpleError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Animate an existing character with multiple frames showing movement or action.
-//
-// This endpoint creates animation sequences for characters that were previously created using
-// the create-character-with-4-directions or create-character-with-8-directions endpoints.
-//
-// **Key Features:**
-// - Animate existing characters by character_id
-// - Support for multiple directions (or all character directions)
-// - Flexible frame count (2-12 frames)
-// - Template-based animations for consistent motion
-// - Asynchronous processing for multiple directions
-// - Automatic storage and organization
-//
-// **Character Requirements:**
-// - Character must exist and belong to the authenticated user
-// - Character must have been created with 4 or 8 directions
-// - Animation will use the same template and settings as the character
-//
-// **Direction Handling:**
-// - Multiple directions per request (specify via directions field)
-// - If directions field is None/empty, animates all available directions
-// - Each direction creates a separate background job
-// - Returns list of job IDs (one per direction)
-//
-// **AI Freedom Parameter:**
-// - ai_freedom controls how closely the AI follows the template (0=strict, 1000=creative)
-// - Lower values produce more consistent animations
-// - Higher values allow more creative variations
-//
-// **Style Settings:**
-// - Uses the same style settings (outline, shading, detail) as the original character by default
-// - Can override individual style settings in the request
-//
-// **Frame Count:**
-// - Determined by the animation template (not configurable in request)
-// - Typically 4-6 frames for most animations
-//
-// **Image Size:**
-// - Uses the same image size as the original character
-// - All frames have consistent dimensions
-// - Stored in organized folder structure
-//
-// **Pricing:**
-// - Template mode: 1 generation per direction
-// - Custom mode: 20-40 generations per direction (depending on character size)
-//
-// **V3 Mode (default when no template):**
-// Custom animation. Provide `action_description` and optionally `frame_count` (4-16, default 8).
-// - One job per direction, directions independent
-// - Directions default to south only if not specified
-// - Best for: single-direction animations, frame count control
-//
-// **Pro Mode:**
-// Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
-// - Generates directions one-by-one, using completed sides as reference
-// - 20-40 generations per direction depending on character size
-// - Directions default to south only if not specified
-//
-//	POST /v2/animate-character
-func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.AnimateCharacterWithResult[CreateCharacterAnimationResponse](ctx, body)
-}
-
-// Animate an existing character with multiple frames showing movement or action.
-//
-// This endpoint creates animation sequences for characters that were previously created using
-// the create-character-with-4-directions or create-character-with-8-directions endpoints.
-//
-// **Key Features:**
-// - Animate existing characters by character_id
-// - Support for multiple directions (or all character directions)
-// - Flexible frame count (2-12 frames)
-// - Template-based animations for consistent motion
-// - Asynchronous processing for multiple directions
-// - Automatic storage and organization
-//
-// **Character Requirements:**
-// - Character must exist and belong to the authenticated user
-// - Character must have been created with 4 or 8 directions
-// - Animation will use the same template and settings as the character
-//
-// **Direction Handling:**
-// - Multiple directions per request (specify via directions field)
-// - If directions field is None/empty, animates all available directions
-// - Each direction creates a separate background job
-// - Returns list of job IDs (one per direction)
-//
-// **AI Freedom Parameter:**
-// - ai_freedom controls how closely the AI follows the template (0=strict, 1000=creative)
-// - Lower values produce more consistent animations
-// - Higher values allow more creative variations
-//
-// **Style Settings:**
-// - Uses the same style settings (outline, shading, detail) as the original character by default
-// - Can override individual style settings in the request
-//
-// **Frame Count:**
-// - Determined by the animation template (not configurable in request)
-// - Typically 4-6 frames for most animations
-//
-// **Image Size:**
-// - Uses the same image size as the original character
-// - All frames have consistent dimensions
-// - Stored in organized folder structure
-//
-// **Pricing:**
-// - Template mode: 1 generation per direction
-// - Custom mode: 20-40 generations per direction (depending on character size)
-//
-// **V3 Mode (default when no template):**
-// Custom animation. Provide `action_description` and optionally `frame_count` (4-16, default 8).
-// - One job per direction, directions independent
-// - Directions default to south only if not specified
-// - Best for: single-direction animations, frame count control
-//
-// **Pro Mode:**
-// Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
-// - Generates directions one-by-one, using completed sides as reference
-// - 20-40 generations per direction depending on character size
-// - Directions default to south only if not specified
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/animate-character
-func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "animate-character")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully started character animation in background
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient credits
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Character not found
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation error
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
-//
-//	POST /v2/create-character-state
-func (c *Client) CreateStateOfAnExistingCharacter(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
-	return c.CreateStateOfAnExistingCharacterWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /v2/create-character-state
-func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-character-state")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// State queued
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusBadRequest:
-		// Source character is not completed
-		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
-		// Insufficient generations
-		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Source character not found
-		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusTooManyRequests:
-		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateStateOfAnExistingCharacter: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
 // List all characters created by the authenticated user.
 //
 // This endpoint returns a paginated list of all characters you've created using the
@@ -9925,9 +2781,9 @@ func (c *Client) CreateStateOfAnExistingCharacterWithResult[R any](ctx context.C
 // - Use `offset` to skip characters for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /v2/characters
-func (c *Client) ListUsersCharacters(ctx context.Context, params *ListUsersCharactersParams) (*CharactersListResponse, error) {
-	return c.ListUsersCharactersWithResult[CharactersListResponse](ctx, params)
+//	GET /characters
+func (c *Client) ListCharacters(ctx context.Context, params *ListCharactersParams) (*ListCharactersResponse, error) {
+	return c.ListCharactersWithResult[ListCharactersResponse](ctx, params)
 }
 
 // List all characters created by the authenticated user.
@@ -9956,9 +2812,9 @@ func (c *Client) ListUsersCharacters(ctx context.Context, params *ListUsersChara
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/characters
-func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, params *ListUsersCharactersParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters")
+//	GET /characters
+func (c *Client) ListCharactersWithResult[R any](ctx context.Context, params *ListCharactersParams) (*R, error) {
+	u := c.baseURL.JoinPath("characters")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -10001,7 +2857,7 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharactersListResponse); ok {
+			if _, ok := any(&out).(*ListCharactersResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -10026,13 +2882,13 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("ListUsersCharacters: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10063,9 +2919,9 @@ func (c *Client) ListUsersCharactersWithResult[R any](ctx context.Context, param
 // All rotation URLs follow the pattern:
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 //
-//	GET /v2/characters/{character_id}
-func (c *Client) GetCharacterDetails(ctx context.Context, characterID uuid.UUID) (*CharacterDetail, error) {
-	return c.GetCharacterDetailsWithResult[CharacterDetail](ctx, characterID)
+//	GET /characters/{character_id}
+func (c *Client) GetCharacter(ctx context.Context, characterID string) (*GetCharacterResponse, error) {
+	return c.GetCharacterWithResult[GetCharacterResponse](ctx, characterID)
 }
 
 // Get detailed information about a specific character.
@@ -10094,9 +2950,9 @@ func (c *Client) GetCharacterDetails(ctx context.Context, characterID uuid.UUID)
 // `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/characters/{character_id}
-func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String())
+//	GET /characters/{character_id}
+func (c *Client) GetCharacterWithResult[R any](ctx context.Context, characterID string) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -10125,7 +2981,7 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterDetail); ok {
+			if _, ok := any(&out).(*GetCharacterResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -10150,13 +3006,13 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Character belongs to another user
-		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10183,33 +3039,41 @@ func (c *Client) GetCharacterDetailsWithResult[R any](ctx context.Context, chara
 		}
 	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("GetCharacterDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
-// Delete a character (v2 API for external customers).
+// Delete ONE state of a character (the given id) with its rotations,
+// animations and files. Irreversible.
 //
-// Uses the same internal logic as JWT and MCP endpoints, providing
-// fast storage deletion by using service_role internally (avoiding
-// the slow storage.search_legacy_v1 function).
+// A character is a group of states. Other states in the same group are untouched;
+// the group itself is removed only when its last state is deleted. To delete a whole
+// multi-state character, call this once per state id.
 //
-//	DELETE /v2/characters/{character_id}
-func (c *Client) DeleteCharacterAndAllAssociatedData(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterResponse, error) {
-	return c.DeleteCharacterAndAllAssociatedDataWithResult[DeleteCharacterResponse](ctx, characterID)
+// `next_state_id` in the response is the most recently updated remaining state, or
+// null if the group is now gone.
+//
+//	DELETE /characters/{character_id}
+func (c *Client) DeleteCharacter(ctx context.Context, characterID string) (*DeleteCharacterResponse, error) {
+	return c.DeleteCharacterWithResult[DeleteCharacterResponse](ctx, characterID)
 }
 
-// Delete a character (v2 API for external customers).
+// Delete ONE state of a character (the given id) with its rotations,
+// animations and files. Irreversible.
 //
-// Uses the same internal logic as JWT and MCP endpoints, providing
-// fast storage deletion by using service_role internally (avoiding
-// the slow storage.search_legacy_v1 function).
+// A character is a group of states. Other states in the same group are untouched;
+// the group itself is removed only when its last state is deleted. To delete a whole
+// multi-state character, call this once per state id.
+//
+// `next_state_id` in the response is the most recently updated remaining state, or
+// null if the group is now gone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /v2/characters/{character_id}
-func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String())
+//	DELETE /characters/{character_id}
+func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, characterID string) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID)
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -10347,9 +3211,9 @@ func (c *Client) DeleteCharacterAndAllAssociatedDataWithResult[R any](ctx contex
 // - 423: Character or animations still being generated (check status later)
 // - 404: Character not found
 //
-//	GET /v2/characters/{character_id}/zip
-func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID, params *ExportCharacterAsZipParams) (io.ReadCloser, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "zip")
+//	GET /characters/{character_id}/zip
+func (c *Client) GetCharacterZip(ctx context.Context, characterID string, params *GetCharacterZipParams) error {
+	u := c.baseURL.JoinPath("characters", characterID, "zip")
 	if params != nil {
 		q := make(url.Values, 1)
 
@@ -10374,31 +3238,38 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 
 	rsp, ia, err := c.do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	// the body is left open only when it is handed to the caller
-	streaming := false
-	defer func() {
-		if !streaming {
-			rsp.Body.Close()
-		}
-	}()
+	defer rsp.Body.Close()
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// ZIP file download containing character data
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/zip":
-			streaming = true
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
 
-			return rsp.Body, nil
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
 		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -10406,28 +3277,112 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
+					return api.WrapDecodingError(rsp, err)
 				}
 
 				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+					return api.WrapDecodingError(rsp, err)
 				}
 			}
 
-			return nil, api.NewErrCustom(rsp, &out)
+			return api.NewErrCustom(rsp, &out)
 		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return nil, fmt.Errorf("ExportCharacterAsZip: status %s", rsp.Status)
+		return fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Download a character as a single spritesheet image plus a layout JSON.
+//
+// The response is a small ZIP holding two files named after the character:
+//   - `<name>.png` — one uniform-grid sheet: row 0 is the rotations (in the
+//     standard direction order), then one row per animation-direction, columns are
+//     frames in playback order. Every cell has the same size (the largest frame on
+//     the sheet); frames are centred in their cell and never rescaled, so the
+//     character's pivot is always the cell centre. Unused cells are transparent.
+//   - `<name>.json` — the layout: cell size, sheet size, column count, and a
+//     row-by-row map saying which animation and direction each row shows.
+//
+// Use the ZIP export (`/characters/{character_id}/zip`) instead when you want
+// individual frame PNGs or every state of a character group — the spritesheet
+// covers the requested character only.
+//
+// **Authentication:**
+// No authentication required - the random character ID serves as the access key.
+//
+// **Status Codes:**
+// - 200: ZIP file (sheet + layout JSON) ready for download
+// - 422: Character generation failed (nothing to export)
+// - 423: Character or animations still being generated (check status later)
+// - 404: Character not found
+//
+//	GET /characters/{character_id}/spritesheet
+func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID string) error {
+	u := c.baseURL.JoinPath("characters", characterID, "spritesheet")
+	req := (&http.Request{
+		Header: http.Header{
+			"User-Agent": []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// ZIP file containing the sheet PNG and layout JSON
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusNotFound:
+		// Character not found
+		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Character generation failed
+		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+	case http.StatusLocked:
+		// Character or animations still being generated
+		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+	default:
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -10458,8 +3413,8 @@ func (c *Client) ExportCharacterAsZip(ctx context.Context, characterID uuid.UUID
 // **Authentication:**
 // Requires a valid API token. You can only update tags for characters you created.
 //
-//	PATCH /v2/characters/{character_id}/tags
-func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
+//	PATCH /characters/{character_id}/tags
+func (c *Client) UpdateCharacterTags(ctx context.Context, characterID string, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
 	return c.UpdateCharacterTagsWithResult[UpdateTagsResponse](ctx, characterID, body)
 }
 
@@ -10491,9 +3446,9 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 // Requires a valid API token. You can only update tags for characters you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	PATCH /v2/characters/{character_id}/tags
-func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateObjectTags) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "tags")
+//	PATCH /characters/{character_id}/tags
+func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID string, body UpdateTagsRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID, "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10596,197 +3551,31 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 	}
 }
 
-// Check the status and results of a background job.
-//
-// This endpoint allows you to monitor the progress of background operations like
-// character creation and animation generation. Background jobs are used for
-// expensive operations that take time to complete.
-//
-// **Job Statuses:**
-// - `processing` - Job is currently running
-// - `completed` - Job finished successfully
-// - `failed` - Job encountered an error
-//
-// **Usage Pattern:**
-// 1. Create a character or animation (returns `background_job_id`)
-// 2. Poll this endpoint periodically to check status
-// 3. When status is `completed`, access results in `last_response`
-//
-// **Response Data:**
-// - For character creation: `character_id`, `directions_count`, character info
-// - For animations: `animation_id`, `frame_count`, animation details
-// - Storage information and file organization details
-//
-// **Authentication:**
-// Requires a valid API token. You can only access jobs you created.
-//
-// **Error Handling:**
-// - 404: Job not found or doesn't belong to you
-// - Jobs are automatically cleaned up after completion
-//
-// **Polling Recommendations:**
-// - Poll every 5-10 seconds while status is `processing`
-// - Stop polling once status is `completed` or `failed`
-// - Character creation typically takes 30-60 seconds
-// - Animations may take longer depending on frame count and directions
-//
-//	GET /v2/background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatus(ctx context.Context, jobID uuid.UUID) (*BackgroundJobResponse, error) {
-	return c.GetBackgroundJobStatusWithResult[BackgroundJobResponse](ctx, jobID)
-}
-
-// Check the status and results of a background job.
-//
-// This endpoint allows you to monitor the progress of background operations like
-// character creation and animation generation. Background jobs are used for
-// expensive operations that take time to complete.
-//
-// **Job Statuses:**
-// - `processing` - Job is currently running
-// - `completed` - Job finished successfully
-// - `failed` - Job encountered an error
-//
-// **Usage Pattern:**
-// 1. Create a character or animation (returns `background_job_id`)
-// 2. Poll this endpoint periodically to check status
-// 3. When status is `completed`, access results in `last_response`
-//
-// **Response Data:**
-// - For character creation: `character_id`, `directions_count`, character info
-// - For animations: `animation_id`, `frame_count`, animation details
-// - Storage information and file organization details
-//
-// **Authentication:**
-// Requires a valid API token. You can only access jobs you created.
-//
-// **Error Handling:**
-// - 404: Job not found or doesn't belong to you
-// - Jobs are automatically cleaned up after completion
-//
-// **Polling Recommendations:**
-// - Poll every 5-10 seconds while status is `processing`
-// - Stop polling once status is `completed` or `failed`
-// - Character creation typically takes 30-60 seconds
-// - Animations may take longer depending on frame count and directions
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /v2/background-jobs/{job_id}
-func (c *Client) GetBackgroundJobStatusWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "background-jobs", jobID.String())
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// Successfully retrieved job status
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*BackgroundJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusUnauthorized:
-		// Invalid API token
-		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
-	case http.StatusNotFound:
-		// Job not found or doesn't belong to user
-		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
-		// Validation Error
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out HTTPValidationError
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil, api.NewErrCustom(rsp, &out)
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("GetBackgroundJobStatus: status %s", rsp.Status)
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
 // Queues a 1-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
 //
-// Object generation uses the Pro Tools and costs **20–40 generations** per call on a subscription (depending on the resulting image size).
+// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
 //
 // Produces one or more single-direction object(s). When `size` results in more than one candidate (see the `size` parameter), the object enters `review` status and you must pick which candidates to keep via [POST /v2/objects/{object_id}/select-frames](#api-1/tag/objects/POST/objects/{object_id}/select-frames) (or discard via [POST /v2/objects/{object_id}/dismiss-review](#api-1/tag/objects/POST/objects/{object_id}/dismiss-review)). A single candidate is kept automatically.
 //
 // For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
-//	POST /v2/create-1-direction-object
+//	POST /create-1-direction-object
 func (c *Client) Create1DirectionObject(ctx context.Context, body Create1DirectionObjectRequest) (*Create1DirectionObjectResponse, error) {
 	return c.Create1DirectionObjectWithResult[Create1DirectionObjectResponse](ctx, body)
 }
 
 // Queues a 1-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
 //
-// Object generation uses the Pro Tools and costs **20–40 generations** per call on a subscription (depending on the resulting image size).
+// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
 //
 // Produces one or more single-direction object(s). When `size` results in more than one candidate (see the `size` parameter), the object enters `review` status and you must pick which candidates to keep via [POST /v2/objects/{object_id}/select-frames](#api-1/tag/objects/POST/objects/{object_id}/select-frames) (or discard via [POST /v2/objects/{object_id}/dismiss-review](#api-1/tag/objects/POST/objects/{object_id}/dismiss-review)). A single candidate is kept automatically.
 //
 // For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-1-direction-object
+//	POST /create-1-direction-object
 func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, body Create1DirectionObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-1-direction-object")
+	u := c.baseURL.JoinPath("create-1-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10864,29 +3653,29 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 
 // Queues an 8-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
 //
-// Object generation uses the Pro Tools and costs **20–40 generations** per call on a subscription (depending on the resulting image size).
+// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
 //
 // Produces an object rendered from 8 angles in one shot.
 //
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
-//	POST /v2/create-8-direction-object
-func (c *Client) CreateAn8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
-	return c.CreateAn8DirectionObjectWithResult[ObjectJobResponse](ctx, body)
+//	POST /create-8-direction-object
+func (c *Client) Create8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
+	return c.Create8DirectionObjectWithResult[ObjectJobResponse](ctx, body)
 }
 
 // Queues an 8-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
 //
-// Object generation uses the Pro Tools and costs **20–40 generations** per call on a subscription (depending on the resulting image size).
+// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
 //
 // Produces an object rendered from 8 angles in one shot.
 //
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/create-8-direction-object
-func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "create-8-direction-object")
+//	POST /create-8-direction-object
+func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-8-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -10947,42 +3736,42 @@ func (c *Client) CreateAn8DirectionObjectWithResult[R any](ctx context.Context, 
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateAn8DirectionObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
-// **Cost warning**: when generating on a subscription, `mode='pro'` costs 20-40 generations per direction (160-320 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
+// **Cost warning**: when generating on a subscription, `mode='pro'` costs 10-25 generations per direction (80-200 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
 //
 // Queues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.
 //
 // **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 //
-//	POST /v2/objects/{object_id}/animations
-func (c *Client) AddAnAnimationToAnExistingObject(ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*AnimateObjectResponse, error) {
-	return c.AddAnAnimationToAnExistingObjectWithResult[AnimateObjectResponse](ctx, objectID, body)
+//	POST /objects/{object_id}/animations
+func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, body CreateObjectAnimationRequest) (*CreateObjectAnimationResponse, error) {
+	return c.CreateObjectAnimationWithResult[CreateObjectAnimationResponse](ctx, objectID, body)
 }
 
-// **Cost warning**: when generating on a subscription, `mode='pro'` costs 20-40 generations per direction (160-320 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
+// **Cost warning**: when generating on a subscription, `mode='pro'` costs 10-25 generations per direction (80-200 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
 //
 // Queues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.
 //
 // **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/objects/{object_id}/animations
-func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body AnimateObjectRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "animations")
+//	POST /objects/{object_id}/animations
+func (c *Client) CreateObjectAnimationWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -11018,7 +3807,7 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimateObjectResponse); ok {
+			if _, ok := any(&out).(*CreateObjectAnimationResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11043,19 +3832,19 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 		}
 	case http.StatusBadRequest:
 		// Validation error (object not ready, invalid directions/frame_count, missing description for a new animation)
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object or animation_group_id not found
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusConflict:
 		// Direction already animated (pass replace_existing=true to overwrite)
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11082,7 +3871,7 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 		}
 	case http.StatusTooManyRequests:
 		// All directions rate-limited (no jobs queued)
-		return nil, fmt.Errorf("AddAnAnimationToAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11090,17 +3879,17 @@ func (c *Client) AddAnAnimationToAnExistingObjectWithResult[R any](ctx context.C
 
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 //
-//	DELETE /v2/objects/{object_id}/animations
-func (c *Client) DeleteAnimationsFromAnObject(ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*DeleteAnimationResponse, error) {
-	return c.DeleteAnimationsFromAnObjectWithResult[DeleteAnimationResponse](ctx, objectID, params)
+//	DELETE /objects/{object_id}/animations
+func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsParams) (*DeleteAnimationsResponse, error) {
+	return c.DeleteObjectAnimationsWithResult[DeleteAnimationsResponse](ctx, objectID, params)
 }
 
 // Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /v2/objects/{object_id}/animations
-func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteAnimationsFromAnObjectParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "animations")
+//	DELETE /objects/{object_id}/animations
+func (c *Client) DeleteObjectAnimationsWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsParams) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
 
@@ -11113,7 +3902,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		}
 
 		if params.Direction != "" {
-			q["direction"] = []string{string(params.Direction)}
+			q["direction"] = []string{params.Direction}
 		}
 
 		u.RawQuery = q.Encode()
@@ -11147,7 +3936,7 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteAnimationResponse); ok {
+			if _, ok := any(&out).(*DeleteAnimationsResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11172,16 +3961,16 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found or not owned by you
-		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
 	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
-		return nil, fmt.Errorf("DeleteAnimationsFromAnObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11213,17 +4002,17 @@ func (c *Client) DeleteAnimationsFromAnObjectWithResult[R any](ctx context.Conte
 
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 //
-//	POST /v2/objects/{object_id}/states
-func (c *Client) CreateStateOfAnExistingObject(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
-	return c.CreateStateOfAnExistingObjectWithResult[ObjectJobResponse](ctx, objectID, body)
+//	POST /objects/{object_id}/states
+func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
+	return c.CreateObjectStateWithResult[ObjectJobResponse](ctx, objectID, body)
 }
 
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/objects/{object_id}/states
-func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "states")
+//	POST /objects/{object_id}/states
+func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -11284,16 +4073,16 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 		}
 	case http.StatusBadRequest:
 		// Source object is not completed
-		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Source object not found
-		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11320,7 +4109,7 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 		}
 	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateStateOfAnExistingObject: status %s", rsp.Status)
+		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11328,17 +4117,17 @@ func (c *Client) CreateStateOfAnExistingObjectWithResult[R any](ctx context.Cont
 
 // Promote selected frames of a review object to completed objects
 //
-//	POST /v2/objects/{object_id}/select-frames
-func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjects(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
-	return c.PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[SelectObjectFramesResponse](ctx, objectID, body)
+//	POST /objects/{object_id}/select-frames
+func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
+	return c.SelectObjectFramesWithResult[SelectObjectFramesResponse](ctx, objectID, body)
 }
 
 // Promote selected frames of a review object to completed objects
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/objects/{object_id}/select-frames
-func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "select-frames")
+//	POST /objects/{object_id}/select-frames
+func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "select-frames")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -11399,13 +4188,13 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 		}
 	case http.StatusBadRequest:
 		// Object not in review status / invalid indices
-		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
+		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
+		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("PromoteSelectedFramesOfReviewObjectToCompletedObjects: status %s", rsp.Status)
+		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11437,17 +4226,17 @@ func (c *Client) PromoteSelectedFramesOfReviewObjectToCompletedObjectsWithResult
 
 // Dismiss a review object without saving any frames
 //
-//	POST /v2/objects/{object_id}/dismiss-review
-func (c *Client) DismissReviewObjectWithoutSavingAnyFrames(ctx context.Context, objectID uuid.UUID) (*DismissReviewResponse, error) {
-	return c.DismissReviewObjectWithoutSavingAnyFramesWithResult[DismissReviewResponse](ctx, objectID)
+//	POST /objects/{object_id}/dismiss-review
+func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*DismissObjectReviewResponse, error) {
+	return c.DismissObjectReviewWithResult[DismissObjectReviewResponse](ctx, objectID)
 }
 
 // Dismiss a review object without saving any frames
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/objects/{object_id}/dismiss-review
-func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "dismiss-review")
+//	POST /objects/{object_id}/dismiss-review
+func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "dismiss-review")
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11476,7 +4265,7 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DismissReviewResponse); ok {
+			if _, ok := any(&out).(*DismissObjectReviewResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11501,13 +4290,13 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 		}
 	case http.StatusBadRequest:
 		// Object not in review status
-		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("DismissReviewObjectWithoutSavingAnyFrames: status %s", rsp.Status)
+		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11554,9 +4343,9 @@ func (c *Client) DismissReviewObjectWithoutSavingAnyFramesWithResult[R any](ctx 
 // - Use `offset` to skip objects for pagination
 // - Total count is included in response for pagination UI
 //
-//	GET /v2/objects
-func (c *Client) ListUsersObjects(ctx context.Context, params *ListUsersObjectsParams) (*ObjectsListResponse, error) {
-	return c.ListUsersObjectsWithResult[ObjectsListResponse](ctx, params)
+//	GET /objects
+func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams) (*ListObjectsResponse, error) {
+	return c.ListObjectsWithResult[ListObjectsResponse](ctx, params)
 }
 
 // List all objects created by the authenticated user.
@@ -11577,9 +4366,9 @@ func (c *Client) ListUsersObjects(ctx context.Context, params *ListUsersObjectsP
 // - Total count is included in response for pagination UI
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/objects
-func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *ListUsersObjectsParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects")
+//	GET /objects
+func (c *Client) ListObjectsWithResult[R any](ctx context.Context, params *ListObjectsParams) (*R, error) {
+	u := c.baseURL.JoinPath("objects")
 	if params != nil {
 		q := make(url.Values, 2)
 
@@ -11622,7 +4411,7 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectsListResponse); ok {
+			if _, ok := any(&out).(*ListObjectsResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11647,10 +4436,10 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListObjects: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListUsersObjects: status %s", rsp.Status)
+		return nil, fmt.Errorf("ListObjects: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11669,9 +4458,9 @@ func (c *Client) ListUsersObjectsWithResult[R any](ctx context.Context, params *
 // **Authentication:**
 // Requires a valid API token. You can only access objects you created.
 //
-//	GET /v2/objects/{object_id}
-func (c *Client) GetObjectDetails(ctx context.Context, objectID uuid.UUID) (*ObjectDetail, error) {
-	return c.GetObjectDetailsWithResult[ObjectDetail](ctx, objectID)
+//	GET /objects/{object_id}
+func (c *Client) GetObject(ctx context.Context, objectID uuid.UUID) (*GetObjectResponse, error) {
+	return c.GetObjectWithResult[GetObjectResponse](ctx, objectID)
 }
 
 // Get detailed information about a specific object.
@@ -11688,9 +4477,9 @@ func (c *Client) GetObjectDetails(ctx context.Context, objectID uuid.UUID) (*Obj
 // Requires a valid API token. You can only access objects you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	GET /v2/objects/{object_id}
-func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String())
+//	GET /objects/{object_id}
+func (c *Client) GetObjectWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11719,7 +4508,7 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectDetail); ok {
+			if _, ok := any(&out).(*GetObjectResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11744,13 +4533,13 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("GetObjectDetails: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11792,9 +4581,9 @@ func (c *Client) GetObjectDetailsWithResult[R any](ctx context.Context, objectID
 //
 // **Warning:** This action cannot be undone.
 //
-//	DELETE /v2/objects/{object_id}
-func (c *Client) DeleteAnObjectAndAllAssociatedData(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
-	return c.DeleteAnObjectAndAllAssociatedDataWithResult[DeleteObjectResponse](ctx, objectID)
+//	DELETE /objects/{object_id}
+func (c *Client) DeleteObject(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
+	return c.DeleteObjectWithResult[DeleteObjectResponse](ctx, objectID)
 }
 
 // Delete an object and all its rotation images.
@@ -11810,9 +4599,9 @@ func (c *Client) DeleteAnObjectAndAllAssociatedData(ctx context.Context, objectI
 // **Warning:** This action cannot be undone.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /v2/objects/{object_id}
-func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String())
+//	DELETE /objects/{object_id}
+func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -11866,13 +4655,13 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 		}
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("DeleteAnObjectAndAllAssociatedData: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -11917,8 +4706,8 @@ func (c *Client) DeleteAnObjectAndAllAssociatedDataWithResult[R any](ctx context
 // **Authentication:**
 // Requires a valid API token. You can only update tags for objects you created.
 //
-//	PATCH /v2/objects/{object_id}/tags
-func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*UpdateTagsResponse, error) {
+//	PATCH /objects/{object_id}/tags
+func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
 	return c.UpdateObjectTagsWithResult[UpdateTagsResponse](ctx, objectID, body)
 }
 
@@ -11938,9 +4727,9 @@ func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body 
 // Requires a valid API token. You can only update tags for objects you created.
 // You can define a custom result to unmarshal the response into.
 //
-//	PATCH /v2/objects/{object_id}/tags
-func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectTags) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "objects", objectID.String(), "tags")
+//	PATCH /objects/{object_id}/tags
+func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateTagsRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12040,23 +4829,133 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 	}
 }
 
-// Delete character animations by animation_type or animation_group_id, optionally scoped to a single direction. Pass ONE of `animation_type` or `animation_group_id` (group_id is preferred when a name repeats). Omit `direction` to delete all directions at once.
+// Download an object as a single spritesheet image plus a layout JSON.
 //
-// Storage cleanup on B2 is best-effort; DB deletion is authoritative.
+// The response is a small ZIP holding two files named after the object:
+//   - `<name>.png` — one uniform-grid sheet: row 0 is the rotations (in the
+//     standard direction order; a single-direction object gets a one-cell row),
+//     then one row per animation-direction, columns are frames in playback order.
+//     Every cell has the same size (the largest frame on the sheet); frames are
+//     centred in their cell and never rescaled, so the object's pivot is always
+//     the cell centre. Unused cells are transparent.
+//   - `<name>.json` — the layout: cell size, sheet size, column count, and a
+//     row-by-row map saying which animation and direction each row shows.
 //
-//	DELETE /v2/characters/{character_id}/animations
-func (c *Client) DeleteAnimationsFromCharacter(ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*DeleteAnimationResponse, error) {
-	return c.DeleteAnimationsFromCharacterWithResult[DeleteAnimationResponse](ctx, characterID, params)
+// **Authentication:**
+// Requires a valid API token. You can only export objects you created.
+//
+// **Status Codes:**
+// - 200: ZIP file (sheet + layout JSON) ready for download
+// - 400: Object has no rotation images yet (still generating or failed)
+// - 401: Invalid API token
+// - 403: Object belongs to another user
+// - 404: Object not found
+//
+//	GET /objects/{object_id}/spritesheet
+func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) error {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "spritesheet")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// ZIP file containing the sheet PNG and layout JSON
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Object has no rotation images
+		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Object belongs to another user
+		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Object not found
+		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return api.NewErrCustom(rsp, &out)
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
 }
 
+// **Prefer** [DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}) (all directions of one animation) and [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}) (one direction). They address a single animation by id and return 404 for anything that does not exist. This route matches by name: `animation_type` can match several animations on the character, and a typo returns 200 with `deleted_count` 0.
+//
 // Delete character animations by animation_type or animation_group_id, optionally scoped to a single direction. Pass ONE of `animation_type` or `animation_group_id` (group_id is preferred when a name repeats). Omit `direction` to delete all directions at once.
 //
-// Storage cleanup on B2 is best-effort; DB deletion is authoritative.
+//	DELETE /characters/{character_id}/animations
+func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsParams) (*DeleteAnimationsResponse, error) {
+	return c.DeleteCharacterAnimationsWithResult[DeleteAnimationsResponse](ctx, characterID, params)
+}
+
+// **Prefer** [DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}) (all directions of one animation) and [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}) (one direction). They address a single animation by id and return 404 for anything that does not exist. This route matches by name: `animation_type` can match several animations on the character, and a typo returns 200 with `deleted_count` 0.
+//
+// Delete character animations by animation_type or animation_group_id, optionally scoped to a single direction. Pass ONE of `animation_type` or `animation_group_id` (group_id is preferred when a name repeats). Omit `direction` to delete all directions at once.
 // You can define a custom result to unmarshal the response into.
 //
-//	DELETE /v2/characters/{character_id}/animations
-func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteAnimationsFromCharacterParams) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "animations")
+//	DELETE /characters/{character_id}/animations
+func (c *Client) DeleteCharacterAnimationsWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsParams) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
 
@@ -12069,7 +4968,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		}
 
 		if params.Direction != "" {
-			q["direction"] = []string{string(params.Direction)}
+			q["direction"] = []string{params.Direction}
 		}
 
 		u.RawQuery = q.Encode()
@@ -12103,7 +5002,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteAnimationResponse); ok {
+			if _, ok := any(&out).(*DeleteAnimationsResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -12128,16 +5027,16 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 		}
 	case http.StatusBadRequest:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Character not found or not owned by you
-		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
 	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
-		return nil, fmt.Errorf("DeleteAnimationsFromCharacter: status %s", rsp.Status)
+		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -12167,6 +5066,8489 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 	}
 }
 
+// Delete one animation, every direction of it, by the `animation_group_id` [GET /v2/characters/{character_id}](#tag/character-library/GET/characters/{character_id}) returns. An animation is all directions sharing one `animation_group_id`, the same grouping the PixelLab website shows as one animation. Other animations and other states of the character are untouched. To remove a single direction use [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}).
+//
+//	DELETE /characters/{character_id}/animations/{animation_group_id}
+func (c *Client) DeleteCharacterAnimation(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID) (*DeleteCharacterAnimationResponse, error) {
+	return c.DeleteCharacterAnimationWithResult[DeleteCharacterAnimationResponse](ctx, characterID, animationGroupID)
+}
+
+// Delete one animation, every direction of it, by the `animation_group_id` [GET /v2/characters/{character_id}](#tag/character-library/GET/characters/{character_id}) returns. An animation is all directions sharing one `animation_group_id`, the same grouping the PixelLab website shows as one animation. Other animations and other states of the character are untouched. To remove a single direction use [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}).
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /characters/{character_id}/animations/{animation_group_id}
+func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteCharacterAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteCharacterAnimation: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character, or animation on it, not found
+		return nil, fmt.Errorf("DeleteCharacterAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Delete a single direction of an animation. The rest of the animation keeps its `animation_group_id`; the direction can be generated again into it with [animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`.
+//
+//	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
+func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*DeleteCharacterAnimationResponse, error) {
+	return c.DeleteCharacterAnimationDirectionWithResult[DeleteCharacterAnimationResponse](ctx, characterID, animationGroupID, direction)
+}
+
+// Delete a single direction of an animation. The rest of the animation keeps its `animation_group_id`; the direction can be generated again into it with [animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
+func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", string(direction))
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteCharacterAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteCharacterAnimationDirection: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character, animation, or direction not found
+		return nil, fmt.Errorf("DeleteCharacterAnimationDirection: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate an animation from a reference frame and a text action description.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Submit the first frame and action description; receive a `background_job_id` immediately.
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+// 3. When `status` is `completed`, the generated frames are available at `last_response.images`.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+// - Total pixel budget: width × height × frame_count ≤ 524,288
+//
+// **Frame Count Guidelines:**
+// - 4 frames: Simple loops (idle, breathing)
+// - 8 frames: Standard animations (walk, run)
+// - 16 frames: Complex animations (attack combos)
+//
+// Typical generation time: 30-180 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab, time
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// job = client.animate_with_text_v3(
+//
+//	first_frame=first_frame_image,
+//	action="walking forward",
+//	frame_count=8,
+//
+// )
+//
+// while True:
+//
+//	result = client.get_background_job(job.background_job_id)
+//	if result.status == "completed":
+//	    images = [img.pil_image() for img in result.last_response["images"]]
+//	    break
+//	if result.status == "failed":
+//	    raise RuntimeError(result.last_response["detail"])
+//	time.sleep(2)
+//
+// ```
+//
+//	POST /animate-with-text-v3
+func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Request) (*AnimationJobResponse, error) {
+	return c.AnimateWithTextV3WithResult[AnimationJobResponse](ctx, body)
+}
+
+// Generate an animation from a reference frame and a text action description.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Submit the first frame and action description; receive a `background_job_id` immediately.
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+// 3. When `status` is `completed`, the generated frames are available at `last_response.images`.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+// - Total pixel budget: width × height × frame_count ≤ 524,288
+//
+// **Frame Count Guidelines:**
+// - 4 frames: Simple loops (idle, breathing)
+// - 8 frames: Standard animations (walk, run)
+// - 16 frames: Complex animations (attack combos)
+//
+// Typical generation time: 30-180 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab, time
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// job = client.animate_with_text_v3(
+//
+//	first_frame=first_frame_image,
+//	action="walking forward",
+//	frame_count=8,
+//
+// )
+//
+// while True:
+//
+//	result = client.get_background_job(job.background_job_id)
+//	if result.status == "completed":
+//	    images = [img.pil_image() for img in result.last_response["images"]]
+//	    break
+//	if result.status == "failed":
+//	    raise RuntimeError(result.last_response["detail"])
+//	time.sleep(2)
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-with-text-v3
+func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-text-v3")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Background job accepted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*AnimationJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent background jobs
+		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Beta. Generate an animation from a frame and a text description of the motion. Powered by MiniMax H3.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+//  1. Submit the first frame and motion description; receive a `background_job_id` immediately.
+//  2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+//  3. When `status` is `completed`, `last_response.images` holds `frame_count + 1` frames:
+//     index 0 is your input frame unchanged, then the generated frames.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+// - Frame count: multiples of 4, from 4 to 40 at any size up to 256x256
+//
+// **Prompt enhancement:** set `enhance_prompt: true` to have a short description
+// ("shooting a bow") expanded into a detailed PixMiniMax motion prompt first; add
+// `direction` to hold the sprite's facing and aim attacks that way. The expanded
+// text comes back in `enhanced_prompt` (+0.05 generations).
+//
+// **Caption fields:** `subject_description`, `initial_pose`, `view` and `direction`
+// describe the first frame to the model. Any left out are read off the image by an
+// AI model, which can decline some requests; the job then fails asking you to send
+// them yourself. With all four sent and `enhance_prompt` off, nothing is rewritten.
+//
+// **Cost:** priced by generation time, 6 generations for the longest clip (40 frames). Examples: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations; 80x80 at 8 frames = 1; 32x32 at 4 frames = 1. Use `GET /animate-minimax-h3/cost` semantics: the price depends on size and frame count, and sizes just above 64 or 128 pixels are cheaper than sizes just below them because the model works on an upscaled canvas.
+//
+// Typical generation time: 1-5 minutes.
+//
+//	POST /animate-pixminimax
+func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRequest) (*AnimationJobResponse, error) {
+	return c.AnimatePixminimaxWithResult[AnimationJobResponse](ctx, body)
+}
+
+// Beta. Generate an animation from a frame and a text description of the motion. Powered by MiniMax H3.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+//  1. Submit the first frame and motion description; receive a `background_job_id` immediately.
+//  2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+//  3. When `status` is `completed`, `last_response.images` holds `frame_count + 1` frames:
+//     index 0 is your input frame unchanged, then the generated frames.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+// - Frame count: multiples of 4, from 4 to 40 at any size up to 256x256
+//
+// **Prompt enhancement:** set `enhance_prompt: true` to have a short description
+// ("shooting a bow") expanded into a detailed PixMiniMax motion prompt first; add
+// `direction` to hold the sprite's facing and aim attacks that way. The expanded
+// text comes back in `enhanced_prompt` (+0.05 generations).
+//
+// **Caption fields:** `subject_description`, `initial_pose`, `view` and `direction`
+// describe the first frame to the model. Any left out are read off the image by an
+// AI model, which can decline some requests; the job then fails asking you to send
+// them yourself. With all four sent and `enhance_prompt` off, nothing is rewritten.
+//
+// **Cost:** priced by generation time, 6 generations for the longest clip (40 frames). Examples: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations; 80x80 at 8 frames = 1; 32x32 at 4 frames = 1. Use `GET /animate-minimax-h3/cost` semantics: the price depends on size and frame count, and sizes just above 64 or 128 pixels are cheaper than sizes just below them because the model works on an upscaled canvas.
+//
+// Typical generation time: 1-5 minutes.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-pixminimax
+func (c *Client) AnimatePixminimaxWithResult[R any](ctx context.Context, body AnimatePixminimaxRequest) (*R, error) {
+	u := c.baseURL.JoinPath("animate-pixminimax")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Background job accepted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*AnimationJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent background jobs
+		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate intermediate animation frames between two keyframe images.
+//
+// This endpoint creates smooth transitions between a start and end image,
+// generating intermediate frames that animate the transformation.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Generates intermediate frames between two keyframes
+// - Text-guided interpolation with action descriptions
+// - Maintains visual consistency across frames
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Example Actions:**
+// - "morphing"
+// - "transforming into a werewolf"
+// - "powering up with energy"
+// - "dissolving into particles"
+// - "walking forward"
+//
+// **Output:**
+//   - The in-between frames only — the two keyframes are not returned
+//   - **14 frames when the keyframes' longer side is 64px or less, 2 from 65px up**: the
+//     model paints one grid of 16 or 4 cells and the keyframes take the ends. The frame
+//     count is not a parameter; pick it with `animate_image`/`animate-with-text-v3`'s
+//     `frame_count` instead, which prices by canvas and frames rather than by this grid
+//   - Frames come back at the per-AXIS maximum of the two keyframes, whatever
+//     `image_size` says — 113x128 against 128x110 returns 128x128, a size neither
+//     keyframe had
+//   - Nothing is padded for the motion — the in-betweens are drawn inside the box you
+//     send, so pad the keyframes yourself if the action needs room. The only padding
+//     here equalises the pair: a keyframe smaller than its partner is CENTRED in the
+//     larger frame, which shifts it against the other keyframe
+//
+// **Supported Sizes:**
+//   - Frame sizes from 16x16 to 128x128 pixels
+//   - Each keyframe's `size` must be that image's real pixel size. The two may differ, but
+//     send them at one size: the smaller is centred in the output frame, which shifts the
+//     character against its partner
+//
+// **Cost:** the KEYFRAMES decide it, not `image_size` — 10 generations up to 128px,
+// 15 for 129-170, 25 for 171 and up (in credits $0.08 / $0.115 / $0.15). `image_size`
+// is bounded 16-128 and a keyframe's `size` is not, so a 256x256 pair costs 25 with
+// `image_size` reading 128x128. Charged at completion: a failed job costs nothing.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, interpolated frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.interpolation_v2(
+//
+//	start_image=start_keyframe,
+//	end_image=end_keyframe,
+//	action="transforming",
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save interpolated frames
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+//
+//	POST /interpolation-v2
+func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (*JobResponse, error) {
+	return c.InterpolationWithResult[JobResponse](ctx, body)
+}
+
+// Generate intermediate animation frames between two keyframe images.
+//
+// This endpoint creates smooth transitions between a start and end image,
+// generating intermediate frames that animate the transformation.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Generates intermediate frames between two keyframes
+// - Text-guided interpolation with action descriptions
+// - Maintains visual consistency across frames
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Example Actions:**
+// - "morphing"
+// - "transforming into a werewolf"
+// - "powering up with energy"
+// - "dissolving into particles"
+// - "walking forward"
+//
+// **Output:**
+//   - The in-between frames only — the two keyframes are not returned
+//   - **14 frames when the keyframes' longer side is 64px or less, 2 from 65px up**: the
+//     model paints one grid of 16 or 4 cells and the keyframes take the ends. The frame
+//     count is not a parameter; pick it with `animate_image`/`animate-with-text-v3`'s
+//     `frame_count` instead, which prices by canvas and frames rather than by this grid
+//   - Frames come back at the per-AXIS maximum of the two keyframes, whatever
+//     `image_size` says — 113x128 against 128x110 returns 128x128, a size neither
+//     keyframe had
+//   - Nothing is padded for the motion — the in-betweens are drawn inside the box you
+//     send, so pad the keyframes yourself if the action needs room. The only padding
+//     here equalises the pair: a keyframe smaller than its partner is CENTRED in the
+//     larger frame, which shifts it against the other keyframe
+//
+// **Supported Sizes:**
+//   - Frame sizes from 16x16 to 128x128 pixels
+//   - Each keyframe's `size` must be that image's real pixel size. The two may differ, but
+//     send them at one size: the smaller is centred in the output frame, which shifts the
+//     character against its partner
+//
+// **Cost:** the KEYFRAMES decide it, not `image_size` — 10 generations up to 128px,
+// 15 for 129-170, 25 for 171 and up (in credits $0.08 / $0.115 / $0.15). `image_size`
+// is bounded 16-128 and a keyframe's `size` is not, so a 256x256 pair costs 25 with
+// `image_size` reading 128x128. Charged at completion: a failed job costs nothing.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, interpolated frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.interpolation_v2(
+//
+//	start_image=start_keyframe,
+//	end_image=end_keyframe,
+//	action="transforming",
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save interpolated frames
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /interpolation-v2
+func (c *Client) InterpolationWithResult[R any](ctx context.Context, body InterpolationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("interpolation-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Interpolation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Edit multiple animation frames with a text description.
+//
+// This endpoint applies a consistent edit across all animation frames,
+// maintaining temporal coherence while transforming the animation.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Apply text-based edits to animation sequences
+// - Maintains frame-to-frame consistency
+// - Supports 2-16 frames per request (max depends on frame size, see below)
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Example Edits:**
+// - "add a red cape"
+// - "make it glow blue"
+// - "add armor plating"
+// - "change to ice theme"
+//
+// **Supported Sizes:**
+// - Frame sizes from 16x16 to 256x256 pixels (model supports up to 256x256)
+//
+// **Frame limits by output size (image_size):**
+// - 16-64px: Up to 16 frames (4x4 grid)
+// - 65-80px: Up to 9 frames (3x3 grid)
+// - 81-256px: Up to 4 frames (2x2 grid)
+//
+// All frames are packed into a single grid image for editing, so larger frames
+// fill the fixed generation canvas faster and fewer fit per request.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Load your animation frames
+// frames = [...]  # List of FrameImage objects
+//
+// response = client.edit_animation_v2(
+//
+//	description="add a glowing sword",
+//	frames=frames,
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save edited frames
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+//
+//	POST /edit-animation-v2
+func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (*JobResponse, error) {
+	return c.EditAnimationWithResult[JobResponse](ctx, body)
+}
+
+// Edit multiple animation frames with a text description.
+//
+// This endpoint applies a consistent edit across all animation frames,
+// maintaining temporal coherence while transforming the animation.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Apply text-based edits to animation sequences
+// - Maintains frame-to-frame consistency
+// - Supports 2-16 frames per request (max depends on frame size, see below)
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Example Edits:**
+// - "add a red cape"
+// - "make it glow blue"
+// - "add armor plating"
+// - "change to ice theme"
+//
+// **Supported Sizes:**
+// - Frame sizes from 16x16 to 256x256 pixels (model supports up to 256x256)
+//
+// **Frame limits by output size (image_size):**
+// - 16-64px: Up to 16 frames (4x4 grid)
+// - 65-80px: Up to 9 frames (3x3 grid)
+// - 81-256px: Up to 4 frames (2x2 grid)
+//
+// All frames are packed into a single grid image for editing, so larger frames
+// fill the fixed generation canvas faster and fewer fit per request.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Load your animation frames
+// frames = [...]  # List of FrameImage objects
+//
+// response = client.edit_animation_v2(
+//
+//	description="add a glowing sword",
+//	frames=frames,
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save edited frames
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /edit-animation-v2
+func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("edit-animation-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Animation edit job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Transfer an outfit/appearance from a reference image to animation frames.
+//
+// This endpoint takes a reference image containing a desired outfit or appearance
+// and applies it consistently across multiple animation frames.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Transfer outfit/appearance from reference to animation
+// - Maintains animation motion while changing appearance
+// - Supports 2-16 frames per request (max depends on frame size, see below)
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Use Cases:**
+// - Apply armor/clothing to walking animation
+// - Change character skin/color across animation
+// - Transfer weapon or equipment to action sequence
+// - Consistent reskin of sprite animations
+//
+// **Supported Sizes:**
+// - Frame sizes from 32x32 to 256x256 pixels
+//
+// **Frame limits by output size (image_size):**
+// - 32-64px: Up to 15 frames (4x4 grid)
+// - 65-80px: Up to 8 frames (3x3 grid)
+// - 81-256px: Up to 3 frames (2x2 grid)
+//
+// The reference image and all frames are packed into a single grid; the reference
+// uses one slot, so each tier holds one fewer frame than a plain edit. Larger
+// frames fill the fixed generation canvas faster, so fewer fit per request.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.transfer_outfit_v2(
+//
+//	reference_image=outfit_reference,  # Image with desired outfit
+//	frames=animation_frames,           # Animation to apply outfit to
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save frames with transferred outfit
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+//
+//	POST /transfer-outfit-v2
+func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest) (*JobResponse, error) {
+	return c.TransferOutfitWithResult[JobResponse](ctx, body)
+}
+
+// Transfer an outfit/appearance from a reference image to animation frames.
+//
+// This endpoint takes a reference image containing a desired outfit or appearance
+// and applies it consistently across multiple animation frames.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Transfer outfit/appearance from reference to animation
+// - Maintains animation motion while changing appearance
+// - Supports 2-16 frames per request (max depends on frame size, see below)
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Use Cases:**
+// - Apply armor/clothing to walking animation
+// - Change character skin/color across animation
+// - Transfer weapon or equipment to action sequence
+// - Consistent reskin of sprite animations
+//
+// **Supported Sizes:**
+// - Frame sizes from 32x32 to 256x256 pixels
+//
+// **Frame limits by output size (image_size):**
+// - 32-64px: Up to 15 frames (4x4 grid)
+// - 65-80px: Up to 8 frames (3x3 grid)
+// - 81-256px: Up to 3 frames (2x2 grid)
+//
+// The reference image and all frames are packed into a single grid; the reference
+// uses one slot, so each tier holds one fewer frame than a plain edit. Larger
+// frames fill the fixed generation canvas faster, so fewer fit per request.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.transfer_outfit_v2(
+//
+//	reference_image=outfit_reference,  # Image with desired outfit
+//	frames=animation_frames,           # Animation to apply outfit to
+//	image_size=dict(width=64, height=64)
+//
+// )
+//
+// # Save frames with transferred outfit
+// for i, image in enumerate(response.images):
+//
+//	image.pil_image().save(f"frame_{i}.png")
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /transfer-outfit-v2
+func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body TransferOutfitRequest) (*R, error) {
+	u := c.baseURL.JoinPath("transfer-outfit-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Outfit transfer job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate pixel art animation from text.
+//
+// This endpoint creates animations from a reference image and action description.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+//   - Text-guided animation generation
+//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours; the reference is put on
+//     the palette first and every frame uses only these colours. `max_colors` caps the whole animation
+//   - Automatic background removal
+//   - Non-blocking: returns job ID immediately
+//
+// **Frame Counts by Size:**
+// - 32x32 pixels: Returns 16 animation frames
+// - 64x64 pixels: Returns 16 animation frames
+// - 128x128 pixels: Returns 4 animation frames
+// - 170x170 pixels: Returns 4 animation frames
+// - 256x256 pixels: Returns 4 animation frames
+//
+// **Supported Actions:**
+// - Simple actions: walk, run, jump, attack
+// - Complex actions: cast spell, dance, celebrate
+// - Any action description in natural language
+//
+// **Camera Views:**
+// - `none`: No camera hint (default)
+// - `low top-down`: Classic 3/4 RPG view (~20 degrees from horizontal)
+// - `high top-down`: Steeper overhead angle (~35 degrees)
+// - `side`: Side scroller, eye level view
+//
+// **Directions:**
+// - `none`: No direction hint (default)
+// - `south`: Front visible, `north`: Back visible
+// - `east`: Facing right, `west`: Facing left
+// - Also: `south-east`, `south-west`, `north-east`, `north-west`
+//
+// **Image Size Limits:**
+// - Supported sizes: 32x32 to 256x256 pixels for both reference and output images
+// - Recommended: 64x64 for best quality/performance balance
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, animation frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_text_v2(
+//
+//	reference_image=reference_image,
+//	reference_image_size=dict(width=64, height=64),
+//	action="walk",
+//	image_size=dict(width=64, height=64),
+//	view="low top-down",
+//	direction="south",
+//
+// )
+//
+// # Access individual frames
+// for i, frame in enumerate(response.images):
+//
+//	frame.pil_image().save(f"frame_{i}.png")
+//
+// ```
+//
+//	POST /animate-with-text-v2
+func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Request) (*JobResponse, error) {
+	return c.AnimateWithTextV2WithResult[JobResponse](ctx, body)
+}
+
+// Generate pixel art animation from text.
+//
+// This endpoint creates animations from a reference image and action description.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+//   - Text-guided animation generation
+//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours; the reference is put on
+//     the palette first and every frame uses only these colours. `max_colors` caps the whole animation
+//   - Automatic background removal
+//   - Non-blocking: returns job ID immediately
+//
+// **Frame Counts by Size:**
+// - 32x32 pixels: Returns 16 animation frames
+// - 64x64 pixels: Returns 16 animation frames
+// - 128x128 pixels: Returns 4 animation frames
+// - 170x170 pixels: Returns 4 animation frames
+// - 256x256 pixels: Returns 4 animation frames
+//
+// **Supported Actions:**
+// - Simple actions: walk, run, jump, attack
+// - Complex actions: cast spell, dance, celebrate
+// - Any action description in natural language
+//
+// **Camera Views:**
+// - `none`: No camera hint (default)
+// - `low top-down`: Classic 3/4 RPG view (~20 degrees from horizontal)
+// - `high top-down`: Steeper overhead angle (~35 degrees)
+// - `side`: Side scroller, eye level view
+//
+// **Directions:**
+// - `none`: No direction hint (default)
+// - `south`: Front visible, `north`: Back visible
+// - `east`: Facing right, `west`: Facing left
+// - Also: `south-east`, `south-west`, `north-east`, `north-west`
+//
+// **Image Size Limits:**
+// - Supported sizes: 32x32 to 256x256 pixels for both reference and output images
+// - Recommended: 64x64 for best quality/performance balance
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, animation frames are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_text_v2(
+//
+//	reference_image=reference_image,
+//	reference_image_size=dict(width=64, height=64),
+//	action="walk",
+//	image_size=dict(width=64, height=64),
+//	view="low top-down",
+//	direction="south",
+//
+// )
+//
+// # Access individual frames
+// for i, frame in enumerate(response.images):
+//
+//	frame.pil_image().save(f"frame_{i}.png")
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-with-text-v2
+func (c *Client) AnimateWithTextV2WithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-text-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Animation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art animation based on text description and parameters.
+//
+// Supported image sizes:
+// - 64x64
+//
+// Supported features:
+// - Text-guided animation generation
+// - Inpainting
+// - Init image
+// - Forced palette
+// - Multiple frames
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_text(
+//
+//	description="human mage",
+//	action="walk",
+//	view="side",
+//	direction="south",
+//	image_size=dict(width=64, height=64),
+//	reference_image=reference_image,
+//	n_frames=4
+//
+// )
+// images = [image.pil_image() for image in response.images]
+// ```
+//
+//	POST /animate-with-text
+func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*ImagesResponse, error) {
+	return c.AnimateWithTextWithResult[ImagesResponse](ctx, body)
+}
+
+// Creates a pixel art animation based on text description and parameters.
+//
+// Supported image sizes:
+// - 64x64
+//
+// Supported features:
+// - Text-guided animation generation
+// - Inpainting
+// - Init image
+// - Forced palette
+// - Multiple frames
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_text(
+//
+//	description="human mage",
+//	action="walk",
+//	view="side",
+//	direction="south",
+//	image_size=dict(width=64, height=64),
+//	reference_image=reference_image,
+//	n_frames=4
+//
+// )
+// images = [image.pil_image() for image in response.images]
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-with-text
+func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-text")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated animation
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImagesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
+//
+// Any image size up to 256x256 works. The model runs on 16/32/64/128/256 squares, so an
+// image of another size is padded to the next one that fits and the returned coordinates
+// are converted back — `x`/`y` are fractions 0-1 of the image YOU sent, not of the padded
+// square, so they can be passed straight to the skeleton animation endpoints. A 40x40 or
+// 56x56 sprite therefore needs no padding from you.
+//
+// Cost: 0.1 generations per call. A fully transparent image is refused (422) before it is
+// charged, since there is no character to estimate from.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.estimate_skeleton(
+//
+//	image=image_of_the_character_on_a_transparent_background,
+//
+// )
+// response.keypoints
+// ```
+//
+//	POST /estimate-skeleton
+func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
+	return c.EstimateSkeletonWithResult[EstimateSkeletonResponse](ctx, body)
+}
+
+// Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
+//
+// Any image size up to 256x256 works. The model runs on 16/32/64/128/256 squares, so an
+// image of another size is padded to the next one that fits and the returned coordinates
+// are converted back — `x`/`y` are fractions 0-1 of the image YOU sent, not of the padded
+// square, so they can be passed straight to the skeleton animation endpoints. A 40x40 or
+// 56x56 sprite therefore needs no padding from you.
+//
+// Cost: 0.1 generations per call. A fully transparent image is refused (422) before it is
+// charged, since there is no character to estimate from.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.estimate_skeleton(
+//
+//	image=image_of_the_character_on_a_transparent_background,
+//
+// )
+// response.keypoints
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /estimate-skeleton
+func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
+	u := c.baseURL.JoinPath("estimate-skeleton")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*EstimateSkeletonResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.
+// 3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.
+//
+// **Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is
+// optional -- leave it out and it is taken from the standing pose of `template_id` for
+// your direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`
+// will derive a skeleton from an image if you do not have one — it returns x/y on the same
+// 0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.
+//
+// **Limits:** 3-15 frames, canvas up to 256x256.
+//
+// **Cost:** by generation time, which depends on frame count and not on canvas size:
+// 3 frames = 2 generations,
+// 8 frames = 3,
+// 15 frames = 4. A longer clip
+// is nearly free, so prefer one long clip to several short ones.
+//
+// Typical generation time: 3-5 minutes.
+//
+//	POST /animate-with-skeleton-v3
+func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkeletonV3Request) (*JobResponse, error) {
+	return c.AnimateWithSkeletonV3WithResult[JobResponse](ctx, body)
+}
+
+// Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.
+// 3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.
+//
+// **Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is
+// optional -- leave it out and it is taken from the standing pose of `template_id` for
+// your direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`
+// will derive a skeleton from an image if you do not have one — it returns x/y on the same
+// 0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.
+//
+// **Limits:** 3-15 frames, canvas up to 256x256.
+//
+// **Cost:** by generation time, which depends on frame count and not on canvas size:
+// 3 frames = 2 generations,
+// 8 frames = 3,
+// 15 frames = 4. A longer clip
+// is nearly free, so prefer one long clip to several short ones.
+//
+// Typical generation time: 3-5 minutes.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-with-skeleton-v3
+func (c *Client) AnimateWithSkeletonV3WithResult[R any](ctx context.Context, body AnimateWithSkeletonV3Request) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-skeleton-v3")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Background job accepted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent background jobs
+		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
+//
+// Supported image sizes:
+// - 16x16
+// - 32x32
+// - 64x64
+// - 128x128
+// - 256x256
+//
+// Supported features:
+// - Inpainting
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_skeleton(
+//
+//	view="side",
+//	direction="south",
+//	image_size=dict(width=64, height=64),
+//	reference_image=reference_image,
+//	inpainting_images=existing_animation_frames,
+//	mask_images=mask_images,
+//	skeleton_keypoints=skeleton_keypoints,
+//
+// )
+// images = [image.pil_image() for image in response.images]
+// ```
+//
+//	POST /animate-with-skeleton
+func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*ImagesResponse, error) {
+	return c.AnimateWithSkeletonWithResult[ImagesResponse](ctx, body)
+}
+
+// Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
+//
+// Supported image sizes:
+// - 16x16
+// - 32x32
+// - 64x64
+// - 128x128
+// - 256x256
+//
+// Supported features:
+// - Inpainting
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.animate_with_skeleton(
+//
+//	view="side",
+//	direction="south",
+//	image_size=dict(width=64, height=64),
+//	reference_image=reference_image,
+//	inpainting_images=existing_animation_frames,
+//	mask_images=mask_images,
+//	skeleton_keypoints=skeleton_keypoints,
+//
+// )
+// images = [image.pil_image() for image in response.images]
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /animate-with-skeleton
+func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
+	u := c.baseURL.JoinPath("animate-with-skeleton")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImagesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Our effects artist makes an animated pixel art effect from your
+// description: explosions, slashes, auras, spells, fire, smoke, lightning, hits, pickups.
+//
+// The same artist as the website's VFX creator. It builds the effect from parts, renders
+// it and checks its own work, around your sprite when you send one. The effect is saved
+// to your My effects, so you can open it on the website (`edit_url`) and tweak it with
+// sliders, or change it here with `effect_id`.
+//
+// **Using an AI agent? We recommend the MCP** ([pixellab.ai/mcp](https://pixellab.ai/mcp)):
+// there your agent is the artist. `vfx_workbench` builds, renders and saves the effect with
+// your agent's own model, free for subscribers, and your agent sees every frame.
+//
+// ### Result
+// Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (usually 30-90 s).
+// When `status` is `completed`, `last_response` has:
+// - `files`: download links (no auth needed): `<name>.gif`, the spritesheet `<name>.png`
+//   - `<name>.json` (frames, durations, `pivot` and `meta.anchor`: where the effect's
+//     anchor is), `<name>-game.zip` with `game_pack`, and `<name>-normals.png` when a light
+//     made your sprite's normal map
+//
+// - `effect_id`, `name`, `edit_url`, `message` (what the artist made)
+// - `canvas` {w, h}, `frames`, `fps`, `loop`, `anchor` {kind, x, y}, `parts`
+// - `conversation`: pass it back with `effect_id` to change this effect at the change price
+//
+// ### Cost
+// Quoted when you submit (`quoted_generations`) and charged only when the effect is
+// delivered: the quote, or more when the effect took much longer (the overrun past 25% of
+// the quote), never more than 2x the quote.
+//
+// | | lite | pro |
+// |---|---|---|
+// | new effect, no sprite or up to 128 px | 1 | 6 (8 with a sprite) |
+// | change (with `conversation`) | 1 | 4 |
+// | sprite up to 256 px | 3 (change 2) | 14 (change 5) |
+// | sprite up to 512 px | 5 (change 2) | 28 (change 8) |
+//
+// An animated sprite adds a little per frame. A longer `prompt` costs pro more: from 400
+// characters its quote is 1.25x, from 1,000 characters 1.5x, rounded up (a new effect with
+// no sprite: 6, then 8, then 9). Changing a bigger effect costs pro more too: 3 more for
+// every 16 layers past 8, rounded up with the rest (a 24-layer effect's change: 7). From
+// 700 characters lite's quote is 2x (a new effect with no sprite: 2); the effect's size
+// never changes it.
+//
+// ### Sprites
+// PNG or GIF, up to 512x512 per frame, up to 32 frames. Never rescale pixel art to fit:
+// crop it or pad it.
+//
+//	POST /vfx
+func (c *Client) CreateVfx(ctx context.Context, body CreateVfxRequest) (*CreateVfxResponse, error) {
+	return c.CreateVfxWithResult[CreateVfxResponse](ctx, body)
+}
+
+// Our effects artist makes an animated pixel art effect from your
+// description: explosions, slashes, auras, spells, fire, smoke, lightning, hits, pickups.
+//
+// The same artist as the website's VFX creator. It builds the effect from parts, renders
+// it and checks its own work, around your sprite when you send one. The effect is saved
+// to your My effects, so you can open it on the website (`edit_url`) and tweak it with
+// sliders, or change it here with `effect_id`.
+//
+// **Using an AI agent? We recommend the MCP** ([pixellab.ai/mcp](https://pixellab.ai/mcp)):
+// there your agent is the artist. `vfx_workbench` builds, renders and saves the effect with
+// your agent's own model, free for subscribers, and your agent sees every frame.
+//
+// ### Result
+// Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (usually 30-90 s).
+// When `status` is `completed`, `last_response` has:
+// - `files`: download links (no auth needed): `<name>.gif`, the spritesheet `<name>.png`
+//   - `<name>.json` (frames, durations, `pivot` and `meta.anchor`: where the effect's
+//     anchor is), `<name>-game.zip` with `game_pack`, and `<name>-normals.png` when a light
+//     made your sprite's normal map
+//
+// - `effect_id`, `name`, `edit_url`, `message` (what the artist made)
+// - `canvas` {w, h}, `frames`, `fps`, `loop`, `anchor` {kind, x, y}, `parts`
+// - `conversation`: pass it back with `effect_id` to change this effect at the change price
+//
+// ### Cost
+// Quoted when you submit (`quoted_generations`) and charged only when the effect is
+// delivered: the quote, or more when the effect took much longer (the overrun past 25% of
+// the quote), never more than 2x the quote.
+//
+// | | lite | pro |
+// |---|---|---|
+// | new effect, no sprite or up to 128 px | 1 | 6 (8 with a sprite) |
+// | change (with `conversation`) | 1 | 4 |
+// | sprite up to 256 px | 3 (change 2) | 14 (change 5) |
+// | sprite up to 512 px | 5 (change 2) | 28 (change 8) |
+//
+// An animated sprite adds a little per frame. A longer `prompt` costs pro more: from 400
+// characters its quote is 1.25x, from 1,000 characters 1.5x, rounded up (a new effect with
+// no sprite: 6, then 8, then 9). Changing a bigger effect costs pro more too: 3 more for
+// every 16 layers past 8, rounded up with the rest (a 24-layer effect's change: 7). From
+// 700 characters lite's quote is 2x (a new effect with no sprite: 2); the effect's size
+// never changes it.
+//
+// ### Sprites
+// PNG or GIF, up to 512x512 per frame, up to 32 frames. Never rescale pixel art to fit:
+// crop it or pad it.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /vfx
+func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxRequest) (*R, error) {
+	u := c.baseURL.JoinPath("vfx")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateVfxResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// A request to change (the detail says what)
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusServiceUnavailable:
+		// The renderer is busy; retry in a few seconds
+		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate 8 directional rotations from a reference frame.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Submit the reference frame; receive a `background_job_id` immediately.
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+// 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+//
+// Typical generation time: 30-180 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab, time
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// job = client.generate_8_rotations_v3(
+//
+//	first_frame=reference_image,
+//
+// )
+//
+// while True:
+//
+//	result = client.get_background_job(job.background_job_id)
+//	if result.status == "completed":
+//	    images = [img.pil_image() for img in result.last_response["images"]]
+//	    break
+//	if result.status == "failed":
+//	    raise RuntimeError(result.last_response["detail"])
+//	time.sleep(2)
+//
+// ```
+//
+//	POST /generate-8-rotations-v3
+func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*JobResponse, error) {
+	return c.Generate8RotationsV3WithResult[JobResponse](ctx, body)
+}
+
+// Generate 8 directional rotations from a reference frame.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to retrieve results when generation completes.
+//
+// **How it works:**
+// 1. Submit the reference frame; receive a `background_job_id` immediately.
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
+// 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
+//
+// **Size Limits:**
+// - Maximum image dimension: 256x256 pixels
+//
+// Typical generation time: 30-180 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab, time
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// job = client.generate_8_rotations_v3(
+//
+//	first_frame=reference_image,
+//
+// )
+//
+// while True:
+//
+//	result = client.get_background_job(job.background_job_id)
+//	if result.status == "completed":
+//	    images = [img.pil_image() for img in result.last_response["images"]]
+//	    break
+//	if result.status == "failed":
+//	    raise RuntimeError(result.last_response["detail"])
+//	time.sleep(2)
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /generate-8-rotations-v3
+func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
+	u := c.baseURL.JoinPath("generate-8-rotations-v3")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Background job accepted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent background jobs
+		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate 8 rotational views of a character or object.
+//
+// This endpoint creates 8 directional views from a reference image, useful for
+// game sprites that need to face multiple directions.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Methods:**
+// - **rotate_character**: Rotate existing sprite to 8 directions (`reference_image`)
+// - **create_with_style**: Create new character from description (requires `description`)
+// - **create_from_concept**: Create rotations from concept art (requires `concept_image`)
+//
+// **Output:**
+// Returns 8 images in order: South, South-West, West, North-West, North,
+// North-East, East, South-East
+//
+// **View Angles:**
+// - `low top-down`: ~20 degree angle (most common for RPGs)
+// - `high top-down`: ~35 degree angle
+// - `side`: Side-scroller eye level
+//
+// **Supported Sizes:**
+// - image_size: 32x32 to 168x168 (matches reference_to_8_rotations). reference_image max 168x168, concept_image max 1024x1024.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, rotations are in `last_response`
+//
+// **rotate_character Example:**
+// ```python
+// response = client.generate_8_rotations_v2(
+//
+//	method="rotate_character",
+//	reference_image={"image": char_img, "width": 64, "height": 64},
+//	image_size={"width": 64, "height": 64},
+//	view="low top-down"
+//
+// )
+// ```
+//
+// **create_with_style Example:**
+// ```python
+// response = client.generate_8_rotations_v2(
+//
+//	method="create_with_style",
+//	description="a knight in armor",
+//	image_size={"width": 64, "height": 64}
+//
+// )
+// ```
+//
+//	POST /generate-8-rotations-v2
+func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8RotationsV2Request) (*JobResponse, error) {
+	return c.Generate8RotationsV2WithResult[JobResponse](ctx, body)
+}
+
+// Generate 8 rotational views of a character or object.
+//
+// This endpoint creates 8 directional views from a reference image, useful for
+// game sprites that need to face multiple directions.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Methods:**
+// - **rotate_character**: Rotate existing sprite to 8 directions (`reference_image`)
+// - **create_with_style**: Create new character from description (requires `description`)
+// - **create_from_concept**: Create rotations from concept art (requires `concept_image`)
+//
+// **Output:**
+// Returns 8 images in order: South, South-West, West, North-West, North,
+// North-East, East, South-East
+//
+// **View Angles:**
+// - `low top-down`: ~20 degree angle (most common for RPGs)
+// - `high top-down`: ~35 degree angle
+// - `side`: Side-scroller eye level
+//
+// **Supported Sizes:**
+// - image_size: 32x32 to 168x168 (matches reference_to_8_rotations). reference_image max 168x168, concept_image max 1024x1024.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, rotations are in `last_response`
+//
+// **rotate_character Example:**
+// ```python
+// response = client.generate_8_rotations_v2(
+//
+//	method="rotate_character",
+//	reference_image={"image": char_img, "width": 64, "height": 64},
+//	image_size={"width": 64, "height": 64},
+//	view="low top-down"
+//
+// )
+// ```
+//
+// **create_with_style Example:**
+// ```python
+// response = client.generate_8_rotations_v2(
+//
+//	method="create_with_style",
+//	description="a knight in armor",
+//	image_size={"width": 64, "height": 64}
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /generate-8-rotations-v2
+func (c *Client) Generate8RotationsV2WithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
+	u := c.baseURL.JoinPath("generate-8-rotations-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// 8 rotations job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
+//
+// Supported image sizes:
+// - 16x16
+// - 32x32
+// - 64x64
+// - 128x128
+//
+// Supported features:
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.rotate(
+//
+//	from_view="side",
+//	to_view="side",
+//	from_direction="south",
+//	to_direction="east",
+//	image_size=dict(width=16, height=16),
+//	from_image=image_of_subject_facing_south,
+//
+// )
+// response.image.pil_image()
+// ```
+//
+//	POST /rotate
+func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse, error) {
+	return c.RotateWithResult[ImageResponse](ctx, body)
+}
+
+// Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
+//
+// Supported image sizes:
+// - 16x16
+// - 32x32
+// - 64x64
+// - 128x128
+//
+// Supported features:
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.rotate(
+//
+//	from_view="side",
+//	to_view="side",
+//	from_direction="south",
+//	to_direction="east",
+//	image_size=dict(width=16, height=16),
+//	from_image=image_of_subject_facing_south,
+//
+// )
+// response.image.pil_image()
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /rotate
+func (c *Client) RotateWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
+	u := c.baseURL.JoinPath("rotate")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Edit pixel art images using text or reference image.
+//
+// This endpoint supports two editing methods:
+// 1. **edit_with_text**: Apply edits based on a text description
+// 2. **edit_with_reference**: Match the style of a reference image
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Output sizes (image_size):**
+// - **Range:** 32x32 to 512x512 pixels. Each returned image has the dimensions you set in `image_size`.
+// - Input images (`edit_images`, `reference_image`) must be at most 512x512 each.
+//
+// **Key Features:**
+// - Edit multiple images consistently
+// - Text-guided or reference-guided editing
+// - Preserves original structure and poses
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Frame limits by output size (image_size):**
+// - 32-64px: Up to 16 frames (4x4 grid), 15 with reference
+// - 65-80px: Up to 9 frames (3x3 grid), 8 with reference
+// - 81-128px: Up to 4 frames (2x2 grid), 3 with reference
+// - 129-512px: 1 frame (both methods)
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited images are in `last_response`
+//
+// **edit_with_text Example:**
+// ```python
+// response = client.edit_images_v2(
+//
+//	method="edit_with_text",
+//	edit_images=[{"image": img, "width": 64, "height": 64}],
+//	image_size={"width": 64, "height": 64},
+//	description="add a wizard hat"
+//
+// )
+// ```
+//
+// **edit_with_reference Example:**
+// ```python
+// response = client.edit_images_v2(
+//
+//	method="edit_with_reference",
+//	edit_images=[{"image": img, "width": 64, "height": 64}],
+//	image_size={"width": 64, "height": 64},
+//	reference_image={"image": ref_img, "width": 64, "height": 64}
+//
+// )
+// ```
+//
+//	POST /edit-images-v2
+func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobResponse, error) {
+	return c.EditImagesWithResult[JobResponse](ctx, body)
+}
+
+// Edit pixel art images using text or reference image.
+//
+// This endpoint supports two editing methods:
+// 1. **edit_with_text**: Apply edits based on a text description
+// 2. **edit_with_reference**: Match the style of a reference image
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Output sizes (image_size):**
+// - **Range:** 32x32 to 512x512 pixels. Each returned image has the dimensions you set in `image_size`.
+// - Input images (`edit_images`, `reference_image`) must be at most 512x512 each.
+//
+// **Key Features:**
+// - Edit multiple images consistently
+// - Text-guided or reference-guided editing
+// - Preserves original structure and poses
+// - Optional background removal
+// - Non-blocking: returns job ID immediately
+//
+// **Frame limits by output size (image_size):**
+// - 32-64px: Up to 16 frames (4x4 grid), 15 with reference
+// - 65-80px: Up to 9 frames (3x3 grid), 8 with reference
+// - 81-128px: Up to 4 frames (2x2 grid), 3 with reference
+// - 129-512px: 1 frame (both methods)
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited images are in `last_response`
+//
+// **edit_with_text Example:**
+// ```python
+// response = client.edit_images_v2(
+//
+//	method="edit_with_text",
+//	edit_images=[{"image": img, "width": 64, "height": 64}],
+//	image_size={"width": 64, "height": 64},
+//	description="add a wizard hat"
+//
+// )
+// ```
+//
+// **edit_with_reference Example:**
+// ```python
+// response = client.edit_images_v2(
+//
+//	method="edit_with_reference",
+//	edit_images=[{"image": img, "width": 64, "height": 64}],
+//	image_size={"width": 64, "height": 64},
+//	reference_image={"image": ref_img, "width": 64, "height": 64}
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /edit-images-v2
+func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImagesRequest) (*R, error) {
+	u := c.baseURL.JoinPath("edit-images-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Image edit job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Edit an existing pixel art image with a text instruction, on the Pixen model.
+//
+// Returns YOUR image edited — pose, composition and pixel style are preserved and
+// only what you asked for changes. Returns immediately with a background job ID;
+// poll `GET /v2/background-jobs/{job_id}` to check status and retrieve the result.
+//
+// ### Sizes
+// The two canvases are bounded differently, both enforced here so an oversized
+// request costs nothing instead of failing on a worker.
+//   - **Source image**: max **256px per side** (a hard model limit) and area at
+//     least 16x16. Crop an oversized source — do not rescale pixel art, it destroys
+//     the pixel grid.
+//   - **Target canvas**: area **16x16 to 256x256** (65,536px). This is an area, so a
+//     wide-but-short canvas like 128x512 is fine. Defaults to the source image's
+//     size. The model re-renders at the target size rather than rescaling, so the
+//     source and the result may legitimately differ in size.
+//   - **Both canvases**: every side a **multiple of 4**. A 63x222 sprite is rejected
+//     with the aligned size to use (64x224) — pad it with transparent pixels, never
+//     rescale pixel art.
+//
+// ### Cost
+// 1 generation.
+//
+// ### Usage Pattern
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the edited image is in `last_response`
+//
+//	POST /edit-image-pixen
+func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest) (*JobResponse, error) {
+	return c.EditImagePixenWithResult[JobResponse](ctx, body)
+}
+
+// Edit an existing pixel art image with a text instruction, on the Pixen model.
+//
+// Returns YOUR image edited — pose, composition and pixel style are preserved and
+// only what you asked for changes. Returns immediately with a background job ID;
+// poll `GET /v2/background-jobs/{job_id}` to check status and retrieve the result.
+//
+// ### Sizes
+// The two canvases are bounded differently, both enforced here so an oversized
+// request costs nothing instead of failing on a worker.
+//   - **Source image**: max **256px per side** (a hard model limit) and area at
+//     least 16x16. Crop an oversized source — do not rescale pixel art, it destroys
+//     the pixel grid.
+//   - **Target canvas**: area **16x16 to 256x256** (65,536px). This is an area, so a
+//     wide-but-short canvas like 128x512 is fine. Defaults to the source image's
+//     size. The model re-renders at the target size rather than rescaling, so the
+//     source and the result may legitimately differ in size.
+//   - **Both canvases**: every side a **multiple of 4**. A 63x222 sprite is rejected
+//     with the aligned size to use (64x224) — pad it with transparent pixels, never
+//     rescale pixel art.
+//
+// ### Cost
+// 1 generation.
+//
+// ### Usage Pattern
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the edited image is in `last_response`
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /edit-image-pixen
+func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditImagePixenRequest) (*R, error) {
+	u := c.baseURL.JoinPath("edit-image-pixen")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Edit job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Image or canvas outside the supported sizes
+		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Edit an existing pixel art image based on a text description.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// ### Supported Image Sizes
+// - **Reference image**: 16x16 to 400x400 pixels (minimum 16x16 area)
+// - **Target canvas**: 16x16 to 400x400 pixels (minimum 16x16 area)
+// - **Free tier limit**: Maximum 200x200 pixels for target canvas
+//
+// ### Output
+// Returns a single edited image matching the target canvas dimensions.
+//
+// ### Usage Pattern
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited image is in `last_response`
+//
+//	POST /edit-image
+func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResponse, error) {
+	return c.EditImageWithResult[JobResponse](ctx, body)
+}
+
+// Edit an existing pixel art image based on a text description.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// ### Supported Image Sizes
+// - **Reference image**: 16x16 to 400x400 pixels (minimum 16x16 area)
+// - **Target canvas**: 16x16 to 400x400 pixels (minimum 16x16 area)
+// - **Free tier limit**: Maximum 200x200 pixels for target canvas
+//
+// ### Output
+// Returns a single edited image matching the target canvas dimensions.
+//
+// ### Usage Pattern
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, edited image is in `last_response`
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /edit-image
+func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
+	u := c.baseURL.JoinPath("edit-image")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Edit image job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Inpaint/edit pixel art images using AI.
+//
+// This endpoint uses AI-powered inpainting for high-quality
+// results. It allows you to edit specific areas of an image based on a
+// text description.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - AI-powered inpainting with text descriptions
+// - Optional context image for style guidance
+// - Bounding box support for precise editing
+// - Background removal option
+// - Mask-based editing (white = generate, black = preserve)
+// - Non-blocking: returns job ID immediately
+//
+// **Image Sizes:**
+// - Inpainting image: 32x32 to 512x512 pixels
+// - Context image: up to 1024x1024 pixels (optional)
+//
+// **Mask Format:**
+// - White pixels = areas to generate/replace
+// - Black pixels = areas to preserve
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, inpainted image is in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.inpaint_v3(
+//
+//	description="add a glowing sword",
+//	inpainting_image=character_image,
+//	mask_image=sword_area_mask,
+//
+// )
+//
+// response.images[0].pil_image().save("edited.png")
+// ```
+//
+//	POST /inpaint-v3
+func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResponse, error) {
+	return c.InpaintV3WithResult[JobResponse](ctx, body)
+}
+
+// Inpaint/edit pixel art images using AI.
+//
+// This endpoint uses AI-powered inpainting for high-quality
+// results. It allows you to edit specific areas of an image based on a
+// text description.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - AI-powered inpainting with text descriptions
+// - Optional context image for style guidance
+// - Bounding box support for precise editing
+// - Background removal option
+// - Mask-based editing (white = generate, black = preserve)
+// - Non-blocking: returns job ID immediately
+//
+// **Image Sizes:**
+// - Inpainting image: 32x32 to 512x512 pixels
+// - Context image: up to 1024x1024 pixels (optional)
+//
+// **Mask Format:**
+// - White pixels = areas to generate/replace
+// - Black pixels = areas to preserve
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, inpainted image is in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.inpaint_v3(
+//
+//	description="add a glowing sword",
+//	inpainting_image=character_image,
+//	mask_image=sword_area_mask,
+//
+// )
+//
+// response.images[0].pil_image().save("edited.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /inpaint-v3
+func (c *Client) InpaintV3WithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
+	u := c.baseURL.JoinPath("inpaint-v3")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Inpainting job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
+//
+// Supported image size:
+// - Maximum area 200x200
+//
+// Supported features:
+// - Inpainting
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.inpaint(
+//
+//	description="boy with wings",
+//	image_size=dict(width=16, height=16),
+//	inpainting_image=image_of_boy_without_wings,
+//	mask_image=mask_image,
+//
+// )
+// response.image.pil_image()
+// ```
+//
+//	POST /inpaint
+func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageResponse, error) {
+	return c.InpaintWithResult[ImageResponse](ctx, body)
+}
+
+// Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
+//
+// Supported image size:
+// - Maximum area 200x200
+//
+// Supported features:
+// - Inpainting
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.inpaint(
+//
+//	description="boy with wings",
+//	image_size=dict(width=16, height=16),
+//	inpainting_image=image_of_boy_without_wings,
+//	mask_image=mask_image,
+//
+// )
+// response.image.pil_image()
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /inpaint
+func (c *Client) InpaintWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
+	u := c.baseURL.JoinPath("inpaint")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// List all tilesets (top-down and sidescroller) created by the authenticated user.
+//
+// This endpoint returns a paginated list of all tilesets you've created.
+//
+// **Pagination:**
+// - Use `limit` to control how many tilesets to return (1-100)
+// - Use `offset` to skip tilesets for pagination
+// - Total count is included in response for pagination UI
+//
+//	GET /tilesets
+func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (*ListTilesetsResponse, error) {
+	return c.ListTilesetsWithResult[ListTilesetsResponse](ctx, params)
+}
+
+// List all tilesets (top-down and sidescroller) created by the authenticated user.
+//
+// This endpoint returns a paginated list of all tilesets you've created.
+//
+// **Pagination:**
+// - Use `limit` to control how many tilesets to return (1-100)
+// - Use `offset` to skip tilesets for pagination
+// - Total count is included in response for pagination UI
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /tilesets
+func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *ListTilesetsParams) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved tileset list
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListTilesetsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListTilesets: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		return nil, fmt.Errorf("ListTilesets: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a complete tileset for game development with seamlessly connecting tiles.
+//
+// A tileset is a collection of individual tiles (16 for standard, 25 for transition_size=1.0) that can be combined
+// to create larger maps and environments. This endpoint generates tiles representing two terrain levels - "lower"
+// and "upper" - that connect seamlessly when placed adjacent to each other.
+//
+// **Understanding Lower and Upper Terrain:**
+//   - **Lower terrain**: The base level terrain (e.g., water, grass, lava)
+//   - **Upper terrain**: The elevated terrain level (e.g., beach, dirt path, rock)
+//   - **Transition size**: Controls the visual height difference between levels. Larger transitions (0.25-0.5)
+//     create a more pronounced elevation effect, making it appear as if the upper terrain is on a higher plane
+//
+// **Using the tiles (Wang corner autotiling):**
+// Define your terrain on a vertex grid — one terrain value ("lower"/"upper") per vertex, so a
+// map of W×H cells has (W+1)×(H+1) vertices. Each map cell reads its 4 corner vertices
+// (NW, NE, SW, SE) and you place the tile whose `pattern_4x4` (or `corners`) matches those
+// values. Adjacent cells share vertices, so tiles connect seamlessly by construction.
+//
+// **transition_size=1.0 (cliff tilesets):**
+//   - Returns 25 tiles instead of 16, and corners take a third value: "transition"
+//   - A cliff wall occupies the map cell BELOW the terrain boundary, so a cliff spans two rows
+//   - The 25 tiles cover only 21 distinct corner combinations — 4 wall-continuation tiles share
+//     their corners with a twin. Select tiles by `pattern_4x4`, not by `corners` alone, or those
+//     twins collapse into one another
+//
+// Features:
+// - Returns individual tiles with unique IDs (16 for standard, 25 for transition_size=1.0)
+// - Corner-based terrain classification (NW, NE, SW, SE)
+// - A 4x4 terrain pattern per tile, for matching tiles against a painted map
+// - Lower and upper terrain levels for elevation variety
+// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
+// - Seamless tile connections for map creation
+// - Vertical transitions support with transition_size=1.0
+// - Style control via outline, shading, and detail parameters
+// - Reference images for style guidance
+// - Color palette control
+//
+// Response format:
+//   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
+//   - Corner data specifies "lower", "upper", or "transition" terrain for each corner (NW, NE, SW, SE)
+//   - `pattern_4x4` encodes terrain as 0=lower, 1=upper, 2=transition, 255=wildcard. `row_1`/`row_2`
+//     hold the four corners; `row_0`/`row_3` hold the terrain above/below (only meaningful for
+//     transition tiles). This is the field to match on when placing tiles
+//   - `connections` is deprecated and not populated for new top-down tilesets — use `pattern_4x4` (or `corners`) instead
+//   - Metadata includes terrain prompts and creation timestamp
+//
+// Common use cases:
+// - **Beach environments**: water/sand with wet sand transitions
+// - **Forest paths**: grass/dirt with muddy transitions
+// - **Dungeon floors**: stone floor/walls with cracked stone transitions
+// - **Snow landscapes**: snow/rock with icy transitions
+// - **Desert oases**: sand/water with muddy bank transitions
+// - **Lava caves**: rock/lava with molten rock transitions
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Generate a beach/ocean tileset
+// response = client.generate_tileset(
+//
+//	lower_description="deep blue ocean water with gentle waves",
+//	upper_description="golden sandy beach",
+//	transition_description="wet sand with foam",
+//	tile_size=dict(width=16, height=16),
+//	transition_size=0.5,
+//	view="high top-down"
+//
+// )
+//
+// # Access individual tiles
+// for tile in response.tileset.tiles:
+//
+//	print(f"Tile {tile.name}: {tile.description}")
+//	print(f"  Corners: NW={tile.corners.NW}, NE={tile.corners.NE}, SW={tile.corners.SW}, SE={tile.corners.SE}")
+//	print(f"  Pattern: {tile.pattern_4x4.row_1} / {tile.pattern_4x4.row_2}")
+//
+//	# Save individual tile images
+//	import base64
+//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
+//	    f.write(base64.b64decode(tile.image.base64))
+//
+// ```
+//
+//	POST /create-tileset
+func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (*TilesetJobResponse, error) {
+	return c.CreateTilesetWithResult[TilesetJobResponse](ctx, body)
+}
+
+// Creates a complete tileset for game development with seamlessly connecting tiles.
+//
+// A tileset is a collection of individual tiles (16 for standard, 25 for transition_size=1.0) that can be combined
+// to create larger maps and environments. This endpoint generates tiles representing two terrain levels - "lower"
+// and "upper" - that connect seamlessly when placed adjacent to each other.
+//
+// **Understanding Lower and Upper Terrain:**
+//   - **Lower terrain**: The base level terrain (e.g., water, grass, lava)
+//   - **Upper terrain**: The elevated terrain level (e.g., beach, dirt path, rock)
+//   - **Transition size**: Controls the visual height difference between levels. Larger transitions (0.25-0.5)
+//     create a more pronounced elevation effect, making it appear as if the upper terrain is on a higher plane
+//
+// **Using the tiles (Wang corner autotiling):**
+// Define your terrain on a vertex grid — one terrain value ("lower"/"upper") per vertex, so a
+// map of W×H cells has (W+1)×(H+1) vertices. Each map cell reads its 4 corner vertices
+// (NW, NE, SW, SE) and you place the tile whose `pattern_4x4` (or `corners`) matches those
+// values. Adjacent cells share vertices, so tiles connect seamlessly by construction.
+//
+// **transition_size=1.0 (cliff tilesets):**
+//   - Returns 25 tiles instead of 16, and corners take a third value: "transition"
+//   - A cliff wall occupies the map cell BELOW the terrain boundary, so a cliff spans two rows
+//   - The 25 tiles cover only 21 distinct corner combinations — 4 wall-continuation tiles share
+//     their corners with a twin. Select tiles by `pattern_4x4`, not by `corners` alone, or those
+//     twins collapse into one another
+//
+// Features:
+// - Returns individual tiles with unique IDs (16 for standard, 25 for transition_size=1.0)
+// - Corner-based terrain classification (NW, NE, SW, SE)
+// - A 4x4 terrain pattern per tile, for matching tiles against a painted map
+// - Lower and upper terrain levels for elevation variety
+// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
+// - Seamless tile connections for map creation
+// - Vertical transitions support with transition_size=1.0
+// - Style control via outline, shading, and detail parameters
+// - Reference images for style guidance
+// - Color palette control
+//
+// Response format:
+//   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
+//   - Corner data specifies "lower", "upper", or "transition" terrain for each corner (NW, NE, SW, SE)
+//   - `pattern_4x4` encodes terrain as 0=lower, 1=upper, 2=transition, 255=wildcard. `row_1`/`row_2`
+//     hold the four corners; `row_0`/`row_3` hold the terrain above/below (only meaningful for
+//     transition tiles). This is the field to match on when placing tiles
+//   - `connections` is deprecated and not populated for new top-down tilesets — use `pattern_4x4` (or `corners`) instead
+//   - Metadata includes terrain prompts and creation timestamp
+//
+// Common use cases:
+// - **Beach environments**: water/sand with wet sand transitions
+// - **Forest paths**: grass/dirt with muddy transitions
+// - **Dungeon floors**: stone floor/walls with cracked stone transitions
+// - **Snow landscapes**: snow/rock with icy transitions
+// - **Desert oases**: sand/water with muddy bank transitions
+// - **Lava caves**: rock/lava with molten rock transitions
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Generate a beach/ocean tileset
+// response = client.generate_tileset(
+//
+//	lower_description="deep blue ocean water with gentle waves",
+//	upper_description="golden sandy beach",
+//	transition_description="wet sand with foam",
+//	tile_size=dict(width=16, height=16),
+//	transition_size=0.5,
+//	view="high top-down"
+//
+// )
+//
+// # Access individual tiles
+// for tile in response.tileset.tiles:
+//
+//	print(f"Tile {tile.name}: {tile.description}")
+//	print(f"  Corners: NW={tile.corners.NW}, NE={tile.corners.NE}, SW={tile.corners.SW}, SE={tile.corners.SE}")
+//	print(f"  Pattern: {tile.pattern_4x4.row_1} / {tile.pattern_4x4.row_2}")
+//
+//	# Save individual tile images
+//	import base64
+//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
+//	    f.write(base64.b64decode(tile.image.base64))
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-tileset
+func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-tileset")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated tileset
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TilesetJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TilesetJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Retrieve a completed tileset by its UUID.
+//
+// This endpoint returns the complete tileset data including all tiles with their images, corner data
+// and metadata. Use this after background processing completes.
+//
+// The tileset ID is returned immediately when you submit a tileset generation request.
+// Check the background job status first to ensure generation is complete.
+//
+// Newly generated tilesets have 16 tiles (standard) or 25 (transition_size=1.0). This endpoint also
+// serves tilesets generated by earlier versions, which may report other counts at transition_size=1.0.
+// Always read `total_tiles` / the length of `tiles` rather than assuming a fixed count.
+//
+// Response includes:
+//   - All tiles with base64 PNG images
+//   - Corner classifications (NW, NE, SW, SE) for each tile — "lower", "upper", or, on
+//     transition_size=1.0 tilesets, "transition"
+//   - `pattern_4x4` per tile (0=lower, 1=upper, 2=transition, 255=wildcard). On transition_size=1.0
+//     tilesets the 25 tiles cover only 21 distinct corner combinations, so match on `pattern_4x4`
+//     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
+//   - Generation metadata and parameters
+//   - Terrain descriptions and style settings
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tileset
+// tileset = client.get_tileset("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Access tiles
+// for tile in tileset.tileset.tiles:
+//
+//	print(f"Tile {tile.name}: {tile.description}")
+//	# Save tile image
+//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
+//	    f.write(base64.b64decode(tile.image.base64))
+//
+// ```
+//
+//	GET /tilesets/{tileset_id}
+func (c *Client) GetTileset(ctx context.Context, tilesetID string) (*GetTilesetResponse, error) {
+	return c.GetTilesetWithResult[GetTilesetResponse](ctx, tilesetID)
+}
+
+// Retrieve a completed tileset by its UUID.
+//
+// This endpoint returns the complete tileset data including all tiles with their images, corner data
+// and metadata. Use this after background processing completes.
+//
+// The tileset ID is returned immediately when you submit a tileset generation request.
+// Check the background job status first to ensure generation is complete.
+//
+// Newly generated tilesets have 16 tiles (standard) or 25 (transition_size=1.0). This endpoint also
+// serves tilesets generated by earlier versions, which may report other counts at transition_size=1.0.
+// Always read `total_tiles` / the length of `tiles` rather than assuming a fixed count.
+//
+// Response includes:
+//   - All tiles with base64 PNG images
+//   - Corner classifications (NW, NE, SW, SE) for each tile — "lower", "upper", or, on
+//     transition_size=1.0 tilesets, "transition"
+//   - `pattern_4x4` per tile (0=lower, 1=upper, 2=transition, 255=wildcard). On transition_size=1.0
+//     tilesets the 25 tiles cover only 21 distinct corner combinations, so match on `pattern_4x4`
+//     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
+//   - Generation metadata and parameters
+//   - Terrain descriptions and style settings
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tileset
+// tileset = client.get_tileset("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Access tiles
+// for tile in tileset.tileset.tiles:
+//
+//	print(f"Tile {tile.name}: {tile.description}")
+//	# Save tile image
+//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
+//	    f.write(base64.b64decode(tile.image.base64))
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /tilesets/{tileset_id}
+func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID string) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets", tilesetID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved tileset
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetTilesetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tileset not found
+		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Tileset is still being generated
+		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
+//
+//	DELETE /tilesets/{tileset_id}
+func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
+	return c.DeleteTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
+}
+
+// Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /tilesets/{tileset_id}
+func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Tileset deleted successfully
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Tileset belongs to another user
+		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tileset not found
+		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
+//
+//	GET /tilesets-sidescroller
+func (c *Client) ListSidescrollerTilesets(ctx context.Context, params *ListSidescrollerTilesetsParams) (*ListSidescrollerTilesetsResponse, error) {
+	return c.ListSidescrollerTilesetsWithResult[ListSidescrollerTilesetsResponse](ctx, params)
+}
+
+// List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /tilesets-sidescroller
+func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, params *ListSidescrollerTilesetsParams) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets-sidescroller")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved sidescroller tileset list
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListSidescrollerTilesetsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListSidescrollerTilesets: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a complete sidescroller tileset for 2D platformer game development.
+//
+// A sidescroller tileset is a collection of individual tiles designed for side-view platformer games.
+// The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
+// over any game background.
+//
+// **Key differences from top-down tilesets:**
+// - **View**: Always "side" perspective (fixed, cannot be changed)
+// - **Background**: Always transparent (no background terrain)
+// - **Use case**: 2D platformer games, side-scrolling adventures
+// - **No slopes**: Only flat horizontal platform surfaces
+//
+// **Understanding the layers:**
+// - **Lower terrain**: The main platform/ground material (e.g., stone, grass, metal)
+// - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
+// - **Background**: Automatically transparent (not configurable)
+//
+// Features:
+// - Returns individual tiles with unique IDs
+// - Transparent background for easy overlay on game scenes
+// - Tile sizes: 16x16 or 32x32 pixels
+// - Seamless tile connections for platform creation
+// - Optional transition layer for surface details
+// - Style control via outline, shading, and detail parameters
+// - Reference images for style guidance
+// - Color palette control
+//
+// **Retrieving results:**
+// After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
+// The same endpoint is used for both top-down and sidescroller tilesets.
+//
+// Common use cases:
+// - **Stone platforms**: stone bricks with moss transitions
+// - **Grass ground**: green grass with flower decorations
+// - **Metal grating**: industrial platforms with rust details
+// - **Ice platforms**: frozen surfaces with snow cover
+// - **Wood platforms**: wooden planks with vine overgrowth
+// - **Candy platforms**: colorful candy blocks with frosting
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Generate a stone platform tileset
+// response = client.generate_tileset_sidescroller(
+//
+//	lower_description="stone brick platform with carved details",
+//	transition_description="moss and small green plants",
+//	tile_size=dict(width=16, height=16),
+//	transition_size=0.25,
+//
+// )
+//
+// # Retrieve completed tileset using the tileset_id
+// tileset = client.get_tileset(response.tileset_id)
+// ```
+//
+//	POST /create-tileset-sidescroller
+func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSidescrollerTilesetRequest) (*TilesetJobResponse, error) {
+	return c.CreateSidescrollerTilesetWithResult[TilesetJobResponse](ctx, body)
+}
+
+// Creates a complete sidescroller tileset for 2D platformer game development.
+//
+// A sidescroller tileset is a collection of individual tiles designed for side-view platformer games.
+// The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
+// over any game background.
+//
+// **Key differences from top-down tilesets:**
+// - **View**: Always "side" perspective (fixed, cannot be changed)
+// - **Background**: Always transparent (no background terrain)
+// - **Use case**: 2D platformer games, side-scrolling adventures
+// - **No slopes**: Only flat horizontal platform surfaces
+//
+// **Understanding the layers:**
+// - **Lower terrain**: The main platform/ground material (e.g., stone, grass, metal)
+// - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
+// - **Background**: Automatically transparent (not configurable)
+//
+// Features:
+// - Returns individual tiles with unique IDs
+// - Transparent background for easy overlay on game scenes
+// - Tile sizes: 16x16 or 32x32 pixels
+// - Seamless tile connections for platform creation
+// - Optional transition layer for surface details
+// - Style control via outline, shading, and detail parameters
+// - Reference images for style guidance
+// - Color palette control
+//
+// **Retrieving results:**
+// After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
+// The same endpoint is used for both top-down and sidescroller tilesets.
+//
+// Common use cases:
+// - **Stone platforms**: stone bricks with moss transitions
+// - **Grass ground**: green grass with flower decorations
+// - **Metal grating**: industrial platforms with rust details
+// - **Ice platforms**: frozen surfaces with snow cover
+// - **Wood platforms**: wooden planks with vine overgrowth
+// - **Candy platforms**: colorful candy blocks with frosting
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Generate a stone platform tileset
+// response = client.generate_tileset_sidescroller(
+//
+//	lower_description="stone brick platform with carved details",
+//	transition_description="moss and small green plants",
+//	tile_size=dict(width=16, height=16),
+//	transition_size=0.25,
+//
+// )
+//
+// # Retrieve completed tileset using the tileset_id
+// tileset = client.get_tileset(response.tileset_id)
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-tileset-sidescroller
+func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context, body CreateSidescrollerTilesetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-tileset-sidescroller")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Tileset creation started, returns job ID
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TilesetJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
+//
+//	GET /tilesets-sidescroller/{tileset_id}
+func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID string) error {
+	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved sidescroller tileset
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Sidescroller tileset not found
+		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return api.NewErrCustom(rsp, &out)
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Still being generated; see Retry-After header
+		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
+	default:
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
+//
+//	DELETE /tilesets-sidescroller/{tileset_id}
+func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
+	return c.DeleteSidescrollerTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
+}
+
+// Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /tilesets-sidescroller/{tileset_id}
+func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Tileset deleted successfully
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Tileset belongs to another user
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tileset not found
+		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates pixel art tiles based on the provided parameters.
+//
+// Generates multiple tile variations by drawing tile shape outlines and having
+// AI fill them with pixel art — or, with `tile_feature`, a connectable set:
+//
+//   - **`tile_feature: "roads"`** — an 18-configuration path/road autotile set
+//     (square_topdown, isometric)
+//   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
+//     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
+//     hex/hex_pointy; describe it as a transition ("grass to water")
+//   - **`tile_feature: "building"`** — a construction kit: floor, connectable
+//     wall segments, doorways, pillar and staircase (square_topdown, isometric,
+//     oblique; see the `building_*` parameters)
+//   - omit `tile_feature` for independent tile variations
+//
+// Supported tile types:
+//   - **hex**: Flat-top hexagonal tiles
+//   - **hex_pointy**: Pointy-top hexagonal tiles
+//   - **isometric**: Diamond/rhombus tiles
+//   - **oblique**: Square top with sheared depth — connectable sets only
+//     (`tile_feature` tileset or building; see `oblique_lean`)
+//   - **octagon**: 8-sided polygon tiles
+//   - **square_topdown**: Square tiles at angle
+//
+// Supported tile sizes: 16-128px (32px recommended). Connectable sets have
+// tighter per-shape ranges — most top out at 96px, and square top-down roads
+// are exactly 32px.
+//
+// Generation time: ~1-2 minutes (async processing)
+//
+// **Prompting tip:** For best control over each tile variation, number each tile in the description:
+// `"1). grass tile 2). dirt tile 3). stone tile 4). water tile"` — the number of tiles is auto-computed based on tile size.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # independent tile variations
+// response = client.create_tiles_pro(
+//
+//	description="1). grass tile 2). dirt tile 3). stone tile 4). water tile 5). sand tile 6). lava tile",
+//	tile_type="isometric",
+//	tile_size=32,
+//
+// )
+//
+// # connectable sets
+// response = client.create_tiles_pro(
+//
+//	description="grass to water",
+//	tile_type="isometric",
+//	tile_size=32,
+//	tile_feature="tileset",
+//
+// )
+// response = client.create_tiles_pro(
+//
+//	description="stone walls with wooden floor",
+//	tile_type="isometric",
+//	tile_size=32,
+//	tile_feature="building",
+//	building_wall_description="rough stone brick walls",
+//	building_floor_description="wooden plank floor",
+//
+// )
+// ```
+//
+//	POST /create-tiles-pro
+func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
+	return c.CreateTilesProWithResult[TileJobResponse](ctx, body)
+}
+
+// Creates pixel art tiles based on the provided parameters.
+//
+// Generates multiple tile variations by drawing tile shape outlines and having
+// AI fill them with pixel art — or, with `tile_feature`, a connectable set:
+//
+//   - **`tile_feature: "roads"`** — an 18-configuration path/road autotile set
+//     (square_topdown, isometric)
+//   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
+//     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
+//     hex/hex_pointy; describe it as a transition ("grass to water")
+//   - **`tile_feature: "building"`** — a construction kit: floor, connectable
+//     wall segments, doorways, pillar and staircase (square_topdown, isometric,
+//     oblique; see the `building_*` parameters)
+//   - omit `tile_feature` for independent tile variations
+//
+// Supported tile types:
+//   - **hex**: Flat-top hexagonal tiles
+//   - **hex_pointy**: Pointy-top hexagonal tiles
+//   - **isometric**: Diamond/rhombus tiles
+//   - **oblique**: Square top with sheared depth — connectable sets only
+//     (`tile_feature` tileset or building; see `oblique_lean`)
+//   - **octagon**: 8-sided polygon tiles
+//   - **square_topdown**: Square tiles at angle
+//
+// Supported tile sizes: 16-128px (32px recommended). Connectable sets have
+// tighter per-shape ranges — most top out at 96px, and square top-down roads
+// are exactly 32px.
+//
+// Generation time: ~1-2 minutes (async processing)
+//
+// **Prompting tip:** For best control over each tile variation, number each tile in the description:
+// `"1). grass tile 2). dirt tile 3). stone tile 4). water tile"` — the number of tiles is auto-computed based on tile size.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # independent tile variations
+// response = client.create_tiles_pro(
+//
+//	description="1). grass tile 2). dirt tile 3). stone tile 4). water tile 5). sand tile 6). lava tile",
+//	tile_type="isometric",
+//	tile_size=32,
+//
+// )
+//
+// # connectable sets
+// response = client.create_tiles_pro(
+//
+//	description="grass to water",
+//	tile_type="isometric",
+//	tile_size=32,
+//	tile_feature="tileset",
+//
+// )
+// response = client.create_tiles_pro(
+//
+//	description="stone walls with wooden floor",
+//	tile_type="isometric",
+//	tile_size=32,
+//	tile_feature="building",
+//	building_wall_description="rough stone brick walls",
+//	building_floor_description="wooden plank floor",
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-tiles-pro
+func (c *Client) CreateTilesProWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-tiles-pro")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Generation started successfully
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TileJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Retrieve completed tiles pro by their UUID.
+//
+// This endpoint returns the tile images after background processing completes.
+// Use this after the tile generation is finished.
+//
+// The tile ID is returned immediately when you submit a tile generation request.
+//
+// Response includes:
+// - List of base64 PNG tile variation images
+// - Usage information
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tiles
+// tiles = client.get_tiles_pro("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Save tile images
+// for tile in tiles.tiles:
+//
+//	save_base64_image(tile.base64, f"tile_{tile.index}.png")
+//
+// ```
+//
+//	GET /tiles-pro/{tile_id}
+func (c *Client) GetTilesPro(ctx context.Context, tileID string) (*GetTilesProResponse, error) {
+	return c.GetTilesProWithResult[GetTilesProResponse](ctx, tileID)
+}
+
+// Retrieve completed tiles pro by their UUID.
+//
+// This endpoint returns the tile images after background processing completes.
+// Use this after the tile generation is finished.
+//
+// The tile ID is returned immediately when you submit a tile generation request.
+//
+// Response includes:
+// - List of base64 PNG tile variation images
+// - Usage information
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tiles
+// tiles = client.get_tiles_pro("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Save tile images
+// for tile in tiles.tiles:
+//
+//	save_base64_image(tile.base64, f"tile_{tile.index}.png")
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /tiles-pro/{tile_id}
+func (c *Client) GetTilesProWithResult[R any](ctx context.Context, tileID string) (*R, error) {
+	u := c.baseURL.JoinPath("tiles-pro", tileID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved tiles
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetTilesProResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tiles not found
+		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Tiles still processing
+		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
+//
+//	DELETE /tiles-pro/{tile_id}
+func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
+	return c.DeleteTilesProWithResult[DeleteTileResponse](ctx, tileID)
+}
+
+// Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /tiles-pro/{tile_id}
+func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("tiles-pro", tileID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Tile deleted successfully
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteTileResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Tile belongs to another user
+		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tile not found
+		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Tile is still generating
+		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
+//
+//	GET /tiles-pro
+func (c *Client) ListTilesPro(ctx context.Context, params *ListTilesProParams) (*ListTilesProResponse, error) {
+	return c.ListTilesProWithResult[ListTilesProResponse](ctx, params)
+}
+
+// List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /tiles-pro
+func (c *Client) ListTilesProWithResult[R any](ctx context.Context, params *ListTilesProParams) (*R, error) {
+	u := c.baseURL.JoinPath("tiles-pro")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved tiles list
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListTilesProResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListTilesPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a isometric tile based on the provided parameters.
+//
+// Supported image size:
+// - Minimum area 16x16 and maximum area 64x64
+// - Sizes above 24x24 often produce better quality results
+//
+// Supported features:
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_isometric_tile(
+//
+//	description="grass on top of dirt",
+//	image_size=dict(width=32, height=32),
+//
+// )
+// response.image.pil_image()
+// ```
+//
+//	POST /create-isometric-tile
+func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
+	return c.CreateIsometricTileWithResult[TileJobResponse](ctx, body)
+}
+
+// Creates a isometric tile based on the provided parameters.
+//
+// Supported image size:
+// - Minimum area 16x16 and maximum area 64x64
+// - Sizes above 24x24 often produce better quality results
+//
+// Supported features:
+// - Init image
+// - Forced palette
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_isometric_tile(
+//
+//	description="grass on top of dirt",
+//	image_size=dict(width=32, height=32),
+//
+// )
+// response.image.pil_image()
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-isometric-tile
+func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-isometric-tile")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully generated image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TileJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TileJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	case 529:
+		// Rate limit exceeded
+		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Retrieve a completed isometric tile by its UUID.
+//
+// This endpoint returns the isometric tile image after background processing completes.
+// Use this after the tile generation is finished.
+//
+// The tile ID is returned immediately when you submit a tile generation request.
+// Check the background job status first to ensure generation is complete.
+//
+// Response includes:
+// - Base64 PNG image with transparent background
+// - Usage information
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tile
+// tile = client.get_isometric_tile("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Save tile image
+// tile.image.pil_image().save("tile.png")
+// ```
+//
+//	GET /isometric-tiles/{tile_id}
+func (c *Client) GetIsometricTile(ctx context.Context, tileID string) (*ImageResponse, error) {
+	return c.GetIsometricTileWithResult[ImageResponse](ctx, tileID)
+}
+
+// Retrieve a completed isometric tile by its UUID.
+//
+// This endpoint returns the isometric tile image after background processing completes.
+// Use this after the tile generation is finished.
+//
+// The tile ID is returned immediately when you submit a tile generation request.
+// Check the background job status first to ensure generation is complete.
+//
+// Response includes:
+// - Base64 PNG image with transparent background
+// - Usage information
+//
+// Example usage:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// # Get completed tile
+// tile = client.get_isometric_tile("f47ac10b-58cc-4372-a567-0e02b2c3d479")
+//
+// # Save tile image
+// tile.image.pil_image().save("tile.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /isometric-tiles/{tile_id}
+func (c *Client) GetIsometricTileWithResult[R any](ctx context.Context, tileID string) (*R, error) {
+	u := c.baseURL.JoinPath("isometric-tiles", tileID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved tile
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tile not found
+		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Tile still processing
+		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete an isometric tile you own. Cannot be undone.
+//
+//	DELETE /isometric-tiles/{tile_id}
+func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
+	return c.DeleteIsometricTileWithResult[DeleteTileResponse](ctx, tileID)
+}
+
+// Permanently delete an isometric tile you own. Cannot be undone.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /isometric-tiles/{tile_id}
+func (c *Client) DeleteIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Tile deleted successfully
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteTileResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Tile belongs to another user
+		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tile not found
+		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// List all isometric tiles created by the authenticated user.
+//
+// This endpoint returns a paginated list of all isometric tiles you've created.
+//
+// **Pagination:**
+// - Use `limit` to control how many tiles to return (1-100)
+// - Use `offset` to skip tiles for pagination
+// - Total count is included in response for pagination UI
+//
+//	GET /isometric-tiles
+func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTilesParams) (*ListIsometricTilesResponse, error) {
+	return c.ListIsometricTilesWithResult[ListIsometricTilesResponse](ctx, params)
+}
+
+// List all isometric tiles created by the authenticated user.
+//
+// This endpoint returns a paginated list of all isometric tiles you've created.
+//
+// **Pagination:**
+// - Use `limit` to control how many tiles to return (1-100)
+// - Use `offset` to skip tiles for pagination
+// - Total count is included in response for pagination UI
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /isometric-tiles
+func (c *Client) ListIsometricTilesWithResult[R any](ctx context.Context, params *ListIsometricTilesParams) (*R, error) {
+	u := c.baseURL.JoinPath("isometric-tiles")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved isometric tile list
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListIsometricTilesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListIsometricTiles: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		return nil, fmt.Errorf("ListIsometricTiles: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Creates a pixel art object with transparent background for game maps.
+//
+// Returns immediately with job ID. Processing takes ~15-30 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.create_map_object(
+//
+//	description="wooden treasure chest",
+//	image_size={"width": 128, "height": 128}
+//
+// )
+// ```
+//
+//	POST /map-objects
+func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
+	return c.CreateMapObjectWithResult[ObjectJobResponse](ctx, body)
+}
+
+// Creates a pixel art object with transparent background for game maps.
+//
+// Returns immediately with job ID. Processing takes ~15-30 seconds.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.create_map_object(
+//
+//	description="wooden treasure chest",
+//	image_size={"width": 128, "height": 128}
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /map-objects
+func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
+	u := c.baseURL.JoinPath("map-objects")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Object generation queued
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ObjectJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Poll a map object's status. Returns:
+// - 200 with metadata + download_url when completed
+// - 423 Locked with Retry-After header while still generating
+// - 410 Gone with a hint when generation failed permanently
+// - 404 when no job for this user+object_id exists
+//
+// Map objects auto-delete 8h after creation — grab the PNG promptly.
+//
+//	GET /map-objects/{object_id}
+func (c *Client) GetMapObject(ctx context.Context, objectID string) (*GetMapObjectResponse, error) {
+	return c.GetMapObjectWithResult[GetMapObjectResponse](ctx, objectID)
+}
+
+// Poll a map object's status. Returns:
+// - 200 with metadata + download_url when completed
+// - 423 Locked with Retry-After header while still generating
+// - 410 Gone with a hint when generation failed permanently
+// - 404 when no job for this user+object_id exists
+//
+// Map objects auto-delete 8h after creation — grab the PNG promptly.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /map-objects/{object_id}
+func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID string) (*R, error) {
+	u := c.baseURL.JoinPath("map-objects", objectID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Object metadata + download URL
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetMapObjectResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Object not found
+		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
+	case http.StatusGone:
+		// Object generation failed permanently
+		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Still generating; see Retry-After header
+		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate a shape-based pixel-art UI panel from a text description.
+//
+// Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
+// `GET /v2/ui-assets/{ui_asset_id}` until `status` is `completed`, then read
+// `image_url`.
+//
+// Provide `pieces` to control the panel shape (editor view coords: longer side 512,
+// shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
+//
+//	POST /create-ui-asset
+func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
+	return c.CreateUIAssetWithResult[CreateUIAssetResponse](ctx, body)
+}
+
+// Generate a shape-based pixel-art UI panel from a text description.
+//
+// Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
+// `GET /v2/ui-assets/{ui_asset_id}` until `status` is `completed`, then read
+// `image_url`.
+//
+// Provide `pieces` to control the panel shape (editor view coords: longer side 512,
+// shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-ui-asset
+func (c *Client) CreateUIAssetWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-ui-asset")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// UI generation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateUIAssetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate pixel art UI elements from text description.
+//
+// This endpoint creates pixel art UI elements such as buttons, health bars,
+// inventory slots, dialogue boxes, and other game interface components.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Text-to-image UI generation
+// - Optional concept image for design guidance
+// - Optional color palette specification
+// - Automatic background removal
+// - Optimized for game UI assets
+// - Non-blocking: returns job ID immediately
+//
+// **Supported Sizes:**
+// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
+//
+// **Example Descriptions:**
+// - "medieval stone button with gold trim"
+// - "sci-fi health bar with neon glow"
+// - "wooden inventory slot with metal corners"
+// - "pixel art dialogue box with decorative border"
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, images are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_ui_v2(
+//
+//	description="medieval stone button",
+//	image_size=dict(width=256, height=256),
+//	color_palette="brown and gold"
+//
+// )
+//
+// response.images[0].pil_image().save("button.png")
+// ```
+//
+//	POST /generate-ui-v2
+func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobResponse, error) {
+	return c.GenerateUIWithResult[JobResponse](ctx, body)
+}
+
+// Generate pixel art UI elements from text description.
+//
+// This endpoint creates pixel art UI elements such as buttons, health bars,
+// inventory slots, dialogue boxes, and other game interface components.
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// to check status and retrieve results.
+//
+// **Key Features:**
+// - Text-to-image UI generation
+// - Optional concept image for design guidance
+// - Optional color palette specification
+// - Automatic background removal
+// - Optimized for game UI assets
+// - Non-blocking: returns job ID immediately
+//
+// **Supported Sizes:**
+// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
+//
+// **Example Descriptions:**
+// - "medieval stone button with gold trim"
+// - "sci-fi health bar with neon glow"
+// - "wooden inventory slot with metal corners"
+// - "pixel art dialogue box with decorative border"
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, images are in `last_response`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_ui_v2(
+//
+//	description="medieval stone button",
+//	image_size=dict(width=256, height=256),
+//	color_palette="brown and gold"
+//
+// )
+//
+// response.images[0].pil_image().save("button.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /generate-ui-v2
+func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateUIRequest) (*R, error) {
+	u := c.baseURL.JoinPath("generate-ui-v2")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// UI generation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
+//
+//	GET /ui-assets
+func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (*ListUIAssetsResponse, error) {
+	return c.ListUIAssetsWithResult[ListUIAssetsResponse](ctx, params)
+}
+
+// List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /ui-assets
+func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *ListUIAssetsParams) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListUIAssetsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListUIAssets: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Get a UI panel's details. Reports progress while the panel is still generating.
+//
+//	GET /ui-assets/{ui_asset_id}
+func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*GetUIAssetResponse, error) {
+	return c.GetUIAssetWithResult[GetUIAssetResponse](ctx, uiAssetID)
+}
+
+// Get a UI panel's details. Reports progress while the panel is still generating.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /ui-assets/{ui_asset_id}
+func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetUIAssetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// UI asset not found
+		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete a UI panel and its backing image files.
+//
+//	DELETE /ui-assets/{ui_asset_id}
+func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
+	return c.DeleteUIAssetWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
+}
+
+// Permanently delete a UI panel and its backing image files.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /ui-assets/{ui_asset_id}
+func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Deleted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteUIAssetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// UI asset not found
+		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Convert between a bust portrait and a full-body character sprite.
+//
+// Pick the conversion with `direction`:
+// - `portrait_to_character`: a bust portrait in → a full-body character sprite out.
+// - `character_to_portrait`: a full-body character in → a bust portrait out.
+//
+// The output preserves the subject's identity/outfit while matching an internal
+// size-specific pixel-art style. Returns immediately with a background job ID. Poll
+// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result image.
+//
+// **Supported Sizes:** 16, 32, 48, 64, 128, 160 px (128/160 are drawn with extra detail).
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the sprite is in `last_response.images[0]`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.portrait_character_pro(
+//
+//	direction="portrait_to_character",
+//	image=portrait_image,
+//	view="low top-down",
+//	result_size=64,
+//
+// )
+// response.images[0].pil_image().save("character.png")
+// ```
+//
+//	POST /portrait-character-pro
+func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePortraitCharacterProRequest) (*JobResponse, error) {
+	return c.CreatePortraitCharacterProWithResult[JobResponse](ctx, body)
+}
+
+// Convert between a bust portrait and a full-body character sprite.
+//
+// Pick the conversion with `direction`:
+// - `portrait_to_character`: a bust portrait in → a full-body character sprite out.
+// - `character_to_portrait`: a full-body character in → a bust portrait out.
+//
+// The output preserves the subject's identity/outfit while matching an internal
+// size-specific pixel-art style. Returns immediately with a background job ID. Poll
+// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result image.
+//
+// **Supported Sizes:** 16, 32, 48, 64, 128, 160 px (128/160 are drawn with extra detail).
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. When `status` is `completed`, the sprite is in `last_response.images[0]`
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.portrait_character_pro(
+//
+//	direction="portrait_to_character",
+//	image=portrait_image,
+//	view="low top-down",
+//	result_size=64,
+//
+// )
+// response.images[0].pil_image().save("character.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /portrait-character-pro
+func (c *Client) CreatePortraitCharacterProWithResult[R any](ctx context.Context, body CreatePortraitCharacterProRequest) (*R, error) {
+	u := c.baseURL.JoinPath("portrait-character-pro")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Portrait ↔ character job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// No internal style for this size/view
+		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Get portrait ↔ character job status + result
+//
+//	GET /portrait-character-pro/{job_id}
+func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID string) (*GetPortraitCharacterProJobResponse, error) {
+	return c.GetPortraitCharacterProJobWithResult[GetPortraitCharacterProJobResponse](ctx, jobID)
+}
+
+// Get portrait ↔ character job status + result
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /portrait-character-pro/{job_id}
+func (c *Client) GetPortraitCharacterProJobWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+	u := c.baseURL.JoinPath("portrait-character-pro", jobID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Completed sprite metadata + download URL
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetPortraitCharacterProJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Job not found
+		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
+	case http.StatusGone:
+		// Generation failed permanently
+		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Still processing; see Retry-After header
+		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Attach a bust portrait to a character. Free — no generation runs.
+//
+// A portrait is the starting frame for talking animations: `POST /v2/vocal-animation`
+// generates the mouth positions from it. Overwrites any existing portrait.
+//
+// To generate a portrait from a full-body sprite first, use
+// `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
+//
+//	POST /characters/{character_id}/portrait
+func (c *Client) SetCharacterPortrait(ctx context.Context, characterID string, body SetCharacterPortraitRequest) (*SetCharacterPortraitResponse, error) {
+	return c.SetCharacterPortraitWithResult[SetCharacterPortraitResponse](ctx, characterID, body)
+}
+
+// Attach a bust portrait to a character. Free — no generation runs.
+//
+// A portrait is the starting frame for talking animations: `POST /v2/vocal-animation`
+// generates the mouth positions from it. Overwrites any existing portrait.
+//
+// To generate a portrait from a full-body sprite first, use
+// `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/{character_id}/portrait
+func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, characterID string, body SetCharacterPortraitRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID, "portrait")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Portrait stored
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetCharacterPortraitResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found
+		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Image is not a valid PNG, or outside 16-256px
+		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate the set of mouth positions ("visemes") that lets a
+// portrait be lip-synced to any line of text.
+//
+// This is the only step that costs generations, and you pay it once per expression.
+// Turning the result into talking animations with `POST /v2/talking-gif` is free and
+// unlimited.
+//
+// Provide **either**:
+//   - `character_id` — generates from that character's stored portrait and saves the
+//     set onto it, so `/v2/talking-gif` only needs the character id afterwards.
+//   - `portrait` — generates from the image you supply and stores nothing; the mouth
+//     positions come back inline from the GET below for you to keep.
+//
+// Call once per expression (`mood`). `viseme_count` must match across expressions on
+// one character.
+//
+// **Requires a paid plan.**
+//
+// **Usage pattern:**
+//
+//  1. POST here (returns `background_job_id`)
+//
+//  2. Poll `GET /v2/vocal-animation/{background_job_id}` every 10-15 seconds
+//
+//  3. When `status` is `completed`, either the set is on your character, or the
+//     frames are in `visemes`
+//
+//     POST /vocal-animation
+func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnimationRequest) (*CreateVocalAnimationResponse, error) {
+	return c.CreateVocalAnimationWithResult[CreateVocalAnimationResponse](ctx, body)
+}
+
+// Generate the set of mouth positions ("visemes") that lets a
+// portrait be lip-synced to any line of text.
+//
+// This is the only step that costs generations, and you pay it once per expression.
+// Turning the result into talking animations with `POST /v2/talking-gif` is free and
+// unlimited.
+//
+// Provide **either**:
+//   - `character_id` — generates from that character's stored portrait and saves the
+//     set onto it, so `/v2/talking-gif` only needs the character id afterwards.
+//   - `portrait` — generates from the image you supply and stores nothing; the mouth
+//     positions come back inline from the GET below for you to keep.
+//
+// Call once per expression (`mood`). `viseme_count` must match across expressions on
+// one character.
+//
+// **Requires a paid plan.**
+//
+// **Usage pattern:**
+//  1. POST here (returns `background_job_id`)
+//  2. Poll `GET /v2/vocal-animation/{background_job_id}` every 10-15 seconds
+//  3. When `status` is `completed`, either the set is on your character, or the
+//     frames are in `visemes`
+//
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /vocal-animation
+func (c *Client) CreateVocalAnimationWithResult[R any](ctx context.Context, body CreateVocalAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("vocal-animation")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateVocalAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Character has no portrait, or viseme_count mismatch
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient resources
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Requires a paid plan
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Poll a `/v2/vocal-animation` job.
+//
+// Mouth positions stream in as they are produced, so `completed_visemes` fills up
+// while the job runs. On completion, a `character_id` job has saved the set onto the
+// character; a `portrait` job returns the frames in `visemes`.
+//
+//	GET /vocal-animation/{job_id}
+func (c *Client) GetVocalAnimationJob(ctx context.Context, jobID string) (*GetVocalAnimationJobResponse, error) {
+	return c.GetVocalAnimationJobWithResult[GetVocalAnimationJobResponse](ctx, jobID)
+}
+
+// Poll a `/v2/vocal-animation` job.
+//
+// Mouth positions stream in as they are produced, so `completed_visemes` fills up
+// while the job runs. On completion, a `character_id` job has saved the set onto the
+// character; a `portrait` job returns the frames in `visemes`.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /vocal-animation/{job_id}
+func (c *Client) GetVocalAnimationJobWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+	u := c.baseURL.JoinPath("vocal-animation", jobID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Job status (and result when completed)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetVocalAnimationJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Job not found
+		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
+	case http.StatusGone:
+		// Generation failed
+		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Turn a line of text into an animated GIF of the character speaking it.
+//
+// **Free** — this spends no generations. It only re-orders mouth positions that
+// `POST /v2/vocal-animation` already produced, so the cost lands once per expression
+// and every line of dialogue after that is free. Returns immediately; there is no job
+// to poll.
+//
+// Provide **either** `character_id` (plus an optional `mood`) to use the positions
+// stored on a character, **or** `visemes` to pass them in directly.
+//
+// Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
+//
+//	POST /talking-gif
+func (c *Client) TalkingGif(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
+	return c.TalkingGifWithResult[TalkingGifResponse](ctx, body)
+}
+
+// Turn a line of text into an animated GIF of the character speaking it.
+//
+// **Free** — this spends no generations. It only re-orders mouth positions that
+// `POST /v2/vocal-animation` already produced, so the cost lands once per expression
+// and every line of dialogue after that is free. Returns immediately; there is no job
+// to poll.
+//
+// Provide **either** `character_id` (plus an optional `mood`) to use the positions
+// stored on a character, **or** `visemes` to pass them in directly.
+//
+// Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /talking-gif
+func (c *Client) TalkingGifWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
+	u := c.baseURL.JoinPath("talking-gif")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// The GIF
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*TalkingGifResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Character has no mouth positions, or unknown mood
+		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found
+		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error, or the line is too long to encode
+		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Return the frame-by-frame plan for speaking a line — which mouth
+// position to show, for how long, and how far through the text it lands.
+//
+// **Free**, and nothing is rendered: use this instead of `/v2/talking-gif` when you
+// are animating in a game engine and want to drive the mouth yourself rather than
+// play a GIF.
+//
+// With `character_id` the response also carries `grid_url`, `row` and `viseme_order`,
+// which is everything needed to blit the right cell: column comes from each frame,
+// row from the chosen expression.
+//
+// Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
+//
+//	POST /lip-sync
+func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
+	return c.LipSyncWithResult[LipSyncResponse](ctx, body)
+}
+
+// Return the frame-by-frame plan for speaking a line — which mouth
+// position to show, for how long, and how far through the text it lands.
+//
+// **Free**, and nothing is rendered: use this instead of `/v2/talking-gif` when you
+// are animating in a game engine and want to drive the mouth yourself rather than
+// play a GIF.
+//
+// With `character_id` the response also carries `grid_url`, `row` and `viseme_order`,
+// which is everything needed to blit the right cell: column comes from each frame,
+// row from the chosen expression.
+//
+// Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /lip-sync
+func (c *Client) LipSyncWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
+	u := c.baseURL.JoinPath("lip-sync")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// The frame plan
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*LipSyncResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Character has no mouth positions, or unknown mood
+		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found
+		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate a styled pixel-art font from a text description.
+//
+// Produces an 80-glyph atlas plus a ready-to-use TrueType (`.ttf`) font with A-Z,
+// a-z, digits 0-9, and common game-UI punctuation. Returns immediately with a
+// background job ID. Poll `GET /v2/background-jobs/{job_id}`; when `status` is
+// `completed`, `last_response` contains `images[0]` (the glyph atlas PNG) and
+// `ttf_base64` (the font file as base64).
+//
+// **Price:** 15 subscription generations or at least $0.115 in credits. `glyph_px`
+// 8/12/16/24/32/64 is the native bitmap size per glyph.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. On `completed`: decode `ttf_base64` to a `.ttf`; `images[0]` is the atlas
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_font_pro(
+//
+//	description="warm orange arcade font",
+//	weight="Bold",
+//	glyph_px=16,
+//
+// )
+// ```
+//
+//	POST /generate-font-pro
+func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProRequest) (*JobResponse, error) {
+	return c.GenerateFontProWithResult[JobResponse](ctx, body)
+}
+
+// Generate a styled pixel-art font from a text description.
+//
+// Produces an 80-glyph atlas plus a ready-to-use TrueType (`.ttf`) font with A-Z,
+// a-z, digits 0-9, and common game-UI punctuation. Returns immediately with a
+// background job ID. Poll `GET /v2/background-jobs/{job_id}`; when `status` is
+// `completed`, `last_response` contains `images[0]` (the glyph atlas PNG) and
+// `ttf_base64` (the font file as base64).
+//
+// **Price:** 15 subscription generations or at least $0.115 in credits. `glyph_px`
+// 8/12/16/24/32/64 is the native bitmap size per glyph.
+//
+// **Usage Pattern:**
+// 1. POST to this endpoint (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
+// 3. On `completed`: decode `ttf_base64` to a `.ttf`; `images[0]` is the atlas
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// response = client.generate_font_pro(
+//
+//	description="warm orange arcade font",
+//	weight="Bold",
+//	glyph_px=16,
+//
+// )
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /generate-font-pro
+func (c *Client) GenerateFontProWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
+	u := c.baseURL.JoinPath("generate-font-pro")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Font generation job accepted and processing
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Get font-pro job status + result
+//
+//	GET /generate-font-pro/{job_id}
+func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID string) (*GetGenerateFontProJobResponse, error) {
+	return c.GetGenerateFontProJobWithResult[GetGenerateFontProJobResponse](ctx, jobID)
+}
+
+// Get font-pro job status + result
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /generate-font-pro/{job_id}
+func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+	u := c.baseURL.JoinPath("generate-font-pro", jobID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Completed font metadata + download URLs (atlas + ttf)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetGenerateFontProJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Job not found
+		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
+	case http.StatusGone:
+		// Generation failed permanently
+		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Still processing; see Retry-After header
+		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Recover native-resolution pixel art from an upscaled image.
+//
+// Pixel art posted online is almost always scaled up — a 32x32 sprite saved at
+// 512x512. Feeding that to a generation endpoint as a reference wastes detail and
+// confuses the models, because every art pixel is a 16x16 block. This endpoint
+// detects the underlying pixel grid and downsamples back onto it, so you get the
+// 32x32 sprite the artist actually drew.
+//
+// Use it before sending user-supplied artwork to `create-image-bitforge`,
+// `image-to-pixelart` or any endpoint taking a style/reference image.
+//
+// Constraints:
+//   - Minimum 256x256 — grid detection needs enough pixels to find the lattice
+//   - Maximum area 2048x2048
+//   - **The result is opaque.** Grid detection works in RGB, so any transparency in
+//     the input is composited onto WHITE first. Run `/remove-background` on the
+//     result if you need the sprite cut out again.
+//
+// The grid does not have to be uniform: images with slightly uneven pixel sizes
+// (from a lossy resize) are handled.
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/unzoom \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"image": {"base64": "iVBORw0KGgoAAAANS..."}}'
+//
+// ```
+//
+//	POST /unzoom
+func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomResponse, error) {
+	return c.UnzoomWithResult[UnzoomResponse](ctx, body)
+}
+
+// Recover native-resolution pixel art from an upscaled image.
+//
+// Pixel art posted online is almost always scaled up — a 32x32 sprite saved at
+// 512x512. Feeding that to a generation endpoint as a reference wastes detail and
+// confuses the models, because every art pixel is a 16x16 block. This endpoint
+// detects the underlying pixel grid and downsamples back onto it, so you get the
+// 32x32 sprite the artist actually drew.
+//
+// Use it before sending user-supplied artwork to `create-image-bitforge`,
+// `image-to-pixelart` or any endpoint taking a style/reference image.
+//
+// Constraints:
+//   - Minimum 256x256 — grid detection needs enough pixels to find the lattice
+//   - Maximum area 2048x2048
+//   - **The result is opaque.** Grid detection works in RGB, so any transparency in
+//     the input is composited onto WHITE first. Run `/remove-background` on the
+//     result if you need the sprite cut out again.
+//
+// The grid does not have to be uniform: images with slightly uneven pixel sizes
+// (from a lossy resize) are handled.
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/unzoom \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"image": {"base64": "iVBORw0KGgoAAAANS..."}}'
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /unzoom
+func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest) (*R, error) {
+	u := c.baseURL.JoinPath("unzoom")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully unzoomed
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UnzoomResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Image too small or too large
+		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Clean up and refine existing pixel art without changing its size.
+//
+// Sharpens edges, removes stray and anti-aliased pixels, and tightens the palette
+// while keeping the sprite on its existing pixel grid. Useful on art that has been
+// through a lossy pipeline, hand-drawn art that needs tidying, or output from
+// another tool that is nearly-but-not-quite on-grid.
+//
+// This does NOT resize. If your image is an upscaled sprite (each art pixel is a
+// block of screen pixels), run `/unzoom` first to get back to the native grid, then
+// correct.
+//
+//   - Maximum area 1024x1024
+//   - Transparency is preserved — the alpha channel is carried around the model and
+//     re-applied to the result
+//   - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/correct-pixelart \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"images": [{"base64": "iVBORw0KGgoAAAANS..."}], "strength": 0.1}'
+//
+// ```
+//
+//	POST /correct-pixelart
+func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartRequest) (*ImagesResponse, error) {
+	return c.CorrectPixelartWithResult[ImagesResponse](ctx, body)
+}
+
+// Clean up and refine existing pixel art without changing its size.
+//
+// Sharpens edges, removes stray and anti-aliased pixels, and tightens the palette
+// while keeping the sprite on its existing pixel grid. Useful on art that has been
+// through a lossy pipeline, hand-drawn art that needs tidying, or output from
+// another tool that is nearly-but-not-quite on-grid.
+//
+// This does NOT resize. If your image is an upscaled sprite (each art pixel is a
+// block of screen pixels), run `/unzoom` first to get back to the native grid, then
+// correct.
+//
+//   - Maximum area 1024x1024
+//   - Transparency is preserved — the alpha channel is carried around the model and
+//     re-applied to the result
+//   - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/correct-pixelart \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"images": [{"base64": "iVBORw0KGgoAAAANS..."}], "strength": 0.1}'
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /correct-pixelart
+func (c *Client) CorrectPixelartWithResult[R any](ctx context.Context, body CorrectPixelartRequest) (*R, error) {
+	u := c.baseURL.JoinPath("correct-pixelart")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully corrected
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImagesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Quantize images onto a smaller, shared palette.
+//
+// Pixel art reads as pixel art partly because of its restricted palette. AI output
+// and converted artwork often carry hundreds of near-identical colors; this snaps
+// them onto a tight palette, optionally with ordered dithering.
+//
+// Passing several frames in one call is the point of the endpoint: they are
+// quantized together, so an animation or a character's eight directions come back
+// sharing ONE palette instead of drifting apart frame by frame.
+//
+// Three ways to choose the palette:
+// - omit `num_colors` and `palette_image` — the palette size is auto-detected
+// - `num_colors` — quantize to exactly this many colors
+// - `palette_image` — reuse the colors of an existing image (your game's palette)
+//
+// Total size limit across all frames is 512x512 worth of pixels (e.g. sixteen
+// 64x64 frames, or four 128x128).
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/reduce-colors \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"images": [{"base64": "..."}, {"base64": "..."}], "num_colors": 16}'
+//
+// ```
+//
+//	POST /reduce-colors
+func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*ReduceColorsResponse, error) {
+	return c.ReduceColorsWithResult[ReduceColorsResponse](ctx, body)
+}
+
+// Quantize images onto a smaller, shared palette.
+//
+// Pixel art reads as pixel art partly because of its restricted palette. AI output
+// and converted artwork often carry hundreds of near-identical colors; this snaps
+// them onto a tight palette, optionally with ordered dithering.
+//
+// Passing several frames in one call is the point of the endpoint: they are
+// quantized together, so an animation or a character's eight directions come back
+// sharing ONE palette instead of drifting apart frame by frame.
+//
+// Three ways to choose the palette:
+// - omit `num_colors` and `palette_image` — the palette size is auto-detected
+// - `num_colors` — quantize to exactly this many colors
+// - `palette_image` — reuse the colors of an existing image (your game's palette)
+//
+// Total size limit across all frames is 512x512 worth of pixels (e.g. sixteen
+// 64x64 frames, or four 128x128).
+//
+// ```bash
+//
+//	curl -X POST https://api.pixellab.ai/v2/reduce-colors \
+//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
+//	    -H "Content-Type: application/json" \
+//	    -d '{"images": [{"base64": "..."}, {"base64": "..."}], "num_colors": 16}'
+//
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /reduce-colors
+func (c *Client) ReduceColorsWithResult[R any](ctx context.Context, body ReduceColorsRequest) (*R, error) {
+	u := c.baseURL.JoinPath("reduce-colors")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully quantized
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ReduceColorsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Remove the background from a pixel art image, producing a transparent PNG.
+//
+// Supported image size:
+// - Maximum area 400x400
+//
+// **Background Removal Tasks:**
+// - `remove_simple_background` (default) — Faster, works well for simple/solid backgrounds
+// - `remove_complex_background` — Slower, better for complex edges and detailed backgrounds
+//
+// **Optional text hint:** Provide a description of the foreground object to improve accuracy.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+// from PIL import Image
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// source_img = Image.open("character.png")
+//
+// result = client.remove_background(
+//
+//	image=source_img,
+//	image_size=dict(width=64, height=64),
+//
+// )
+// result.image.pil_image().save("character_no_bg.png")
+// ```
+//
+//	POST /remove-background
+func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
+	return c.RemoveBackgroundWithResult[ImageResponse](ctx, body)
+}
+
+// Remove the background from a pixel art image, producing a transparent PNG.
+//
+// Supported image size:
+// - Maximum area 400x400
+//
+// **Background Removal Tasks:**
+// - `remove_simple_background` (default) — Faster, works well for simple/solid backgrounds
+// - `remove_complex_background` — Slower, better for complex edges and detailed backgrounds
+//
+// **Optional text hint:** Provide a description of the foreground object to improve accuracy.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+// from PIL import Image
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// source_img = Image.open("character.png")
+//
+// result = client.remove_background(
+//
+//	image=source_img,
+//	image_size=dict(width=64, height=64),
+//
+// )
+// result.image.pil_image().save("character_no_bg.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /remove-background
+func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
+	u := c.baseURL.JoinPath("remove-background")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully removed background
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Make the normal map of a sprite, so a game engine can light it.
+//
+// The map is a PNG the sprite's size: RGB = which way each pixel faces (red right,
+// green up in the `opengl` convention, blue toward the viewer), alpha 255 wherever the
+// sprite shows and 0 elsewhere.
+// Each part of the sprite gets its own 3D shape, so a moving light shades it like a
+// model. An animation is sent and returned as a horizontal strip, one map per frame,
+// made from one plan so the light stays steady.
+//
+// ### Pro or Lite
+// `mode` `pro` plans each part of the picture: its shape, what is in front, what is sunk
+// (cracks, gaps). `lite` makes the map from the art alone in about a second, for less.
+//
+// ### Look
+// `kind` says what the picture is: `character`, `object`, `topdown`, `side` (a side view:
+// sidescroller tiles, a landscape), `iso` (isometric) or `ui`. Left out, it is read from
+// the picture; set it for sidescroller, isometric and UI art, which are easy to mistake
+// for something else.
+//
+// `strength`, `outline_rounding`, `part_shapes`, `surface_detail` and `detail_softness`
+// tune the map: how far it bends light, how much the outline and the sprite's parts round
+// off, and how much the art's own light and dark become bumps. Each one left out starts
+// where the kind puts it (an isometric box gets flat faces); the job's
+// `last_response.look` says all five.
+//
+// ### Sizes
+// Each frame 8 to 512 px per side, up to 32 frames. Any number of colours. Crop or
+// split a bigger picture; never rescale pixel art.
+//
+// ### Cost
+// Pro 0.5 generation, Lite 0.1 generation, charged only when the map is delivered.
+//
+// ### Usage
+// 1. POST here (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (15-60 s)
+// 3. When `status` is `completed`, the map is `last_response.image` (PNG base64)
+//
+//	POST /normal-map
+func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResponse, error) {
+	return c.NormalMapWithResult[JobResponse](ctx, body)
+}
+
+// Make the normal map of a sprite, so a game engine can light it.
+//
+// The map is a PNG the sprite's size: RGB = which way each pixel faces (red right,
+// green up in the `opengl` convention, blue toward the viewer), alpha 255 wherever the
+// sprite shows and 0 elsewhere.
+// Each part of the sprite gets its own 3D shape, so a moving light shades it like a
+// model. An animation is sent and returned as a horizontal strip, one map per frame,
+// made from one plan so the light stays steady.
+//
+// ### Pro or Lite
+// `mode` `pro` plans each part of the picture: its shape, what is in front, what is sunk
+// (cracks, gaps). `lite` makes the map from the art alone in about a second, for less.
+//
+// ### Look
+// `kind` says what the picture is: `character`, `object`, `topdown`, `side` (a side view:
+// sidescroller tiles, a landscape), `iso` (isometric) or `ui`. Left out, it is read from
+// the picture; set it for sidescroller, isometric and UI art, which are easy to mistake
+// for something else.
+//
+// `strength`, `outline_rounding`, `part_shapes`, `surface_detail` and `detail_softness`
+// tune the map: how far it bends light, how much the outline and the sprite's parts round
+// off, and how much the art's own light and dark become bumps. Each one left out starts
+// where the kind puts it (an isometric box gets flat faces); the job's
+// `last_response.look` says all five.
+//
+// ### Sizes
+// Each frame 8 to 512 px per side, up to 32 frames. Any number of colours. Crop or
+// split a bigger picture; never rescale pixel art.
+//
+// ### Cost
+// Pro 0.5 generation, Lite 0.1 generation, charged only when the map is delivered.
+//
+// ### Usage
+// 1. POST here (returns `background_job_id`)
+// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (15-60 s)
+// 3. When `status` is `completed`, the map is `last_response.image` (PNG base64)
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /normal-map
+func (c *Client) NormalMapWithResult[R any](ctx context.Context, body NormalMapRequest) (*R, error) {
+	u := c.baseURL.JoinPath("normal-map")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*JobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Image outside the supported sizes
+		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Intelligently resize pixel art images while maintaining pixel art aesthetics.
+//
+// Supported image sizes:
+// - Minimum area 16x16 and maximum area 200x200 (both source and target)
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// **Best practices:**
+// - For best results, resize iteratively in small steps
+// - Recommended: At most 50% decrease or 2x increase per resize
+// - Example: 32x32 → 64x64 (2x) is good, 32x32 → 128x128 (4x) should be done in two steps
+//
+// Using the Python client:
+// ```python
+// import pixellab
+// from PIL import Image
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// source_img = Image.open("character_32x32.png")
+//
+// result = client.resize(
+//
+//	description="cute wizard with blue robe",
+//	reference_image=source_img,
+//	reference_image_size=dict(width=32, height=32),
+//	target_size=dict(width=64, height=64),
+//
+// )
+// result.image.pil_image().save("character_64x64.png")
+// ```
+//
+//	POST /resize
+func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {
+	return c.ResizeWithResult[ImageResponse](ctx, body)
+}
+
+// Intelligently resize pixel art images while maintaining pixel art aesthetics.
+//
+// Supported image sizes:
+// - Minimum area 16x16 and maximum area 200x200 (both source and target)
+//
+// Supported features:
+// - Init image
+// - Forced palette
+// - Transparent background
+//
+// **Best practices:**
+// - For best results, resize iteratively in small steps
+// - Recommended: At most 50% decrease or 2x increase per resize
+// - Example: 32x32 → 64x64 (2x) is good, 32x32 → 128x128 (4x) should be done in two steps
+//
+// Using the Python client:
+// ```python
+// import pixellab
+// from PIL import Image
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+//
+// source_img = Image.open("character_32x32.png")
+//
+// result = client.resize(
+//
+//	description="cute wizard with blue robe",
+//	reference_image=source_img,
+//	reference_image_size=dict(width=32, height=32),
+//	target_size=dict(width=64, height=64),
+//
+// )
+// result.image.pil_image().save("character_64x64.png")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /resize
+func (c *Client) ResizeWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
+	u := c.baseURL.JoinPath("resize")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully resized image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Invalid image size constraints
+		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Enhance a Pixen image description.
 //
 // Returns a more detailed, model-friendly prompt that produces better results when passed
@@ -12174,7 +13556,7 @@ func (c *Client) DeleteAnimationsFromCharacterWithResult[R any](ctx context.Cont
 // (small images get short focused prompts, large images get rich detail) and respects
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 //
-//	POST /v2/enhance-pixen-prompt
+//	POST /enhance-pixen-prompt
 func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhancePixenPromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -12187,9 +13569,9 @@ func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPrompt
 // `outline`, `detail`, `view`, `direction`, and `no_background`.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/enhance-pixen-prompt
+//	POST /enhance-pixen-prompt
 func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body EnhancePixenPromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "enhance-pixen-prompt")
+	u := c.baseURL.JoinPath("enhance-pixen-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12269,7 +13651,7 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 // 8 directions automatically) and never describes a background (v3 always renders
 // transparent).
 //
-//	POST /v2/enhance-character-v3-prompt
+//	POST /enhance-character-v3-prompt
 func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhanceCharacterV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -12282,9 +13664,9 @@ func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceChara
 // transparent).
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/enhance-character-v3-prompt
+//	POST /enhance-character-v3-prompt
 func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, body EnhanceCharacterV3PromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "enhance-character-v3-prompt")
+	u := c.baseURL.JoinPath("enhance-character-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12360,7 +13742,11 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 // Enhance an animation action description.
 //
 // Returns a richer motion description suitable for use as the `action` field of
-// `/v2/animate-with-text-v3`. Two modes:
+// `/v2/animate-with-text-v3`, or — with `engine: "pixminimax"` — as the
+// `description` of `/v2/animate-pixminimax` (send the sprite's facing to that route
+// as `direction`); `/v2/animate-pixminimax` can also do this step for you with
+// `enhance_prompt: true`.
+// Two modes:
 //
 //   - **Single-frame mode** (default): provide only `first_frame`. The enhanced prompt
 //     describes how the visible subject animates from that pose.
@@ -12371,7 +13757,7 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 // orientation, clothing) and does not introduce camera moves, cuts, or new objects
 // unless explicitly requested.
 //
-//	POST /v2/enhance-animation-v3-prompt
+//	POST /enhance-animation-v3-prompt
 func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhancedPromptResponse, error) {
 	return c.EnhanceAnimationV3PromptWithResult[EnhancedPromptResponse](ctx, body)
 }
@@ -12379,7 +13765,11 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 // Enhance an animation action description.
 //
 // Returns a richer motion description suitable for use as the `action` field of
-// `/v2/animate-with-text-v3`. Two modes:
+// `/v2/animate-with-text-v3`, or — with `engine: "pixminimax"` — as the
+// `description` of `/v2/animate-pixminimax` (send the sprite's facing to that route
+// as `direction`); `/v2/animate-pixminimax` can also do this step for you with
+// `enhance_prompt: true`.
+// Two modes:
 //
 //   - **Single-frame mode** (default): provide only `first_frame`. The enhanced prompt
 //     describes how the visible subject animates from that pose.
@@ -12391,9 +13781,9 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 // unless explicitly requested.
 // You can define a custom result to unmarshal the response into.
 //
-//	POST /v2/enhance-animation-v3-prompt
+//	POST /enhance-animation-v3-prompt
 func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, body EnhanceAnimationV3PromptRequest) (*R, error) {
-	u := c.baseURL.JoinPath("v2", "enhance-animation-v3-prompt")
+	u := c.baseURL.JoinPath("enhance-animation-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -12461,6 +13851,1472 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Describe an image, or ask anything about it.
+//
+// Send one `image` and get `text` back. Two modes:
+//
+//   - **Describe** (default): omit `prompt`. Returns a 1–3 sentence
+//     image-generation prompt covering subject, pose, notable details, style,
+//     lighting, camera angle and background — ready to paste into a `description`
+//     field of a create endpoint.
+//   - **Ask**: set `prompt` to your own instruction or question. It replaces the
+//     default instruction, so include everything you want the answer to follow
+//     (length, format, what to focus on).
+//
+// The default instruction is:
+//
+// > You are an expert prompt engineer for image generation. Describe the image in 1–3 sentences as an image-generation prompt. Include: subject, pose, notable details, style, lighting, camera angle, background. Avoid speculation about sensitive attributes. Keep it concise.
+//
+// **Cost:** a small fraction of a generation — typically around 0.09 for a
+// sprite or screenshot, more for a long answer. The exact amount is
+// returned in `usage`.
+//
+// Small pixel art is enlarged (whole-number nearest-neighbour) before it is read.
+// When the image has transparency, the model is told so, in both modes — a sprite
+// is described as having a transparent background, not a white one.
+//
+//	POST /image-to-text
+func (c *Client) ImageToText(ctx context.Context, body ImageToTextRequest) (*ImageToTextResponse, error) {
+	return c.ImageToTextWithResult[ImageToTextResponse](ctx, body)
+}
+
+// Describe an image, or ask anything about it.
+//
+// Send one `image` and get `text` back. Two modes:
+//
+//   - **Describe** (default): omit `prompt`. Returns a 1–3 sentence
+//     image-generation prompt covering subject, pose, notable details, style,
+//     lighting, camera angle and background — ready to paste into a `description`
+//     field of a create endpoint.
+//   - **Ask**: set `prompt` to your own instruction or question. It replaces the
+//     default instruction, so include everything you want the answer to follow
+//     (length, format, what to focus on).
+//
+// The default instruction is:
+//
+// > You are an expert prompt engineer for image generation. Describe the image in 1–3 sentences as an image-generation prompt. Include: subject, pose, notable details, style, lighting, camera angle, background. Avoid speculation about sensitive attributes. Keep it concise.
+//
+// **Cost:** a small fraction of a generation — typically around 0.09 for a
+// sprite or screenshot, more for a long answer. The exact amount is
+// returned in `usage`.
+//
+// Small pixel art is enlarged (whole-number nearest-neighbour) before it is read.
+// When the image has transparency, the model is told so, in both modes — a sprite
+// is described as having a transparent background, not a white one.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /image-to-text
+func (c *Client) ImageToTextWithResult[R any](ctx context.Context, body ImageToTextRequest) (*R, error) {
+	u := c.baseURL.JoinPath("image-to-text")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Text returned
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImageToTextResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient credits
+		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error, unreadable or oversized image
+		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
+	case http.StatusServiceUnavailable:
+		// Temporarily unavailable upstream; retry
+		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Check the status and results of a background job.
+//
+// This endpoint allows you to monitor the progress of background operations like
+// character creation and animation generation. Background jobs are used for
+// expensive operations that take time to complete.
+//
+// **Job Statuses:**
+// - `processing` - Job is currently running
+// - `completed` - Job finished successfully
+// - `failed` - Job encountered an error
+//
+// **Usage Pattern:**
+// 1. Create a character or animation (returns `background_job_id`)
+// 2. Poll this endpoint periodically to check status
+// 3. When status is `completed`, access results in `last_response`
+//
+// **Response Data:**
+// - For character creation: `character_id`, `directions_count`, character info
+// - For animations: `animation_id`, `frame_count`, animation details
+// - Storage information and file organization details
+//
+// **Authentication:**
+// Requires a valid API token. You can only access jobs you created.
+//
+// **Error Handling:**
+// - 404: Job not found or doesn't belong to you
+// - Jobs are automatically cleaned up after completion
+//
+// **Polling Recommendations:**
+//
+//   - Poll every 5-10 seconds while status is `processing`
+//
+//   - Stop polling once status is `completed` or `failed`
+//
+//   - While `processing`, `last_response.queue_position` and
+//     `last_response.estimated_wait_seconds` show a job waiting for a GPU
+//
+//   - To stop a job, `DELETE /v2/background-jobs/{job_id}`
+//
+//   - Character creation typically takes 30-60 seconds
+//
+//   - Animations may take longer depending on frame count and directions
+//
+//     GET /background-jobs/{job_id}
+func (c *Client) GetBackgroundJob(ctx context.Context, jobID string) (*GetBackgroundJobResponse, error) {
+	return c.GetBackgroundJobWithResult[GetBackgroundJobResponse](ctx, jobID)
+}
+
+// Check the status and results of a background job.
+//
+// This endpoint allows you to monitor the progress of background operations like
+// character creation and animation generation. Background jobs are used for
+// expensive operations that take time to complete.
+//
+// **Job Statuses:**
+// - `processing` - Job is currently running
+// - `completed` - Job finished successfully
+// - `failed` - Job encountered an error
+//
+// **Usage Pattern:**
+// 1. Create a character or animation (returns `background_job_id`)
+// 2. Poll this endpoint periodically to check status
+// 3. When status is `completed`, access results in `last_response`
+//
+// **Response Data:**
+// - For character creation: `character_id`, `directions_count`, character info
+// - For animations: `animation_id`, `frame_count`, animation details
+// - Storage information and file organization details
+//
+// **Authentication:**
+// Requires a valid API token. You can only access jobs you created.
+//
+// **Error Handling:**
+// - 404: Job not found or doesn't belong to you
+// - Jobs are automatically cleaned up after completion
+//
+// **Polling Recommendations:**
+//   - Poll every 5-10 seconds while status is `processing`
+//   - Stop polling once status is `completed` or `failed`
+//   - While `processing`, `last_response.queue_position` and
+//     `last_response.estimated_wait_seconds` show a job waiting for a GPU
+//   - To stop a job, `DELETE /v2/background-jobs/{job_id}`
+//   - Character creation typically takes 30-60 seconds
+//   - Animations may take longer depending on frame count and directions
+//
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /background-jobs/{job_id}
+func (c *Client) GetBackgroundJobWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+	u := c.baseURL.JoinPath("background-jobs", jobID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved job status
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetBackgroundJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Job not found or doesn't belong to user
+		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusTooManyRequests:
+		// Too many requests
+		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Cancel a background job that is still `processing`.
+//
+//   - Frees your concurrency slot immediately, so you can submit new work.
+//
+//   - A job still waiting in the queue is removed and not charged. Billing only
+//     covers work a GPU actually did, so a generation that is already running may
+//     still finish and be charged.
+//
+//   - A job you resubmit starts at the back of the queue. While a job is
+//     `processing`, `last_response.queue_position` and
+//     `last_response.estimated_wait_seconds` (from GET
+//     `/v2/background-jobs/{job_id}`) show that it is waiting for a GPU. A waiting
+//     job is not stuck, and cancelling it to resubmit makes the wait longer.
+//
+//     DELETE /background-jobs/{job_id}
+func (c *Client) CancelBackgroundJob(ctx context.Context, jobID string) (*CancelBackgroundJobResponse, error) {
+	return c.CancelBackgroundJobWithResult[CancelBackgroundJobResponse](ctx, jobID)
+}
+
+// Cancel a background job that is still `processing`.
+//
+//   - Frees your concurrency slot immediately, so you can submit new work.
+//   - A job still waiting in the queue is removed and not charged. Billing only
+//     covers work a GPU actually did, so a generation that is already running may
+//     still finish and be charged.
+//   - A job you resubmit starts at the back of the queue. While a job is
+//     `processing`, `last_response.queue_position` and
+//     `last_response.estimated_wait_seconds` (from GET
+//     `/v2/background-jobs/{job_id}`) show that it is waiting for a GPU. A waiting
+//     job is not stuck, and cancelling it to resubmit makes the wait longer.
+//
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /background-jobs/{job_id}
+func (c *Client) CancelBackgroundJobWithResult[R any](ctx context.Context, jobID string) (*R, error) {
+	u := c.baseURL.JoinPath("background-jobs", jobID)
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Job cancelled
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CancelBackgroundJobResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Job already completed or failed; nothing to cancel
+		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Job not found or doesn't belong to user
+		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Job completed while the cancel was being applied
+		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Create one native pixel-art image with an optional left-box style image.
+//
+// Poll GET /v2/background-jobs/{background_job_id}; completed last_response
+// contains encoded PNGs, image_url, source_image_id and actual billing usage.
+// Download through /mcp/images/{background_job_id}/download. Save the durable
+// source_image_id for later Pro Flash character/object rotations. Five image
+// generation units provisionally; query /v2/pro-flash/cost for current pricing.
+//
+// Optional colour palette (`target_palette`, beta): 2-256 hex colours the image
+// is drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, any
+// Lospec palette as hex), plus an optional `max_colors` cap. The style image
+// keeps lending its look; its colours give way to the palette.
+//
+//	POST /create-image-pro-flash
+func (c *Client) CreateImageProFlash(ctx context.Context, body CreateImageProFlashRequest) (*ProFlashImageResponse, error) {
+	return c.CreateImageProFlashWithResult[ProFlashImageResponse](ctx, body)
+}
+
+// Create one native pixel-art image with an optional left-box style image.
+//
+// Poll GET /v2/background-jobs/{background_job_id}; completed last_response
+// contains encoded PNGs, image_url, source_image_id and actual billing usage.
+// Download through /mcp/images/{background_job_id}/download. Save the durable
+// source_image_id for later Pro Flash character/object rotations. Five image
+// generation units provisionally; query /v2/pro-flash/cost for current pricing.
+//
+// Optional colour palette (`target_palette`, beta): 2-256 hex colours the image
+// is drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, any
+// Lospec palette as hex), plus an optional `max_colors` cap. The style image
+// keeps lending its look; its colours give way to the palette.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-image-pro-flash
+func (c *Client) CreateImageProFlashWithResult[R any](ctx context.Context, body CreateImageProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-image-pro-flash")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ProFlashImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Edit one image at a supported native size using an instruction or reference.
+//
+// Query /v2/pro-flash/capabilities for exact native shapes. The source canvas
+// never grows or resizes. Reference art must fit the source canvas. Poll
+// /v2/background-jobs/{background_job_id}, then use its image_url or download.
+//
+//	POST /edit-image-pro-flash
+func (c *Client) EditImageProFlash(ctx context.Context, body EditImageProFlashRequest) (*ProFlashImageResponse, error) {
+	return c.EditImageProFlashWithResult[ProFlashImageResponse](ctx, body)
+}
+
+// Edit one image at a supported native size using an instruction or reference.
+//
+// Query /v2/pro-flash/capabilities for exact native shapes. The source canvas
+// never grows or resizes. Reference art must fit the source canvas. Poll
+// /v2/background-jobs/{background_job_id}, then use its image_url or download.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /edit-image-pro-flash
+func (c *Client) EditImageProFlashWithResult[R any](ctx context.Context, body EditImageProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("edit-image-pro-flash")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ProFlashImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Replace only white mask pixels, preserving unmasked RGBA exactly.
+//
+// Source and mask must have identical supported native dimensions. Mask RGB
+// must be pure black/white; alpha does not change mask meaning. Empty masks
+// are rejected. Changes-only outputs are transparent outside the mask;
+// Modify current layer returns the full composite. Optional native context
+// requires its source bounding_box. Poll the returned background job.
+//
+//	POST /inpaint-image-pro-flash
+func (c *Client) InpaintImageProFlash(ctx context.Context, body InpaintImageProFlashRequest) (*ProFlashImageResponse, error) {
+	return c.InpaintImageProFlashWithResult[ProFlashImageResponse](ctx, body)
+}
+
+// Replace only white mask pixels, preserving unmasked RGBA exactly.
+//
+// Source and mask must have identical supported native dimensions. Mask RGB
+// must be pure black/white; alpha does not change mask meaning. Empty masks
+// are rejected. Changes-only outputs are transparent outside the mask;
+// Modify current layer returns the full composite. Optional native context
+// requires its source bounding_box. Poll the returned background job.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /inpaint-image-pro-flash
+func (c *Client) InpaintImageProFlashWithResult[R any](ctx context.Context, body InpaintImageProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("inpaint-image-pro-flash")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ProFlashImageResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate a south-facing image from description, then create eight V3 views.
+//
+// First-direction generation is included in this one call. Supply image_size
+// and optional style_image to guide creation. Alternatively pass source_image_id
+// or first_frame to reuse a chosen south-facing image and pay only for rotations.
+// Pixels are preserved with transparent padding to the square V3 canvas.
+// Poll the job for itemized billing_stages and combined usage, then read
+// /v2/characters/{character_id} or download /mcp/characters/{character_id}/download.
+//
+//	POST /create-character-pro-flash
+func (c *Client) CreateCharacterProFlash(ctx context.Context, body CreateCharacterProFlashRequest) (*CreateCharacterProFlashResponse, error) {
+	return c.CreateCharacterProFlashWithResult[CreateCharacterProFlashResponse](ctx, body)
+}
+
+// Generate a south-facing image from description, then create eight V3 views.
+//
+// First-direction generation is included in this one call. Supply image_size
+// and optional style_image to guide creation. Alternatively pass source_image_id
+// or first_frame to reuse a chosen south-facing image and pay only for rotations.
+// Pixels are preserved with transparent padding to the square V3 canvas.
+// Poll the job for itemized billing_stages and combined usage, then read
+// /v2/characters/{character_id} or download /mcp/characters/{character_id}/download.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-character-pro-flash
+func (c *Client) CreateCharacterProFlashWithResult[R any](ctx context.Context, body CreateCharacterProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-character-pro-flash")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateCharacterProFlashResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Generate a south-facing object from description and optionally add V3 views.
+//
+// First-direction generation is included in this one call. Set image_size and
+// optional style_image; n_directions=1 generates one image, n_directions=8 also
+// generates rotations. Alternatively pass source_image_id or first_frame to
+// reuse a chosen image: one-direction finalization is then free and eight views
+// charge only rotations. Objects have no skeleton. The job reports billing_stages.
+// Poll the job, then read /v2/objects/{object_id}; download through
+// /mcp/objects/{object_id}/download (one-direction PNG or eight-direction ZIP).
+//
+//	POST /create-object-pro-flash
+func (c *Client) CreateObjectProFlash(ctx context.Context, body CreateObjectProFlashRequest) (*CreateObjectProFlashResponse, error) {
+	return c.CreateObjectProFlashWithResult[CreateObjectProFlashResponse](ctx, body)
+}
+
+// Generate a south-facing object from description and optionally add V3 views.
+//
+// First-direction generation is included in this one call. Set image_size and
+// optional style_image; n_directions=1 generates one image, n_directions=8 also
+// generates rotations. Alternatively pass source_image_id or first_frame to
+// reuse a chosen image: one-direction finalization is then free and eight views
+// charge only rotations. Objects have no skeleton. The job reports billing_stages.
+// Poll the job, then read /v2/objects/{object_id}; download through
+// /mcp/objects/{object_id}/download (one-direction PNG or eight-direction ZIP).
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-object-pro-flash
+func (c *Client) CreateObjectProFlashWithResult[R any](ctx context.Context, body CreateObjectProFlashRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-object-pro-flash")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateObjectProFlashResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Get native presets, beta creation dimensions and supported controls.
+//
+//	GET /pro-flash/capabilities
+func (c *Client) GetProFlashCapabilities(ctx context.Context) error {
+	u := c.baseURL.JoinPath("pro-flash", "capabilities")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Separate provisional first-image and V3 rotation generation units.
+//
+// The total includes the first direction and requested rotations in one call. Finishing an
+// already-paid preview only charges the rotations component; a one-direction
+// object finalization is free. Actual billed usage is reported on job completion.
+//
+//	GET /pro-flash/cost
+func (c *Client) GetProFlashCost(ctx context.Context, params GetProFlashCostParams) error {
+	u := c.baseURL.JoinPath("pro-flash", "cost")
+
+	q := make(url.Values, 4)
+
+	q["operation"] = []string{string(params.Operation)}
+
+	q["width"] = []string{strconv.Itoa(params.Width)}
+
+	q["height"] = []string{strconv.Itoa(params.Height)}
+
+	if params.NDirections != 0 {
+		q["n_directions"] = []string{strconv.Itoa(params.NDirections)}
+	}
+
+	u.RawQuery = q.Encode()
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out struct{}
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(struct{})
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return api.NewErrCustom(rsp, &out)
+		default:
+			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Returns the current balance for your account, including both USD credits and remaining subscription generations.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+// balance = client.get_balance()
+// print(f"Credits: ${balance.credits.usd}")
+// print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
+// ```
+//
+//	GET /balance
+func (c *Client) GetBalance(ctx context.Context) (*GetBalanceResponse, error) {
+	return c.GetBalanceWithResult[GetBalanceResponse](ctx)
+}
+
+// Returns the current balance for your account, including both USD credits and remaining subscription generations.
+//
+// Using the Python client:
+// ```python
+// import pixellab
+//
+// client = pixellab.Client(secret="YOUR_API_TOKEN")
+// balance = client.get_balance()
+// print(f"Credits: ${balance.credits.usd}")
+// print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
+// ```
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /balance
+func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
+	u := c.baseURL.JoinPath("balance")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successfully retrieved balance
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetBalanceResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetBalance: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Store an image for 3 days and return the reference tools accept.
+//
+// Free: no generation runs, so nothing is charged.
+//
+//	POST /uploads
+func (c *Client) CreateUpload(ctx context.Context, body UploadRequest) (*UploadedImage, error) {
+	return c.CreateUploadWithResult[UploadedImage](ctx, body)
+}
+
+// Store an image for 3 days and return the reference tools accept.
+//
+// Free: no generation runs, so nothing is charged.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /uploads
+func (c *Client) CreateUploadWithResult[R any](ctx context.Context, body UploadRequest) (*R, error) {
+	u := c.baseURL.JoinPath("uploads")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"multipart/form-data"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UploadedImage); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Same upload, authorised by the URL instead of a bearer token.
+//
+// For agents that hold an MCP connection but cannot read its token: the MCP
+// tool `get_upload_url` returns a URL that works here for 15 minutes. The
+// ticket only uploads, and only as the user it was issued to.
+//
+//	POST /uploads/{ticket}
+func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body UploadRequest) (*UploadedImage, error) {
+	return c.UploadWithTicketWithResult[UploadedImage](ctx, ticket, body)
+}
+
+// Same upload, authorised by the URL instead of a bearer token.
+//
+// For agents that hold an MCP connection but cannot read its token: the MCP
+// tool `get_upload_url` returns a URL that works here for 15 minutes. The
+// ticket only uploads, and only as the user it was issued to.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /uploads/{ticket}
+func (c *Client) UploadWithTicketWithResult[R any](ctx context.Context, ticket string, body UploadRequest) (*R, error) {
+	u := c.baseURL.JoinPath("uploads", ticket)
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"multipart/form-data"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UploadedImage); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12478,9 +15334,9 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 // - `@api.pixellab.ai/v2/llms.txt` in Claude
 // - Direct URL access for other tools
 //
-//	GET /v2/llms.txt
-func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, error) {
-	u := c.baseURL.JoinPath("v2", "llms.txt")
+//	GET /llms.txt
+func (c *Client) GetAPIDocs(ctx context.Context) ([]byte, error) {
+	u := c.baseURL.JoinPath("llms.txt")
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -12511,121 +15367,6 @@ func (c *Client) GetLlmFriendlyAPIDocumentation(ctx context.Context) ([]byte, er
 			}
 
 			return out, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// GET /v2/characters/{character_id}/spritesheet
-func (c *Client) ExportCharacterSpritesheet(ctx context.Context, characterID uuid.UUID) (io.ReadCloser, error) {
-	u := c.baseURL.JoinPath("v2", "characters", characterID.String(), "spritesheet")
-	req := (&http.Request{
-		Header: http.Header{
-			"User-Agent": []string{c.userAgent},
-		},
-		Host:       u.Host,
-		Method:     http.MethodGet,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		URL:        u,
-	}).WithContext(ctx)
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// the body is left open only when it is handed to the caller
-	streaming := false
-	defer func() {
-		if !streaming {
-			rsp.Body.Close()
-		}
-	}()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// OK
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/zip":
-			streaming = true
-
-			return rsp.Body, nil
-		default:
-			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
-		}
-	default:
-		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
-	}
-}
-
-// POST /animate-with-text-v3/character/background
-func (c *Client) AnimateCharacterBackground(ctx context.Context, body *AnimateCharacterBackground) (*BackgroundJob, error) {
-	return c.AnimateCharacterBackgroundWithResult[BackgroundJob](ctx, body)
-}
-
-// POST /animate-with-text-v3/character/background
-func (c *Client) AnimateCharacterBackgroundWithResult[R any](ctx context.Context, body *AnimateCharacterBackground) (*R, error) {
-	u := c.baseURL.JoinPath("animate-with-text-v3", "character", "background")
-	pr, pw := io.Pipe()
-	req := (&http.Request{
-		Header: http.Header{
-			"Authorization": []string{c.bearer},
-			"User-Agent":    []string{c.userAgent},
-			"Content-Type":  []string{"application/json"},
-		},
-		Host:          u.Host,
-		Method:        http.MethodPost,
-		Proto:         "HTTP/1.1",
-		ProtoMajor:    1,
-		ProtoMinor:    1,
-		URL:           u,
-		Body:          pr,
-		ContentLength: -1,
-	}).WithContext(ctx)
-
-	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
-	defer pr.Close()
-
-	rsp, ia, err := c.do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer rsp.Body.Close()
-
-	switch rsp.StatusCode {
-	case http.StatusOK:
-		// OK
-		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*BackgroundJob); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(R)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return &out, nil
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
