@@ -48,6 +48,10 @@ func run(ctx context.Context) error {
 
 	transform(doc)
 
+	if err := typeStrings(doc, false); err != nil {
+		return err
+	}
+
 	if err := nameModels(doc); err != nil {
 		return err
 	}
@@ -61,6 +65,10 @@ func run(ctx context.Context) error {
 	}
 
 	if err := applyPasses(doc); err != nil {
+		return err
+	}
+
+	if err := typeStrings(doc, true); err != nil {
 		return err
 	}
 

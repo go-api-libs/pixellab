@@ -1271,7 +1271,7 @@
     "/characters/{character_id}/animations": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/character_id6"
+          "$ref": "#/components/parameters/character_id"
         },
         {
           "$ref": "#/components/parameters/animation_type2"
@@ -1320,7 +1320,7 @@
     "/characters/{character_id}/animations/{animation_group_id}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/character_id6"
+          "$ref": "#/components/parameters/character_id"
         },
         {
           "$ref": "#/components/parameters/animation_group_id3"
@@ -1357,7 +1357,7 @@
     "/characters/{character_id}/animations/{animation_group_id}/directions/{direction}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/character_id6"
+          "$ref": "#/components/parameters/character_id"
         },
         {
           "$ref": "#/components/parameters/animation_group_id3"
@@ -2203,7 +2203,7 @@
         "operationId": "DeleteTileset",
         "parameters": [
           {
-            "$ref": "#/components/parameters/tileset_id2"
+            "$ref": "#/components/parameters/tileset_id"
           }
         ],
         "responses": {
@@ -2347,7 +2347,7 @@
         "operationId": "DeleteSidescrollerTileset",
         "parameters": [
           {
-            "$ref": "#/components/parameters/tileset_id2"
+            "$ref": "#/components/parameters/tileset_id"
           }
         ],
         "responses": {
@@ -2454,7 +2454,7 @@
         "operationId": "DeleteTilesPro",
         "parameters": [
           {
-            "$ref": "#/components/parameters/tile_id2"
+            "$ref": "#/components/parameters/tile_id"
           }
         ],
         "responses": {
@@ -2604,7 +2604,7 @@
         "operationId": "DeleteIsometricTile",
         "parameters": [
           {
-            "$ref": "#/components/parameters/tile_id2"
+            "$ref": "#/components/parameters/tile_id"
           }
         ],
         "responses": {
@@ -2703,7 +2703,7 @@
     "/map-objects/{object_id}": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/object_id10"
+          "$ref": "#/components/parameters/object_id"
         }
       ],
       "get": {
@@ -4575,8 +4575,7 @@
         "type": "object",
         "properties": {
           "direction": {
-            "title": "Direction",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "frame_count": {
             "title": "Frame Count",
@@ -4587,7 +4586,8 @@
             "description": "Public URLs for each frame in order",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uri"
             }
           }
         },
@@ -4614,7 +4614,8 @@
           "animation_group_id": {
             "title": "Animation Group Id",
             "description": "ID of this animation. Every direction of it shares this id, and it is what the PixelLab website groups animations by. Use it to delete the animation ([DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id})) or add directions to it ([animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`).",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "directions": {
             "title": "Directions",
@@ -4640,7 +4641,8 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for polling generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -4796,8 +4798,6 @@
           "low top-down",
           "high top-down",
           "side",
-          "top-down",
-          "sidescroller",
           "oblique"
         ]
       },
@@ -4812,7 +4812,8 @@
           "id": {
             "title": "Id",
             "description": "Background job ID",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -4841,12 +4842,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for tracking generation progress.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "character_id": {
             "title": "Character Id",
             "description": "Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -4969,8 +4972,7 @@
         "type": "object",
         "properties": {
           "view": {
-            "type": "string",
-            "example": "low top-down"
+            "$ref": "#/components/schemas/CameraView"
           },
           "format": {
             "type": "string",
@@ -4981,8 +4983,7 @@
             "example": "estimated"
           },
           "direction": {
-            "type": "string",
-            "example": "south"
+            "$ref": "#/components/schemas/Direction"
           },
           "keypoints": {
             "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypoints"
@@ -5102,7 +5103,8 @@
           "id": {
             "title": "Id",
             "description": "Unique character identifier",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -5149,9 +5151,8 @@
             "type": "string"
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "status": {
             "title": "Status",
@@ -5266,8 +5267,7 @@
             "maximum": 256
           },
           "view": {
-            "description": "One of: top-down, sidescroller. Defaults to \"top-down\".",
-            "$ref": "#/components/schemas/CameraView"
+            "$ref": "#/components/schemas/Create1DirectionObjectRequestView"
           },
           "style_images": {
             "title": "Style Images",
@@ -5304,6 +5304,16 @@
           "view": "top-down"
         }
       },
+      "Create1DirectionObjectRequestView": {
+        "title": "View",
+        "description": "View.",
+        "type": "string",
+        "enum": [
+          "top-down",
+          "sidescroller"
+        ],
+        "default": "top-down"
+      },
       "Create1DirectionObjectResponse": {
         "title": "Create1DirectionObjectResponse",
         "description": "Response model for 1-direction object creation.",
@@ -5314,11 +5324,13 @@
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "object_id": {
             "title": "Object Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -5397,7 +5409,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "ID of existing character to animate",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "animation_group_id": {
             "title": "Animation Group Id",
@@ -5482,19 +5495,16 @@
             "default": 8.0
           },
           "outline": {
-            "title": "Outline",
             "description": "Outline style (uses character's original if not specified). Template mode only.",
-            "type": "string"
+            "$ref": "#/components/schemas/Outline"
           },
           "shading": {
-            "title": "Shading",
             "description": "Shading style (uses character's original if not specified). Template mode only.",
-            "type": "string"
+            "$ref": "#/components/schemas/Shading"
           },
           "detail": {
-            "title": "Detail",
             "description": "Detail level (uses character's original if not specified). Template mode only.",
-            "type": "string"
+            "$ref": "#/components/schemas/Detail"
           },
           "directions": {
             "$ref": "#/components/schemas/CreateCharacterAnimationRequestDirections"
@@ -5575,7 +5585,8 @@
             "description": "List of background job IDs (one per direction)",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           "directions": {
@@ -5583,13 +5594,14 @@
             "description": "List of directions being animated",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Direction"
             }
           },
           "animation_group_id": {
             "title": "Animation Group Id",
             "description": "The group these directions belong to. Pass it back on a later call to add more directions to the same animation.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -5719,11 +5731,13 @@
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "character_id": {
             "title": "Character Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -5908,16 +5922,12 @@
             "default": true
           },
           "outline": {
-            "title": "Outline",
             "description": "Outline style hint for from-scratch mode (soft guidance — the model may not follow exactly). Ignored when reference_image is provided.",
-            "type": "string",
-            "default": "single color black outline"
+            "$ref": "#/components/schemas/Outline"
           },
           "detail": {
-            "title": "Detail",
             "description": "Detail level hint for from-scratch mode (soft guidance — the model may not follow exactly). Ignored when reference_image is provided.",
-            "type": "string",
-            "default": "medium detail"
+            "$ref": "#/components/schemas/Detail"
           },
           "enhance_prompt": {
             "title": "Enhance Prompt",
@@ -5995,12 +6005,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for tracking generation progress.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "character_id": {
             "title": "Character Id",
             "description": "Character ID — available immediately, but rotations land asynchronously. Character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded, and the 3D skeleton is reconstructed.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -6036,7 +6048,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "ID of the source character",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "edit_description": {
             "title": "Edit Description",
@@ -6117,22 +6130,16 @@
             "default": 8.0
           },
           "outline": {
-            "title": "Outline",
             "description": "Outline style hint (soft guidance — the model may not follow exactly). Options: single color black outline, single color outline, selective outline, lineless",
-            "type": "string",
-            "default": "single color black outline"
+            "$ref": "#/components/schemas/Outline"
           },
           "shading": {
-            "title": "Shading",
             "description": "Shading style hint (soft guidance — the model may not follow exactly). Options: flat shading, basic shading, medium shading, detailed shading",
-            "type": "string",
-            "default": "basic shading"
+            "$ref": "#/components/schemas/Shading"
           },
           "detail": {
-            "title": "Detail",
             "description": "Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail",
-            "type": "string",
-            "default": "medium detail"
+            "$ref": "#/components/schemas/Detail"
           },
           "view": {
             "description": "Camera view: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down; max 128x128).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
@@ -6237,22 +6244,16 @@
             "default": 8.0
           },
           "outline": {
-            "title": "Outline",
             "description": "Outline style hint (soft guidance — the model may not follow exactly). Options: single color black outline, single color outline, selective outline, lineless",
-            "type": "string",
-            "default": "single color black outline"
+            "$ref": "#/components/schemas/Outline"
           },
           "shading": {
-            "title": "Shading",
             "description": "Shading style hint (soft guidance — the model may not follow exactly). Options: flat shading, basic shading, medium shading, detailed shading",
-            "type": "string",
-            "default": "basic shading"
+            "$ref": "#/components/schemas/Shading"
           },
           "detail": {
-            "title": "Detail",
             "description": "Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail",
-            "type": "string",
-            "default": "medium detail"
+            "$ref": "#/components/schemas/Detail"
           },
           "view": {
             "description": "Camera view: \"low top-down\", \"high top-down\" or \"side\". \"oblique\" is 4 directions only (create-character-with-4-directions).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
@@ -7082,7 +7083,8 @@
           },
           "animation_group_id": {
             "title": "Animation Group Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "mode": {
             "$ref": "#/components/schemas/CreateObjectAnimationMode"
@@ -7101,7 +7103,8 @@
           },
           "object_id": {
             "title": "Object Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "submissions": {
             "title": "Submissions",
@@ -7211,11 +7214,13 @@
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "object_id": {
             "title": "Object Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -7279,8 +7284,7 @@
         "type": "object",
         "properties": {
           "direction": {
-            "description": "One of: portrait_to_character, character_to_portrait. Defaults to \"portrait_to_character\".",
-            "$ref": "#/components/schemas/Direction"
+            "$ref": "#/components/schemas/CreatePortraitCharacterProRequestDirection"
           },
           "image": {
             "description": "Input image as base64 PNG/JPEG (a portrait or a character, matching `direction`).",
@@ -7328,6 +7332,16 @@
           "seed": 42,
           "view": "low top-down"
         }
+      },
+      "CreatePortraitCharacterProRequestDirection": {
+        "title": "Direction",
+        "description": "portrait_to_character: input is a bust portrait, output a full-body character sprite. character_to_portrait: input is a full-body character, output a bust portrait.",
+        "type": "string",
+        "enum": [
+          "portrait_to_character",
+          "character_to_portrait"
+        ],
+        "default": "portrait_to_character"
       },
       "CreateSidescrollerTilesetRequest": {
         "title": "CreateTilesetSidescrollerRequest",
@@ -7940,7 +7954,8 @@
           "project_id": {
             "title": "Project Id",
             "description": "If set, assign the finished asset to this project",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
@@ -7980,12 +7995,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for polling status",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "ui_asset_id": {
             "title": "Ui Asset Id",
             "description": "UI asset ID (available immediately; poll until ready)",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -8081,7 +8098,8 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID to poll",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -8107,7 +8125,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "Generate from this character's stored portrait and save the result onto it. Required if you want to use `character_id` with /v2/talking-gif. Mutually exclusive with `portrait`.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "portrait": {
             "description": "Generate from this image instead and store nothing — the mouth positions come back inline. Max 256x256. Mutually exclusive with `character_id`.",
@@ -8159,7 +8178,8 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Poll GET /v2/vocal-animation/{id}",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -8247,14 +8267,15 @@
           "animation_group_id": {
             "title": "Animation Group Id",
             "description": "The animation the rows belonged to",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "deleted_directions": {
             "title": "Deleted Directions",
             "description": "Directions removed, one animation row each",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/Direction"
             }
           },
           "label": {
@@ -8285,7 +8306,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "ID of the deleted character",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "files_deleted": {
             "title": "Files Deleted",
@@ -8333,7 +8355,8 @@
           "object_id": {
             "title": "Object Id",
             "description": "ID of the deleted object",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "error": {
             "title": "Error",
@@ -8360,7 +8383,8 @@
           "tile_id": {
             "title": "Tile Id",
             "description": "ID of the deleted tile",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "error": {
             "title": "Error",
@@ -8387,7 +8411,8 @@
           "tileset_id": {
             "title": "Tileset Id",
             "description": "ID of the deleted tileset",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "error": {
             "title": "Error",
@@ -8438,9 +8463,7 @@
           "south-west",
           "north-east",
           "north-west",
-          "none",
-          "portrait_to_character",
-          "character_to_portrait"
+          "none"
         ]
       },
       "DirectionSubmission": {
@@ -8448,15 +8471,15 @@
         "type": "object",
         "properties": {
           "direction": {
-            "title": "Direction",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "status": {
             "$ref": "#/components/schemas/DirectionSubmissionStatus"
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "animation_id": {
             "title": "Animation Id",
@@ -8957,14 +8980,12 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "outline": {
-            "title": "Outline",
             "description": "Outline style hint (soft guidance — same as create-character-v3).",
-            "type": "string"
+            "$ref": "#/components/schemas/Outline"
           },
           "detail": {
-            "title": "Detail",
             "description": "Detail level hint (soft guidance — same as create-character-v3).",
-            "type": "string"
+            "$ref": "#/components/schemas/Detail"
           }
         },
         "required": [
@@ -9620,15 +9641,13 @@
             "example": "error"
           },
           "view": {
-            "type": "string",
-            "example": "low top-down"
+            "$ref": "#/components/schemas/CameraView"
           },
           "trace": {
             "type": "null"
           },
           "detail": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+            "$ref": "#/components/schemas/Detail"
           },
           "status": {
             "type": "string",
@@ -9908,10 +9927,8 @@
             "example": "mannequin"
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used",
-            "type": "string",
-            "example": "low top-down"
+            "$ref": "#/components/schemas/CameraView"
           },
           "status": {
             "title": "Status",
@@ -10228,16 +10245,13 @@
         "type": "object",
         "properties": {
           "detail": {
-            "type": "string",
-            "example": "low detail"
+            "$ref": "#/components/schemas/Detail"
           },
           "outline": {
-            "type": "string",
-            "example": "single color black outline"
+            "$ref": "#/components/schemas/Outline"
           },
           "shading": {
-            "type": "string",
-            "example": "basic shading"
+            "$ref": "#/components/schemas/Shading"
           },
           "generation_mode": {
             "type": "string",
@@ -10260,7 +10274,8 @@
           },
           "job_id": {
             "title": "Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "glyph_px": {
             "title": "Glyph Px",
@@ -10296,7 +10311,8 @@
           },
           "object_id": {
             "title": "Object Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "description": {
             "title": "Description",
@@ -10311,8 +10327,7 @@
             "type": "integer"
           },
           "view": {
-            "title": "View",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "created_at": {
             "title": "Created At",
@@ -10337,7 +10352,8 @@
           "id": {
             "title": "Id",
             "description": "Unique object identifier",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -10369,9 +10385,8 @@
             "type": "string"
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "rotation_urls": {
             "description": "URLs for all rotation images",
@@ -10488,7 +10503,8 @@
           },
           "job_id": {
             "title": "Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "width": {
             "title": "Width",
@@ -10571,7 +10587,8 @@
           "id": {
             "title": "Id",
             "description": "UI asset UUID",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -10634,7 +10651,8 @@
           },
           "job_id": {
             "title": "Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "mood": {
             "title": "Mood",
@@ -10646,7 +10664,8 @@
           },
           "character_id": {
             "title": "Character Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "completed_visemes": {
             "title": "Completed Visemes",
@@ -10792,7 +10811,8 @@
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "image_id": {
             "title": "Image Id",
@@ -11378,7 +11398,8 @@
           "id": {
             "title": "Id",
             "description": "Unique tile identifier",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -11428,7 +11449,8 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for polling status",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -11578,7 +11600,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "Use the mouth positions stored on this character; the response then also carries the spritesheet URL and the row to read. Mutually exclusive with `viseme_count`.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "mood": {
             "description": "Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.",
@@ -12048,9 +12071,8 @@
         "type": "object",
         "properties": {
           "direction": {
-            "title": "Direction",
             "description": "Direction name (south, west, ..., unknown)",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "storage_urls": {
             "title": "Storage Urls",
@@ -12077,7 +12099,8 @@
           "animation_group_id": {
             "title": "Animation Group Id",
             "description": "UUID of the animation group — pass back to extend via POST /v2/objects/{id}/animations",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "display_name": {
             "title": "Display Name",
@@ -12120,12 +12143,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for tracking generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "object_id": {
             "title": "Object Id",
             "description": "Object ID that will be created (available immediately)",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -12152,7 +12177,8 @@
           "id": {
             "title": "Id",
             "description": "Unique object identifier",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -12184,9 +12210,8 @@
             "type": "string"
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "preview_url": {
             "title": "Preview Url",
@@ -12370,7 +12395,8 @@
           },
           "background_job_id": {
             "title": "Background Job Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "image_id": {
             "title": "Image Id",
@@ -12987,7 +13013,8 @@
           },
           "character_id": {
             "title": "Character Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "size": {
             "title": "Size",
@@ -13023,7 +13050,8 @@
         "properties": {
           "id": {
             "title": "Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -13145,7 +13173,8 @@
           "character_id": {
             "title": "Character Id",
             "description": "Use the mouth positions stored on this character. Mutually exclusive with `visemes`.",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "mood": {
             "description": "Which stored expression to talk with. Defaults to the character's first. Only valid with `character_id`.",
@@ -13419,12 +13448,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for tracking generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "tile_id": {
             "title": "Tile Id",
             "description": "Tile ID that will be created (available immediately)",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -13550,7 +13581,8 @@
         "properties": {
           "id": {
             "title": "Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -13659,12 +13691,14 @@
           "background_job_id": {
             "title": "Background Job Id",
             "description": "Background job ID for tracking generation progress",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "tileset_id": {
             "title": "Tileset Id",
             "description": "Tileset ID that will be created (available immediately)",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "status": {
             "title": "Status",
@@ -13795,9 +13829,8 @@
             "type": "number"
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used for tileset",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "generation_parameters": {
             "title": "Generation Parameters",
@@ -13828,7 +13861,8 @@
           "id": {
             "title": "Id",
             "description": "Unique tileset identifier",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -13854,9 +13888,8 @@
             }
           },
           "view": {
-            "title": "View",
             "description": "Camera view angle used",
-            "type": "string"
+            "$ref": "#/components/schemas/CameraView"
           },
           "created_at": {
             "title": "Created At",
@@ -14005,7 +14038,8 @@
           "id": {
             "title": "Id",
             "description": "UI asset UUID",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -17930,15 +17964,6 @@
         "required": true,
         "schema": {
           "title": "Character Id",
-          "type": "string"
-        }
-      },
-      "character_id6": {
-        "name": "character_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "title": "Character Id",
           "type": "string",
           "format": "uuid"
         }
@@ -17947,8 +17972,7 @@
         "name": "direction",
         "in": "query",
         "schema": {
-          "title": "Direction",
-          "type": "string"
+          "$ref": "#/components/schemas/Direction"
         }
       },
       "direction2": {
@@ -17956,9 +17980,8 @@
         "in": "query",
         "description": "Single direction to delete (e.g. 'south'). Omit for all.",
         "schema": {
-          "title": "Direction",
           "description": "Single direction to delete (e.g. 'south'). Omit for all.",
-          "type": "string"
+          "$ref": "#/components/schemas/Direction"
         }
       },
       "direction3": {
@@ -17985,7 +18008,8 @@
         "required": true,
         "schema": {
           "title": "Job Id",
-          "type": "string"
+          "type": "string",
+          "format": "uuid"
         }
       },
       "limit": {
@@ -18081,15 +18105,6 @@
           "format": "uuid"
         }
       },
-      "object_id10": {
-        "name": "object_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "title": "Object Id",
-          "type": "string"
-        }
-      },
       "offset": {
         "name": "offset",
         "in": "query",
@@ -18181,29 +18196,11 @@
         "required": true,
         "schema": {
           "title": "Tile Id",
-          "type": "string"
-        }
-      },
-      "tile_id2": {
-        "name": "tile_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "title": "Tile Id",
           "type": "string",
           "format": "uuid"
         }
       },
       "tileset_id": {
-        "name": "tileset_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "title": "Tileset Id",
-          "type": "string"
-        }
-      },
-      "tileset_id2": {
         "name": "tileset_id",
         "in": "path",
         "required": true,
