@@ -10076,10 +10076,49 @@
             "$ref": "#/components/schemas/CharacterSkeletonsdReference"
           },
           "2d_references": {
-            "$ref": "#/components/schemas/RotationURLs"
+            "$ref": "#/components/schemas/GetCharacterResponseSkeletons2dReferences"
           }
         },
         "additionalProperties": true
+      },
+      "GetCharacterResponseSkeletons2dReferences": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "west": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "north": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "south": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "north-east": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "north-west": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "south-east": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          },
+          "south-west": {
+            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south",
+          "north-east",
+          "north-west",
+          "south-east",
+          "south-west"
+        ]
       },
       "GetCharacterResponseSkeletons3d": {
         "type": "object",

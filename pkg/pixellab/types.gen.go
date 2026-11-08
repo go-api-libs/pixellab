@@ -2811,10 +2811,21 @@ type GetCharacterResponse struct {
 
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type GetCharacterResponseSkeletons struct {
-	ThreeD        GetCharacterResponseSkeletons3d `json:"3d,omitzero"`
-	TwoDReference CharacterSkeletonsdReference    `json:"2d_reference,omitzero"`
-	// One image URL per direction; the diagonals only for 8 directions.
-	TwoDReferences *RotationURLs `json:"2d_references,omitzero"`
+	ThreeD         GetCharacterResponseSkeletons3d           `json:"3d,omitzero"`
+	TwoDReference  CharacterSkeletonsdReference              `json:"2d_reference,omitzero"`
+	TwoDReferences GetCharacterResponseSkeletons2dReferences `json:"2d_references,omitzero"`
+}
+
+// GetCharacterResponseSkeletons2dReferences defines a model
+type GetCharacterResponseSkeletons2dReferences struct {
+	East      CharacterSkeletonsdReference `json:"east"`
+	West      CharacterSkeletonsdReference `json:"west"`
+	North     CharacterSkeletonsdReference `json:"north"`
+	South     CharacterSkeletonsdReference `json:"south"`
+	NorthEast CharacterSkeletonsdReference `json:"north-east"`
+	NorthWest CharacterSkeletonsdReference `json:"north-west"`
+	SouthEast CharacterSkeletonsdReference `json:"south-east"`
+	SouthWest CharacterSkeletonsdReference `json:"south-west"`
 }
 
 // GetCharacterResponseSkeletons3d defines a model

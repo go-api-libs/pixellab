@@ -317,8 +317,11 @@ func consolidateRotations(doc *openapi.Document) error {
 	var members []string
 
 	for name, s := range doc.Components.Schemas.ByIndex() {
+		// a skeleton's references have a property per direction too, but of keypoints
 		if s.Type == openapi.TypeObject && len(s.Properties) == len(directions) &&
-			!slices.ContainsFunc(directions, func(d string) bool { return s.Properties[d] == nil }) {
+			!slices.ContainsFunc(directions, func(d string) bool {
+				return s.Properties[d] == nil || s.Properties[d].Type != openapi.TypeString
+			}) {
 			members = append(members, name)
 		}
 	}
