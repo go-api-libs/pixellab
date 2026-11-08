@@ -16,7 +16,7 @@ require (
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261108170909-874854c740de
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261107140753-5ea760482273
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261107140639-85d8ba50e45c
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261107140722-91273c307689
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261108173128-0405e040f439
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261107140639-c559c8ee325d
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20261107140449-14441b657cf3
