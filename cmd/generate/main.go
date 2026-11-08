@@ -46,7 +46,13 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	transform(doc)
+	if err := transform(doc); err != nil {
+		return err
+	}
+
+	if err := typeStrings(doc, false); err != nil {
+		return err
+	}
 
 	if err := nameModels(doc); err != nil {
 		return err
@@ -64,11 +70,19 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if err := typeStrings(doc, true); err != nil {
+		return err
+	}
+
 	if err := nameBodies(doc, true); err != nil {
 		return err
 	}
 
 	if err := consolidateEnums(doc); err != nil {
+		return err
+	}
+
+	if err := nameImages(doc); err != nil {
 		return err
 	}
 

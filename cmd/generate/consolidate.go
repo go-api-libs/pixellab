@@ -19,7 +19,7 @@ const schemaRefPrefix = "#/components/schemas/"
 // them, mean the same in every request. Upstream writes one per endpoint, each with the values that endpoint accepts.
 var enumFamilies = map[string][]string{
 	"CameraView": {"view"},
-	"Direction":  {"direction", "directions"},
+	"Direction":  {"direction", "directions", "deleted_directions"},
 	"Outline":    {"outline"},
 	"Detail":     {"detail"},
 	"Shading":    {"shading"},
@@ -65,6 +65,7 @@ func consolidateEnums(doc *openapi.Document) error {
 			}
 		}
 
+		members = sharingValues(doc, members)
 		if len(members) == 0 {
 			return fmt.Errorf("enumFamilies: no property %q refers to a string enum any more", props)
 		}
@@ -91,9 +92,74 @@ func consolidateEnums(doc *openapi.Document) error {
 		if err := replaceSchemas(doc, name, merged, members); err != nil {
 			return err
 		}
+
+		referPlainStrings(doc, name, props)
 	}
 
 	return nil
+}
+
+// sharingValues keeps the enums that share a value with another, where there are several: an enum upstream names after
+// the same property, but for something else, as the portrait_to_character direction, stays an enum of its own.
+func sharingValues(doc *openapi.Document, members []string) []string {
+	if len(members) < 2 {
+		return members
+	}
+
+	count := map[string]int{}
+
+	for _, m := range members {
+		for _, v := range doc.Components.Schemas[m].Enum {
+			count[string(v)]++
+		}
+	}
+
+	return slices.DeleteFunc(members, func(m string) bool {
+		return !slices.ContainsFunc(doc.Components.Schemas[m].Enum, func(v jsontext.Value) bool { return count[string(v)] > 1 })
+	})
+}
+
+// referPlainStrings makes the plain strings of the properties and parameters, or of their arrays, as a response's
+// direction, refer to the enum: what upstream writes as a string there is a value of it.
+func referPlainStrings(doc *openapi.Document, name string, props []string) {
+	enum := doc.Components.Schemas[name]
+
+	refer := func(p *openapi.Schema) {
+		if p.Items != nil {
+			p = p.Items
+		}
+
+		if p.Type == openapi.TypeString && p.Ref == nil && p.Format == "" && len(p.Enum) == 0 && len(p.Const) == 0 {
+			p.Replace(&openapi.Schema{
+				Description: p.Description,
+				Ref:         &openapi.SchemaRef{Identifier: schemaRefPrefix + name, Value: enum},
+			})
+		}
+	}
+
+	for _, s := range doc.Components.Schemas.ByIndex() {
+		for prop, p := range s.Properties.ByIndex() {
+			if slices.Contains(props, prop) {
+				refer(p)
+			}
+		}
+	}
+
+	for _, p := range doc.Components.Parameters.ByIndex() {
+		if p.Value != nil && p.Value.Schema != nil && slices.Contains(props, p.Value.Name) {
+			refer(p.Value.Schema)
+		}
+	}
+
+	for _, item := range doc.Paths.ByIndex() {
+		for _, op := range item.Operations {
+			for _, p := range slices.Concat(item.Parameters, op.Parameters) {
+				if p.Value != nil && p.Value.Schema != nil && slices.Contains(props, p.Value.Name) {
+					refer(p.Value.Schema)
+				}
+			}
+		}
+	}
 }
 
 // enumValues tells the values an enum accepts, and the one it defaults to.
@@ -251,8 +317,11 @@ func consolidateRotations(doc *openapi.Document) error {
 	var members []string
 
 	for name, s := range doc.Components.Schemas.ByIndex() {
+		// a skeleton's references have a property per direction too, but of keypoints
 		if s.Type == openapi.TypeObject && len(s.Properties) == len(directions) &&
-			!slices.ContainsFunc(directions, func(d string) bool { return s.Properties[d] == nil }) {
+			!slices.ContainsFunc(directions, func(d string) bool {
+				return s.Properties[d] == nil || s.Properties[d].Type != openapi.TypeString
+			}) {
 			members = append(members, name)
 		}
 	}
@@ -282,4 +351,50 @@ func consolidateRotations(doc *openapi.Document) error {
 	}
 
 	return replaceSchemas(doc, "RotationURLs", merged, members)
+}
+
+// nameImages names a job's images by their shape, as upstream gives them no schema: an image of its own encoding and
+// size is an Image, one per compass point DirectionalImages, a list of them Images, and either of those JobImages.
+func nameImages(doc *openapi.Document) error {
+	to := map[string]string{}
+
+	// each shape refers to the one before it, so each takes a pass of its own
+	for _, shape := range []struct {
+		name  string
+		match func(*openapi.Schema) bool
+	}{
+		{"Image", func(s *openapi.Schema) bool { return hasProperties(s, "type", "width", "height", "base64") }},
+		{"DirectionalImages", func(s *openapi.Schema) bool {
+			return hasProperties(s, "east", "west", "north", "south") && refersTo(s.Properties["east"], "Image", to)
+		}},
+		{"Images", func(s *openapi.Schema) bool {
+			return s.Type == openapi.TypeArray && refersTo(s.Items, "Image", to)
+		}},
+		{"JobImages", func(s *openapi.Schema) bool {
+			return len(s.OneOf) == 2 && refersTo(s.OneOf[0], "DirectionalImages", to) && refersTo(s.OneOf[1], "Images", to)
+		}},
+	} {
+		for name, s := range doc.Components.Schemas.ByIndex() {
+			if _, named := to[name]; !named && shape.match(s) {
+				to[name] = shape.name
+			}
+		}
+	}
+
+	if !slices.Contains(slices.Collect(maps.Values(to)), "Image") {
+		return errors.New("no image schema any more")
+	}
+
+	return edit.RenameSchemas(doc, to)
+}
+
+// hasProperties reports whether s is an object of these properties and no other.
+func hasProperties(s *openapi.Schema, props ...string) bool {
+	return s.Type == openapi.TypeObject && len(s.Properties) == len(props) &&
+		!slices.ContainsFunc(props, func(p string) bool { return s.Properties[p] == nil })
+}
+
+// refersTo reports whether s refers to the schema that to renames to name.
+func refersTo(s *openapi.Schema, name string, to map[string]string) bool {
+	return s != nil && s.Ref != nil && to[strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)] == name
 }
