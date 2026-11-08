@@ -133,4 +133,4 @@ suggestion again is fine, and wanted, until the owner answers it.
 
 Open one when the work touches it.
 
-- [api/openapi.json is generated](AGENTS/generate.md)
+- [When upstream outgrows cmd/generate](AGENTS/generate.md)
