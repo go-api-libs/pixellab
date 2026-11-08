@@ -16,7 +16,7 @@ github.com/MarkRosemaker/jsonutil
 # github.com/MarkRosemaker/openapi v0.0.0-20261107140611-13177bae7f07
 ## explicit; go 1.27
 github.com/MarkRosemaker/openapi
-# github.com/MarkRosemaker/openapi-codegen v0.0.0-20261107140916-f6d77a30bf85
+# github.com/MarkRosemaker/openapi-codegen v0.0.0-20261108164646-9ae007a6d6c9
 ## explicit; go 1.27
 github.com/MarkRosemaker/openapi-codegen
 github.com/MarkRosemaker/openapi-codegen/cmd/openapi-codegen
@@ -41,7 +41,7 @@ github.com/MarkRosemaker/openapi-enrich/cmd/openapi-enrich
 ## explicit; go 1.27
 github.com/MarkRosemaker/openapi-flatten
 github.com/MarkRosemaker/openapi-flatten/cmd/openapi-flatten
-# github.com/MarkRosemaker/openapi-merge v0.0.0-20261107140638-b84d98164868
+# github.com/MarkRosemaker/openapi-merge v0.0.0-20261108165255-e76210a729c9
 ## explicit; go 1.27
 github.com/MarkRosemaker/openapi-merge
 # github.com/MarkRosemaker/ordmap v0.0.0-20261107140516-dfbaf0adfb2f

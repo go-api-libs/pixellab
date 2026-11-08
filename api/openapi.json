@@ -421,6 +421,9 @@
         "security": [
           {
             "HTTPBearer": []
+          },
+          {
+            "bearerAuth": []
           }
         ]
       }
@@ -4668,56 +4671,6 @@
           "status": "processing"
         }
       },
-      "BackgroundJobLastImages": {
-        "type": "object",
-        "properties": {
-          "east": {
-            "$ref": "#/components/schemas/BackgroundJobLastImagesEast"
-          },
-          "west": {
-            "$ref": "#/components/schemas/BackgroundJobLastImagesEast"
-          },
-          "north": {
-            "$ref": "#/components/schemas/BackgroundJobLastImagesEast"
-          },
-          "south": {
-            "$ref": "#/components/schemas/BackgroundJobLastImagesEast"
-          }
-        },
-        "required": [
-          "east",
-          "west",
-          "north",
-          "south"
-        ]
-      },
-      "BackgroundJobLastImagesEast": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "base64"
-          },
-          "width": {
-            "type": "integer",
-            "example": 68
-          },
-          "base64": {
-            "type": "string",
-            "example": "iVBORw0KGgoAAAANSUhEUgAAAEQAAABECAYAAAA4E5OyAAAD3ElEQVR4nO2aTUwTURDH/+xuNxUExYrlUyofLTENxqTRiCENMSZGg6kcPHk04tWoJz1wl5MxUTl7goONxK8YMISISCRRI4QvKRi1ohGkVahry/NAdul2ix+JvKn4fkmTznvbvMl0Zt6beQsIBAKBQCAQCASCf4AsagWy7SpLHVuIaWR6kS2sG+LIrnLL3O3n0wBoDENikJIiJ6vbnvfL5/peR/A2PMNVR4nnYgCgyJLJGDOfv676bGWeDEWWLCG1lig8F9NJNUKy7Nycg+sXzxuyK9CMCDfNCDzkT1ngHNUZa5Du/kEAwIfgNa7rck+qiiyxuqrCVeeDrS0InGsx5GcTYUQSjJueGeEhwdYWi/wqksClG13rP2RUW/o8nmqUsxfuc9DGCtk5pDJPNuTUnSWVLY2n1nfIzM3N/fazrkDzGmpihcQgCzEtayg8axq72hFM/+x6zyE6nyKxrL6J93BuzgEAeMrK0N0/aGy3VJBWu9l2lb3puGIZ3xY4bXyPJ5bIK3IuKLLEkj+znW1strONpWsH8ITM+o48O/P79xlyNLqIh70DUG0KaT+EJIcossQKi12wqytnkgJHLhrq90D7HqdQyYDkn1BkiR097IddVXD/QS8WtSUAwKGD+wEAt+70kOUO0qN7e7ALdzc6EC51w1e+1fCY1U6z6xZFllhJkZMpssTmq7xstrONzVd5mSJLrKmxgTU1NpAl14wo7uQzl01ycm7hDblvnnR8g63UtSyEhvHk6TD8dbVk+pB7SGJbKbUKJsgMMvPho0mOacvb7V7fTgp1DEg9pKF+j2WMMn8AhAZRbQrevf9sGODeg0fw7fZSqWPA/e/Q71lqvTWoKHea5nI3ZvNWxwKZh0S/aCZ5h6sCD3sHjFxCBUnX3VPtRmhq0uQlMS2OW3d6AACbclQsakskRR75OSSV8M0CAED58d9vM/5NyEJG+x7Hi5cjmJyeQUyLIxpdBADUnJinUgkAYcgAwOj4mGlOtSlG+U9V7ZKGjKfajdHxMdN1ZXL7kALuIRNPLGWFpiZXnT/mq+SojRWyawg9XFJ7Hz+7sOIB6UkVAPLz803j1CFDvu3662qN2zn9Ukq1KYgntJ/9bM0g624nvyp1PHDAGG8PdsFT7cbQyMj/t8v4dnvT1i9UxgAyIIfk5m6gUiEtJB6iyBKr9dYAWOl/6LUM9dUlaYOouMhBuXxayAySCb2PdJAZZHg0BGCll9rT85g8XADCq8x045lgELJtV694dVIrXyrI72V0PNVu450RSj3Ij+7J6F4TmppkVO+IZFQOSSYT8olAIBAIBII15QdwCTZB3AR7TQAAAABJRU5ErkJggg=="
-          },
-          "height": {
-            "type": "integer",
-            "example": 68
-          }
-        },
-        "required": [
-          "type",
-          "width",
-          "base64",
-          "height"
-        ]
-      },
       "BaseImage": {
         "title": "Base64Image",
         "type": "object",
@@ -5176,7 +5129,8 @@
           "group_id": {
             "title": "Group Id",
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
@@ -5410,7 +5364,8 @@
             "title": "Character Id",
             "description": "ID of existing character to animate",
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "example": "46118899-1915-450d-be72-df0a89bc6363"
           },
           "animation_group_id": {
             "title": "Animation Group Id",
@@ -5421,7 +5376,8 @@
           "animation_name": {
             "title": "Animation Name",
             "description": "Name for this animation (defaults to action_description if not provided)",
-            "type": "string"
+            "type": "string",
+            "example": "walking"
           },
           "description": {
             "title": "Description",
@@ -5433,7 +5389,8 @@
           "action_description": {
             "title": "Action Description",
             "description": "Action description (e.g., 'walking', 'running', 'jumping'). Required for custom mode (when template_animation_id is omitted). For template mode, defaults to a description based on the template.",
-            "type": "string"
+            "type": "string",
+            "example": "walking"
           },
           "async_mode": {
             "title": "Async Mode",
@@ -5456,7 +5413,8 @@
             "type": "integer",
             "minimum": 3,
             "maximum": 40,
-            "default": 8
+            "default": 8,
+            "example": 8
           },
           "custom_start_frame": {
             "description": "Optional custom starting pose for the animation (`mode='v3'` or `mode='pixminimax'`). When omitted, the character's rotation image for the chosen direction is used as the start. Max 256x256. Requires exactly one direction (pass e.g. `directions=['south']`). Not compatible with `mode='template'` or `mode='pro'`.",
@@ -5573,7 +5531,8 @@
           "v3",
           "pixminimax",
           "pro"
-        ]
+        ],
+        "example": "v3"
       },
       "CreateCharacterAnimationResponse": {
         "title": "CreateCharacterAnimationResponse",
@@ -5586,7 +5545,8 @@
             "type": "array",
             "items": {
               "type": "string",
-              "format": "uuid"
+              "format": "uuid",
+              "example": "0c1682f6-60da-4e0f-ac9e-be1d6a1b2218"
             }
           },
           "directions": {
@@ -5601,18 +5561,23 @@
             "title": "Animation Group Id",
             "description": "The group these directions belong to. Pass it back on a later call to add more directions to the same animation.",
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "example": "26905fda-03bf-41c7-8d24-c8cb0c3ab027"
           },
           "status": {
             "title": "Status",
             "description": "Overall status (processing, completed, failed)",
             "type": "string",
-            "default": "processing"
+            "default": "processing",
+            "example": "processing"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
             "description": "The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "enhance_usage": {
             "description": "Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.",
@@ -8322,7 +8287,8 @@
           "group_id": {
             "title": "Group Id",
             "description": "Group (character) the deleted state belonged to",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "next_state_id": {
             "title": "Next State Id",
@@ -8483,7 +8449,8 @@
           },
           "animation_id": {
             "title": "Animation Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           }
         },
         "required": [
@@ -8497,6 +8464,29 @@
         "enum": [
           "queued",
           "rate_limited"
+        ]
+      },
+      "DirectionalImages": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "west": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "north": {
+            "$ref": "#/components/schemas/Image"
+          },
+          "south": {
+            "$ref": "#/components/schemas/Image"
+          }
+        },
+        "required": [
+          "east",
+          "west",
+          "north",
+          "south"
         ]
       },
       "DismissObjectReviewResponse": {
@@ -9580,6 +9570,7 @@
             "title": "Id",
             "description": "Background job ID",
             "type": "string",
+            "format": "uuid",
             "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
           "status": {
@@ -9592,6 +9583,7 @@
             "title": "Created At",
             "description": "ISO timestamp when job was created",
             "type": "string",
+            "format": "date-time",
             "example": "2026-10-03T18:33:53.126261+00:00"
           },
           "last_response": {
@@ -9716,7 +9708,7 @@
             "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseUsage"
           },
           "images": {
-            "$ref": "#/components/schemas/BackgroundJobLastImages"
+            "$ref": "#/components/schemas/JobImages"
           },
           "image_width": {
             "type": "integer",
@@ -9740,7 +9732,7 @@
             "example": 4
           },
           "quantized_images": {
-            "$ref": "#/components/schemas/BackgroundJobLastImages"
+            "$ref": "#/components/schemas/DirectionalImages"
           },
           "saved_to_storage": {
             "type": "boolean"
@@ -9775,6 +9767,35 @@
           "skeleton_frames_total": {
             "type": "integer",
             "example": 8
+          },
+          "action": {
+            "type": "string",
+            "example": "walking"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "frame_count": {
+            "type": "integer",
+            "example": 8
+          },
+          "animation_name": {
+            "type": "string",
+            "example": "custom-walking"
+          },
+          "generation_model": {
+            "type": "string",
+            "example": "v3"
+          },
+          "animation_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "a9efa34c-78d9-4236-918f-d9b5132bb007"
+          },
+          "animation_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880ba3bc-08db-4647-b4aa-a3775b3f0cad"
           }
         },
         "additionalProperties": true
@@ -9824,14 +9845,16 @@
             "type": "string",
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/south.png"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
+            }
           }
-        },
-        "required": [
-          "east",
-          "west",
-          "north",
-          "south"
-        ]
+        }
       },
       "GetBackgroundJobResponseLastResponseUsage": {
         "type": "object",
@@ -9872,6 +9895,7 @@
             "title": "Id",
             "description": "Unique character identifier",
             "type": "string",
+            "format": "uuid",
             "example": "11480c99-c7dc-4f63-aa67-7d1a09435cea"
           },
           "name": {
@@ -9906,12 +9930,14 @@
             "title": "Created At",
             "description": "ISO timestamp of character creation",
             "type": "string",
+            "format": "date-time",
             "example": "2026-10-03T21:55:40.502540+00:00"
           },
           "updated_at": {
             "title": "Updated At",
             "description": "ISO timestamp of the last edit. Compare it (or the ?t= stamp on the returned URLs) against your copy to sync only what changed.",
             "type": "string",
+            "format": "date-time",
             "example": "2026-10-03T21:56:27.715969+00:00"
           },
           "animation_count": {
@@ -9972,6 +9998,7 @@
             "title": "Group Id",
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
             "type": "string",
+            "format": "uuid",
             "example": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9"
           },
           "skeletons": {
@@ -10430,7 +10457,8 @@
           "group_id": {
             "title": "Group Id",
             "description": "State group this object belongs to",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "progress_percent": {
             "title": "Progress Percent",
@@ -10726,6 +10754,33 @@
           }
         }
       },
+      "Image": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "base64"
+          },
+          "width": {
+            "type": "integer",
+            "example": 68
+          },
+          "base64": {
+            "type": "string",
+            "example": "iVBORw0KGgoAAAANSUhEUgAAAEQAAABECAYAAAA4E5OyAAAD3ElEQVR4nO2aTUwTURDH/+xuNxUExYrlUyofLTENxqTRiCENMSZGg6kcPHk04tWoJz1wl5MxUTl7goONxK8YMISISCRRI4QvKRi1ohGkVahry/NAdul2ix+JvKn4fkmTznvbvMl0Zt6beQsIBAKBQCAQCASCf4AsagWy7SpLHVuIaWR6kS2sG+LIrnLL3O3n0wBoDENikJIiJ6vbnvfL5/peR/A2PMNVR4nnYgCgyJLJGDOfv676bGWeDEWWLCG1lig8F9NJNUKy7Nycg+sXzxuyK9CMCDfNCDzkT1ngHNUZa5Du/kEAwIfgNa7rck+qiiyxuqrCVeeDrS0InGsx5GcTYUQSjJueGeEhwdYWi/wqksClG13rP2RUW/o8nmqUsxfuc9DGCtk5pDJPNuTUnSWVLY2n1nfIzM3N/fazrkDzGmpihcQgCzEtayg8axq72hFM/+x6zyE6nyKxrL6J93BuzgEAeMrK0N0/aGy3VJBWu9l2lb3puGIZ3xY4bXyPJ5bIK3IuKLLEkj+znW1strONpWsH8ITM+o48O/P79xlyNLqIh70DUG0KaT+EJIcossQKi12wqytnkgJHLhrq90D7HqdQyYDkn1BkiR097IddVXD/QS8WtSUAwKGD+wEAt+70kOUO0qN7e7ALdzc6EC51w1e+1fCY1U6z6xZFllhJkZMpssTmq7xstrONzVd5mSJLrKmxgTU1NpAl14wo7uQzl01ycm7hDblvnnR8g63UtSyEhvHk6TD8dbVk+pB7SGJbKbUKJsgMMvPho0mOacvb7V7fTgp1DEg9pKF+j2WMMn8AhAZRbQrevf9sGODeg0fw7fZSqWPA/e/Q71lqvTWoKHea5nI3ZvNWxwKZh0S/aCZ5h6sCD3sHjFxCBUnX3VPtRmhq0uQlMS2OW3d6AACbclQsakskRR75OSSV8M0CAED58d9vM/5NyEJG+x7Hi5cjmJyeQUyLIxpdBADUnJinUgkAYcgAwOj4mGlOtSlG+U9V7ZKGjKfajdHxMdN1ZXL7kALuIRNPLGWFpiZXnT/mq+SojRWyawg9XFJ7Hz+7sOIB6UkVAPLz803j1CFDvu3662qN2zn9Ukq1KYgntJ/9bM0g624nvyp1PHDAGG8PdsFT7cbQyMj/t8v4dnvT1i9UxgAyIIfk5m6gUiEtJB6iyBKr9dYAWOl/6LUM9dUlaYOouMhBuXxayAySCb2PdJAZZHg0BGCll9rT85g8XADCq8x045lgELJtV694dVIrXyrI72V0PNVu450RSj3Ij+7J6F4TmppkVO+IZFQOSSYT8olAIBAIBII15QdwCTZB3AR7TQAAAABJRU5ErkJggg=="
+          },
+          "height": {
+            "type": "integer",
+            "example": 68
+          }
+        },
+        "required": [
+          "type",
+          "width",
+          "base64",
+          "height"
+        ]
+      },
       "ImageResponse": {
         "title": "ResizeResponse",
         "type": "object",
@@ -10996,6 +11051,12 @@
         "required": [
           "text"
         ]
+      },
+      "Images": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Image"
+        }
       },
       "ImagesResponse": {
         "title": "AnimateWithTextResponse",
@@ -11437,6 +11498,16 @@
           "description",
           "created_at",
           "status"
+        ]
+      },
+      "JobImages": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DirectionalImages"
+          },
+          {
+            "$ref": "#/components/schemas/Images"
+          }
         ]
       },
       "JobResponse": {
@@ -14394,7 +14465,10 @@
       },
       "Usage": {
         "title": "Usage",
-        "type": "object",
+        "type": [
+          "object",
+          "null"
+        ],
         "properties": {
           "type": {
             "$ref": "#/components/schemas/UsageType"
@@ -16669,9 +16743,6 @@
       "GetCharacterSpritesheetOk": {
         "description": "ZIP file containing the sheet PNG and layout JSON",
         "content": {
-          "application/json": {
-            "schema": {}
-          },
           "application/zip": {
             "schema": {
               "type": "string",
@@ -16709,9 +16780,6 @@
       "GetCharacterZipOk": {
         "description": "ZIP file download containing character data",
         "content": {
-          "application/json": {
-            "schema": {}
-          },
           "application/zip": {
             "schema": {
               "type": "string",
@@ -16852,9 +16920,6 @@
       "GetObjectSpritesheetOk": {
         "description": "ZIP file containing the sheet PNG and layout JSON",
         "content": {
-          "application/json": {
-            "schema": {}
-          },
           "application/zip": {
             "example": "Binary ZIP file content"
           }

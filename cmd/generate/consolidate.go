@@ -349,3 +349,49 @@ func consolidateRotations(doc *openapi.Document) error {
 
 	return replaceSchemas(doc, "RotationURLs", merged, members)
 }
+
+// nameImages names a job's images by their shape, as upstream gives them no schema: an image of its own encoding and
+// size is an Image, one per compass point DirectionalImages, a list of them Images, and either of those JobImages.
+func nameImages(doc *openapi.Document) error {
+	to := map[string]string{}
+
+	// each shape refers to the one before it, so each takes a pass of its own
+	for _, shape := range []struct {
+		name  string
+		match func(*openapi.Schema) bool
+	}{
+		{"Image", func(s *openapi.Schema) bool { return hasProperties(s, "type", "width", "height", "base64") }},
+		{"DirectionalImages", func(s *openapi.Schema) bool {
+			return hasProperties(s, "east", "west", "north", "south") && refersTo(s.Properties["east"], "Image", to)
+		}},
+		{"Images", func(s *openapi.Schema) bool {
+			return s.Type == openapi.TypeArray && refersTo(s.Items, "Image", to)
+		}},
+		{"JobImages", func(s *openapi.Schema) bool {
+			return len(s.OneOf) == 2 && refersTo(s.OneOf[0], "DirectionalImages", to) && refersTo(s.OneOf[1], "Images", to)
+		}},
+	} {
+		for name, s := range doc.Components.Schemas.ByIndex() {
+			if _, named := to[name]; !named && shape.match(s) {
+				to[name] = shape.name
+			}
+		}
+	}
+
+	if !slices.Contains(slices.Collect(maps.Values(to)), "Image") {
+		return errors.New("no image schema any more")
+	}
+
+	return edit.RenameSchemas(doc, to)
+}
+
+// hasProperties reports whether s is an object of these properties and no other.
+func hasProperties(s *openapi.Schema, props ...string) bool {
+	return s.Type == openapi.TypeObject && len(s.Properties) == len(props) &&
+		!slices.ContainsFunc(props, func(p string) bool { return s.Properties[p] == nil })
+}
+
+// refersTo reports whether s refers to the schema that to renames to name.
+func refersTo(s *openapi.Schema, name string, to map[string]string) bool {
+	return s != nil && s.Ref != nil && to[strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)] == name
+}

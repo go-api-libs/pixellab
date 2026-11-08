@@ -3212,7 +3212,7 @@ func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, character
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/zip
-func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, params *GetCharacterZipParams) error {
+func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, params *GetCharacterZipParams) (io.ReadCloser, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "zip")
 	if params != nil {
 		q := make(url.Values, 1)
@@ -3238,38 +3238,31 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 
 	rsp, ia, err := c.do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rsp.Body.Close()
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// ZIP file download containing character data
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out struct{}
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
+		case "application/zip":
+			streaming = true
 
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil
+			return rsp.Body, nil
 		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -3277,28 +3270,28 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
 				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 			}
 
-			return api.NewErrCustom(rsp, &out)
+			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	default:
-		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -3327,7 +3320,7 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 // - 404: Character not found
 //
 //	GET /characters/{character_id}/spritesheet
-func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.UUID) error {
+func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.UUID) (io.ReadCloser, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "spritesheet")
 	req := (&http.Request{
 		Header: http.Header{
@@ -3343,46 +3336,39 @@ func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.U
 
 	rsp, ia, err := c.do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rsp.Body.Close()
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// ZIP file containing the sheet PNG and layout JSON
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out struct{}
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
+		case "application/zip":
+			streaming = true
 
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil
+			return rsp.Body, nil
 		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusNotFound:
 		// Character not found
-		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Character generation failed
-		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
 	case http.StatusLocked:
 		// Character or animations still being generated
-		return fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
 	default:
-		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 
@@ -4852,7 +4838,7 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 // - 404: Object not found
 //
 //	GET /objects/{object_id}/spritesheet
-func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) error {
+func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) (io.ReadCloser, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "spritesheet")
 	req := (&http.Request{
 		Header: http.Header{
@@ -4869,47 +4855,40 @@ func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) e
 
 	rsp, ia, err := c.do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rsp.Body.Close()
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
 		// ZIP file containing the sheet PNG and layout JSON
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
-		case "application/json":
-			var out struct{}
-			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
+		case "application/zip":
+			streaming = true
 
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-			}
-
-			return nil
+			return rsp.Body, nil
 		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	case http.StatusBadRequest:
 		// Object has no rotation images
-		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
 	case http.StatusUnauthorized:
 		// Invalid API token
-		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
 	case http.StatusForbidden:
 		// Object belongs to another user
-		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
 	case http.StatusNotFound:
 		// Object not found
-		return fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
+		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -4917,25 +4896,25 @@ func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) e
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 
 				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
 				out = *new(HTTPValidationError)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+					return nil, api.WrapDecodingError(rsp, err)
 				}
 			}
 
-			return api.NewErrCustom(rsp, &out)
+			return nil, api.NewErrCustom(rsp, &out)
 		default:
-			return c.failed(ia, api.NewErrUnknownContentType(rsp))
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
 	default:
-		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
 }
 

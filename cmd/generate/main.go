@@ -80,6 +80,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if err := nameImages(doc); err != nil {
+		return err
+	}
+
 	if err := consolidateRotations(doc); err != nil {
 		return err
 	}
