@@ -650,9 +650,6 @@
         "security": [
           {
             "HTTPBearer": []
-          },
-          {
-            "bearerAuth": []
           }
         ]
       },
@@ -3629,9 +3626,6 @@
         "security": [
           {
             "HTTPBearer": []
-          },
-          {
-            "bearerAuth": []
           }
         ]
       },
@@ -19040,10 +19034,6 @@
     },
     "securitySchemes": {
       "HTTPBearer": {
-        "type": "http",
-        "scheme": "bearer"
-      },
-      "bearerAuth": {
         "type": "http",
         "scheme": "bearer"
       }
