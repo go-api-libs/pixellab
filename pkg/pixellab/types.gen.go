@@ -709,7 +709,7 @@ func (e CreateCharacterAnimationRequestMode) Valid() bool {
 // Response model for character animation (background jobs)
 type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
-	BackgroundJobIds []string `json:"background_job_ids"`
+	BackgroundJobIDs []string `json:"background_job_ids"`
 	// List of directions being animated
 	Directions []string `json:"directions"`
 	// The group these directions belong to. Pass it back on a later call to add more directions to the same animation.
@@ -2654,11 +2654,11 @@ type GenerateWithStyleRequest struct {
 type GetBackgroundJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 	// Current job status (processing, completed, failed)
 	Status string `json:"status"`
 	// ISO timestamp when job was created
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	// Latest response data from the job
 	LastResponse *GetBackgroundJobResponseLastResponse `json:"last_response,omitzero"`
 }
@@ -2689,7 +2689,7 @@ type GetBackgroundJobResponseLastResponse struct {
 	Images                BackgroundJobLastImages                          `json:"images,omitzero"`
 	ImageWidth            *int                                             `json:"image_width,omitzero"`
 	ImageHeight           *int                                             `json:"image_height,omitzero"`
-	StorageUrls           GetBackgroundJobResponseLastResponseStorageURLs  `json:"storage_urls,omitzero"`
+	StorageURLs           GetBackgroundJobResponseLastResponseStorageURLs  `json:"storage_urls,omitzero"`
 	BillingUsage          GetBackgroundJobResponseLastResponseBillingUsage `json:"billing_usage,omitzero"`
 	BillingCharged        *bool                                            `json:"billing_charged,omitzero"`
 	DirectionsCount       *int                                             `json:"directions_count,omitzero"`
@@ -2735,7 +2735,7 @@ type GetBalanceResponse struct {
 // Detailed character information including rotation URLs
 type GetCharacterResponse struct {
 	// Unique character identifier
-	ID string `json:"id"`
+	ID uuid.UUID `json:"id"`
 	// Character name (shared by all sibling states in the group)
 	Name string `json:"name"`
 	// Name of this state within the character (e.g. 'Idle', 'wearing red armor')
@@ -2748,9 +2748,9 @@ type GetCharacterResponse struct {
 	// Number of directional rotations (4 or 8)
 	Directions int `json:"directions"`
 	// ISO timestamp of character creation
-	CreatedAt string `json:"created_at"`
+	CreatedAt time.Time `json:"created_at"`
 	// ISO timestamp of the last edit. Compare it (or the ?t= stamp on the returned URLs) against your copy to sync only what changed.
-	UpdatedAt string `json:"updated_at,omitzero"`
+	UpdatedAt time.Time `json:"updated_at,omitzero"`
 	// Number of animations for this character
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
@@ -2760,7 +2760,7 @@ type GetCharacterResponse struct {
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
 	Status string `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
-	RotationUrls *RotationURLs `json:"rotation_urls,omitzero"`
+	RotationURLs *RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
 	StyleSettings *GetCharacterResponseStyleSettings `json:"style_settings,omitzero"`
 	// Text guidance scale used
@@ -2770,7 +2770,7 @@ type GetCharacterResponse struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
-	GroupID string `json:"group_id,omitzero"`
+	GroupID uuid.UUID `json:"group_id,omitzero"`
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 	Skeletons *GetCharacterResponseSkeletons `json:"skeletons,omitzero"`
 	// All animations grouped by type and direction
@@ -2869,11 +2869,11 @@ type GetObjectResponse struct {
 	// Camera view angle used
 	View string `json:"view,omitzero"`
 	// URLs for all rotation images
-	RotationUrls RotationURLs `json:"rotation_urls"`
+	RotationURLs RotationURLs `json:"rotation_urls"`
 	// Raw storage_urls map (frame_N keys when status='review')
-	StorageUrls map[string]string `json:"storage_urls,omitzero"`
+	StorageURLs map[string]string `json:"storage_urls,omitzero"`
 	// Candidate frame URLs when status='review' — pass indices to POST /v2/objects/{id}/select-frames
-	FrameUrls []string `json:"frame_urls,omitzero"`
+	FrameURLs []string `json:"frame_urls,omitzero"`
 	// Style settings used during generation
 	StyleSettings *struct{} `json:"style_settings,omitzero"`
 	// User-defined tags for filtering
@@ -2907,7 +2907,7 @@ type GetPortraitCharacterProJobResponse struct {
 type GetTilesProResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Download URLs for each tile (e.g. {"tile_0": "https://...", "tile_1": "https://..."})
-	StorageUrls struct{} `json:"storage_urls"`
+	StorageURLs struct{} `json:"storage_urls"`
 	// What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).
 	Kind string `json:"kind,omitzero"`
 	// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
@@ -3499,7 +3499,7 @@ type ObjectAnimationDirection struct {
 	// Direction name (south, west, ..., unknown)
 	Direction string `json:"direction"`
 	// Frame URLs for this direction, e.g. {"frames": ["...", ...]}
-	StorageUrls *struct{} `json:"storage_urls,omitzero"`
+	StorageURLs *struct{} `json:"storage_urls,omitzero"`
 	// ISO timestamp
 	CreatedAt string `json:"created_at"`
 }
@@ -3863,7 +3863,7 @@ type SelectObjectFramesRequest struct {
 // SelectObjectFramesResponse defines a model
 type SelectObjectFramesResponse struct {
 	Usage            *Usage   `json:"usage,omitzero"`
-	CreatedObjectIds []string `json:"created_object_ids"`
+	CreatedObjectIDs []string `json:"created_object_ids"`
 }
 
 // SetCharacterPortraitRequest defines a model
@@ -4157,7 +4157,7 @@ type TilesetMetadata struct {
 	// Prompts used for each terrain type
 	TerrainPrompts map[string]string `json:"terrain_prompts"`
 	// Optional IDs for terrain types
-	TerrainIds map[string]string `json:"terrain_ids,omitzero"`
+	TerrainIDs map[string]string `json:"terrain_ids,omitzero"`
 	// Size of transition area between terrains
 	TransitionSize float64 `json:"transition_size"`
 	// Camera view angle used for tileset
