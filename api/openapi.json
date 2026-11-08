@@ -7,11 +7,11 @@
   },
   "servers": [
     {
-      "url": "https://api.pixellab.ai"
+      "url": "https://api.pixellab.ai/v2"
     }
   ],
   "paths": {
-    "/v2/generate-image-v2": {
+    "/generate-image-v2": {
       "post": {
         "tags": [
           "Create Image"
@@ -46,7 +46,7 @@
         ]
       }
     },
-    "/v2/create-image-pixen": {
+    "/create-image-pixen": {
       "post": {
         "tags": [
           "Create Image"
@@ -84,7 +84,7 @@
         ]
       }
     },
-    "/v2/generate-with-style-v2": {
+    "/generate-with-style-v2": {
       "post": {
         "tags": [
           "Create Image"
@@ -119,7 +119,7 @@
         ]
       }
     },
-    "/v2/create-image-pixflux": {
+    "/create-image-pixflux": {
       "post": {
         "tags": [
           "Create Image"
@@ -157,7 +157,7 @@
         ]
       }
     },
-    "/v2/create-image-pixflux-background": {
+    "/create-image-pixflux-background": {
       "post": {
         "tags": [
           "Create Image"
@@ -192,7 +192,7 @@
         ]
       }
     },
-    "/v2/create-image-bitforge": {
+    "/create-image-bitforge": {
       "post": {
         "tags": [
           "Create Image"
@@ -230,7 +230,7 @@
         ]
       }
     },
-    "/v2/image-to-pixelart": {
+    "/image-to-pixelart": {
       "post": {
         "tags": [
           "Image to Pixel Art"
@@ -268,7 +268,7 @@
         ]
       }
     },
-    "/v2/image-to-pixelart-pro": {
+    "/image-to-pixelart-pro": {
       "post": {
         "tags": [
           "Image to Pixel Art"
@@ -303,7 +303,7 @@
         ]
       }
     },
-    "/v2/image-to-pixelart-pro-flash": {
+    "/image-to-pixelart-pro-flash": {
       "post": {
         "tags": [
           "Image to Pixel Art"
@@ -329,7 +329,7 @@
         ]
       }
     },
-    "/v2/create-character-v3": {
+    "/create-character-v3": {
       "post": {
         "tags": [
           "Character Creation"
@@ -364,7 +364,7 @@
         ]
       }
     },
-    "/v2/create-character-pro": {
+    "/create-character-pro": {
       "post": {
         "tags": [
           "Character Creation"
@@ -399,7 +399,7 @@
         ]
       }
     },
-    "/v2/characters/animations": {
+    "/characters/animations": {
       "post": {
         "tags": [
           "Character Creation"
@@ -425,7 +425,7 @@
         ]
       }
     },
-    "/v2/animate-character": {
+    "/animate-character": {
       "post": {
         "tags": [
           "Character Creation"
@@ -466,7 +466,7 @@
         ]
       }
     },
-    "/v2/create-character-state": {
+    "/create-character-state": {
       "post": {
         "tags": [
           "Character Creation"
@@ -507,7 +507,7 @@
         ]
       }
     },
-    "/v2/create-character-with-4-directions": {
+    "/create-character-with-4-directions": {
       "post": {
         "tags": [
           "Character Creation"
@@ -542,7 +542,7 @@
         ]
       }
     },
-    "/v2/create-character-with-8-directions": {
+    "/create-character-with-8-directions": {
       "post": {
         "tags": [
           "Character Creation"
@@ -577,7 +577,7 @@
         ]
       }
     },
-    "/v2/characters": {
+    "/characters": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit"
@@ -614,7 +614,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}": {
+    "/characters/{character_id}": {
       "get": {
         "tags": [
           "Character Library"
@@ -683,7 +683,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}/zip": {
+    "/characters/{character_id}/zip": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -716,7 +716,7 @@
         "security": []
       }
     },
-    "/v2/characters/{character_id}/spritesheet": {
+    "/characters/{character_id}/spritesheet": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -746,7 +746,7 @@
         "security": []
       }
     },
-    "/v2/characters/{character_id}/tags": {
+    "/characters/{character_id}/tags": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -792,7 +792,7 @@
         ]
       }
     },
-    "/v2/create-1-direction-object": {
+    "/create-1-direction-object": {
       "post": {
         "tags": [
           "Object Creation"
@@ -827,7 +827,7 @@
         ]
       }
     },
-    "/v2/create-8-direction-object": {
+    "/create-8-direction-object": {
       "post": {
         "tags": [
           "Object Creation"
@@ -862,7 +862,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/animations": {
+    "/objects/{object_id}/animations": {
       "post": {
         "tags": [
           "Object Creation"
@@ -958,7 +958,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/states": {
+    "/objects/{object_id}/states": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -1004,7 +1004,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/select-frames": {
+    "/objects/{object_id}/select-frames": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -1043,7 +1043,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/dismiss-review": {
+    "/objects/{object_id}/dismiss-review": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -1079,7 +1079,7 @@
         ]
       }
     },
-    "/v2/objects": {
+    "/objects": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit2"
@@ -1113,7 +1113,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}": {
+    "/objects/{object_id}": {
       "get": {
         "tags": [
           "Object Library"
@@ -1185,7 +1185,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/tags": {
+    "/objects/{object_id}/tags": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -1228,7 +1228,7 @@
         ]
       }
     },
-    "/v2/objects/{object_id}/spritesheet": {
+    "/objects/{object_id}/spritesheet": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id"
@@ -1268,7 +1268,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}/animations": {
+    "/characters/{character_id}/animations": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id6"
@@ -1317,7 +1317,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}/animations/{animation_group_id}": {
+    "/characters/{character_id}/animations/{animation_group_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id6"
@@ -1354,7 +1354,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}": {
+    "/characters/{character_id}/animations/{animation_group_id}/directions/{direction}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id6"
@@ -1394,7 +1394,7 @@
         ]
       }
     },
-    "/v2/animate-with-text-v3": {
+    "/animate-with-text-v3": {
       "post": {
         "tags": [
           "Animate"
@@ -1429,7 +1429,7 @@
         ]
       }
     },
-    "/v2/animate-pixminimax": {
+    "/animate-pixminimax": {
       "post": {
         "tags": [
           "Animate"
@@ -1464,7 +1464,7 @@
         ]
       }
     },
-    "/v2/interpolation-v2": {
+    "/interpolation-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -1499,7 +1499,7 @@
         ]
       }
     },
-    "/v2/edit-animation-v2": {
+    "/edit-animation-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -1534,7 +1534,7 @@
         ]
       }
     },
-    "/v2/transfer-outfit-v2": {
+    "/transfer-outfit-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -1569,7 +1569,7 @@
         ]
       }
     },
-    "/v2/animate-with-text-v2": {
+    "/animate-with-text-v2": {
       "post": {
         "tags": [
           "Animate"
@@ -1604,7 +1604,7 @@
         ]
       }
     },
-    "/v2/animate-with-text": {
+    "/animate-with-text": {
       "post": {
         "tags": [
           "Animate"
@@ -1642,7 +1642,7 @@
         ]
       }
     },
-    "/v2/estimate-skeleton": {
+    "/estimate-skeleton": {
       "post": {
         "tags": [
           "Skeleton Animation"
@@ -1680,7 +1680,7 @@
         ]
       }
     },
-    "/v2/animate-with-skeleton-v3": {
+    "/animate-with-skeleton-v3": {
       "post": {
         "tags": [
           "Skeleton Animation"
@@ -1715,7 +1715,7 @@
         ]
       }
     },
-    "/v2/animate-with-skeleton": {
+    "/animate-with-skeleton": {
       "post": {
         "tags": [
           "Skeleton Animation"
@@ -1753,7 +1753,7 @@
         ]
       }
     },
-    "/v2/vfx": {
+    "/vfx": {
       "post": {
         "tags": [
           "VFX"
@@ -1794,7 +1794,7 @@
         ]
       }
     },
-    "/v2/generate-8-rotations-v3": {
+    "/generate-8-rotations-v3": {
       "post": {
         "tags": [
           "Rotate"
@@ -1829,7 +1829,7 @@
         ]
       }
     },
-    "/v2/generate-8-rotations-v2": {
+    "/generate-8-rotations-v2": {
       "post": {
         "tags": [
           "Rotate"
@@ -1864,7 +1864,7 @@
         ]
       }
     },
-    "/v2/rotate": {
+    "/rotate": {
       "post": {
         "tags": [
           "Rotate"
@@ -1902,7 +1902,7 @@
         ]
       }
     },
-    "/v2/edit-images-v2": {
+    "/edit-images-v2": {
       "post": {
         "tags": [
           "Edit"
@@ -1937,7 +1937,7 @@
         ]
       }
     },
-    "/v2/edit-image-pixen": {
+    "/edit-image-pixen": {
       "post": {
         "tags": [
           "Edit"
@@ -1975,7 +1975,7 @@
         ]
       }
     },
-    "/v2/edit-image": {
+    "/edit-image": {
       "post": {
         "tags": [
           "Edit"
@@ -2010,7 +2010,7 @@
         ]
       }
     },
-    "/v2/inpaint-v3": {
+    "/inpaint-v3": {
       "post": {
         "tags": [
           "Inpaint"
@@ -2045,7 +2045,7 @@
         ]
       }
     },
-    "/v2/inpaint": {
+    "/inpaint": {
       "post": {
         "tags": [
           "Inpaint"
@@ -2083,7 +2083,7 @@
         ]
       }
     },
-    "/v2/tilesets": {
+    "/tilesets": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit3"
@@ -2117,7 +2117,7 @@
         ]
       }
     },
-    "/v2/create-tileset": {
+    "/create-tileset": {
       "post": {
         "tags": [
           "Tilesets"
@@ -2158,7 +2158,7 @@
         ]
       }
     },
-    "/v2/tilesets/{tileset_id}": {
+    "/tilesets/{tileset_id}": {
       "get": {
         "tags": [
           "Tilesets"
@@ -2230,7 +2230,7 @@
         ]
       }
     },
-    "/v2/tilesets-sidescroller": {
+    "/tilesets-sidescroller": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit4"
@@ -2264,7 +2264,7 @@
         ]
       }
     },
-    "/v2/create-tileset-sidescroller": {
+    "/create-tileset-sidescroller": {
       "post": {
         "tags": [
           "Tilesets"
@@ -2302,7 +2302,7 @@
         ]
       }
     },
-    "/v2/tilesets-sidescroller/{tileset_id}": {
+    "/tilesets-sidescroller/{tileset_id}": {
       "get": {
         "tags": [
           "Tilesets"
@@ -2374,7 +2374,7 @@
         ]
       }
     },
-    "/v2/create-tiles-pro": {
+    "/create-tiles-pro": {
       "post": {
         "tags": [
           "Tiles"
@@ -2409,7 +2409,7 @@
         ]
       }
     },
-    "/v2/tiles-pro/{tile_id}": {
+    "/tiles-pro/{tile_id}": {
       "get": {
         "tags": [
           "Tiles"
@@ -2484,7 +2484,7 @@
         ]
       }
     },
-    "/v2/tiles-pro": {
+    "/tiles-pro": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit4"
@@ -2518,7 +2518,7 @@
         ]
       }
     },
-    "/v2/create-isometric-tile": {
+    "/create-isometric-tile": {
       "post": {
         "tags": [
           "Tiles"
@@ -2559,7 +2559,7 @@
         ]
       }
     },
-    "/v2/isometric-tiles/{tile_id}": {
+    "/isometric-tiles/{tile_id}": {
       "get": {
         "tags": [
           "Tiles"
@@ -2631,7 +2631,7 @@
         ]
       }
     },
-    "/v2/isometric-tiles": {
+    "/isometric-tiles": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit6"
@@ -2665,7 +2665,7 @@
         ]
       }
     },
-    "/v2/map-objects": {
+    "/map-objects": {
       "post": {
         "tags": [
           "Map Objects"
@@ -2700,7 +2700,7 @@
         ]
       }
     },
-    "/v2/map-objects/{object_id}": {
+    "/map-objects/{object_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/object_id10"
@@ -2740,7 +2740,7 @@
         ]
       }
     },
-    "/v2/create-ui-asset": {
+    "/create-ui-asset": {
       "post": {
         "tags": [
           "Game UI"
@@ -2775,7 +2775,7 @@
         ]
       }
     },
-    "/v2/generate-ui-v2": {
+    "/generate-ui-v2": {
       "post": {
         "tags": [
           "Game UI"
@@ -2810,7 +2810,7 @@
         ]
       }
     },
-    "/v2/ui-assets": {
+    "/ui-assets": {
       "parameters": [
         {
           "$ref": "#/components/parameters/limit7"
@@ -2844,7 +2844,7 @@
         ]
       }
     },
-    "/v2/ui-assets/{ui_asset_id}": {
+    "/ui-assets/{ui_asset_id}": {
       "get": {
         "tags": [
           "Game UI"
@@ -2910,7 +2910,7 @@
         ]
       }
     },
-    "/v2/portrait-character-pro": {
+    "/portrait-character-pro": {
       "post": {
         "tags": [
           "Portraits & Voice"
@@ -2948,7 +2948,7 @@
         ]
       }
     },
-    "/v2/portrait-character-pro/{job_id}": {
+    "/portrait-character-pro/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -2987,7 +2987,7 @@
         ]
       }
     },
-    "/v2/characters/{character_id}/portrait": {
+    "/characters/{character_id}/portrait": {
       "parameters": [
         {
           "$ref": "#/components/parameters/character_id"
@@ -3024,7 +3024,7 @@
         ]
       }
     },
-    "/v2/vocal-animation": {
+    "/vocal-animation": {
       "post": {
         "tags": [
           "Portraits & Voice"
@@ -3068,7 +3068,7 @@
         ]
       }
     },
-    "/v2/vocal-animation/{job_id}": {
+    "/vocal-animation/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -3105,7 +3105,7 @@
         ]
       }
     },
-    "/v2/talking-gif": {
+    "/talking-gif": {
       "post": {
         "tags": [
           "Portraits & Voice"
@@ -3140,7 +3140,7 @@
         ]
       }
     },
-    "/v2/lip-sync": {
+    "/lip-sync": {
       "post": {
         "tags": [
           "Portraits & Voice"
@@ -3175,7 +3175,7 @@
         ]
       }
     },
-    "/v2/generate-font-pro": {
+    "/generate-font-pro": {
       "post": {
         "tags": [
           "Fonts"
@@ -3210,7 +3210,7 @@
         ]
       }
     },
-    "/v2/generate-font-pro/{job_id}": {
+    "/generate-font-pro/{job_id}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/job_id"
@@ -3249,7 +3249,7 @@
         ]
       }
     },
-    "/v2/unzoom": {
+    "/unzoom": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3284,7 +3284,7 @@
         ]
       }
     },
-    "/v2/correct-pixelart": {
+    "/correct-pixelart": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3319,7 +3319,7 @@
         ]
       }
     },
-    "/v2/reduce-colors": {
+    "/reduce-colors": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3354,7 +3354,7 @@
         ]
       }
     },
-    "/v2/remove-background": {
+    "/remove-background": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3389,7 +3389,7 @@
         ]
       }
     },
-    "/v2/normal-map": {
+    "/normal-map": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3427,7 +3427,7 @@
         ]
       }
     },
-    "/v2/resize": {
+    "/resize": {
       "post": {
         "tags": [
           "Cleanup"
@@ -3465,7 +3465,7 @@
         ]
       }
     },
-    "/v2/enhance-pixen-prompt": {
+    "/enhance-pixen-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3497,7 +3497,7 @@
         ]
       }
     },
-    "/v2/enhance-character-v3-prompt": {
+    "/enhance-character-v3-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3529,7 +3529,7 @@
         ]
       }
     },
-    "/v2/enhance-animation-v3-prompt": {
+    "/enhance-animation-v3-prompt": {
       "post": {
         "tags": [
           "Enhance Prompt"
@@ -3561,7 +3561,7 @@
         ]
       }
     },
-    "/v2/image-to-text": {
+    "/image-to-text": {
       "post": {
         "tags": [
           "Image to Text"
@@ -3596,7 +3596,7 @@
         ]
       }
     },
-    "/v2/background-jobs/{job_id}": {
+    "/background-jobs/{job_id}": {
       "get": {
         "tags": [
           "Jobs"
@@ -3674,7 +3674,7 @@
         ]
       }
     },
-    "/v2/create-image-pro-flash": {
+    "/create-image-pro-flash": {
       "post": {
         "tags": [
           "Create Image"
@@ -3700,7 +3700,7 @@
         ]
       }
     },
-    "/v2/edit-image-pro-flash": {
+    "/edit-image-pro-flash": {
       "post": {
         "tags": [
           "Edit"
@@ -3726,7 +3726,7 @@
         ]
       }
     },
-    "/v2/inpaint-image-pro-flash": {
+    "/inpaint-image-pro-flash": {
       "post": {
         "tags": [
           "Inpaint"
@@ -3752,7 +3752,7 @@
         ]
       }
     },
-    "/v2/create-character-pro-flash": {
+    "/create-character-pro-flash": {
       "post": {
         "tags": [
           "Character Creation"
@@ -3778,7 +3778,7 @@
         ]
       }
     },
-    "/v2/create-object-pro-flash": {
+    "/create-object-pro-flash": {
       "post": {
         "tags": [
           "Object Creation"
@@ -3804,7 +3804,7 @@
         ]
       }
     },
-    "/v2/pro-flash/capabilities": {
+    "/pro-flash/capabilities": {
       "get": {
         "tags": [
           "Create Image"
@@ -3824,7 +3824,7 @@
         ]
       }
     },
-    "/v2/pro-flash/cost": {
+    "/pro-flash/cost": {
       "parameters": [
         {
           "$ref": "#/components/parameters/operation"
@@ -3861,7 +3861,7 @@
         ]
       }
     },
-    "/v2/balance": {
+    "/balance": {
       "get": {
         "tags": [
           "Account"
@@ -3884,7 +3884,7 @@
         ]
       }
     },
-    "/v2/uploads": {
+    "/uploads": {
       "post": {
         "tags": [
           "Uploads"
@@ -3910,7 +3910,7 @@
         ]
       }
     },
-    "/v2/uploads/{ticket}": {
+    "/uploads/{ticket}": {
       "parameters": [
         {
           "$ref": "#/components/parameters/ticket"
@@ -3936,7 +3936,7 @@
         }
       }
     },
-    "/v2/llms.txt": {
+    "/llms.txt": {
       "get": {
         "tags": [
           "Documentation"
@@ -3949,24 +3949,6 @@
             "$ref": "#/components/responses/GetAPIDocsOk"
           }
         }
-      }
-    },
-    "/animate-with-text-v3/character/background": {
-      "post": {
-        "operationId": "PostAnimateWithTextV3CharacterBackground",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/PostAnimateWithTextV3CharacterBackground"
-        },
-        "responses": {
-          "200": {
-            "$ref": "#/components/responses/PostAnimateWithTextV3CharacterBackgroundOk"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
       }
     }
   },
@@ -12344,90 +12326,6 @@
         ],
         "additionalProperties": false
       },
-      "PostAnimateWithTextV3CharacterBackgroundRequest": {
-        "type": "object",
-        "properties": {
-          "character_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "8901396f-5807-4f57-90da-8443d1f6a517"
-          },
-          "direction": {
-            "type": "string",
-            "example": "south-east"
-          },
-          "action": {
-            "type": "string",
-            "example": "walking"
-          },
-          "frame_count": {
-            "type": "integer",
-            "example": 8
-          },
-          "animation_name": {
-            "type": "string",
-            "example": "v3:walking"
-          },
-          "no_background": {
-            "type": "boolean"
-          },
-          "custom_frames": {
-            "type": "boolean"
-          },
-          "animation_group_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "46a19e47-cbe7-4fee-b619-615509d1d796"
-          },
-          "display_name": {
-            "type": "string",
-            "example": "Walking"
-          },
-          "keep_first_frame": {
-            "type": "boolean"
-          },
-          "template_action": {
-            "type": "string",
-            "example": "walking"
-          },
-          "engine": {
-            "type": "string",
-            "example": "v3"
-          }
-        },
-        "required": [
-          "character_id",
-          "direction",
-          "action",
-          "frame_count",
-          "animation_name",
-          "no_background",
-          "custom_frames",
-          "animation_group_id",
-          "display_name",
-          "keep_first_frame",
-          "template_action",
-          "engine"
-        ]
-      },
-      "PostAnimateWithTextV3CharacterBackgroundResponse": {
-        "type": "object",
-        "properties": {
-          "background_job_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "f51fc2ef-27bd-4caa-9fe5-65cd9662015a"
-          },
-          "status": {
-            "type": "string",
-            "example": "processing"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "status"
-        ]
-      },
       "ProFlashBoundingBox": {
         "title": "ProFlashBoundingBox",
         "description": "The native source rectangle within the additional context image.",
@@ -17593,16 +17491,6 @@
       "NormalMapUnprocessableEntity": {
         "description": "Validation error"
       },
-      "PostAnimateWithTextV3CharacterBackgroundOk": {
-        "description": "OK",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/PostAnimateWithTextV3CharacterBackgroundResponse"
-            }
-          }
-        }
-      },
       "ReduceColorsOk": {
         "description": "Successfully quantized",
         "content": {
@@ -19017,16 +18905,6 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/NormalMapRequest"
-            }
-          }
-        }
-      },
-      "PostAnimateWithTextV3CharacterBackground": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/PostAnimateWithTextV3CharacterBackgroundRequest"
             }
           }
         }

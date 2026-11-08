@@ -3636,28 +3636,6 @@ type Point struct {
 	ZIndex int           `json:"z_index,omitzero"`
 }
 
-// PostAnimateWithTextV3CharacterBackgroundRequest defines a model
-type PostAnimateWithTextV3CharacterBackgroundRequest struct {
-	CharacterID      uuid.UUID `json:"character_id"`
-	Direction        string    `json:"direction"`
-	Action           string    `json:"action"`
-	FrameCount       int       `json:"frame_count"`
-	AnimationName    string    `json:"animation_name"`
-	NoBackground     bool      `json:"no_background"`
-	CustomFrames     bool      `json:"custom_frames"`
-	AnimationGroupID uuid.UUID `json:"animation_group_id"`
-	DisplayName      string    `json:"display_name"`
-	KeepFirstFrame   bool      `json:"keep_first_frame"`
-	TemplateAction   string    `json:"template_action"`
-	Engine           string    `json:"engine"`
-}
-
-// PostAnimateWithTextV3CharacterBackgroundResponse defines a model
-type PostAnimateWithTextV3CharacterBackgroundResponse struct {
-	BackgroundJobID uuid.UUID `json:"background_job_id"`
-	Status          string    `json:"status"`
-}
-
 // The native source rectangle within the additional context image.
 type ProFlashBoundingBox struct {
 	X      int `json:"x"`
