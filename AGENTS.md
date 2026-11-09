@@ -77,9 +77,18 @@ the change in `./cmd/generate` instead. Outside a Claude Code session,
 each run first replaces the copy with the newest, so its diff is what
 changed upstream.
 
-An interaction still decides types: change one and the spec follows on the
-next run, and remove one and what only it showed goes with it. After
+An interaction still decides types: the spec follows the file on the next
+run, and remove one and what only it showed goes with it. After
 `make ready`, read the diff of `api/openapi.json`.
+
+`api/interactions.json` is the evidence the library's types rest on: each
+interaction is a real call to the API, recorded by the client in debug mode,
+which masks credentials and shortens long strings. Never write or edit one by
+hand, and never remove one unasked, least of all to make a type hold: where
+an interaction contradicts a type, the type is wrong. Evidence you need and
+do not have comes from a new recorded call, which takes the API key and may
+cost money, so ask for it. An interaction restored from git goes back
+exactly as it was recorded.
 
 `.gitignore` is the exception: only the marked block at its head is
 generated. Your own rules go below that block, where they win — in a
