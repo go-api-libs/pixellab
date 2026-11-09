@@ -561,7 +561,7 @@ type CharacterSummary struct {
 
 // Request model for the pixel art correction endpoint
 type CorrectPixelartRequest struct {
-	// Pixel art image(s) to clean up (PNG base64). Several frames are corrected together and must all be the same size — pass an animation's frames or a character's directions in one call so they stay consistent with each other.
+	// Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.
 	Images []BaseImage `json:"images"`
 	// How far the model may move from your art. Low values tidy stray pixels and edges; high values redraw more aggressively and can change details.
 	Strength *float64 `json:"strength,omitzero"`

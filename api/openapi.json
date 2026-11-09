@@ -3252,7 +3252,7 @@
           "Cleanup"
         ],
         "summary": "Unzoom pixel art",
-        "description": "Recover native-resolution pixel art from an upscaled image.\n\nPixel art posted online is almost always scaled up — a 32x32 sprite saved at\n512x512. Feeding that to a generation endpoint as a reference wastes detail and\nconfuses the models, because every art pixel is a 16x16 block. This endpoint\ndetects the underlying pixel grid and downsamples back onto it, so you get the\n32x32 sprite the artist actually drew.\n\nUse it before sending user-supplied artwork to `create-image-bitforge`,\n`image-to-pixelart` or any endpoint taking a style/reference image.\n\nConstraints:\n- Minimum 256x256 — grid detection needs enough pixels to find the lattice\n- Maximum area 2048x2048\n- **The result is opaque.** Grid detection works in RGB, so any transparency in\n  the input is composited onto WHITE first. Run `/remove-background` on the\n  result if you need the sprite cut out again.\n\nThe grid does not have to be uniform: images with slightly uneven pixel sizes\n(from a lossy resize) are handled.\n\n```bash\ncurl -X POST https://api.pixellab.ai/v2/unzoom \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"image\": {\"base64\": \"iVBORw0KGgoAAAANS...\"}}'\n```",
+        "description": "Recover native-resolution pixel art from an upscaled image.\n\nPixel art posted online is almost always scaled up — a 32x32 sprite saved at\n512x512. Feeding that to a generation endpoint as a reference wastes detail and\nconfuses the models, because every art pixel is a 16x16 block. This endpoint\ndetects the underlying pixel grid and downsamples back onto it, so you get the\n32x32 sprite the artist actually drew.\n\nUse it before sending user-supplied artwork to `create-image-bitforge`,\n`image-to-pixelart` or any endpoint taking a style/reference image.\n\nConstraints:\n- Minimum 256x256 — grid detection needs enough pixels to find the lattice\n- Maximum area 2048x2048\n- **The result is opaque**: transparency is composited onto white. Run\n  `/remove-background` on the result if you need a cut-out.\n\nWorks best on exact nearest-neighbour upscales; uneven grids (e.g. AI renders)\ncan come back at the wrong size.\n\n```bash\ncurl -X POST https://api.pixellab.ai/v2/unzoom \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"image\": {\"base64\": \"iVBORw0KGgoAAAANS...\"}}'\n```",
         "operationId": "Unzoom",
         "requestBody": {
           "$ref": "#/components/requestBodies/Unzoom"
@@ -3287,7 +3287,7 @@
           "Cleanup"
         ],
         "summary": "Correct pixel art",
-        "description": "Clean up and refine existing pixel art without changing its size.\n\nSharpens edges, removes stray and anti-aliased pixels, and tightens the palette\nwhile keeping the sprite on its existing pixel grid. Useful on art that has been\nthrough a lossy pipeline, hand-drawn art that needs tidying, or output from\nanother tool that is nearly-but-not-quite on-grid.\n\nThis does NOT resize. If your image is an upscaled sprite (each art pixel is a\nblock of screen pixels), run `/unzoom` first to get back to the native grid, then\ncorrect.\n\n- Maximum area 1024x1024\n- Transparency is preserved — the alpha channel is carried around the model and\n  re-applied to the result\n- `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair\n\n```bash\ncurl -X POST https://api.pixellab.ai/v2/correct-pixelart \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"images\": [{\"base64\": \"iVBORw0KGgoAAAANS...\"}], \"strength\": 0.1}'\n```",
+        "description": "Clean up and refine existing pixel art without changing its size.\n\nSharpens edges and removes stray and anti-aliased pixels. There is no palette\nstep. Use it on native-size art damaged by JPEG, blur or noise, or on hand-drawn\nart that needs tidying.\n\nThis does NOT resize. If your image is upscaled (each art pixel a block of screen\npixels), run `/unzoom` first.\n\n- Maximum area 1024x1024\n- Transparency is preserved\n- `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair\n\n```bash\ncurl -X POST https://api.pixellab.ai/v2/correct-pixelart \\\n    -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d '{\"images\": [{\"base64\": \"iVBORw0KGgoAAAANS...\"}], \"strength\": 0.1}'\n```",
         "operationId": "CorrectPixelart",
         "requestBody": {
           "$ref": "#/components/requestBodies/CorrectPixelart"
@@ -5163,7 +5163,7 @@
         "properties": {
           "images": {
             "title": "Images",
-            "description": "Pixel art image(s) to clean up (PNG base64). Several frames are corrected together and must all be the same size — pass an animation's frames or a character's directions in one call so they stay consistent with each other.",
+            "description": "Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.",
             "type": "array",
             "minItems": 1,
             "items": {
@@ -19225,7 +19225,7 @@
     },
     {
       "name": "Cleanup",
-      "description": "Cheap post-processing passes, billed at a fraction of a generation. **Run `unzoom` on any artwork a user gave you before using it as a reference** — upscaled pixel art confuses every model that takes a reference image, and this is the single most common cause of disappointing results."
+      "description": "Cheap post-processing passes, billed at a fraction of a generation. **Run `unzoom` on upscaled artwork a user gave you before using it as a reference** — upscaled pixel art confuses every model that takes a reference image, and this is the single most common cause of disappointing results."
     },
     {
       "name": "Enhance Prompt",

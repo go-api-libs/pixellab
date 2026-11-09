@@ -12666,12 +12666,11 @@ func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, job
 // Constraints:
 //   - Minimum 256x256 — grid detection needs enough pixels to find the lattice
 //   - Maximum area 2048x2048
-//   - **The result is opaque.** Grid detection works in RGB, so any transparency in
-//     the input is composited onto WHITE first. Run `/remove-background` on the
-//     result if you need the sprite cut out again.
+//   - **The result is opaque**: transparency is composited onto white. Run
+//     `/remove-background` on the result if you need a cut-out.
 //
-// The grid does not have to be uniform: images with slightly uneven pixel sizes
-// (from a lossy resize) are handled.
+// Works best on exact nearest-neighbour upscales; uneven grids (e.g. AI renders)
+// can come back at the wrong size.
 //
 // ```bash
 //
@@ -12701,12 +12700,11 @@ func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomRespons
 // Constraints:
 //   - Minimum 256x256 — grid detection needs enough pixels to find the lattice
 //   - Maximum area 2048x2048
-//   - **The result is opaque.** Grid detection works in RGB, so any transparency in
-//     the input is composited onto WHITE first. Run `/remove-background` on the
-//     result if you need the sprite cut out again.
+//   - **The result is opaque**: transparency is composited onto white. Run
+//     `/remove-background` on the result if you need a cut-out.
 //
-// The grid does not have to be uniform: images with slightly uneven pixel sizes
-// (from a lossy resize) are handled.
+// Works best on exact nearest-neighbour upscales; uneven grids (e.g. AI renders)
+// can come back at the wrong size.
 //
 // ```bash
 //
@@ -12798,19 +12796,16 @@ func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest
 
 // Clean up and refine existing pixel art without changing its size.
 //
-// Sharpens edges, removes stray and anti-aliased pixels, and tightens the palette
-// while keeping the sprite on its existing pixel grid. Useful on art that has been
-// through a lossy pipeline, hand-drawn art that needs tidying, or output from
-// another tool that is nearly-but-not-quite on-grid.
+// Sharpens edges and removes stray and anti-aliased pixels. There is no palette
+// step. Use it on native-size art damaged by JPEG, blur or noise, or on hand-drawn
+// art that needs tidying.
 //
-// This does NOT resize. If your image is an upscaled sprite (each art pixel is a
-// block of screen pixels), run `/unzoom` first to get back to the native grid, then
-// correct.
+// This does NOT resize. If your image is upscaled (each art pixel a block of screen
+// pixels), run `/unzoom` first.
 //
-//   - Maximum area 1024x1024
-//   - Transparency is preserved — the alpha channel is carried around the model and
-//     re-applied to the result
-//   - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
+// - Maximum area 1024x1024
+// - Transparency is preserved
+// - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
 //
 // ```bash
 //
@@ -12828,19 +12823,16 @@ func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartReques
 
 // Clean up and refine existing pixel art without changing its size.
 //
-// Sharpens edges, removes stray and anti-aliased pixels, and tightens the palette
-// while keeping the sprite on its existing pixel grid. Useful on art that has been
-// through a lossy pipeline, hand-drawn art that needs tidying, or output from
-// another tool that is nearly-but-not-quite on-grid.
+// Sharpens edges and removes stray and anti-aliased pixels. There is no palette
+// step. Use it on native-size art damaged by JPEG, blur or noise, or on hand-drawn
+// art that needs tidying.
 //
-// This does NOT resize. If your image is an upscaled sprite (each art pixel is a
-// block of screen pixels), run `/unzoom` first to get back to the native grid, then
-// correct.
+// This does NOT resize. If your image is upscaled (each art pixel a block of screen
+// pixels), run `/unzoom` first.
 //
-//   - Maximum area 1024x1024
-//   - Transparency is preserved — the alpha channel is carried around the model and
-//     re-applied to the result
-//   - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
+// - Maximum area 1024x1024
+// - Transparency is preserved
+// - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
 //
 // ```bash
 //
