@@ -556,7 +556,7 @@ type CharacterSummary struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
-	GroupID uuid.UUID `json:"group_id,omitzero"`
+	GroupID string `json:"group_id,omitzero"`
 }
 
 // Request model for the pixel art correction endpoint
@@ -2130,7 +2130,7 @@ type DeleteCharacterResponse struct {
 	// Number of animations deleted
 	AnimationsDeleted *int `json:"animations_deleted,omitzero"`
 	// Group (character) the deleted state belonged to
-	GroupID uuid.UUID `json:"group_id,omitzero"`
+	GroupID string `json:"group_id,omitzero"`
 	// Most recently updated remaining state in the group. Null when the deleted state was the last one and the group was removed too.
 	NextStateID string `json:"next_state_id,omitzero"`
 	// Error message if deletion failed
@@ -2678,11 +2678,11 @@ type GenerateWithStyleRequest struct {
 type GetBackgroundJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID
-	ID uuid.UUID `json:"id"`
+	ID string `json:"id"`
 	// Current job status (processing, completed, failed)
 	Status string `json:"status"`
 	// ISO timestamp when job was created
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
 	LastResponse *GetBackgroundJobResponseLastResponse `json:"last_response,omitzero"`
 }
@@ -2767,7 +2767,7 @@ type GetBalanceResponse struct {
 // Detailed character information including rotation URLs
 type GetCharacterResponse struct {
 	// Unique character identifier
-	ID uuid.UUID `json:"id"`
+	ID string `json:"id"`
 	// Character name (shared by all sibling states in the group)
 	Name string `json:"name"`
 	// Name of this state within the character (e.g. 'Idle', 'wearing red armor')
@@ -2780,9 +2780,9 @@ type GetCharacterResponse struct {
 	// Number of directional rotations (4 or 8)
 	Directions int `json:"directions"`
 	// ISO timestamp of character creation
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt string `json:"created_at"`
 	// ISO timestamp of the last edit. Compare it (or the ?t= stamp on the returned URLs) against your copy to sync only what changed.
-	UpdatedAt time.Time `json:"updated_at,omitzero"`
+	UpdatedAt string `json:"updated_at,omitzero"`
 	// Number of animations for this character
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
@@ -2802,7 +2802,7 @@ type GetCharacterResponse struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
-	GroupID uuid.UUID `json:"group_id,omitzero"`
+	GroupID string `json:"group_id,omitzero"`
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 	Skeletons *GetCharacterResponseSkeletons `json:"skeletons,omitzero"`
 	// All animations grouped by type and direction
@@ -2924,7 +2924,7 @@ type GetObjectResponse struct {
 	// Object status (pending, processing, completed, review, failed)
 	Status string `json:"status,omitzero"`
 	// State group this object belongs to
-	GroupID uuid.UUID `json:"group_id,omitzero"`
+	GroupID string `json:"group_id,omitzero"`
 	// Progress percentage when not yet completed (None when status='completed')
 	ProgressPercent *int `json:"progress_percent,omitzero"`
 	// Estimated seconds remaining when not yet completed

@@ -5120,8 +5120,7 @@
           "group_id": {
             "title": "Group Id",
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
           }
         },
         "required": [
@@ -8278,8 +8277,7 @@
           "group_id": {
             "title": "Group Id",
             "description": "Group (character) the deleted state belonged to",
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
           },
           "next_state_id": {
             "title": "Next State Id",
@@ -9561,7 +9559,6 @@
             "title": "Id",
             "description": "Background job ID",
             "type": "string",
-            "format": "uuid",
             "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
           "status": {
@@ -9574,7 +9571,6 @@
             "title": "Created At",
             "description": "ISO timestamp when job was created",
             "type": "string",
-            "format": "date-time",
             "example": "2026-10-03T18:33:53.126261+00:00"
           },
           "last_response": {
@@ -9886,7 +9882,6 @@
             "title": "Id",
             "description": "Unique character identifier",
             "type": "string",
-            "format": "uuid",
             "example": "11480c99-c7dc-4f63-aa67-7d1a09435cea"
           },
           "name": {
@@ -9921,14 +9916,12 @@
             "title": "Created At",
             "description": "ISO timestamp of character creation",
             "type": "string",
-            "format": "date-time",
             "example": "2026-10-03T21:55:40.502540+00:00"
           },
           "updated_at": {
             "title": "Updated At",
             "description": "ISO timestamp of the last edit. Compare it (or the ?t= stamp on the returned URLs) against your copy to sync only what changed.",
             "type": "string",
-            "format": "date-time",
             "example": "2026-10-03T21:56:27.715969+00:00"
           },
           "animation_count": {
@@ -9989,7 +9982,6 @@
             "title": "Group Id",
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
             "type": "string",
-            "format": "uuid",
             "example": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9"
           },
           "skeletons": {
@@ -10487,8 +10479,7 @@
           "group_id": {
             "title": "Group Id",
             "description": "State group this object belongs to",
-            "type": "string",
-            "format": "uuid"
+            "type": "string"
           },
           "progress_percent": {
             "title": "Progress Percent",
