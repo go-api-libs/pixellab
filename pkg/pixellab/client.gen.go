@@ -1999,6 +1999,13 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 // - Priced by size and frame count: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations per direction
 // - Optional `subject_description` / `initial_pose` describe the first frame; left out, they are read from the image
 // - Same custom keyframes, `keep_first_frame` and `enhance_prompt` as v3; one job per direction, ~1-7 min each
+// - `direction_prompts` (v3 too): one prompt per direction, all eight, as the website's per-direction enhancement writes them
+//
+// **Template actions (website "Powered by V3" tiles):**
+// Set `template_action` (e.g. `"walking"`, `"punch"`) instead of `action_description`: the motion is written for each direction from the action, on `mode="pixminimax"` (default) or `mode="v3"` (walking, running and full sprinting only). Frame count is the action's own. The valid actions are the `template_action` enum.
+//
+// **Skeleton v3 motion sliders:**
+// `motion_adjustments` (`arm_swing`, `stride`, `posture`, `leg_extension`) with `mode="skeleton-v3"` and `template_animation_id`, same names and ranges as the website's Motion settings.
 //
 // **Pro Mode (legacy, prefer v3 or PixMiniMax):**
 // Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
@@ -2069,6 +2076,13 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 // - Priced by size and frame count: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations per direction
 // - Optional `subject_description` / `initial_pose` describe the first frame; left out, they are read from the image
 // - Same custom keyframes, `keep_first_frame` and `enhance_prompt` as v3; one job per direction, ~1-7 min each
+// - `direction_prompts` (v3 too): one prompt per direction, all eight, as the website's per-direction enhancement writes them
+//
+// **Template actions (website "Powered by V3" tiles):**
+// Set `template_action` (e.g. `"walking"`, `"punch"`) instead of `action_description`: the motion is written for each direction from the action, on `mode="pixminimax"` (default) or `mode="v3"` (walking, running and full sprinting only). Frame count is the action's own. The valid actions are the `template_action` enum.
+//
+// **Skeleton v3 motion sliders:**
+// `motion_adjustments` (`arm_swing`, `stride`, `posture`, `leg_extension`) with `mode="skeleton-v3"` and `template_animation_id`, same names and ranges as the website's Motion settings.
 //
 // **Pro Mode (legacy, prefer v3 or PixMiniMax):**
 // Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
@@ -3154,6 +3168,115 @@ func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, character
 	}
 }
 
+// Change the character's `name` (shared by all its states), this state's `state_name`, or its `prompt` (the description later animations and states are made from). Pass any of them. Free.
+//
+//	PATCH /characters/{character_id}
+func (c *Client) UpdateCharacter(ctx context.Context, characterID uuid.UUID, body UpdateCharacterRequest) (*AssetNamesResponse, error) {
+	return c.UpdateCharacterWithResult[AssetNamesResponse](ctx, characterID, body)
+}
+
+// Change the character's `name` (shared by all its states), this state's `state_name`, or its `prompt` (the description later animations and states are made from). Pass any of them. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /characters/{character_id}
+func (c *Client) UpdateCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateCharacterRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*AssetNamesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found
+		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Character has no state group to carry a name
+		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Download a character with all animations as a ZIP file.
 //
 // This endpoint creates a ZIP file containing all rotation images, animation frames,
@@ -3741,7 +3864,11 @@ func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, bo
 //
 // Queues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.
 //
-// **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
+// **PixMiniMax (`mode='pixminimax'`, beta)**: longer clips — any multiple of 4 frames up to 40 — at any canvas up to 256x256.
+//
+// **Per-direction descriptions (`mode='v3'` or `'pixminimax'`)**: pass `direction_prompts` with all eight directions to animate each from its own text.
+//
+// **Interpolation mode (`mode='v3'` or `'pixminimax'`)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 //
 //	POST /objects/{object_id}/animations
 func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, body CreateObjectAnimationRequest) (*CreateObjectAnimationResponse, error) {
@@ -3752,7 +3879,11 @@ func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 //
 // Queues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.
 //
-// **Interpolation mode (`mode='v3'` only)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
+// **PixMiniMax (`mode='pixminimax'`, beta)**: longer clips — any multiple of 4 frames up to 40 — at any canvas up to 256x256.
+//
+// **Per-direction descriptions (`mode='v3'` or `'pixminimax'`)**: pass `direction_prompts` with all eight directions to animate each from its own text.
+//
+// **Interpolation mode (`mode='v3'` or `'pixminimax'`)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/animations
@@ -4101,14 +4232,18 @@ func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectI
 	}
 }
 
-// Promote selected frames of a review object to completed objects
+// Consistent-style pack (`status: review`): each index in `indices` becomes its own completed 1-direction object; the pack is deleted once no frames remain.
+//
+// 8-direction expansion (`status: review-expansion`, from `POST /v2/objects/{object_id}/expand-rotations`): send no `indices`. The same object becomes 8-direction with the reviewed images, its canvas grows to the review's size, and its animations move to the expansion's `existing_direction`.
 //
 //	POST /objects/{object_id}/select-frames
 func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
 	return c.SelectObjectFramesWithResult[SelectObjectFramesResponse](ctx, objectID, body)
 }
 
-// Promote selected frames of a review object to completed objects
+// Consistent-style pack (`status: review`): each index in `indices` becomes its own completed 1-direction object; the pack is deleted once no frames remain.
+//
+// 8-direction expansion (`status: review-expansion`, from `POST /v2/objects/{object_id}/expand-rotations`): send no `indices`. The same object becomes 8-direction with the reviewed images, its canvas grows to the review's size, and its animations move to the expansion's `existing_direction`.
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/select-frames
@@ -4142,7 +4277,7 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 
 	switch rsp.StatusCode {
 	case http.StatusOK:
-		// Frames promoted
+		// Frames promoted, or expansion kept
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
 			var out R
@@ -4181,6 +4316,9 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
+	case http.StatusConflict:
+		// The expansion is still generating
+		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -4210,14 +4348,18 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 	}
 }
 
-// Dismiss a review object without saving any frames
+// Consistent-style pack (`status: review`): deletes the pack and every candidate frame.
+//
+// 8-direction expansion (`status: expanding` or `review-expansion`): discards the new directions. The object itself is kept, unchanged and 1-direction.
 //
 //	POST /objects/{object_id}/dismiss-review
 func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*DismissObjectReviewResponse, error) {
 	return c.DismissObjectReviewWithResult[DismissObjectReviewResponse](ctx, objectID)
 }
 
-// Dismiss a review object without saving any frames
+// Consistent-style pack (`status: review`): deletes the pack and every candidate frame.
+//
+// 8-direction expansion (`status: expanding` or `review-expansion`): discards the new directions. The object itself is kept, unchanged and 1-direction.
 // You can define a custom result to unmarshal the response into.
 //
 //	POST /objects/{object_id}/dismiss-review
@@ -4307,6 +4449,129 @@ func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objec
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Draws the 7 missing directions of one of your 1-direction objects from its image, keeping the same object (its id, tags and animations). Costs **10-25 generations** on a subscription, by the padded canvas (up to 168x168; larger objects are refused).
+//
+// The object reads `status: expanding` while it generates, then `review-expansion`: `GET /v2/objects/{object_id}` shows the 8 directions under `expansion_review`, and the object stays 1-direction until you decide. Keep them with `POST /v2/objects/{object_id}/select-frames` and no `indices` — the object becomes 8-direction, its canvas grows to the review's size, and its animations move to `existing_direction`. Discard them with `POST /v2/objects/{object_id}/dismiss-review` — the object stays as it was.
+//
+// To make a NEW 8-direction object from an image instead, use `POST /v2/create-8-direction-object` with `reference_image`.
+//
+//	POST /objects/{object_id}/expand-rotations
+func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, body ExpandObjectRotationsRequest) (*ExpandObjectRotationsResponse, error) {
+	return c.ExpandObjectRotationsWithResult[ExpandObjectRotationsResponse](ctx, objectID, body)
+}
+
+// Draws the 7 missing directions of one of your 1-direction objects from its image, keeping the same object (its id, tags and animations). Costs **10-25 generations** on a subscription, by the padded canvas (up to 168x168; larger objects are refused).
+//
+// The object reads `status: expanding` while it generates, then `review-expansion`: `GET /v2/objects/{object_id}` shows the 8 directions under `expansion_review`, and the object stays 1-direction until you decide. Keep them with `POST /v2/objects/{object_id}/select-frames` and no `indices` — the object becomes 8-direction, its canvas grows to the review's size, and its animations move to `existing_direction`. Discard them with `POST /v2/objects/{object_id}/dismiss-review` — the object stays as it was.
+//
+// To make a NEW 8-direction object from an image instead, use `POST /v2/create-8-direction-object` with `reference_image`.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/{object_id}/expand-rotations
+func (c *Client) ExpandObjectRotationsWithResult[R any](ctx context.Context, objectID uuid.UUID, body ExpandObjectRotationsRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "expand-rotations")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Expansion queued
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ExpandObjectRotationsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Object is not 1-direction, not ready, or larger than 168x168
+		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient generations or credits
+		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Object not found
+		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusTooManyRequests:
+		// Concurrent job limit reached
+		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4648,6 +4913,115 @@ func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uui
 	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Change the object's `name` (shared by all its states) and/or this state's `state_name`. Free.
+//
+//	PATCH /objects/{object_id}
+func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body UpdateObjectRequest) (*AssetNamesResponse, error) {
+	return c.UpdateObjectWithResult[AssetNamesResponse](ctx, objectID, body)
+}
+
+// Change the object's `name` (shared by all its states) and/or this state's `state_name`. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /objects/{object_id}
+func (c *Client) UpdateObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*AssetNamesResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Object not found
+		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Object has no state group to carry a name
+		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -5115,6 +5489,112 @@ func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, 
 	case http.StatusNotFound:
 		// Character, or animation on it, not found
 		return nil, fmt.Errorf("DeleteCharacterAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/characters/{character_id} returns. Free.
+//
+//	PATCH /characters/{character_id}/animations/{animation_group_id}
+func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*UpdateAnimationResponse, error) {
+	return c.UpdateCharacterAnimationWithResult[UpdateAnimationResponse](ctx, characterID, animationGroupID, body)
+}
+
+// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/characters/{character_id} returns. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /characters/{character_id}/animations/{animation_group_id}
+func (c *Client) UpdateCharacterAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UpdateAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateCharacterAnimation: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character or animation not found
+		return nil, fmt.Errorf("UpdateCharacterAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
@@ -7184,6 +7664,230 @@ func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxR
 	}
 }
 
+// Your My effects: every effect `POST /v2/vfx`, the MCP `vfx_workbench`
+// or the website saved, newest-saved first, a page at a time. For the next page pass the
+// last effect's `updated_at` and `id` as `cursor_updated_at` and `cursor_id`.
+//
+// Change one with `POST /v2/vfx` and its `effect_id`, or open its `edit_url`. Free.
+//
+//	GET /vfx/effects
+func (c *Client) GetVfxEffects(ctx context.Context, params *GetVfxEffectsParams) (*GetVfxEffectsResponse, error) {
+	return c.GetVfxEffectsWithResult[GetVfxEffectsResponse](ctx, params)
+}
+
+// Your My effects: every effect `POST /v2/vfx`, the MCP `vfx_workbench`
+// or the website saved, newest-saved first, a page at a time. For the next page pass the
+// last effect's `updated_at` and `id` as `cursor_updated_at` and `cursor_id`.
+//
+// Change one with `POST /v2/vfx` and its `effect_id`, or open its `edit_url`. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /vfx/effects
+func (c *Client) GetVfxEffectsWithResult[R any](ctx context.Context, params *GetVfxEffectsParams) (*R, error) {
+	u := c.baseURL.JoinPath("vfx", "effects")
+	if params != nil {
+		q := make(url.Values, 3)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.CursorUpdatedAt != "" {
+			q["cursor_updated_at"] = []string{params.CursorUpdatedAt}
+		}
+
+		if params.CursorID != uuid.Nil() {
+			q["cursor_id"] = []string{params.CursorID.String()}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetVfxEffectsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Cursor given halfway or not ISO 8601
+		return nil, fmt.Errorf("GetVfxEffects: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetVfxEffects: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Permanently delete an effect from your My effects, with its files. Files an earlier result already handed out (its download links) stay.
+//
+//	DELETE /vfx/effects/{effect_id}
+func (c *Client) DeleteVfxEffect(ctx context.Context, effectID uuid.UUID) (*DeleteRoomResponse, error) {
+	return c.DeleteVfxEffectWithResult[DeleteRoomResponse](ctx, effectID)
+}
+
+// Permanently delete an effect from your My effects, with its files. Files an earlier result already handed out (its download links) stay.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /vfx/effects/{effect_id}
+func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("vfx", "effects", effectID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Deleted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteRoomResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteVfxEffect: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// No saved effect with that id in your library
+		return nil, fmt.Errorf("DeleteVfxEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Generate 8 directional rotations from a reference frame.
 //
 // Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
@@ -8020,6 +8724,128 @@ func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditI
 	}
 }
 
+// Write an edited image back into one of your characters,
+// objects, Creator gallery images or tilesets — a rotation, one direction of an
+// animation, a gallery image or a tileset's tiles — or add it to the gallery as a new
+// image. Free: nothing is generated.
+//
+// `target` is one of: `character:<id>:<direction>` or `object:<id>[:<direction>]` (a rotation; a one-direction object needs no direction), the same with `:<group id>` added (one direction of an animation — the animation's group id, names can repeat), `gallery:<id>` (replace a Creator gallery image) or `gallery:new` (add one), `tileset:<id>` (a top-down or sidescroller tileset's whole sheet).
+//
+// The image must match what it replaces: the same canvas size and the same number of
+// frames (pad or crop with transparent pixels, never rescale). A different size can
+// go to the gallery as a new image (`gallery:new`). A tileset takes its whole sheet,
+// the layout its download gives. Save each direction with its own call.
+//
+// The character and object creators, the gallery, the map editor, downloads and game
+// projects then show the new pixels. The replaced frames come back as
+// `previous_frames`: saving them to the same target is the undo.
+//
+//	POST /save-to-asset
+func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*SaveToAssetResponse, error) {
+	return c.SaveToAssetWithResult[SaveToAssetResponse](ctx, body)
+}
+
+// Write an edited image back into one of your characters,
+// objects, Creator gallery images or tilesets — a rotation, one direction of an
+// animation, a gallery image or a tileset's tiles — or add it to the gallery as a new
+// image. Free: nothing is generated.
+//
+// `target` is one of: `character:<id>:<direction>` or `object:<id>[:<direction>]` (a rotation; a one-direction object needs no direction), the same with `:<group id>` added (one direction of an animation — the animation's group id, names can repeat), `gallery:<id>` (replace a Creator gallery image) or `gallery:new` (add one), `tileset:<id>` (a top-down or sidescroller tileset's whole sheet).
+//
+// The image must match what it replaces: the same canvas size and the same number of
+// frames (pad or crop with transparent pixels, never rescale). A different size can
+// go to the gallery as a new image (`gallery:new`). A tileset takes its whole sheet,
+// the layout its download gives. Save each direction with its own call.
+//
+// The character and object creators, the gallery, the map editor, downloads and game
+// projects then show the new pixels. The replaced frames come back as
+// `previous_frames`: saving them to the same target is the undo.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /save-to-asset
+func (c *Client) SaveToAssetWithResult[R any](ctx context.Context, body SaveToAssetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("save-to-asset")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SaveToAssetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Target not found or not yours
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Another save to this asset is running; retry
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Refused: the detail says what to change
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many calls; retry shortly
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusInternalServerError:
+		// Failed partway: `detail.previous_frames` restores what was there
+		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Edit an existing pixel art image based on a text description.
 //
 // Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
@@ -8592,7 +9418,8 @@ func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *List
 // - Corner-based terrain classification (NW, NE, SW, SE)
 // - A 4x4 terrain pattern per tile, for matching tiles against a painted map
 // - Lower and upper terrain levels for elevation variety
-// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
+// - Tile sizes: 16, 24 or 32 (standard); 16/32/64 with mode='pro'
+// - Walkability per terrain (`lower_walkable` / `upper_walkable`) for map and engine-export collision
 // - Seamless tile connections for map creation
 // - Vertical transitions support with transition_size=1.0
 // - Style control via outline, shading, and detail parameters
@@ -8683,7 +9510,8 @@ func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (
 // - Corner-based terrain classification (NW, NE, SW, SE)
 // - A 4x4 terrain pattern per tile, for matching tiles against a painted map
 // - Lower and upper terrain levels for elevation variety
-// - Tile sizes: 16x16 or 32x32 (standard); 16/32/64 with mode='pro' (experimental)
+// - Tile sizes: 16, 24 or 32 (standard); 16/32/64 with mode='pro'
+// - Walkability per terrain (`lower_walkable` / `upper_walkable`) for map and engine-export collision
 // - Seamless tile connections for map creation
 // - Vertical transitions support with transition_size=1.0
 // - Style control via outline, shading, and detail parameters
@@ -8873,6 +9701,9 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 //     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
 //   - Generation metadata and parameters
 //   - Terrain descriptions and style settings
+//   - With `?layout=tileset15|wang|godot`, also `sheet`: the whole set as one PNG in the layout
+//     the website's download offers (`tileset15` the canonical 4x4 / 4x8 sheet, `wang` the
+//     5-wide Wang arrangement, `godot` Godot's 3x3 autotile sheet)
 //
 // Example usage:
 // ```python
@@ -8894,8 +9725,8 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 // ```
 //
 //	GET /tilesets/{tileset_id}
-func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID) (*GetTilesetResponse, error) {
-	return c.GetTilesetWithResult[GetTilesetResponse](ctx, tilesetID)
+func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *GetTilesetParams) (*GetTilesetResponse, error) {
+	return c.GetTilesetWithResult[GetTilesetResponse](ctx, tilesetID, params)
 }
 
 // Retrieve a completed tileset by its UUID.
@@ -8919,6 +9750,9 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID) (*GetTiles
 //     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
 //   - Generation metadata and parameters
 //   - Terrain descriptions and style settings
+//   - With `?layout=tileset15|wang|godot`, also `sheet`: the whole set as one PNG in the layout
+//     the website's download offers (`tileset15` the canonical 4x4 / 4x8 sheet, `wang` the
+//     5-wide Wang arrangement, `godot` Godot's 3x3 autotile sheet)
 //
 // Example usage:
 // ```python
@@ -8941,8 +9775,18 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID) (*GetTiles
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /tilesets/{tileset_id}
-func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
+func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, params *GetTilesetParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
+	if params != nil {
+		q := make(url.Values, 1)
+
+		if params.Layout != "" {
+			q["layout"] = []string{string(params.Layout)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9134,6 +9978,194 @@ func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID u
 	}
 }
 
+// Rename a top-down or sidescroller tileset. The name is display only: the terrain descriptions that generation and chaining read are left alone. Free.
+//
+//	PATCH /tilesets/{tileset_id}
+func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body UpdateTilesetRequest) (*UpdateTilesetResponse, error) {
+	return c.UpdateTilesetWithResult[UpdateTilesetResponse](ctx, tilesetID, body)
+}
+
+// Rename a top-down or sidescroller tileset. The name is display only: the terrain descriptions that generation and chaining read are left alone. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /tilesets/{tileset_id}
+func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, body UpdateTilesetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UpdateTilesetResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Tileset not found
+		return nil, fmt.Errorf("UpdateTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Upload a tileset sheet you made as one completed tileset, as the website's Import does. Free, nothing is generated: the sheet is cut into its 16 (or 25) Wang tiles with new base tile ids, so the tileset works in GET /tilesets/{tileset_id}, maps, chaining and the downloads like a generated one. A sheet that is not a PixelLab layout is a 422 naming the sizes it accepts.
+//
+//	POST /tilesets/import
+func (c *Client) SetTilesetImport(ctx context.Context, body SetTilesetImportRequest) (*SetTilesetImportResponse, error) {
+	return c.SetTilesetImportWithResult[SetTilesetImportResponse](ctx, body)
+}
+
+// Upload a tileset sheet you made as one completed tileset, as the website's Import does. Free, nothing is generated: the sheet is cut into its 16 (or 25) Wang tiles with new base tile ids, so the tileset works in GET /tilesets/{tileset_id}, maps, chaining and the downloads like a generated one. A sheet that is not a PixelLab layout is a 422 naming the sizes it accepts.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /tilesets/import
+func (c *Client) SetTilesetImportWithResult[R any](ctx context.Context, body SetTilesetImportRequest) (*R, error) {
+	u := c.baseURL.JoinPath("tilesets", "import")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusCreated:
+		// Tileset created
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetTilesetImportResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetTilesetImport: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Not a tileset sheet of a supported size
+		return nil, fmt.Errorf("SetTilesetImport: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
 //
 //	GET /tilesets-sidescroller
@@ -9250,6 +10282,17 @@ func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, 
 // The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
 // over any game background.
 //
+// **Modes** (the same as MCP `create_sidescroller_tileset`):
+//   - **`standard`** (default): the website's standard sidescroller tileset — 1 generation, ~30 s.
+//     `enhance`, `platform_thickness` and `transition_reference_image` apply here.
+//   - **`pro`**: the richest platforms — painted texture, a cleaner cap — 15 generations, a few
+//     minutes; needs a Tier 1+ plan. Connect to an earlier tileset's platform body with
+//     `lower_base_tile_id` (or `lower_reference_image`).
+//
+// Requests without `mode` run `standard`. Until 2026-11 every request ran an older sidescroller
+// model (2-3 generations); `outline`, `text_guidance_scale`, `tile_strength`, the two
+// `tileset_adherence` fields and `color_image` only steered that model and now do nothing.
+//
 // **Key differences from top-down tilesets:**
 // - **View**: Always "side" perspective (fixed, cannot be changed)
 // - **Background**: Always transparent (no background terrain)
@@ -9261,27 +10304,9 @@ func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, 
 // - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
 // - **Background**: Automatically transparent (not configurable)
 //
-// Features:
-// - Returns individual tiles with unique IDs
-// - Transparent background for easy overlay on game scenes
-// - Tile sizes: 16x16 or 32x32 pixels
-// - Seamless tile connections for platform creation
-// - Optional transition layer for surface details
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
 // **Retrieving results:**
 // After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
 // The same endpoint is used for both top-down and sidescroller tilesets.
-//
-// Common use cases:
-// - **Stone platforms**: stone bricks with moss transitions
-// - **Grass ground**: green grass with flower decorations
-// - **Metal grating**: industrial platforms with rust details
-// - **Ice platforms**: frozen surfaces with snow cover
-// - **Wood platforms**: wooden planks with vine overgrowth
-// - **Candy platforms**: colorful candy blocks with frosting
 //
 // Using the Python client:
 // ```python
@@ -9314,6 +10339,17 @@ func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSides
 // The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
 // over any game background.
 //
+// **Modes** (the same as MCP `create_sidescroller_tileset`):
+//   - **`standard`** (default): the website's standard sidescroller tileset — 1 generation, ~30 s.
+//     `enhance`, `platform_thickness` and `transition_reference_image` apply here.
+//   - **`pro`**: the richest platforms — painted texture, a cleaner cap — 15 generations, a few
+//     minutes; needs a Tier 1+ plan. Connect to an earlier tileset's platform body with
+//     `lower_base_tile_id` (or `lower_reference_image`).
+//
+// Requests without `mode` run `standard`. Until 2026-11 every request ran an older sidescroller
+// model (2-3 generations); `outline`, `text_guidance_scale`, `tile_strength`, the two
+// `tileset_adherence` fields and `color_image` only steered that model and now do nothing.
+//
 // **Key differences from top-down tilesets:**
 // - **View**: Always "side" perspective (fixed, cannot be changed)
 // - **Background**: Always transparent (no background terrain)
@@ -9325,27 +10361,9 @@ func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSides
 // - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
 // - **Background**: Automatically transparent (not configurable)
 //
-// Features:
-// - Returns individual tiles with unique IDs
-// - Transparent background for easy overlay on game scenes
-// - Tile sizes: 16x16 or 32x32 pixels
-// - Seamless tile connections for platform creation
-// - Optional transition layer for surface details
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
 // **Retrieving results:**
 // After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
 // The same endpoint is used for both top-down and sidescroller tilesets.
-//
-// Common use cases:
-// - **Stone platforms**: stone bricks with moss transitions
-// - **Grass ground**: green grass with flower decorations
-// - **Metal grating**: industrial platforms with rust details
-// - **Ice platforms**: frozen surfaces with snow cover
-// - **Wood platforms**: wooden planks with vine overgrowth
-// - **Candy platforms**: colorful candy blocks with frosting
 //
 // Using the Python client:
 // ```python
@@ -9435,6 +10453,12 @@ func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context,
 	case http.StatusPaymentRequired:
 		// Insufficient credits
 		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// mode='pro' needs a Tier 1+ plan
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// lower_base_tile_id not found
+		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
@@ -9452,8 +10476,18 @@ func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context,
 // Retrieve a completed sidescroller tileset by UUID. Returns 423 while still generating (with Retry-After header), 404 if the tileset doesn't exist or is a topdown tileset (use GET /v2/tilesets/{tileset_id} for those).
 //
 //	GET /tilesets-sidescroller/{tileset_id}
-func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) error {
+func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID, params *GetSidescrollerTilesetParams) error {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
+	if params != nil {
+		q := make(url.Values, 1)
+
+		if params.Layout != "" {
+			q["layout"] = []string{string(params.Layout)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -9647,10 +10681,13 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 //     (square_topdown, isometric)
 //   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
 //     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
-//     hex/hex_pointy; describe it as a transition ("grass to water")
+//     hex/hex_pointy; describe it as a transition ("grass to water").
+//     Terrain shaping as on the website: `boundary_amplitude` + `boundary_seed`
+//     (uneven boundary), `elevation` (raised terrain, corner shapes) and
+//     `step_slope` (edge steepness of that raise)
 //   - **`tile_feature: "building"`** — a construction kit: floor, connectable
 //     wall segments, doorways, pillar and staircase (square_topdown, isometric,
-//     oblique; see the `building_*` parameters)
+//     oblique; see the `building_*` parameters and `roof_profile`)
 //   - omit `tile_feature` for independent tile variations
 //
 // Supported tile types:
@@ -9721,10 +10758,13 @@ func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest)
 //     (square_topdown, isometric)
 //   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
 //     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
-//     hex/hex_pointy; describe it as a transition ("grass to water")
+//     hex/hex_pointy; describe it as a transition ("grass to water").
+//     Terrain shaping as on the website: `boundary_amplitude` + `boundary_seed`
+//     (uneven boundary), `elevation` (raised terrain, corner shapes) and
+//     `step_slope` (edge steepness of that raise)
 //   - **`tile_feature: "building"`** — a construction kit: floor, connectable
 //     wall segments, doorways, pillar and staircase (square_topdown, isometric,
-//     oblique; see the `building_*` parameters)
+//     oblique; see the `building_*` parameters and `roof_profile`)
 //   - omit `tile_feature` for independent tile variations
 //
 // Supported tile types:
@@ -10112,6 +11152,88 @@ func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uui
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Upload your own tile images as one completed tile group, as the website's Import tiles does. Free, nothing is generated; the group appears in GET /tiles-pro and on the website, ready for maps. Frames are checked against tile_type and tile_size (422 names the size each frame needs).
+//
+//	POST /tiles-pro/import
+func (c *Client) SetTilesProImport(ctx context.Context, body SetTilesProImportRequest) (*SetTilesProImportResponse, error) {
+	return c.SetTilesProImportWithResult[SetTilesProImportResponse](ctx, body)
+}
+
+// Upload your own tile images as one completed tile group, as the website's Import tiles does. Free, nothing is generated; the group appears in GET /tiles-pro and on the website, ready for maps. Frames are checked against tile_type and tile_size (422 names the size each frame needs).
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /tiles-pro/import
+func (c *Client) SetTilesProImportWithResult[R any](ctx context.Context, body SetTilesProImportRequest) (*R, error) {
+	u := c.baseURL.JoinPath("tiles-pro", "import")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusCreated:
+		// Tile group created
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetTilesProImportResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetTilesProImport: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A frame is not a PNG of the size tile_type needs
+		return nil, fmt.Errorf("SetTilesProImport: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10985,6 +12107,2160 @@ func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID uui
 	}
 }
 
+// Paint one room (a 7 x 6 grid of 32 px floor cells; top-down
+// 256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways
+// where `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down
+// room's building kit can also come as a 16, 24, 48 or 64 px tileset (`tile_size`).
+//
+// Returns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with
+// `pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.
+//
+// Costs 20 generations (or $0.16 of credits) when the room is ready,
+// 25 ($0.20) with `tile_size` 48 or 64, and
+// 10 more for its pieces. Nothing is charged if it fails. Needs Tier 1 (Pixel
+// Apprentice) or higher.
+//
+//	POST /create-room
+func (c *Client) CreateRoom(ctx context.Context, body CreateRoomRequest) (*RoomQueuedResponse, error) {
+	return c.CreateRoomWithResult[RoomQueuedResponse](ctx, body)
+}
+
+// Paint one room (a 7 x 6 grid of 32 px floor cells; top-down
+// 256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways
+// where `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down
+// room's building kit can also come as a 16, 24, 48 or 64 px tileset (`tile_size`).
+//
+// Returns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with
+// `pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.
+//
+// Costs 20 generations (or $0.16 of credits) when the room is ready,
+// 25 ($0.20) with `tile_size` 48 or 64, and
+// 10 more for its pieces. Nothing is charged if it fails. Needs Tier 1 (Pixel
+// Apprentice) or higher.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /create-room
+func (c *Client) CreateRoomWithResult[R any](ctx context.Context, body CreateRoomRequest) (*R, error) {
+	u := c.baseURL.JoinPath("create-room")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// The room is being made
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*RoomQueuedResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Below Tier 1
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// The style room or project isn't yours
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusConflict:
+		// The style room can't be one (says why)
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (the floor plan or doors say what is wrong)
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many background jobs running
+		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Cut a painted room's furniture out as movable pieces, each with its own
+// shadow, to move, remove or reuse in the website's room editor. Only when the furniture is to be
+// rearranged: the painted room is complete without it. Oblique rooms have no furniture to cut yet.
+//
+// Takes ~5-8 minutes; poll `GET /rooms/{room_id}` until `pieces_status` is `completed`. Costs
+// 10 generations (or $0.08 of credits) when the pieces are
+// ready. Needs Tier 1 (Pixel Apprentice) or higher.
+//
+//	POST /rooms/{room_id}/cut-out-furniture
+func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*RoomQueuedResponse, error) {
+	return c.CutRoomOutFurnitureWithResult[RoomQueuedResponse](ctx, roomID)
+}
+
+// Cut a painted room's furniture out as movable pieces, each with its own
+// shadow, to move, remove or reuse in the website's room editor. Only when the furniture is to be
+// rearranged: the painted room is complete without it. Oblique rooms have no furniture to cut yet.
+//
+// Takes ~5-8 minutes; poll `GET /rooms/{room_id}` until `pieces_status` is `completed`. Costs
+// 10 generations (or $0.08 of credits) when the pieces are
+// ready. Needs Tier 1 (Pixel Apprentice) or higher.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /rooms/{room_id}/cut-out-furniture
+func (c *Client) CutRoomOutFurnitureWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("rooms", roomID.String(), "cut-out-furniture")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// The furniture is being cut out
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*RoomQueuedResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Below Tier 1
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Room not found
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Its furniture can't be cut out now (says why)
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusTooManyRequests:
+		// Too many background jobs running
+		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Your rooms, newest first. Open to every plan: they stay yours after a downgrade.
+//
+//	GET /rooms
+func (c *Client) ListRooms(ctx context.Context, params *ListRoomsParams) (*ListRoomsResponse, error) {
+	return c.ListRoomsWithResult[ListRoomsResponse](ctx, params)
+}
+
+// Your rooms, newest first. Open to every plan: they stay yours after a downgrade.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /rooms
+func (c *Client) ListRoomsWithResult[R any](ctx context.Context, params *ListRoomsParams) (*R, error) {
+	u := c.baseURL.JoinPath("rooms")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListRoomsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListRooms: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// A room: its stage while it is made, then its picture, floor plan and doors
+// (a top-down room's join anchors and walkable rects too), and its pieces once cut out.
+//
+//	GET /rooms/{room_id}
+func (c *Client) GetRoom(ctx context.Context, roomID uuid.UUID) (*GetRoomResponse, error) {
+	return c.GetRoomWithResult[GetRoomResponse](ctx, roomID)
+}
+
+// A room: its stage while it is made, then its picture, floor plan and doors
+// (a top-down room's join anchors and walkable rects too), and its pieces once cut out.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /rooms/{room_id}
+func (c *Client) GetRoomWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("rooms", roomID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// OK
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*GetRoomResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetRoom: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Room not found
+		return nil, fmt.Errorf("GetRoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Delete a finished room. Refused (409) while it or its furniture's cut is
+// being made, and while another of your rooms' saved arrangements uses its pieces. Placements on
+// maps keep their picture; objects made from its pieces stay in Objects.
+//
+//	DELETE /rooms/{room_id}
+func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomResponse, error) {
+	return c.DeleteRoomWithResult[DeleteRoomResponse](ctx, roomID)
+}
+
+// Delete a finished room. Refused (409) while it or its furniture's cut is
+// being made, and while another of your rooms' saved arrangements uses its pieces. Placements on
+// maps keep their picture; objects made from its pieces stay in Objects.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /rooms/{room_id}
+func (c *Client) DeleteRoomWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("rooms", roomID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Deleted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteRoomResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Room not found
+		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Still being made, or its pieces are used elsewhere
+		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// A ZIP of the building kit the room was built from: the kit painting (every
+// wall, corner, door and floor tile of its look), and for a top-down room the same tiles as a
+// tileset-15 sheet (32 px, 4 x 8) with its metadata, which the website's tileset import takes as
+// it is. 409 while the room is being made, and for a room not built from a kit (`building_kit`
+// false).
+//
+//	GET /rooms/{room_id}/kit.zip
+func (c *Client) GetRoomKitZip(ctx context.Context, roomID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("rooms", roomID.String(), "kit.zip")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// The ZIP
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/zip":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Room not found
+		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Not finished, or not built from a building kit
+		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/objects/{object_id} returns. Free.
+//
+//	PATCH /objects/{object_id}/animations/{animation_group_id}
+func (c *Client) UpdateObjectAnimation(ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*UpdateAnimationResponse, error) {
+	return c.UpdateObjectAnimationWithResult[UpdateAnimationResponse](ctx, objectID, animationGroupID, body)
+}
+
+// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/objects/{object_id} returns. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /objects/{object_id}/animations/{animation_group_id}
+func (c *Client) UpdateObjectAnimationWithResult[R any](ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "animations", animationGroupID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UpdateAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateObjectAnimation: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Object or animation not found
+		return nil, fmt.Errorf("UpdateObjectAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Copy this character state into a new state of the same character: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The character must be completed.
+//
+//	POST /characters/{character_id}/duplicate
+func (c *Client) SetCharacterDuplicate(ctx context.Context, characterID uuid.UUID) (*StateResponse, error) {
+	return c.SetCharacterDuplicateWithResult[StateResponse](ctx, characterID)
+}
+
+// Copy this character state into a new state of the same character: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The character must be completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/{character_id}/duplicate
+func (c *Client) SetCharacterDuplicateWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "duplicate")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StateResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed / nothing to split off
+		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Split this state off into a character of its own. The new character takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A character with a single state has nothing to split off (400).
+//
+//	POST /characters/{character_id}/ungroup
+func (c *Client) SetCharacterUngroup(ctx context.Context, characterID uuid.UUID) (*StateResponse, error) {
+	return c.SetCharacterUngroupWithResult[StateResponse](ctx, characterID)
+}
+
+// Split this state off into a character of its own. The new character takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A character with a single state has nothing to split off (400).
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/{character_id}/ungroup
+func (c *Client) SetCharacterUngroupWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "ungroup")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StateResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed / nothing to split off
+		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Copy this object state into a new state of the same object: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The object must be completed.
+//
+//	POST /objects/{object_id}/duplicate
+func (c *Client) SetObjectDuplicate(ctx context.Context, objectID uuid.UUID) (*StateResponse, error) {
+	return c.SetObjectDuplicateWithResult[StateResponse](ctx, objectID)
+}
+
+// Copy this object state into a new state of the same object: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The object must be completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/{object_id}/duplicate
+func (c *Client) SetObjectDuplicateWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "duplicate")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StateResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed / nothing to split off
+		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Split this state off into a object of its own. The new object takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A object with a single state has nothing to split off (400).
+//
+//	POST /objects/{object_id}/ungroup
+func (c *Client) SetObjectUngroup(ctx context.Context, objectID uuid.UUID) (*StateResponse, error) {
+	return c.SetObjectUngroupWithResult[StateResponse](ctx, objectID)
+}
+
+// Split this state off into a object of its own. The new object takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A object with a single state has nothing to split off (400).
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/{object_id}/ungroup
+func (c *Client) SetObjectUngroupWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "ungroup")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StateResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed / nothing to split off
+		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Set the character's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-256px. Animations keep the canvas they were made on. Free.
+//
+//	POST /characters/{character_id}/canvas
+func (c *Client) CreateCharacterCanva(ctx context.Context, characterID uuid.UUID, body CreateObjectCanva) (*CreateCanvaResponse, error) {
+	return c.CreateCharacterCanvaWithResult[CreateCanvaResponse](ctx, characterID, body)
+}
+
+// Set the character's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-256px. Animations keep the canvas they were made on. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/{character_id}/canvas
+func (c *Client) CreateCharacterCanvaWithResult[R any](ctx context.Context, characterID uuid.UUID, body CreateObjectCanva) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "canvas")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateCanvaResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// The size would crop the artwork
+		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Another canvas change of it is still running
+		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Set the object's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-400px. Animations keep the canvas they were made on. Free. Map placements of the object follow the new canvas.
+//
+//	POST /objects/{object_id}/canvas
+func (c *Client) CreateObjectCanva(ctx context.Context, objectID uuid.UUID, body CreateObjectCanva) (*CreateCanvaResponse, error) {
+	return c.CreateObjectCanvaWithResult[CreateCanvaResponse](ctx, objectID, body)
+}
+
+// Set the object's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-400px. Animations keep the canvas they were made on. Free. Map placements of the object follow the new canvas.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/{object_id}/canvas
+func (c *Client) CreateObjectCanvaWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectCanva) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "canvas")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateCanvaResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// The size would crop the artwork
+		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
+	case http.StatusConflict:
+		// Another canvas change of it is still running
+		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction character. Free: nothing is generated.
+//
+//	POST /characters/{character_id}/animations/{animation_group_id}/mirror
+func (c *Client) SetCharacterAnimationMirror(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*SetAnimationMirrorResponse, error) {
+	return c.SetCharacterAnimationMirrorWithResult[SetAnimationMirrorResponse](ctx, characterID, animationGroupID, body)
+}
+
+// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction character. Free: nothing is generated.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /characters/{character_id}/animations/{animation_group_id}/mirror
+func (c *Client) SetCharacterAnimationMirrorWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "mirror")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetAnimationMirrorResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Target direction exists, or is not on this asset
+		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Asset, animation, or source direction not found
+		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction object. Free: nothing is generated.
+//
+//	POST /objects/{object_id}/animations/{animation_group_id}/mirror
+func (c *Client) SetObjectAnimationMirror(ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*SetAnimationMirrorResponse, error) {
+	return c.SetObjectAnimationMirrorWithResult[SetAnimationMirrorResponse](ctx, objectID, animationGroupID, body)
+}
+
+// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction object. Free: nothing is generated.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/{object_id}/animations/{animation_group_id}/mirror
+func (c *Client) SetObjectAnimationMirrorWithResult[R any](ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "animations", animationGroupID.String(), "mirror")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetAnimationMirrorResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Target direction exists, or is not on this asset
+		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Asset, animation, or source direction not found
+		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Download this state as one `.aseprite` file: a single layer with every image as a frame, a `rotations` tag over the rotation set, and one tag per animation direction (e.g. `walk-south`). Covers this state only; groups whose images could not be fetched are left out and named in the `X-Skipped-Tags` header.
+//
+//	GET /characters/{character_id}/aseprite
+func (c *Client) GetCharacterAseprite(ctx context.Context, characterID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "aseprite")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/octet-stream":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed, or a bad parameter combination
+		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Without parameters: the rotations as a GIF that turns through every direction (200 ms each). With `animation_group_id` (+ `direction`): that animation direction as a looping GIF. Pixels are kept exact: binary transparency, never rescaled.
+//
+//	GET /characters/{character_id}/gif
+func (c *Client) GetCharacterGif(ctx context.Context, characterID uuid.UUID, params *GetCharacterGifParams) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "gif")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.AnimationGroupID != uuid.Nil() {
+			q["animation_group_id"] = []string{params.AnimationGroupID.String()}
+		}
+
+		if params.Direction != "" {
+			q["direction"] = []string{string(params.Direction)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "image/gif":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed, or a bad parameter combination
+		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Download this state as one `.aseprite` file: a single layer with every image as a frame, a `rotations` tag over the rotation set, and one tag per animation direction (e.g. `walk-south`). Covers this state only; groups whose images could not be fetched are left out and named in the `X-Skipped-Tags` header.
+//
+//	GET /objects/{object_id}/aseprite
+func (c *Client) GetObjectAseprite(ctx context.Context, objectID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "aseprite")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/octet-stream":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed, or a bad parameter combination
+		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Without parameters: the rotations as a GIF that turns through every direction (200 ms each). With `animation_group_id` (+ `direction`): that animation direction as a looping GIF. Pixels are kept exact: binary transparency, never rescaled. A 1-direction object has no rotations to turn through: pass an animation.
+//
+//	GET /objects/{object_id}/gif
+func (c *Client) GetObjectGif(ctx context.Context, objectID uuid.UUID, params *GetObjectGifParams) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "gif")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.AnimationGroupID != uuid.Nil() {
+			q["animation_group_id"] = []string{params.AnimationGroupID.String()}
+		}
+
+		if params.Direction != "" {
+			q["direction"] = []string{string(params.Direction)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "image/gif":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed, or a bad parameter combination
+		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Download every completed state of the object as one ZIP, the website's export: rotation and animation frame PNGs, plus a top-level `metadata.json` whose paths describe the layout (read them rather than assuming folder names).
+//
+//	GET /objects/{object_id}/zip
+func (c *Client) GetObjectZip(ctx context.Context, objectID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("objects", objectID.String(), "zip")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/zip":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not completed, or a bad parameter combination
+		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Belongs to another user
+		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Add your own pixel art to your object library as a completed 1-direction object, the same as uploading it on the website. It can then be animated, given states, exported and placed on maps like a generated one. PNG only, up to 256x256. Free.
+//
+//	POST /objects/import
+func (c *Client) SetObjectImport(ctx context.Context, body SetObjectImportRequest) (*SetObjectImportResponse, error) {
+	return c.SetObjectImportWithResult[SetObjectImportResponse](ctx, body)
+}
+
+// Add your own pixel art to your object library as a completed 1-direction object, the same as uploading it on the website. It can then be animated, given states, exported and placed on maps like a generated one. PNG only, up to 256x256. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /objects/import
+func (c *Client) SetObjectImportWithResult[R any](ctx context.Context, body SetObjectImportRequest) (*R, error) {
+	u := c.baseURL.JoinPath("objects", "import")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetObjectImportResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadRequest:
+		// Not a PNG, or too large
+		return nil, fmt.Errorf("SetObjectImport: status %s", rsp.Status)
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetObjectImport: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Generate a shape-based pixel-art UI panel from a text description.
 //
 // Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
@@ -11263,6 +14539,217 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 	}
 }
 
+// Cut a template (what `create-ui-asset` makes) into one UI asset per
+// shape: each button, bar, frame or icon becomes its own PNG you can place, 9-slice,
+// give states and download. Free; nothing is generated.
+//
+// `GET /v2/ui-assets/{id}` shows `split_preview` first: the boxes this cuts by default.
+// Send `boxes` to cut your own instead. A template splits once: delete its elements to
+// split it differently. Afterwards `GET /v2/ui-assets/{id}` lists them under `elements`,
+// and editing or deleting an element re-composes the template's image from them.
+//
+//	POST /ui-assets/{ui_asset_id}/split
+func (c *Client) SetUIAssetSplit(ctx context.Context, uiAssetID uuid.UUID, body *SetUIAssetSplitRequest) (*SetUIAssetSplitResponse, error) {
+	return c.SetUIAssetSplitWithResult[SetUIAssetSplitResponse](ctx, uiAssetID, body)
+}
+
+// Cut a template (what `create-ui-asset` makes) into one UI asset per
+// shape: each button, bar, frame or icon becomes its own PNG you can place, 9-slice,
+// give states and download. Free; nothing is generated.
+//
+// `GET /v2/ui-assets/{id}` shows `split_preview` first: the boxes this cuts by default.
+// Send `boxes` to cut your own instead. A template splits once: delete its elements to
+// split it differently. Afterwards `GET /v2/ui-assets/{id}` lists them under `elements`,
+// and editing or deleting an element re-composes the template's image from them.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /ui-assets/{ui_asset_id}/split
+func (c *Client) SetUIAssetSplitWithResult[R any](ctx context.Context, uiAssetID uuid.UUID, body *SetUIAssetSplitRequest) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String(), "split")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	// an optional body left out is sent as no body at all, not as JSON null
+	if body != nil {
+		pr, pw := io.Pipe()
+		req.Body, req.ContentLength = pr, -1
+		req.Header["Content-Type"] = []string{"application/json"}
+
+		go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+		defer pr.Close()
+	}
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Split
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SetUIAssetSplitResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// UI asset not found
+		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Not a template, already split, or a box off the image
+		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Make states for elements split from a UI template (`POST
+// /v2/ui-assets/{id}/split`): hover, pressed, disabled, selected, or anything you
+// describe. Each becomes a UI asset of kind `state` under its element, in the same art.
+//
+// One generation draws every element in every state on one labelled grid, so a set stays consistent. Priced by that grid's side (each element plus an 18 px margin, a 24 px label per state): 10 generations up to 256 px, 15 up to 341, 25 above. One 64x24 button in hover + pressed is 10; two 96x32 buttons in the same two states are 15. Charged when the states are saved.
+//
+// Poll `GET /v2/background-jobs/{background_job_id}` (usually 1-2 minutes); when
+// `status` is `completed`, `last_response.created_state_ids` are the new states
+// (`failed` names any that could not be saved). `GET /v2/ui-assets/{element or template
+// id}` lists them under `states`.
+//
+//	POST /ui-assets/states
+func (c *Client) CreateUIAssetState(ctx context.Context, body CreateUIAssetStateRequest) (*CreateUIAssetStateResponse, error) {
+	return c.CreateUIAssetStateWithResult[CreateUIAssetStateResponse](ctx, body)
+}
+
+// Make states for elements split from a UI template (`POST
+// /v2/ui-assets/{id}/split`): hover, pressed, disabled, selected, or anything you
+// describe. Each becomes a UI asset of kind `state` under its element, in the same art.
+//
+// One generation draws every element in every state on one labelled grid, so a set stays consistent. Priced by that grid's side (each element plus an 18 px margin, a 24 px label per state): 10 generations up to 256 px, 15 up to 341, 25 above. One 64x24 button in hover + pressed is 10; two 96x32 buttons in the same two states are 15. Charged when the states are saved.
+//
+// Poll `GET /v2/background-jobs/{background_job_id}` (usually 1-2 minutes); when
+// `status` is `completed`, `last_response.created_state_ids` are the new states
+// (`failed` names any that could not be saved). `GET /v2/ui-assets/{element or template
+// id}` lists them under `states`.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /ui-assets/states
+func (c *Client) CreateUIAssetStateWithResult[R any](ctx context.Context, body CreateUIAssetStateRequest) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets", "states")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Queued
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateUIAssetStateResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Insufficient generations or credits
+		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// An element id that isn't one of your elements
+		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many concurrent jobs
+		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
 //
 //	GET /ui-assets
@@ -11373,14 +14860,24 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 	}
 }
 
-// Get a UI panel's details. Reports progress while the panel is still generating.
+// Get a UI asset's details. Reports progress while a panel is still
+// generating.
+//
+// A template (what `create-ui-asset` makes) lists the `elements` split from it, each with
+// its `states`; an element lists its `states`. A template not split yet shows
+// `split_preview`: where `POST /v2/ui-assets/{id}/split` cuts by default.
 //
 //	GET /ui-assets/{ui_asset_id}
-func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*GetUIAssetResponse, error) {
-	return c.GetUIAssetWithResult[GetUIAssetResponse](ctx, uiAssetID)
+func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
+	return c.GetUIAssetWithResult[UIAssetDetail](ctx, uiAssetID)
 }
 
-// Get a UI panel's details. Reports progress while the panel is still generating.
+// Get a UI asset's details. Reports progress while a panel is still
+// generating.
+//
+// A template (what `create-ui-asset` makes) lists the `elements` split from it, each with
+// its `states`; an element lists its `states`. A template not split yet shows
+// `split_preview`: where `POST /v2/ui-assets/{id}/split` cuts by default.
 // You can define a custom result to unmarshal the response into.
 //
 //	GET /ui-assets/{ui_asset_id}
@@ -11414,7 +14911,7 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetUIAssetResponse); ok {
+			if _, ok := any(&out).(*UIAssetDetail); ok {
 				opts = jsonOpts
 			}
 
@@ -11472,14 +14969,18 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 	}
 }
 
-// Permanently delete a UI panel and its backing image files.
+// Permanently delete a UI asset and its image files. A template takes
+// its elements and their states with it, an element its states; deleting an element
+// re-composes its template from the elements left.
 //
 //	DELETE /ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteUIAssetResponse, error) {
-	return c.DeleteUIAssetWithResult[DeleteUIAssetResponse](ctx, uiAssetID)
+func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteRoomResponse, error) {
+	return c.DeleteUIAssetWithResult[DeleteRoomResponse](ctx, uiAssetID)
 }
 
-// Permanently delete a UI panel and its backing image files.
+// Permanently delete a UI asset and its image files. A template takes
+// its elements and their states with it, an element its states; deleting an element
+// re-composes its template from the elements left.
 // You can define a custom result to unmarshal the response into.
 //
 //	DELETE /ui-assets/{ui_asset_id}
@@ -11513,7 +15014,7 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 
 			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
 			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteUIAssetResponse); ok {
+			if _, ok := any(&out).(*DeleteRoomResponse); ok {
 				opts = jsonOpts
 			}
 
@@ -11566,6 +15067,187 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rename a UI asset (template, element or state) and/or set its
+// 9-slice: the border insets that stay crisp when the image is stretched to another
+// size. Returns the asset as `GET /v2/ui-assets/{id}` does. Free.
+//
+//	PATCH /ui-assets/{ui_asset_id}
+func (c *Client) UpdateUIAsset(ctx context.Context, uiAssetID uuid.UUID, body UpdateUIAssetRequest) (*UIAssetDetail, error) {
+	return c.UpdateUIAssetWithResult[UIAssetDetail](ctx, uiAssetID, body)
+}
+
+// Rename a UI asset (template, element or state) and/or set its
+// 9-slice: the border insets that stay crisp when the image is stretched to another
+// size. Returns the asset as `GET /v2/ui-assets/{id}` does. Free.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /ui-assets/{ui_asset_id}
+func (c *Client) UpdateUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID, body UpdateUIAssetRequest) (*R, error) {
+	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Updated
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*UIAssetDetail); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// UI asset not found
+		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (the detail says what to change)
+		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// The UI asset's PNGs in one ZIP, as the website's download builds it.
+// For a split template:
+// ```
+// <name>/<name>.png                         the whole layout
+// <name>/elements/<element>.png             an element with no states
+// <name>/elements/<element>/<element>.png   an element with states
+// <name>/elements/<element>/<state>.png     each of its states
+// metadata.json                             {"ui_assets": [{id, name, prompt, kind, file,
+//
+//	size, group_id, parent_id, nine_slice}]}
+//
+// ```
+// A template not split yet, an element or a state gives its one PNG + metadata.json.
+//
+//	GET /ui-assets/{ui_asset_id}/zip
+func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.ReadCloser, error) {
+	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String(), "zip")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// the body is left open only when it is handed to the caller
+	streaming := false
+	defer func() {
+		if !streaming {
+			rsp.Body.Close()
+		}
+	}()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// ZIP
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/zip":
+			streaming = true
+
+			return rsp.Body, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// UI asset not found
+		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusLocked:
+		// Still generating; retry after Retry-After seconds
+		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11928,6 +15610,182 @@ func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, char
 	}
 }
 
+// Remove a character's portrait. Free.
+//
+// Expressions already generated from it stay on the character and keep working with
+// `/v2/talking-gif` and `/v2/lip-sync`. Generating a new expression needs a portrait
+// again: `POST /v2/characters/{character_id}/portrait`.
+//
+//	DELETE /characters/{character_id}/portrait
+func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterPortraitResponse, error) {
+	return c.DeleteCharacterPortraitWithResult[DeleteCharacterPortraitResponse](ctx, characterID)
+}
+
+// Remove a character's portrait. Free.
+//
+// Expressions already generated from it stay on the character and keep working with
+// `/v2/talking-gif` and `/v2/lip-sync`. Generating a new expression needs a portrait
+// again: `POST /v2/characters/{character_id}/portrait`.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /characters/{character_id}/portrait
+func (c *Client) DeleteCharacterPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "portrait")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Portrait deleted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteCharacterPortraitResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found, or it has no portrait
+		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// character_id is not a valid id
+		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Remove one expression (`mood`) from a character's mouth positions.
+// Free.
+//
+// The other expressions are kept; the spritesheet is rebuilt without that row, so the
+// rows below it move up (read `moods_on_character` for the new order). Deleting the
+// last expression removes the whole set. Generate it again with
+// `POST /v2/vocal-animation`.
+//
+//	DELETE /characters/{character_id}/vocal-animation/{mood}
+func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID uuid.UUID, mood Mood) (*DeleteCharacterVocalAnimationResponse, error) {
+	return c.DeleteCharacterVocalAnimationWithResult[DeleteCharacterVocalAnimationResponse](ctx, characterID, mood)
+}
+
+// Remove one expression (`mood`) from a character's mouth positions.
+// Free.
+//
+// The other expressions are kept; the spritesheet is rebuilt without that row, so the
+// rows below it move up (read `moods_on_character` for the new order). Deleting the
+// last expression removes the whole set. Generate it again with
+// `POST /v2/vocal-animation`.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /characters/{character_id}/vocal-animation/{mood}
+func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, mood Mood) (*R, error) {
+	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", string(mood))
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Expression deleted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteCharacterVocalAnimationResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Character not found, it has no mouth positions, or not this expression
+		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid character id or mood
+		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Generate the set of mouth positions ("visemes") that lets a
 // portrait be lip-synced to any line of text.
 //
@@ -11942,7 +15800,10 @@ func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, char
 //     positions come back inline from the GET below for you to keep.
 //
 // Call once per expression (`mood`). `viseme_count` must match across expressions on
-// one character.
+// one character. `engine="pixminimax"` (PixMiniMax, beta) keeps the rest of the face
+// still while the mouth moves and costs the same at every portrait size.
+//
+// To remove an expression again, `DELETE /v2/characters/{character_id}/vocal-animation/{mood}`.
 //
 // **Requires a paid plan.**
 //
@@ -11974,7 +15835,10 @@ func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnima
 //     positions come back inline from the GET below for you to keep.
 //
 // Call once per expression (`mood`). `viseme_count` must match across expressions on
-// one character.
+// one character. `engine="pixminimax"` (PixMiniMax, beta) keeps the rest of the face
+// still while the mouth moves and costs the same at every portrait size.
+//
+// To remove an expression again, `DELETE /v2/characters/{character_id}/vocal-animation/{mood}`.
 //
 // **Requires a paid plan.**
 //

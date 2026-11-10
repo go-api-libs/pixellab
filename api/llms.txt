@@ -67,12 +67,20 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`GET /characters`](https://api.pixellab.ai/v2/redoc#operation/list_characters_characters_get): List user's characters
 - [`GET /characters/{character_id}`](https://api.pixellab.ai/v2/redoc#operation/get_character_characters__character_id__get): Get character details
 - [`DELETE /characters/{character_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_character_v2_characters__character_id__delete): Delete one character state
+- [`PATCH /characters/{character_id}`](https://api.pixellab.ai/v2/redoc#operation/patch_character_characters__character_id__patch): Rename a character
 - [`GET /characters/{character_id}/zip`](https://api.pixellab.ai/v2/redoc#operation/download_character_characters__character_id__zip_get): Export character as ZIP
 - [`GET /characters/{character_id}/spritesheet`](https://api.pixellab.ai/v2/redoc#operation/download_character_spritesheet_characters__character_id__spritesheet_get): Export character as spritesheet
 - [`PATCH /characters/{character_id}/tags`](https://api.pixellab.ai/v2/redoc#operation/update_character_tags_characters__character_id__tags_patch): Update character tags
 - [`DELETE /characters/{character_id}/animations`](https://api.pixellab.ai/v2/redoc#operation/delete_character_animations_characters__character_id__animations_delete): Delete animations from a character
 - [`DELETE /characters/{character_id}/animations/{animation_group_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_character_animation_group_characters__character_id__animations__animation_group_id__delete): Delete all directions of a character animation
+- [`PATCH /characters/{character_id}/animations/{animation_group_id}`](https://api.pixellab.ai/v2/redoc#operation/patch_character_animation_characters__character_id__animations__animation_group_id__patch): Rename a character animation
 - [`DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}`](https://api.pixellab.ai/v2/redoc#operation/delete_character_animation_direction_characters__character_id__animations__animation_group_id__directions__direction__delete): Delete one direction of a character animation
+- [`POST /characters/{character_id}/duplicate`](https://api.pixellab.ai/v2/redoc#operation/duplicate_character_state_characters__character_id__duplicate_post): Duplicate a character state
+- [`POST /characters/{character_id}/ungroup`](https://api.pixellab.ai/v2/redoc#operation/ungroup_character_state_characters__character_id__ungroup_post): Split a state off into its own character
+- [`POST /characters/{character_id}/canvas`](https://api.pixellab.ai/v2/redoc#operation/change_character_canvas_size_characters__character_id__canvas_post): Change a character's canvas size
+- [`POST /characters/{character_id}/animations/{animation_group_id}/mirror`](https://api.pixellab.ai/v2/redoc#operation/mirror_character_animation_characters__character_id__animations__animation_group_id__mirror_post): Mirror a character animation direction
+- [`GET /characters/{character_id}/aseprite`](https://api.pixellab.ai/v2/redoc#operation/export_character_aseprite_characters__character_id__aseprite_get): Export character as Aseprite
+- [`GET /characters/{character_id}/gif`](https://api.pixellab.ai/v2/redoc#operation/export_character_gif_characters__character_id__gif_get): Export character as GIF
 
 ### Objects
 
@@ -82,8 +90,10 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /create-8-direction-object`](https://api.pixellab.ai/v2/redoc#operation/create_8_direction_object_create_8_direction_object_post): Create an 8-direction object
 - [`POST /objects/{object_id}/animations`](https://api.pixellab.ai/v2/redoc#operation/animate_object_objects__object_id__animations_post): Add an animation to an existing object
 - [`POST /objects/{object_id}/states`](https://api.pixellab.ai/v2/redoc#operation/create_object_state_objects__object_id__states_post): Create a state of an existing object
-- [`POST /objects/{object_id}/select-frames`](https://api.pixellab.ai/v2/redoc#operation/select_object_frames_objects__object_id__select_frames_post): Promote selected frames of a review object to completed objects
-- [`POST /objects/{object_id}/dismiss-review`](https://api.pixellab.ai/v2/redoc#operation/dismiss_review_objects__object_id__dismiss_review_post): Dismiss a review object without saving any frames
+- [`POST /objects/{object_id}/select-frames`](https://api.pixellab.ai/v2/redoc#operation/select_object_frames_objects__object_id__select_frames_post): Keep frames of a review object, or keep an 8-direction expansion
+- [`POST /objects/{object_id}/dismiss-review`](https://api.pixellab.ai/v2/redoc#operation/dismiss_review_objects__object_id__dismiss_review_post): Discard a review: a frame pack, or an 8-direction expansion
+- [`POST /objects/{object_id}/expand-rotations`](https://api.pixellab.ai/v2/redoc#operation/expand_object_rotations_objects__object_id__expand_rotations_post): Expand a 1-direction object into 8 directions
+- [`POST /objects/import`](https://api.pixellab.ai/v2/redoc#operation/import_object_objects_import_post): Import a PNG as an object
 - [`POST /create-object-pro-flash`](https://api.pixellab.ai/v2/redoc#operation/create_object_pro_flash): Create object (Pro Flash)
 
 #### Object Library
@@ -92,8 +102,17 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`GET /objects`](https://api.pixellab.ai/v2/redoc#operation/list_objects_objects_get): List user's objects
 - [`GET /objects/{object_id}`](https://api.pixellab.ai/v2/redoc#operation/get_object_objects__object_id__get): Get object details
 - [`DELETE /objects/{object_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_object_objects__object_id__delete): Delete an object and all associated data
+- [`PATCH /objects/{object_id}`](https://api.pixellab.ai/v2/redoc#operation/patch_object_objects__object_id__patch): Rename an object
 - [`PATCH /objects/{object_id}/tags`](https://api.pixellab.ai/v2/redoc#operation/update_object_tags_objects__object_id__tags_patch): Update object tags
 - [`GET /objects/{object_id}/spritesheet`](https://api.pixellab.ai/v2/redoc#operation/download_object_spritesheet_objects__object_id__spritesheet_get): Export object as spritesheet
+- [`PATCH /objects/{object_id}/animations/{animation_group_id}`](https://api.pixellab.ai/v2/redoc#operation/patch_object_animation_objects__object_id__animations__animation_group_id__patch): Rename an object animation
+- [`POST /objects/{object_id}/duplicate`](https://api.pixellab.ai/v2/redoc#operation/duplicate_object_state_objects__object_id__duplicate_post): Duplicate an object state
+- [`POST /objects/{object_id}/ungroup`](https://api.pixellab.ai/v2/redoc#operation/ungroup_object_state_objects__object_id__ungroup_post): Split a state off into its own object
+- [`POST /objects/{object_id}/canvas`](https://api.pixellab.ai/v2/redoc#operation/change_object_canvas_size_objects__object_id__canvas_post): Change an object's canvas size
+- [`POST /objects/{object_id}/animations/{animation_group_id}/mirror`](https://api.pixellab.ai/v2/redoc#operation/mirror_object_animation_objects__object_id__animations__animation_group_id__mirror_post): Mirror an object animation direction
+- [`GET /objects/{object_id}/aseprite`](https://api.pixellab.ai/v2/redoc#operation/export_object_aseprite_objects__object_id__aseprite_get): Export object as Aseprite
+- [`GET /objects/{object_id}/gif`](https://api.pixellab.ai/v2/redoc#operation/export_object_gif_objects__object_id__gif_get): Export object as GIF
+- [`GET /objects/{object_id}/zip`](https://api.pixellab.ai/v2/redoc#operation/export_object_zip_objects__object_id__zip_get): Export object as ZIP
 
 ### Animation
 
@@ -116,6 +135,8 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 #### VFX
 
 - [`POST /vfx`](https://api.pixellab.ai/v2/redoc#operation/create_vfx_vfx_post): Create VFX
+- [`GET /vfx/effects`](https://api.pixellab.ai/v2/redoc#operation/list_vfx_effects_vfx_effects_get): List saved effects
+- [`DELETE /vfx/effects/{effect_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_vfx_effect_vfx_effects__effect_id__delete): Delete a saved effect
 
 ### Rotation
 
@@ -131,6 +152,7 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 
 - [`POST /edit-images-v2`](https://api.pixellab.ai/v2/redoc#operation/edit_images_v2_edit_images_v2_post): Edit images (Pro)
 - [`POST /edit-image-pixen`](https://api.pixellab.ai/v2/redoc#operation/edit_image_pixen_edit_image_pixen_post): Edit image (pixen)
+- [`POST /save-to-asset`](https://api.pixellab.ai/v2/redoc#operation/save_to_asset_save_to_asset_post): Save pixels into a stored asset
 - [`POST /edit-image`](https://api.pixellab.ai/v2/redoc#operation/edit_image_edit_image_post): Edit image
 - [`POST /edit-image-pro-flash`](https://api.pixellab.ai/v2/redoc#operation/edit_image_pro_flash): Edit image (Pro Flash)
 
@@ -149,6 +171,8 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /create-tileset`](https://api.pixellab.ai/v2/redoc#operation/generate_tileset_create_tileset_post): Create top-down tileset (async processing)
 - [`GET /tilesets/{tileset_id}`](https://api.pixellab.ai/v2/redoc#operation/get_tileset_tilesets__tileset_id__get): Get generated tileset by ID
 - [`DELETE /tilesets/{tileset_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_topdown_tileset_tilesets__tileset_id__delete): Delete a top-down tileset
+- [`PATCH /tilesets/{tileset_id}`](https://api.pixellab.ai/v2/redoc#operation/patch_tileset_tilesets__tileset_id__patch): Rename a tileset
+- [`POST /tilesets/import`](https://api.pixellab.ai/v2/redoc#operation/import_tileset_tilesets_import_post): Import your own tileset (free)
 - [`POST /tilesets-sidescroller`](https://api.pixellab.ai/v2/redoc#operation/generate_tileset_sidescroller_tilesets_sidescroller_post): Create a sidescroller tileset · alias of /create-tileset-sidescroller
 - [`GET /tilesets-sidescroller`](https://api.pixellab.ai/v2/redoc#operation/list_sidescroller_tilesets_tilesets_sidescroller_get): List your sidescroller tilesets
 - [`POST /create-tileset-sidescroller`](https://api.pixellab.ai/v2/redoc#operation/generate_tileset_sidescroller_create_tileset_sidescroller_post): Create sidescroller tileset (async processing)
@@ -160,6 +184,7 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /create-tiles-pro`](https://api.pixellab.ai/v2/redoc#operation/create_tiles_pro_create_tiles_pro_post): Create tiles pro (async processing)
 - [`GET /tiles-pro/{tile_id}`](https://api.pixellab.ai/v2/redoc#operation/get_tiles_pro_tiles_pro__tile_id__get): Get generated tiles pro by ID
 - [`DELETE /tiles-pro/{tile_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_tiles_pro_tiles_pro__tile_id__delete): Delete a tiles-pro tile
+- [`POST /tiles-pro/import`](https://api.pixellab.ai/v2/redoc#operation/import_tiles_pro_tiles_pro_import_post): Import your own tiles (free)
 - [`GET /tiles-pro`](https://api.pixellab.ai/v2/redoc#operation/list_tiles_pro_tiles_pro_get): List your tiles-pro tiles
 - [`POST /create-isometric-tile`](https://api.pixellab.ai/v2/redoc#operation/generate_isometric_tile_create_isometric_tile_post): Create isometric tile (async processing)
 - [`GET /isometric-tiles/{tile_id}`](https://api.pixellab.ai/v2/redoc#operation/get_isometric_tile_isometric_tiles__tile_id__get): Get generated isometric tile by ID
@@ -171,21 +196,36 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /map-objects`](https://api.pixellab.ai/v2/redoc#operation/create_map_object_map_objects_post): Create map object
 - [`GET /map-objects/{object_id}`](https://api.pixellab.ai/v2/redoc#operation/get_map_object_map_objects__object_id__get): Get map object status + metadata
 
+#### Rooms
+
+- [`POST /create-room`](https://api.pixellab.ai/v2/redoc#operation/create_room_create_room_post): Create room
+- [`POST /rooms/{room_id}/cut-out-furniture`](https://api.pixellab.ai/v2/redoc#operation/cut_out_room_furniture_rooms__room_id__cut_out_furniture_post): Cut out a room's furniture
+- [`GET /rooms`](https://api.pixellab.ai/v2/redoc#operation/list_rooms_rooms_get): List rooms
+- [`GET /rooms/{room_id}`](https://api.pixellab.ai/v2/redoc#operation/get_room_detail_rooms__room_id__get): Get room
+- [`DELETE /rooms/{room_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_room_rooms__room_id__delete): Delete room
+- [`GET /rooms/{room_id}/kit.zip`](https://api.pixellab.ai/v2/redoc#operation/room_kit_zip_rooms__room_id__kit_zip_get): Download a room's building kit
+
 ### Interface & dialogue
 
 #### Game UI
 
 - [`POST /create-ui-asset`](https://api.pixellab.ai/v2/redoc#operation/create_ui_asset_create_ui_asset_post): Create UI panel (Pro)
 - [`POST /generate-ui-v2`](https://api.pixellab.ai/v2/redoc#operation/generate_ui_v2_generate_ui_v2_post): Generate UI (Pro)
+- [`POST /ui-assets/{ui_asset_id}/split`](https://api.pixellab.ai/v2/redoc#operation/split_ui_asset_ui_assets__ui_asset_id__split_post): Split UI template into elements
+- [`POST /ui-assets/states`](https://api.pixellab.ai/v2/redoc#operation/create_ui_states_ui_assets_states_post): Create UI element states
 - [`GET /ui-assets`](https://api.pixellab.ai/v2/redoc#operation/list_ui_assets_ui_assets_get): List UI assets
 - [`GET /ui-assets/{ui_asset_id}`](https://api.pixellab.ai/v2/redoc#operation/get_ui_asset_ui_assets__ui_asset_id__get): Get UI asset
 - [`DELETE /ui-assets/{ui_asset_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_ui_asset_ui_assets__ui_asset_id__delete): Delete UI asset
+- [`PATCH /ui-assets/{ui_asset_id}`](https://api.pixellab.ai/v2/redoc#operation/update_ui_asset_ui_assets__ui_asset_id__patch): Update UI asset
+- [`GET /ui-assets/{ui_asset_id}/zip`](https://api.pixellab.ai/v2/redoc#operation/download_ui_asset_zip_ui_assets__ui_asset_id__zip_get): Download UI asset as ZIP
 
 #### Portraits & Voice
 
 - [`POST /portrait-character-pro`](https://api.pixellab.ai/v2/redoc#operation/portrait_character_pro_portrait_character_pro_post): Portrait ↔ character (Pro)
 - [`GET /portrait-character-pro/{job_id}`](https://api.pixellab.ai/v2/redoc#operation/get_portrait_character_portrait_character_pro__job_id__get): Get portrait ↔ character job status + result
 - [`POST /characters/{character_id}/portrait`](https://api.pixellab.ai/v2/redoc#operation/set_portrait_characters__character_id__portrait_post): Set a character's portrait
+- [`DELETE /characters/{character_id}/portrait`](https://api.pixellab.ai/v2/redoc#operation/remove_portrait_characters__character_id__portrait_delete): Delete a character's portrait
+- [`DELETE /characters/{character_id}/vocal-animation/{mood}`](https://api.pixellab.ai/v2/redoc#operation/remove_vocal_expression_characters__character_id__vocal_animation__mood__delete): Delete one talking expression
 - [`POST /vocal-animation`](https://api.pixellab.ai/v2/redoc#operation/create_vocal_animation_vocal_animation_post): Generate talking mouth positions for a portrait
 - [`GET /vocal-animation/{job_id}`](https://api.pixellab.ai/v2/redoc#operation/get_vocal_animation_vocal_animation__job_id__get): Get mouth-position job status + result
 - [`POST /talking-gif`](https://api.pixellab.ai/v2/redoc#operation/create_talking_gif_talking_gif_post): Lip-sync text to a talking GIF (free)

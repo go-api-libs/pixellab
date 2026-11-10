@@ -40,6 +40,17 @@ func NewReferenceImageSizeForAnimateWithTextV2(width, height int) (ImageSize, er
 	return ImageSize{Width: width, Height: height}, nil
 }
 
+// NewImageSizeForCreateCharacterCanva returns the size for CreateCharacterCanvaRequest.ImageSize, if it is one the request accepts.
+func NewImageSizeForCreateCharacterCanva(width, height int) (ImageSize, error) {
+	if width < 8 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be 8 to 256 pixels, got %d", width)
+	}
+	if height < 8 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be 8 to 256 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
 // ImageSizeForCreateCharacterProFlash is the size CreateCharacterProFlashRequest.ImageSize requires.
 var ImageSizeForCreateCharacterProFlash = ImageSize{Width: 0, Height: 0}
 
@@ -152,6 +163,17 @@ func NewImageSizeForCreateMapObject(width, height int) (ImageSize, error) {
 	}
 	if height < 32 || height > 400 {
 		return ImageSize{}, fmt.Errorf("height must be 32 to 400 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
+
+// NewImageSizeForCreateObjectCanva returns the size for CreateObjectCanvaRequest.ImageSize, if it is one the request accepts.
+func NewImageSizeForCreateObjectCanva(width, height int) (ImageSize, error) {
+	if width < 8 || width > 400 {
+		return ImageSize{}, fmt.Errorf("width must be 8 to 400 pixels, got %d", width)
+	}
+	if height < 8 || height > 400 {
+		return ImageSize{}, fmt.Errorf("height must be 8 to 400 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -351,6 +373,9 @@ func NewImageSizeForRotate(width, height int) (ImageSize, error) {
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
+
+// TileSizeForSetTilesetImport is the size SetTilesetImportRequest.TileSize requires.
+var TileSizeForSetTilesetImport = ImageSize{Width: 0, Height: 0}
 
 // NewImageSizeForTransferOutfit returns the size for TransferOutfitRequest.ImageSize, if it is one the request accepts.
 func NewImageSizeForTransferOutfit(width, height int) (ImageSize, error) {
