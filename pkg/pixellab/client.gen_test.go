@@ -33147,3 +33147,144 @@ func TestClient_Params(t *testing.T) {
 		}
 	})
 }
+
+func replay(t *testing.T) http.RoundTripper {
+	t.Helper()
+
+	interactions, err := cassette.InteractionsReadFile("../../api/interactions.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rec := cassette.Replay(interactions, cassette.InOrder(), cassette.WithMatcher(cassette.MatchRequest(
+		cassette.CompareHeaders("User-Agent"),
+	)))
+
+	t.Cleanup(func() {
+		if unused := rec.Unused(); len(unused) > 0 {
+			t.Errorf("%d recorded interactions were never replayed, the first: %s %s", len(unused), unused[0].Request.Method, &unused[0].Request.URL)
+		}
+	})
+
+	return rec
+}
+
+// mustDecodeBody decodes data, the recorded JSON for one request body value
+// (or field of one) an interaction's own literal couldn't be built for, into
+// T so a replayed call still carries the value it was recorded with.
+func mustDecodeBody[T any](t *testing.T, data string) T {
+	t.Helper()
+
+	var v T
+	if err := json.Unmarshal([]byte(data), &v, jsonOpts); err != nil {
+		t.Fatalf("decoding request body fixture: %v", err)
+	}
+
+	return v
+}
+
+func TestClient_Interactions(t *testing.T) {
+	ctx := t.Context()
+	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+	c, err := NewClient(WithHTTPClient(&http.Client{Transport: replay(t)}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetCharacter(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
+		t.Fatalf("GetCharacter: %v", err)
+	}
+
+	if _, err := c.GetCharacterZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &GetCharacterZipParams{}); err != nil {
+		t.Fatalf("GetCharacterZip: %v", err)
+	}
+
+	if _, err := c.GetCharacterSpritesheet(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363")); err != nil {
+		t.Fatalf("GetCharacterSpritesheet: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetCharacter(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
+		t.Fatalf("GetCharacter: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
+		AnimationName:     "walking",
+		ActionDescription: "walking",
+		AsyncMode:         true,
+		Mode:              CreateCharacterAnimationRequestModeV3,
+		FrameCount:        8,
+		KeepFirstFrame:    new(true),
+		Directions:        mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"north\",\"west\"]"),
+	}); err != nil {
+		t.Fatalf("CreateCharacterAnimation: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
+
+	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+		CharacterID:       uuid.MustParse("437e13d2-1387-4660-9810-98f7d76e9365"),
+		AnimationName:     "walking",
+		ActionDescription: "walking",
+		AsyncMode:         true,
+		Mode:              CreateCharacterAnimationRequestModeV3,
+		FrameCount:        8,
+		KeepFirstFrame:    new(true),
+		Directions:        mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"south\",\"east\",\"north\",\"west\"]"),
+	}); err == nil {
+		t.Fatal("CreateCharacterAnimation: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("CreateCharacterAnimation: got: %T, want: *HTTPValidationError", err)
+	}
+}
