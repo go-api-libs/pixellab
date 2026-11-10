@@ -2030,6 +2030,473 @@
         ]
       }
     },
+    "/music": {
+      "get": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "List music",
+        "description": "Your songs and loops, newest first: being made, failed and completed.",
+        "operationId": "ListMusic",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/limit10"
+          },
+          {
+            "$ref": "#/components/parameters/offset10"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListMusicOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/ListMusicUnauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ListMusicUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Create music",
+        "description": "Music for your game from a description of its style: two takes of a song,\ninstrumental or with vocals. The same music tool as the website's: both takes are saved\nto your library there, where they can go in your games.\n\n`restyle_song_id` plays one of your songs again in a new style. For music that repeats\nseamlessly, make a loop of a finished instrumental take: `POST /music/{song_id}/loop`.\n\n### Result\nPoll `GET /v2/music/{song_id}` (or `GET /v2/background-jobs/{background_job_id}`) every\n10 seconds; takes are usually made in 20-60 s, up to 2.5 minutes when busy. A completed\nsong has `audio_url` (MP3, no auth needed) and `duration_ms`; with `auto_lyrics`, its\n`lyrics` are what it sings.\n\n### Cost\n10 generations, or $0.08 in credits, for the two takes; charged only when they are\nmade. Needs a tier 2 subscription or higher.",
+        "operationId": "CreateMusic",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateMusic"
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/CreateMusicAccepted"
+          },
+          "401": {
+            "$ref": "#/components/responses/CreateMusicUnauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/CreateMusicPaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/CreateMusicForbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/CreateMusicNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/CreateMusicUnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/CreateMusicTooManyRequests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/music/{song_id}/loop": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/song_id"
+        }
+      ],
+      "post": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Loop music",
+        "description": "One of your songs made again so that the part between its intro and its\nending repeats seamlessly: two new takes, each with loop points. Play a take to\n`loop_end_s`, then jump back to `loop_start_s`; the intro plays once. Instrumental songs\nonly, for now; the song must be completed and not a loop itself.\n\n### Result\nPoll `GET /v2/music/{song_id}` every 10-20 seconds; a loop is usually made in 1.5-2.5\nminutes. A completed take has `audio_url`, `loop_start_s` and `loop_end_s`.\n\n### Cost\n4 generations, or $0.033 in credits; charged only when the takes are made. Needs a tier\n1 subscription or higher.",
+        "operationId": "SetMusicLoop",
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/SetMusicLoopAccepted"
+          },
+          "401": {
+            "$ref": "#/components/responses/SetMusicLoopUnauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/SetMusicLoopPaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/SetMusicLoopForbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/SetMusicLoopNotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/SetMusicLoopConflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/SetMusicLoopUnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/SetMusicLoopTooManyRequests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/music/improve-style": {
+      "post": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Improve a music style",
+        "description": "A short music idea written out as a full style for `POST /music`: a\nsentence or two that gives each instrument a role, the mood and the ending. Edit it if\nyou like, then send it with the same `instrumental` and `bpm`.\n\n### Cost\n0.05 generations, or about $0.002 in credits. Synchronous, 5-15 seconds.",
+        "operationId": "ImproveMusicStyle",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/ImproveMusicStyle"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ImproveMusicStyleOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/ImproveMusicStyleUnauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/ImproveMusicStylePaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/ImproveMusicStyleForbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ImproveMusicStyleUnprocessableEntity"
+          },
+          "502": {
+            "$ref": "#/components/responses/ImproveMusicStyleBadGateway"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/music/lyrics": {
+      "post": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Write lyrics",
+        "description": "Lyrics for a song about a topic: two versions with section tags. Send one\nas `lyrics` to `POST /music` with `instrumental: false`, or set `auto_lyrics` there\ninstead.\n\n### Cost\n0.05 generations, or about $0.002 in credits. Synchronous, 10-20 seconds.",
+        "operationId": "CreateMusicLyric",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateMusicLyric"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/CreateMusicLyricOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/CreateMusicLyricUnauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/CreateMusicLyricPaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/CreateMusicLyricForbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/CreateMusicLyricUnprocessableEntity"
+          },
+          "502": {
+            "$ref": "#/components/responses/CreateMusicLyricBadGateway"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/music/{song_id}": {
+      "get": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Get music",
+        "description": "One song or loop take: its status, and its audio once completed.",
+        "operationId": "GetMusic",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/song_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetMusicOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/GetMusicUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/GetMusicNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/GetMusicUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Delete music",
+        "description": "Delete a song from your library and from your games; it cannot be undone.\nA song still being made is stopped instead, together with its other take (the two are\none request); that is charged if it had already started.",
+        "operationId": "DeleteMusic",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/song_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DeleteMusicOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/DeleteMusicUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/DeleteMusicNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/DeleteMusicUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Music"
+        ],
+        "summary": "Rename music",
+        "description": "Rename a song, in your library and in the games it is in.",
+        "operationId": "UpdateMusic",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/song_id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdateMusic"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/UpdateMusicOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/UpdateMusicUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UpdateMusicNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/UpdateMusicUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/sound-effects": {
+      "get": {
+        "tags": [
+          "Sound Effects"
+        ],
+        "summary": "List sound effects",
+        "description": "Your sound effects, newest first: being made, failed and completed.",
+        "operationId": "ListSoundEffects",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/limit10"
+          },
+          {
+            "$ref": "#/components/parameters/offset10"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ListSoundEffectsOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/ListSoundEffectsUnauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/ListSoundEffectsUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Sound Effects"
+        ],
+        "summary": "Create sound effect",
+        "description": "A sound effect for your game from a description: hits, shots, explosions,\nfootsteps, creatures, UI clicks, ambience. One clip per request; send it again for\nanother take. The same sound tool as the website's: the clip is saved to your library\nthere, where it can go in your games.\n\n### Result\nPoll `GET /v2/sound-effects/{id}` (or `GET /v2/background-jobs/{background_job_id}`)\nevery few seconds; a clip is usually made in 5-20 s. A completed clip has `audio_url`\n(WAV, no auth needed) and `duration_ms`.\n\n### Cost\nBy length, charged only when the clip is made (`quoted_generations`):\n\n| length | up to 1.6 s | 3.2 s | 6 s | 10 s | 30 s |\n|---|---|---|---|---|---|\n| generations | 1 | 2 | 4 | 7 | 19 |\n\n0.614 generations per second, rounded up; in credits, $0.0027 per second. Needs a tier\n1 subscription or higher.",
+        "operationId": "CreateSoundEffect",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/CreateSoundEffect"
+        },
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/CreateSoundEffectAccepted"
+          },
+          "401": {
+            "$ref": "#/components/responses/CreateSoundEffectUnauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/CreateSoundEffectPaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/CreateSoundEffectForbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/CreateSoundEffectUnprocessableEntity"
+          },
+          "429": {
+            "$ref": "#/components/responses/CreateSoundEffectTooManyRequests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/sound-effects/{sound_effect_id}": {
+      "get": {
+        "tags": [
+          "Sound Effects"
+        ],
+        "summary": "Get sound effect",
+        "description": "One sound effect: its status, and its audio once completed.",
+        "operationId": "GetSoundEffect",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/sound_effect_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/GetSoundEffectOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/GetSoundEffectUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/GetSoundEffectNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/GetSoundEffectUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Sound Effects"
+        ],
+        "summary": "Delete sound effect",
+        "description": "Delete a sound effect from your library and from your games; it cannot be\nundone. One still being made is stopped instead; that is charged if it had already\nstarted.",
+        "operationId": "DeleteSoundEffect",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/sound_effect_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DeleteSoundEffectOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/DeleteSoundEffectUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/DeleteSoundEffectNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/DeleteSoundEffectUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Sound Effects"
+        ],
+        "summary": "Rename sound effect",
+        "description": "Rename a sound effect, in your library and in the games it is in.",
+        "operationId": "UpdateSoundEffect",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/sound_effect_id"
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UpdateSoundEffect"
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/UpdateSoundEffectOk"
+          },
+          "401": {
+            "$ref": "#/components/responses/UpdateSoundEffectUnauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UpdateSoundEffectNotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/UpdateSoundEffectUnprocessableEntity"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/generate-8-rotations-v3": {
       "post": {
         "tags": [
@@ -2363,10 +2830,10 @@
     "/tilesets": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit4"
+          "$ref": "#/components/parameters/limit6"
         },
         {
-          "$ref": "#/components/parameters/offset3"
+          "$ref": "#/components/parameters/offset5"
         }
       ],
       "get": {
@@ -2577,10 +3044,10 @@
     "/tilesets-sidescroller": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit5"
+          "$ref": "#/components/parameters/limit7"
         },
         {
-          "$ref": "#/components/parameters/offset4"
+          "$ref": "#/components/parameters/offset10"
         }
       ],
       "get": {
@@ -2869,10 +3336,10 @@
     "/tiles-pro": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit5"
+          "$ref": "#/components/parameters/limit7"
         },
         {
-          "$ref": "#/components/parameters/offset4"
+          "$ref": "#/components/parameters/offset10"
         }
       ],
       "get": {
@@ -3016,10 +3483,10 @@
     "/isometric-tiles": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit7"
+          "$ref": "#/components/parameters/limit9"
         },
         {
-          "$ref": "#/components/parameters/offset6"
+          "$ref": "#/components/parameters/offset8"
         }
       ],
       "get": {
@@ -3215,10 +3682,10 @@
     "/rooms": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit8"
+          "$ref": "#/components/parameters/limit10"
         },
         {
-          "$ref": "#/components/parameters/offset4"
+          "$ref": "#/components/parameters/offset10"
         }
       ],
       "get": {
@@ -4110,10 +4577,10 @@
     "/ui-assets": {
       "parameters": [
         {
-          "$ref": "#/components/parameters/limit8"
+          "$ref": "#/components/parameters/limit10"
         },
         {
-          "$ref": "#/components/parameters/offset4"
+          "$ref": "#/components/parameters/offset10"
         }
       ],
       "get": {
@@ -8476,6 +8943,137 @@
           }
         ]
       },
+      "CreateMusicLyricRequest": {
+        "title": "WriteLyricsRequest",
+        "type": "object",
+        "properties": {
+          "topic": {
+            "title": "Topic",
+            "description": "What the song is about: 'a knight's last stand at the gate'.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "additionalProperties": false
+      },
+      "CreateMusicLyricResponse": {
+        "title": "WriteLyricsResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "lyrics": {
+            "title": "Lyrics",
+            "description": "Two versions, with [Verse]/[Chorus] section tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "lyrics"
+        ]
+      },
+      "CreateMusicRequest": {
+        "title": "CreateMusicRequest",
+        "type": "object",
+        "properties": {
+          "style": {
+            "title": "Style",
+            "description": "What the music sounds like, in a sentence or two that gives each instrument a role, plus the mood and how it ends. A list of tags comes out flat; artist names are refused. Put sounds to keep out in `exclude`. `POST /music/improve-style` writes a short idea out in full.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "instrumental": {
+            "title": "Instrumental",
+            "description": "true: no vocals. false: vocals, with `lyrics` or `auto_lyrics`.",
+            "type": "boolean",
+            "default": true
+          },
+          "lyrics": {
+            "title": "Lyrics",
+            "description": "With vocals: the words, one line per line, with section tags on their own lines: [Intro], [Verse], [Pre-Chorus], [Chorus], [Bridge], [Instrumental Break], [Outro], [End]. A tag can carry one direction: [Chorus: full band]. `POST /music/lyrics` drafts some.",
+            "type": "string",
+            "maxLength": 5000,
+            "default": ""
+          },
+          "auto_lyrics": {
+            "title": "Auto Lyrics",
+            "description": "With vocals: lyrics written for the song (send no `lyrics`, `length_s` or `style_weight`).",
+            "type": "boolean",
+            "default": false
+          },
+          "about": {
+            "title": "About",
+            "description": "With `auto_lyrics`: what the song is about; may be empty.",
+            "type": "string",
+            "maxLength": 200,
+            "default": ""
+          },
+          "length_s": {
+            "title": "Length S",
+            "description": "Length to aim for, 10-360 s. Default: auto (a new style: the song's own length).",
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 360
+          },
+          "bpm": {
+            "title": "Bpm",
+            "description": "Tempo, added to the style. Default: auto.",
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 180
+          },
+          "voice": {
+            "title": "Voice",
+            "description": "With vocals: the voice, added to the style, e.g. 'warm female voice', 'deep male voice', 'male and female duet'.",
+            "type": "string",
+            "maxLength": 100,
+            "default": ""
+          },
+          "exclude": {
+            "title": "Exclude",
+            "description": "Sounds to keep out, short phrases: 'fade out, electric guitar'. An instrumental keeps out 'vocals, singing' on its own.",
+            "type": "string",
+            "maxLength": 1000,
+            "default": ""
+          },
+          "style_weight": {
+            "title": "Style Weight",
+            "description": "How closely to follow the style, 0-1. Default: 0.5.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "name": {
+            "title": "Name",
+            "description": "The song's name. Default: the style's first words. Take 2 gets ' (take 2)'.",
+            "type": "string",
+            "maxLength": 120
+          },
+          "restyle_song_id": {
+            "title": "Restyle Song Id",
+            "description": "One of your songs, made again in this style: the same melody, its vocals and lyrics kept (send no `lyrics`, `auto_lyrics` or `about`).",
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "style"
+        ],
+        "additionalProperties": false,
+        "example": {
+          "bpm": 140,
+          "style": "Upbeat 8-bit dungeon theme: a fast square-wave lead, a pulsing triangle bass and crisp noise drums, ending on a sting."
+        }
+      },
       "CreateObjectAnimationDirectionsItem": {
         "type": "string",
         "enum": [
@@ -9100,6 +9698,82 @@
           "transition_description": "moss and small green plants",
           "transition_size": 0.25
         }
+      },
+      "CreateSoundEffectRequest": {
+        "title": "CreateSoundEffectRequest",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "title": "Prompt",
+            "description": "The sound in plain words: 'a heavy sword slash hitting metal armor', 'steady rain on a roof with distant thunder'.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "seconds": {
+            "title": "Seconds",
+            "description": "Clip length, 0.5-30 s (to 0.1 s). A shot or hit: ~1 s; an explosion: ~3 s; an ambience: 10-30 s.",
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 30,
+            "default": 2
+          },
+          "name": {
+            "title": "Name",
+            "description": "The clip's name. Default: the prompt's first words.",
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "additionalProperties": false,
+        "example": {
+          "prompt": "a sci-fi laser gun firing a single shot",
+          "seconds": 1
+        }
+      },
+      "CreateSoundEffectResponse": {
+        "title": "StartedSoundEffectResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID to poll",
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status",
+            "type": "string",
+            "default": "processing"
+          },
+          "sound_effect": {
+            "description": "The clip, pending",
+            "$ref": "#/components/schemas/SoundEffect"
+          },
+          "quoted_generations": {
+            "title": "Quoted Generations",
+            "description": "What it costs, charged only when the clip is made",
+            "type": "integer"
+          },
+          "quoted_credits_usd": {
+            "title": "Quoted Credits Usd",
+            "description": "The price in credits, when you pay with credits",
+            "type": "number"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "sound_effect",
+          "quoted_generations",
+          "quoted_credits_usd"
+        ]
       },
       "CreateTilesProRequest": {
         "title": "CreateTilesProRequest",
@@ -10229,6 +10903,25 @@
         },
         "required": [
           "success"
+        ]
+      },
+      "DeleteResponse": {
+        "title": "DeleteResponse",
+        "type": "object",
+        "properties": {
+          "success": {
+            "title": "Success",
+            "type": "boolean",
+            "default": true
+          },
+          "stopped": {
+            "title": "Stopped",
+            "description": "true: it was still being made, so it was stopped (a song with its other take); charged if it had already started",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stopped"
         ]
       },
       "DeleteRoomResponse": {
@@ -13224,6 +13917,53 @@
           "images"
         ]
       },
+      "ImproveMusicStyleRequest": {
+        "title": "ImproveStyleRequest",
+        "type": "object",
+        "properties": {
+          "style": {
+            "title": "Style",
+            "description": "A short idea: 'spooky swamp level', 'cozy farming village'.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "instrumental": {
+            "title": "Instrumental",
+            "description": "Whether the song will be instrumental",
+            "type": "boolean",
+            "default": true
+          },
+          "bpm": {
+            "title": "Bpm",
+            "description": "The tempo you will send, for the text to keep",
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 180
+          }
+        },
+        "required": [
+          "style"
+        ],
+        "additionalProperties": false
+      },
+      "ImproveMusicStyleResponse": {
+        "title": "ImproveStyleResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "style": {
+            "title": "Style",
+            "description": "The idea written out as a full style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "style"
+        ]
+      },
       "InpaintImage": {
         "title": "InpaintImage",
         "type": "object",
@@ -14001,6 +14741,28 @@
           "total"
         ]
       },
+      "ListMusicResponse": {
+        "title": "MusicListResponse",
+        "type": "object",
+        "properties": {
+          "songs": {
+            "title": "Songs",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Song"
+            }
+          },
+          "total": {
+            "title": "Total",
+            "description": "All your songs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "songs",
+          "total"
+        ]
+      },
       "ListObjectsResponse": {
         "title": "ObjectsListResponse",
         "description": "Response for object listing",
@@ -14098,6 +14860,28 @@
         },
         "required": [
           "tilesets",
+          "total"
+        ]
+      },
+      "ListSoundEffectsResponse": {
+        "title": "SoundEffectListResponse",
+        "type": "object",
+        "properties": {
+          "sound_effects": {
+            "title": "Sound Effects",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SoundEffect"
+            }
+          },
+          "total": {
+            "title": "Total",
+            "description": "All your sound effects",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sound_effects",
           "total"
         ]
       },
@@ -14991,6 +15775,22 @@
             "width": 64
           }
         }
+      },
+      "RenameRequest": {
+        "title": "RenameRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
       },
       "ResizeRequest": {
         "title": "ResizeRequest",
@@ -16030,6 +16830,238 @@
           "LEFT EYE",
           "RIGHT EAR",
           "LEFT EAR"
+        ]
+      },
+      "Song": {
+        "title": "Song",
+        "description": "A song or loop take.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "description": "The song's id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "pending, running, completed or failed",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Why it failed",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "audio_url": {
+            "title": "Audio Url",
+            "description": "The MP3, once completed (no auth needed)",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "description": "Its length, once completed",
+            "type": "integer"
+          },
+          "style": {
+            "title": "Style",
+            "description": "The style text it was made from",
+            "type": "string"
+          },
+          "instrumental": {
+            "title": "Instrumental",
+            "type": "boolean"
+          },
+          "lyrics": {
+            "title": "Lyrics",
+            "description": "What it sings; for auto_lyrics, set once it is made",
+            "type": "string"
+          },
+          "auto_lyrics": {
+            "title": "Auto Lyrics",
+            "type": "boolean"
+          },
+          "about": {
+            "title": "About",
+            "type": "string"
+          },
+          "length_s": {
+            "title": "Length S",
+            "description": "The length asked for; null = auto",
+            "type": "integer"
+          },
+          "exclude": {
+            "title": "Exclude",
+            "type": "string"
+          },
+          "style_weight": {
+            "title": "Style Weight",
+            "type": "number"
+          },
+          "take": {
+            "title": "Take",
+            "description": "1 or 2: a request makes two takes",
+            "type": "integer"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "description": "Shared by the two takes of a request (take 1's id)",
+            "type": "string"
+          },
+          "restyle_of": {
+            "title": "Restyle Of",
+            "description": "A new style: the song it restyles",
+            "type": "string"
+          },
+          "loop_of": {
+            "title": "Loop Of",
+            "description": "A loop: the song it loops",
+            "type": "string"
+          },
+          "loop_start_s": {
+            "title": "Loop Start S",
+            "description": "A loop: where playback jumps back to, in seconds",
+            "type": "number"
+          },
+          "loop_end_s": {
+            "title": "Loop End S",
+            "description": "A loop: where playback jumps back from, in seconds",
+            "type": "number"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "error",
+          "name",
+          "audio_url",
+          "duration_ms",
+          "style",
+          "instrumental",
+          "lyrics",
+          "auto_lyrics",
+          "about",
+          "length_s",
+          "exclude",
+          "style_weight",
+          "take",
+          "request_id",
+          "restyle_of",
+          "loop_of",
+          "loop_start_s",
+          "loop_end_s",
+          "created_at"
+        ]
+      },
+      "SoundEffect": {
+        "title": "SoundEffect",
+        "type": "object",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "description": "The sound effect's id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "description": "pending, running, completed or failed",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Why it failed",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "audio_url": {
+            "title": "Audio Url",
+            "description": "The WAV, once completed (no auth needed)",
+            "type": "string"
+          },
+          "duration_ms": {
+            "title": "Duration Ms",
+            "description": "Its length, once completed",
+            "type": "integer"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "seconds": {
+            "title": "Seconds",
+            "description": "The length asked for",
+            "type": "number"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "error",
+          "name",
+          "audio_url",
+          "duration_ms",
+          "prompt",
+          "seconds",
+          "created_at"
+        ]
+      },
+      "StartedMusicResponse": {
+        "title": "StartedMusicResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "description": "Background job ID to poll",
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "title": "Status",
+            "description": "Job status",
+            "type": "string",
+            "default": "processing"
+          },
+          "songs": {
+            "title": "Songs",
+            "description": "The two takes, pending",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Song"
+            }
+          },
+          "quoted_generations": {
+            "title": "Quoted Generations",
+            "description": "What it costs, charged only when the takes are made",
+            "type": "number"
+          },
+          "quoted_credits_usd": {
+            "title": "Quoted Credits Usd",
+            "description": "The price in credits, when you pay with credits",
+            "type": "number"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "songs",
+          "quoted_generations",
+          "quoted_credits_usd"
         ]
       },
       "StateResponse": {
@@ -17665,23 +18697,6 @@
           ]
         }
       },
-      "UpdateTilesetRequest": {
-        "title": "RenameTilesetBody",
-        "type": "object",
-        "properties": {
-          "name": {
-            "title": "Name",
-            "description": "New tileset name. Display only; the terrain descriptions stay.",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 120
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "additionalProperties": false
-      },
       "UpdateTilesetResponse": {
         "title": "TilesetNameResponse",
         "type": "object",
@@ -18820,6 +19835,66 @@
       "CreateMapObjectUnprocessableEntity": {
         "description": "Validation error"
       },
+      "CreateMusicAccepted": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StartedMusicResponse"
+            }
+          }
+        }
+      },
+      "CreateMusicForbidden": {
+        "description": "Needs a tier 2 subscription or higher"
+      },
+      "CreateMusicLyricBadGateway": {
+        "description": "The writer failed; try again"
+      },
+      "CreateMusicLyricForbidden": {
+        "description": "Needs a tier 2 subscription or higher"
+      },
+      "CreateMusicLyricOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateMusicLyricResponse"
+            }
+          }
+        }
+      },
+      "CreateMusicLyricPaymentRequired": {
+        "description": "Not enough generations or credits"
+      },
+      "CreateMusicLyricUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "CreateMusicLyricUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
+      "CreateMusicNotFound": {
+        "description": "The song to restyle was not found"
+      },
+      "CreateMusicPaymentRequired": {
+        "description": "Not enough generations or credits"
+      },
+      "CreateMusicTooManyRequests": {
+        "description": "Too many jobs running"
+      },
+      "CreateMusicUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "CreateMusicUnprocessableEntity": {
+        "description": "The request breaks a rule (the detail says which)"
+      },
       "CreateObjectAnimationBadRequest": {
         "description": "Validation error (object not ready, invalid directions/frame_count, missing description for a new animation)"
       },
@@ -19042,6 +20117,31 @@
         "description": "Invalid API token"
       },
       "CreateSidescrollerTilesetUnprocessableEntity": {
+        "description": "Validation error"
+      },
+      "CreateSoundEffectAccepted": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateSoundEffectResponse"
+            }
+          }
+        }
+      },
+      "CreateSoundEffectForbidden": {
+        "description": "Needs a tier 2 subscription or higher"
+      },
+      "CreateSoundEffectPaymentRequired": {
+        "description": "Not enough generations or credits"
+      },
+      "CreateSoundEffectTooManyRequests": {
+        "description": "Too many jobs running"
+      },
+      "CreateSoundEffectUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "CreateSoundEffectUnprocessableEntity": {
         "description": "Validation error"
       },
       "CreateTilesProAccepted": {
@@ -19604,6 +20704,32 @@
           }
         }
       },
+      "DeleteMusicNotFound": {
+        "description": "Not found"
+      },
+      "DeleteMusicOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DeleteResponse"
+            }
+          }
+        }
+      },
+      "DeleteMusicUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "DeleteMusicUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
       "DeleteObjectAnimationsBadRequest": {
         "description": "Neither animation_type nor animation_group_id supplied"
       },
@@ -19715,6 +20841,32 @@
         "description": "Invalid API token"
       },
       "DeleteSidescrollerTilesetUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
+      "DeleteSoundEffectNotFound": {
+        "description": "Not found"
+      },
+      "DeleteSoundEffectOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DeleteResponse"
+            }
+          }
+        }
+      },
+      "DeleteSoundEffectUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "DeleteSoundEffectUnprocessableEntity": {
         "description": "Validation Error",
         "content": {
           "application/json": {
@@ -20670,6 +21822,32 @@
           }
         }
       },
+      "GetMusicNotFound": {
+        "description": "Not found"
+      },
+      "GetMusicOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Song"
+            }
+          }
+        }
+      },
+      "GetMusicUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "GetMusicUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
       "GetObjectAsepriteBadRequest": {
         "description": "Not completed, or a bad parameter combination"
       },
@@ -20957,6 +22135,32 @@
           }
         }
       },
+      "GetSoundEffectNotFound": {
+        "description": "Not found"
+      },
+      "GetSoundEffectOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SoundEffect"
+            }
+          }
+        }
+      },
+      "GetSoundEffectUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "GetSoundEffectUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
       "GetTilesProLocked": {
         "description": "Tiles still processing"
       },
@@ -21230,6 +22434,38 @@
       "ImageToTextUnprocessableEntity": {
         "description": "Validation error, unreadable or oversized image"
       },
+      "ImproveMusicStyleBadGateway": {
+        "description": "The writer failed; try again"
+      },
+      "ImproveMusicStyleForbidden": {
+        "description": "Needs a tier 2 subscription or higher"
+      },
+      "ImproveMusicStyleOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImproveMusicStyleResponse"
+            }
+          }
+        }
+      },
+      "ImproveMusicStylePaymentRequired": {
+        "description": "Not enough generations or credits"
+      },
+      "ImproveMusicStyleUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "ImproveMusicStyleUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
       "InpaintImageProFlashAccepted": {
         "description": "Successful Response",
         "content": {
@@ -21428,6 +22664,29 @@
       "ListIsometricTilesUnprocessableEntity": {
         "description": "Invalid pagination parameters"
       },
+      "ListMusicOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ListMusicResponse"
+            }
+          }
+        }
+      },
+      "ListMusicUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "ListMusicUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
       "ListObjectsOk": {
         "description": "Successfully retrieved object list",
         "content": {
@@ -21481,6 +22740,29 @@
         "description": "Invalid API token"
       },
       "ListSidescrollerTilesetsUnprocessableEntity": {
+        "description": "Validation Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        }
+      },
+      "ListSoundEffectsOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ListSoundEffectsResponse"
+            }
+          }
+        }
+      },
+      "ListSoundEffectsUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "ListSoundEffectsUnprocessableEntity": {
         "description": "Validation Error",
         "content": {
           "application/json": {
@@ -21886,6 +23168,37 @@
           }
         }
       },
+      "SetMusicLoopAccepted": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StartedMusicResponse"
+            }
+          }
+        }
+      },
+      "SetMusicLoopConflict": {
+        "description": "The song has no audio yet"
+      },
+      "SetMusicLoopForbidden": {
+        "description": "Needs a tier 2 subscription or higher"
+      },
+      "SetMusicLoopNotFound": {
+        "description": "Song not found"
+      },
+      "SetMusicLoopPaymentRequired": {
+        "description": "Not enough generations or credits"
+      },
+      "SetMusicLoopTooManyRequests": {
+        "description": "Too many jobs running"
+      },
+      "SetMusicLoopUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "SetMusicLoopUnprocessableEntity": {
+        "description": "The song can't be looped (the detail says why)"
+      },
       "SetObjectAnimationMirrorBadRequest": {
         "description": "Target direction exists, or is not on this asset"
       },
@@ -22245,6 +23558,25 @@
           }
         }
       },
+      "UpdateMusicNotFound": {
+        "description": "Not found"
+      },
+      "UpdateMusicOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Song"
+            }
+          }
+        }
+      },
+      "UpdateMusicUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "UpdateMusicUnprocessableEntity": {
+        "description": "A blank name"
+      },
       "UpdateObjectAnimationNotFound": {
         "description": "Object or animation not found"
       },
@@ -22331,6 +23663,25 @@
             }
           }
         }
+      },
+      "UpdateSoundEffectNotFound": {
+        "description": "Not found"
+      },
+      "UpdateSoundEffectOk": {
+        "description": "Successful Response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SoundEffect"
+            }
+          }
+        }
+      },
+      "UpdateSoundEffectUnauthorized": {
+        "description": "Invalid API token"
+      },
+      "UpdateSoundEffectUnprocessableEntity": {
+        "description": "A blank name"
       },
       "UpdateTilesetNotFound": {
         "description": "Tileset not found"
@@ -22573,6 +23924,17 @@
           "default": 50
         }
       },
+      "limit10": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "title": "Limit",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 50
+        }
+      },
       "limit2": {
         "name": "limit",
         "in": "query",
@@ -22599,7 +23961,7 @@
           "default": 24
         }
       },
-      "limit4": {
+      "limit6": {
         "name": "limit",
         "in": "query",
         "description": "Maximum number of tilesets to return",
@@ -22612,7 +23974,7 @@
           "default": 50
         }
       },
-      "limit5": {
+      "limit7": {
         "name": "limit",
         "in": "query",
         "schema": {
@@ -22623,24 +23985,13 @@
           "default": 10
         }
       },
-      "limit7": {
+      "limit9": {
         "name": "limit",
         "in": "query",
         "description": "Maximum number of tiles to return",
         "schema": {
           "title": "Limit",
           "description": "Maximum number of tiles to return",
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 50
-        }
-      },
-      "limit8": {
-        "name": "limit",
-        "in": "query",
-        "schema": {
-          "title": "Limit",
           "type": "integer",
           "minimum": 1,
           "maximum": 100,
@@ -22686,6 +24037,16 @@
           "default": 0
         }
       },
+      "offset10": {
+        "name": "offset",
+        "in": "query",
+        "schema": {
+          "title": "Offset",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
       "offset2": {
         "name": "offset",
         "in": "query",
@@ -22698,7 +24059,7 @@
           "default": 0
         }
       },
-      "offset3": {
+      "offset5": {
         "name": "offset",
         "in": "query",
         "description": "Number of tilesets to skip",
@@ -22710,17 +24071,7 @@
           "default": 0
         }
       },
-      "offset4": {
-        "name": "offset",
-        "in": "query",
-        "schema": {
-          "title": "Offset",
-          "type": "integer",
-          "minimum": 0,
-          "default": 0
-        }
-      },
-      "offset6": {
+      "offset8": {
         "name": "offset",
         "in": "query",
         "description": "Number of tiles to skip",
@@ -22746,6 +24097,26 @@
         "required": true,
         "schema": {
           "title": "Room Id",
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "song_id": {
+        "name": "song_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "title": "Song Id",
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "sound_effect_id": {
+        "name": "sound_effect_id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "title": "Sound Effect Id",
           "type": "string",
           "format": "uuid"
         }
@@ -23061,6 +24432,26 @@
           }
         }
       },
+      "CreateMusic": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateMusicRequest"
+            }
+          }
+        }
+      },
+      "CreateMusicLyric": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateMusicLyricRequest"
+            }
+          }
+        }
+      },
       "CreateObjectAnimation": {
         "required": true,
         "content": {
@@ -23167,6 +24558,16 @@
                   "mode": "pro"
                 }
               }
+            }
+          }
+        }
+      },
+      "CreateSoundEffect": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CreateSoundEffectRequest"
             }
           }
         }
@@ -23473,6 +24874,16 @@
           }
         }
       },
+      "ImproveMusicStyle": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ImproveMusicStyleRequest"
+            }
+          }
+        }
+      },
       "Inpaint": {
         "required": true,
         "content": {
@@ -23724,6 +25135,16 @@
           }
         }
       },
+      "UpdateMusic": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RenameRequest"
+            }
+          }
+        }
+      },
       "UpdateObject": {
         "required": true,
         "content": {
@@ -23755,12 +25176,22 @@
           }
         }
       },
+      "UpdateSoundEffect": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RenameRequest"
+            }
+          }
+        }
+      },
       "UpdateTileset": {
         "required": true,
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/UpdateTilesetRequest"
+              "$ref": "#/components/schemas/RenameRequest"
             }
           }
         }
@@ -23879,6 +25310,14 @@
       "description": "Generate a pixel font atlas and a downloadable typeface."
     },
     {
+      "name": "Music",
+      "description": "Songs and seamless loops for your game, from a description of their style: instrumental or with vocals. Saved to your library on the website, where they can go in your games."
+    },
+    {
+      "name": "Sound Effects",
+      "description": "Sound effects from a description: hits, shots, explosions, footsteps, creatures, ambience. Saved to your library on the website."
+    },
+    {
       "name": "Cleanup",
       "description": "Cheap post-processing passes, billed at a fraction of a generation. **Run `unzoom` on upscaled artwork a user gave you before using it as a reference** — upscaled pixel art confuses every model that takes a reference image, and this is the single most common cause of disappointing results."
     },
@@ -23964,6 +25403,13 @@
         "Game UI",
         "Portraits & Voice",
         "Fonts"
+      ]
+    },
+    {
+      "name": "Audio",
+      "tags": [
+        "Music",
+        "Sound Effects"
       ]
     },
     {

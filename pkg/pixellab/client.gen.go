@@ -7888,6 +7888,1407 @@ func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID 
 	}
 }
 
+// Your songs and loops, newest first: being made, failed and completed.
+//
+//	GET /music
+func (c *Client) ListMusic(ctx context.Context, params *ListMusicParams) (*ListMusicResponse, error) {
+	return c.ListMusicWithResult[ListMusicResponse](ctx, params)
+}
+
+// Your songs and loops, newest first: being made, failed and completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /music
+func (c *Client) ListMusicWithResult[R any](ctx context.Context, params *ListMusicParams) (*R, error) {
+	u := c.baseURL.JoinPath("music")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListMusicResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Music for your game from a description of its style: two takes of a song,
+// instrumental or with vocals. The same music tool as the website's: both takes are saved
+// to your library there, where they can go in your games.
+//
+// `restyle_song_id` plays one of your songs again in a new style. For music that repeats
+// seamlessly, make a loop of a finished instrumental take: `POST /music/{song_id}/loop`.
+//
+// ### Result
+// Poll `GET /v2/music/{song_id}` (or `GET /v2/background-jobs/{background_job_id}`) every
+// 10 seconds; takes are usually made in 20-60 s, up to 2.5 minutes when busy. A completed
+// song has `audio_url` (MP3, no auth needed) and `duration_ms`; with `auto_lyrics`, its
+// `lyrics` are what it sings.
+//
+// ### Cost
+// 10 generations, or $0.08 in credits, for the two takes; charged only when they are
+// made. Needs a tier 2 subscription or higher.
+//
+//	POST /music
+func (c *Client) CreateMusic(ctx context.Context, body CreateMusicRequest) (*StartedMusicResponse, error) {
+	return c.CreateMusicWithResult[StartedMusicResponse](ctx, body)
+}
+
+// Music for your game from a description of its style: two takes of a song,
+// instrumental or with vocals. The same music tool as the website's: both takes are saved
+// to your library there, where they can go in your games.
+//
+// `restyle_song_id` plays one of your songs again in a new style. For music that repeats
+// seamlessly, make a loop of a finished instrumental take: `POST /music/{song_id}/loop`.
+//
+// ### Result
+// Poll `GET /v2/music/{song_id}` (or `GET /v2/background-jobs/{background_job_id}`) every
+// 10 seconds; takes are usually made in 20-60 s, up to 2.5 minutes when busy. A completed
+// song has `audio_url` (MP3, no auth needed) and `duration_ms`; with `auto_lyrics`, its
+// `lyrics` are what it sings.
+//
+// ### Cost
+// 10 generations, or $0.08 in credits, for the two takes; charged only when they are
+// made. Needs a tier 2 subscription or higher.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /music
+func (c *Client) CreateMusicWithResult[R any](ctx context.Context, body CreateMusicRequest) (*R, error) {
+	u := c.baseURL.JoinPath("music")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StartedMusicResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Needs a tier 2 subscription or higher
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// The song to restyle was not found
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// The request breaks a rule (the detail says which)
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many jobs running
+		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// One of your songs made again so that the part between its intro and its
+// ending repeats seamlessly: two new takes, each with loop points. Play a take to
+// `loop_end_s`, then jump back to `loop_start_s`; the intro plays once. Instrumental songs
+// only, for now; the song must be completed and not a loop itself.
+//
+// ### Result
+// Poll `GET /v2/music/{song_id}` every 10-20 seconds; a loop is usually made in 1.5-2.5
+// minutes. A completed take has `audio_url`, `loop_start_s` and `loop_end_s`.
+//
+// ### Cost
+// 4 generations, or $0.033 in credits; charged only when the takes are made. Needs a tier
+// 1 subscription or higher.
+//
+//	POST /music/{song_id}/loop
+func (c *Client) SetMusicLoop(ctx context.Context, songID uuid.UUID) (*StartedMusicResponse, error) {
+	return c.SetMusicLoopWithResult[StartedMusicResponse](ctx, songID)
+}
+
+// One of your songs made again so that the part between its intro and its
+// ending repeats seamlessly: two new takes, each with loop points. Play a take to
+// `loop_end_s`, then jump back to `loop_start_s`; the intro plays once. Instrumental songs
+// only, for now; the song must be completed and not a loop itself.
+//
+// ### Result
+// Poll `GET /v2/music/{song_id}` every 10-20 seconds; a loop is usually made in 1.5-2.5
+// minutes. A completed take has `audio_url`, `loop_start_s` and `loop_end_s`.
+//
+// ### Cost
+// 4 generations, or $0.033 in credits; charged only when the takes are made. Needs a tier
+// 1 subscription or higher.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /music/{song_id}/loop
+func (c *Client) SetMusicLoopWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("music", songID.String(), "loop")
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodPost,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*StartedMusicResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Needs a tier 2 subscription or higher
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Song not found
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusConflict:
+		// The song has no audio yet
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// The song can't be looped (the detail says why)
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many jobs running
+		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// A short music idea written out as a full style for `POST /music`: a
+// sentence or two that gives each instrument a role, the mood and the ending. Edit it if
+// you like, then send it with the same `instrumental` and `bpm`.
+//
+// ### Cost
+// 0.05 generations, or about $0.002 in credits. Synchronous, 5-15 seconds.
+//
+//	POST /music/improve-style
+func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRequest) (*ImproveMusicStyleResponse, error) {
+	return c.ImproveMusicStyleWithResult[ImproveMusicStyleResponse](ctx, body)
+}
+
+// A short music idea written out as a full style for `POST /music`: a
+// sentence or two that gives each instrument a role, the mood and the ending. Edit it if
+// you like, then send it with the same `instrumental` and `bpm`.
+//
+// ### Cost
+// 0.05 generations, or about $0.002 in credits. Synchronous, 5-15 seconds.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /music/improve-style
+func (c *Client) ImproveMusicStyleWithResult[R any](ctx context.Context, body ImproveMusicStyleRequest) (*R, error) {
+	u := c.baseURL.JoinPath("music", "improve-style")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ImproveMusicStyleResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Needs a tier 2 subscription or higher
+		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadGateway:
+		// The writer failed; try again
+		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Lyrics for a song about a topic: two versions with section tags. Send one
+// as `lyrics` to `POST /music` with `instrumental: false`, or set `auto_lyrics` there
+// instead.
+//
+// ### Cost
+// 0.05 generations, or about $0.002 in credits. Synchronous, 10-20 seconds.
+//
+//	POST /music/lyrics
+func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequest) (*CreateMusicLyricResponse, error) {
+	return c.CreateMusicLyricWithResult[CreateMusicLyricResponse](ctx, body)
+}
+
+// Lyrics for a song about a topic: two versions with section tags. Send one
+// as `lyrics` to `POST /music` with `instrumental: false`, or set `auto_lyrics` there
+// instead.
+//
+// ### Cost
+// 0.05 generations, or about $0.002 in credits. Synchronous, 10-20 seconds.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /music/lyrics
+func (c *Client) CreateMusicLyricWithResult[R any](ctx context.Context, body CreateMusicLyricRequest) (*R, error) {
+	u := c.baseURL.JoinPath("music", "lyrics")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateMusicLyricResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Needs a tier 2 subscription or higher
+		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusBadGateway:
+		// The writer failed; try again
+		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// One song or loop take: its status, and its audio once completed.
+//
+//	GET /music/{song_id}
+func (c *Client) GetMusic(ctx context.Context, songID uuid.UUID) (*Song, error) {
+	return c.GetMusicWithResult[Song](ctx, songID)
+}
+
+// One song or loop take: its status, and its audio once completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /music/{song_id}
+func (c *Client) GetMusicWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("music", songID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*Song); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetMusic: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Delete a song from your library and from your games; it cannot be undone.
+// A song still being made is stopped instead, together with its other take (the two are
+// one request); that is charged if it had already started.
+//
+//	DELETE /music/{song_id}
+func (c *Client) DeleteMusic(ctx context.Context, songID uuid.UUID) (*DeleteResponse, error) {
+	return c.DeleteMusicWithResult[DeleteResponse](ctx, songID)
+}
+
+// Delete a song from your library and from your games; it cannot be undone.
+// A song still being made is stopped instead, together with its other take (the two are
+// one request); that is charged if it had already started.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /music/{song_id}
+func (c *Client) DeleteMusicWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("music", songID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteMusic: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("DeleteMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rename a song, in your library and in the games it is in.
+//
+//	PATCH /music/{song_id}
+func (c *Client) UpdateMusic(ctx context.Context, songID uuid.UUID, body RenameRequest) (*Song, error) {
+	return c.UpdateMusicWithResult[Song](ctx, songID, body)
+}
+
+// Rename a song, in your library and in the games it is in.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /music/{song_id}
+func (c *Client) UpdateMusicWithResult[R any](ctx context.Context, songID uuid.UUID, body RenameRequest) (*R, error) {
+	u := c.baseURL.JoinPath("music", songID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*Song); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A blank name
+		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Your sound effects, newest first: being made, failed and completed.
+//
+//	GET /sound-effects
+func (c *Client) ListSoundEffects(ctx context.Context, params *ListSoundEffectsParams) (*ListSoundEffectsResponse, error) {
+	return c.ListSoundEffectsWithResult[ListSoundEffectsResponse](ctx, params)
+}
+
+// Your sound effects, newest first: being made, failed and completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /sound-effects
+func (c *Client) ListSoundEffectsWithResult[R any](ctx context.Context, params *ListSoundEffectsParams) (*R, error) {
+	u := c.baseURL.JoinPath("sound-effects")
+	if params != nil {
+		q := make(url.Values, 2)
+
+		if params.Limit != 0 {
+			q["limit"] = []string{strconv.Itoa(params.Limit)}
+		}
+
+		if params.Offset != 0 {
+			q["offset"] = []string{strconv.Itoa(params.Offset)}
+		}
+
+		u.RawQuery = q.Encode()
+	}
+
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*ListSoundEffectsResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("ListSoundEffects: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// A sound effect for your game from a description: hits, shots, explosions,
+// footsteps, creatures, UI clicks, ambience. One clip per request; send it again for
+// another take. The same sound tool as the website's: the clip is saved to your library
+// there, where it can go in your games.
+//
+// ### Result
+// Poll `GET /v2/sound-effects/{id}` (or `GET /v2/background-jobs/{background_job_id}`)
+// every few seconds; a clip is usually made in 5-20 s. A completed clip has `audio_url`
+// (WAV, no auth needed) and `duration_ms`.
+//
+// ### Cost
+// By length, charged only when the clip is made (`quoted_generations`):
+//
+// | length | up to 1.6 s | 3.2 s | 6 s | 10 s | 30 s |
+// |---|---|---|---|---|---|
+// | generations | 1 | 2 | 4 | 7 | 19 |
+//
+// 0.614 generations per second, rounded up; in credits, $0.0027 per second. Needs a tier
+// 1 subscription or higher.
+//
+//	POST /sound-effects
+func (c *Client) CreateSoundEffect(ctx context.Context, body CreateSoundEffectRequest) (*CreateSoundEffectResponse, error) {
+	return c.CreateSoundEffectWithResult[CreateSoundEffectResponse](ctx, body)
+}
+
+// A sound effect for your game from a description: hits, shots, explosions,
+// footsteps, creatures, UI clicks, ambience. One clip per request; send it again for
+// another take. The same sound tool as the website's: the clip is saved to your library
+// there, where it can go in your games.
+//
+// ### Result
+// Poll `GET /v2/sound-effects/{id}` (or `GET /v2/background-jobs/{background_job_id}`)
+// every few seconds; a clip is usually made in 5-20 s. A completed clip has `audio_url`
+// (WAV, no auth needed) and `duration_ms`.
+//
+// ### Cost
+// By length, charged only when the clip is made (`quoted_generations`):
+//
+// | length | up to 1.6 s | 3.2 s | 6 s | 10 s | 30 s |
+// |---|---|---|---|---|---|
+// | generations | 1 | 2 | 4 | 7 | 19 |
+//
+// 0.614 generations per second, rounded up; in credits, $0.0027 per second. Needs a tier
+// 1 subscription or higher.
+// You can define a custom result to unmarshal the response into.
+//
+//	POST /sound-effects
+func (c *Client) CreateSoundEffectWithResult[R any](ctx context.Context, body CreateSoundEffectRequest) (*R, error) {
+	u := c.baseURL.JoinPath("sound-effects")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusAccepted:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*CreateSoundEffectResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	case http.StatusPaymentRequired:
+		// Not enough generations or credits
+		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	case http.StatusForbidden:
+		// Needs a tier 2 subscription or higher
+		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	case http.StatusTooManyRequests:
+		// Too many jobs running
+		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// One sound effect: its status, and its audio once completed.
+//
+//	GET /sound-effects/{sound_effect_id}
+func (c *Client) GetSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*SoundEffect, error) {
+	return c.GetSoundEffectWithResult[SoundEffect](ctx, soundEffectID)
+}
+
+// One sound effect: its status, and its audio once completed.
+// You can define a custom result to unmarshal the response into.
+//
+//	GET /sound-effects/{sound_effect_id}
+func (c *Client) GetSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodGet,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SoundEffect); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("GetSoundEffect: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("GetSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Delete a sound effect from your library and from your games; it cannot be
+// undone. One still being made is stopped instead; that is charged if it had already
+// started.
+//
+//	DELETE /sound-effects/{sound_effect_id}
+func (c *Client) DeleteSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*DeleteResponse, error) {
+	return c.DeleteSoundEffectWithResult[DeleteResponse](ctx, soundEffectID)
+}
+
+// Delete a sound effect from your library and from your games; it cannot be
+// undone. One still being made is stopped instead; that is charged if it had already
+// started.
+// You can define a custom result to unmarshal the response into.
+//
+//	DELETE /sound-effects/{sound_effect_id}
+func (c *Client) DeleteSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID) (*R, error) {
+	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+		},
+		Host:       u.Host,
+		Method:     http.MethodDelete,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		URL:        u,
+	}).WithContext(ctx)
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*DeleteResponse); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("DeleteSoundEffect: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("DeleteSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation Error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(HTTPValidationError)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// Rename a sound effect, in your library and in the games it is in.
+//
+//	PATCH /sound-effects/{sound_effect_id}
+func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID, body RenameRequest) (*SoundEffect, error) {
+	return c.UpdateSoundEffectWithResult[SoundEffect](ctx, soundEffectID, body)
+}
+
+// Rename a sound effect, in your library and in the games it is in.
+// You can define a custom result to unmarshal the response into.
+//
+//	PATCH /sound-effects/{sound_effect_id}
+func (c *Client) UpdateSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID, body RenameRequest) (*R, error) {
+	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPatch,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Successful Response
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out R
+
+			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
+			opts := jsonOptsLenient
+			if _, ok := any(&out).(*SoundEffect); ok {
+				opts = jsonOpts
+			}
+
+			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+				if ia == nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+
+				if kerr := c.keep(ia); kerr != nil {
+					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
+				}
+
+				out = *new(R)
+				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
+					return nil, api.WrapDecodingError(rsp, err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized:
+		// Invalid API token
+		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
+	case http.StatusNotFound:
+		// Not found
+		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A blank name
+		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Generate 8 directional rotations from a reference frame.
 //
 // Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
@@ -9981,7 +11382,7 @@ func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID u
 // Rename a top-down or sidescroller tileset. The name is display only: the terrain descriptions that generation and chaining read are left alone. Free.
 //
 //	PATCH /tilesets/{tileset_id}
-func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body UpdateTilesetRequest) (*UpdateTilesetResponse, error) {
+func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body RenameRequest) (*UpdateTilesetResponse, error) {
 	return c.UpdateTilesetWithResult[UpdateTilesetResponse](ctx, tilesetID, body)
 }
 
@@ -9989,7 +11390,7 @@ func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body Up
 // You can define a custom result to unmarshal the response into.
 //
 //	PATCH /tilesets/{tileset_id}
-func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, body UpdateTilesetRequest) (*R, error) {
+func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, body RenameRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{

@@ -83,6 +83,18 @@ type GetVfxEffectsParams struct {
 	CursorID uuid.UUID
 }
 
+// ListMusicParams holds the query parameters for ListMusic.
+type ListMusicParams struct {
+	Limit  int
+	Offset int
+}
+
+// ListSoundEffectsParams holds the query parameters for ListSoundEffects.
+type ListSoundEffectsParams struct {
+	Limit  int
+	Offset int
+}
+
 // ListTilesetsParams holds the query parameters for ListTilesets.
 type ListTilesetsParams struct {
 	// Maximum number of tilesets to return
@@ -1506,6 +1518,47 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 	return enc.WriteValue(out)
 }
 
+// CreateMusicLyricRequest defines a model
+type CreateMusicLyricRequest struct {
+	// What the song is about: 'a knight's last stand at the gate'.
+	Topic string `json:"topic"`
+}
+
+// CreateMusicLyricResponse defines a model
+type CreateMusicLyricResponse struct {
+	Usage *Usage `json:"usage,omitzero"`
+	// Two versions, with [Verse]/[Chorus] section tags
+	Lyrics []string `json:"lyrics"`
+}
+
+// CreateMusicRequest defines a model
+type CreateMusicRequest struct {
+	// What the music sounds like, in a sentence or two that gives each instrument a role, plus the mood and how it ends. A list of tags comes out flat; artist names are refused. Put sounds to keep out in `exclude`. `POST /music/improve-style` writes a short idea out in full.
+	Style string `json:"style"`
+	// true: no vocals. false: vocals, with `lyrics` or `auto_lyrics`.
+	Instrumental *bool `json:"instrumental,omitzero"`
+	// With vocals: the words, one line per line, with section tags on their own lines: [Intro], [Verse], [Pre-Chorus], [Chorus], [Bridge], [Instrumental Break], [Outro], [End]. A tag can carry one direction: [Chorus: full band]. `POST /music/lyrics` drafts some.
+	Lyrics string `json:"lyrics,omitzero"`
+	// With vocals: lyrics written for the song (send no `lyrics`, `length_s` or `style_weight`).
+	AutoLyrics bool `json:"auto_lyrics,omitzero"`
+	// With `auto_lyrics`: what the song is about; may be empty.
+	About string `json:"about,omitzero"`
+	// Length to aim for, 10-360 s. Default: auto (a new style: the song's own length).
+	LengthS int `json:"length_s,omitzero"`
+	// Tempo, added to the style. Default: auto.
+	Bpm int `json:"bpm,omitzero"`
+	// With vocals: the voice, added to the style, e.g. 'warm female voice', 'deep male voice', 'male and female duet'.
+	Voice string `json:"voice,omitzero"`
+	// Sounds to keep out, short phrases: 'fade out, electric guitar'. An instrumental keeps out 'vocals, singing' on its own.
+	Exclude string `json:"exclude,omitzero"`
+	// How closely to follow the style, 0-1. Default: 0.5.
+	StyleWeight *float64 `json:"style_weight,omitzero"`
+	// The song's name. Default: the style's first words. Take 2 gets ' (take 2)'.
+	Name string `json:"name,omitzero"`
+	// One of your songs, made again in this style: the same melody, its vocals and lyrics kept (send no `lyrics`, `auto_lyrics` or `about`).
+	RestyleSongID uuid.UUID `json:"restyle_song_id,omitzero"`
+}
+
 // CreateObjectAnimationDirectionsItem defines a model
 type CreateObjectAnimationDirectionsItem string
 
@@ -1796,6 +1849,31 @@ type CreateSidescrollerTilesetRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// CreateSoundEffectRequest defines a model
+type CreateSoundEffectRequest struct {
+	// The sound in plain words: 'a heavy sword slash hitting metal armor', 'steady rain on a roof with distant thunder'.
+	Prompt string `json:"prompt"`
+	// Clip length, 0.5-30 s (to 0.1 s). A shot or hit: ~1 s; an explosion: ~3 s; an ambience: 10-30 s.
+	Seconds float64 `json:"seconds,omitzero"`
+	// The clip's name. Default: the prompt's first words.
+	Name string `json:"name,omitzero"`
+}
+
+// CreateSoundEffectResponse defines a model
+type CreateSoundEffectResponse struct {
+	Usage *Usage `json:"usage,omitzero"`
+	// Background job ID to poll
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	// Job status
+	Status string `json:"status,omitzero"`
+	// The clip, pending
+	SoundEffect SoundEffect `json:"sound_effect"`
+	// What it costs, charged only when the clip is made
+	QuotedGenerations int `json:"quoted_generations"`
+	// The price in credits, when you pay with credits
+	QuotedCreditsUsd float64 `json:"quoted_credits_usd"`
 }
 
 // Request model for tiles pro generation endpoint
@@ -2384,6 +2462,13 @@ type DeleteObjectResponse struct {
 	ObjectID uuid.UUID `json:"object_id,omitzero"`
 	// Error message if deletion failed
 	Err string `json:"error,omitzero"`
+}
+
+// DeleteResponse defines a model
+type DeleteResponse struct {
+	Success *bool `json:"success,omitzero"`
+	// true: it was still being made, so it was stopped (a song with its other take); charged if it had already started
+	Stopped bool `json:"stopped"`
 }
 
 // DeleteRoomResponse defines a model
@@ -3512,6 +3597,23 @@ type ImagesResponse struct {
 	Images []BaseImage `json:"images"`
 }
 
+// ImproveMusicStyleRequest defines a model
+type ImproveMusicStyleRequest struct {
+	// A short idea: 'spooky swamp level', 'cozy farming village'.
+	Style string `json:"style"`
+	// Whether the song will be instrumental
+	Instrumental *bool `json:"instrumental,omitzero"`
+	// The tempo you will send, for the text to keep
+	Bpm int `json:"bpm,omitzero"`
+}
+
+// ImproveMusicStyleResponse defines a model
+type ImproveMusicStyleResponse struct {
+	Usage *Usage `json:"usage,omitzero"`
+	// The idea written out as a full style
+	Style string `json:"style"`
+}
+
 // InpaintImage defines a model
 type InpaintImage struct {
 	// Image as base64 PNG/JPEG
@@ -3852,6 +3954,13 @@ type ListIsometricTilesResponse struct {
 	Total int `json:"total"`
 }
 
+// ListMusicResponse defines a model
+type ListMusicResponse struct {
+	Songs []Song `json:"songs"`
+	// All your songs
+	Total int `json:"total"`
+}
+
 // Response for object listing
 type ListObjectsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3874,6 +3983,13 @@ type ListSidescrollerTilesetsResponse struct {
 	Usage    *Usage                       `json:"usage,omitzero"`
 	Tilesets []SidescrollerTilesetSummary `json:"tilesets"`
 	// Total number of sidescroller tilesets the user owns (unpaginated)
+	Total int `json:"total"`
+}
+
+// ListSoundEffectsResponse defines a model
+type ListSoundEffectsResponse struct {
+	SoundEffects []SoundEffect `json:"sound_effects"`
+	// All your sound effects
 	Total int `json:"total"`
 }
 
@@ -4313,6 +4429,11 @@ type RemoveBackgroundRequest struct {
 	Text string `json:"text,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// RenameRequest defines a model
+type RenameRequest struct {
+	Name string `json:"name"`
 }
 
 // Request model for resize endpoint
@@ -4783,6 +4904,79 @@ func (e SkeletonLabel) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// A song or loop take.
+type Song struct {
+	// The song's id
+	ID string `json:"id"`
+	// pending, running, completed or failed
+	Status string `json:"status"`
+	// Why it failed
+	Err  string `json:"error"`
+	Name string `json:"name"`
+	// The MP3, once completed (no auth needed)
+	AudioURL string `json:"audio_url"`
+	// Its length, once completed
+	DurationMs int `json:"duration_ms"`
+	// The style text it was made from
+	Style        string `json:"style"`
+	Instrumental bool   `json:"instrumental"`
+	// What it sings; for auto_lyrics, set once it is made
+	Lyrics     string `json:"lyrics"`
+	AutoLyrics bool   `json:"auto_lyrics"`
+	About      string `json:"about"`
+	// The length asked for; null = auto
+	LengthS     int     `json:"length_s"`
+	Exclude     string  `json:"exclude"`
+	StyleWeight float64 `json:"style_weight"`
+	// 1 or 2: a request makes two takes
+	Take int `json:"take"`
+	// Shared by the two takes of a request (take 1's id)
+	RequestID string `json:"request_id"`
+	// A new style: the song it restyles
+	RestyleOf string `json:"restyle_of"`
+	// A loop: the song it loops
+	LoopOf string `json:"loop_of"`
+	// A loop: where playback jumps back to, in seconds
+	LoopStartS float64 `json:"loop_start_s"`
+	// A loop: where playback jumps back from, in seconds
+	LoopEndS  float64 `json:"loop_end_s"`
+	CreatedAt string  `json:"created_at"`
+}
+
+// SoundEffect defines a model
+type SoundEffect struct {
+	// The sound effect's id
+	ID string `json:"id"`
+	// pending, running, completed or failed
+	Status string `json:"status"`
+	// Why it failed
+	Err  string `json:"error"`
+	Name string `json:"name"`
+	// The WAV, once completed (no auth needed)
+	AudioURL string `json:"audio_url"`
+	// Its length, once completed
+	DurationMs int    `json:"duration_ms"`
+	Prompt     string `json:"prompt"`
+	// The length asked for
+	Seconds   float64 `json:"seconds"`
+	CreatedAt string  `json:"created_at"`
+}
+
+// StartedMusicResponse defines a model
+type StartedMusicResponse struct {
+	Usage *Usage `json:"usage,omitzero"`
+	// Background job ID to poll
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	// Job status
+	Status string `json:"status,omitzero"`
+	// The two takes, pending
+	Songs []Song `json:"songs"`
+	// What it costs, charged only when the takes are made
+	QuotedGenerations float64 `json:"quoted_generations"`
+	// The price in credits, when you pay with credits
+	QuotedCreditsUsd float64 `json:"quoted_credits_usd"`
 }
 
 // StateResponse defines a model
@@ -5356,12 +5550,6 @@ type UpdateTagsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Updated list of tags
 	Tags []string `json:"tags"`
-}
-
-// UpdateTilesetRequest defines a model
-type UpdateTilesetRequest struct {
-	// New tileset name. Display only; the terrain descriptions stay.
-	Name string `json:"name"`
 }
 
 // UpdateTilesetResponse defines a model

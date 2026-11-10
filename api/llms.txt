@@ -236,6 +236,27 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 - [`POST /generate-font-pro`](https://api.pixellab.ai/v2/redoc#operation/generate_font_pro_generate_font_pro_post): Generate pixel font (Pro)
 - [`GET /generate-font-pro/{job_id}`](https://api.pixellab.ai/v2/redoc#operation/get_font_generate_font_pro__job_id__get): Get font-pro job status + result
 
+### Audio
+
+#### Music
+
+- [`POST /music`](https://api.pixellab.ai/v2/redoc#operation/create_music_music_post): Create music
+- [`GET /music`](https://api.pixellab.ai/v2/redoc#operation/list_music_music_get): List music
+- [`POST /music/{song_id}/loop`](https://api.pixellab.ai/v2/redoc#operation/loop_music_music__song_id__loop_post): Loop music
+- [`POST /music/improve-style`](https://api.pixellab.ai/v2/redoc#operation/improve_music_style_music_improve_style_post): Improve a music style
+- [`POST /music/lyrics`](https://api.pixellab.ai/v2/redoc#operation/write_lyrics_music_lyrics_post): Write lyrics
+- [`GET /music/{song_id}`](https://api.pixellab.ai/v2/redoc#operation/get_music_music__song_id__get): Get music
+- [`PATCH /music/{song_id}`](https://api.pixellab.ai/v2/redoc#operation/rename_music_music__song_id__patch): Rename music
+- [`DELETE /music/{song_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_music_music__song_id__delete): Delete music
+
+#### Sound Effects
+
+- [`POST /sound-effects`](https://api.pixellab.ai/v2/redoc#operation/create_sound_effect_sound_effects_post): Create sound effect
+- [`GET /sound-effects`](https://api.pixellab.ai/v2/redoc#operation/list_sound_effects_sound_effects_get): List sound effects
+- [`GET /sound-effects/{sound_effect_id}`](https://api.pixellab.ai/v2/redoc#operation/get_sound_effect_sound_effects__sound_effect_id__get): Get sound effect
+- [`PATCH /sound-effects/{sound_effect_id}`](https://api.pixellab.ai/v2/redoc#operation/rename_sound_effect_sound_effects__sound_effect_id__patch): Rename sound effect
+- [`DELETE /sound-effects/{sound_effect_id}`](https://api.pixellab.ai/v2/redoc#operation/delete_sound_effect_sound_effects__sound_effect_id__delete): Delete sound effect
+
 ### Utilities
 
 #### Cleanup
