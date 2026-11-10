@@ -170,69 +170,6 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 //
 //	POST /generate-image-v2
 func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (*JobResponse, error) {
-	return c.GenerateImageWithResult[JobResponse](ctx, body)
-}
-
-// Generate pixel art images from text description.
-//
-// This endpoint creates multiple pixel art images based on a text description,
-// with optional reference images for style and subject guidance.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-//   - Text-to-image pixel art generation
-//   - Optional reference images for subject guidance (up to 4)
-//   - Optional style image for consistent pixel art style
-//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours the image is
-//     drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, NES, any
-//     Lospec palette as hex), plus an optional `max_colors` cap per image. With a
-//     palette, set `style_options.color_palette` to false - the palette sets the colours
-//   - Automatic background removal
-//   - Non-blocking: returns job ID immediately
-//
-// **Output Counts by Size (by max dimension):**
-// - Up to 32px: 64 images (8x8 grid)
-// - 33-35px: 49 images (7x7 grid)
-// - 36-41px: 36 images (6x6 grid)
-// - 42-50px: 25 images (5x5 grid)
-// - 51-64px: 16 images (4x4 grid)
-// - 65-84px: 9 images (3x3 grid)
-// - 85px: 16 images (4x4 grid)
-// - 86-170px: 4 images (2x2 grid)
-// - Above 170px: 1 image
-//
-// **Supported Sizes:**
-// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_v2(
-//
-//	description="cute wizard character",
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Access generated images
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"image_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-image-v2
-func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body GenerateImageRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-image-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -265,15 +202,8 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 		// Image generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -282,7 +212,7 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -339,40 +269,6 @@ func (c *Client) GenerateImageWithResult[R any](ctx context.Context, body Genera
 //
 //	POST /create-image-pixen
 func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequest) (*CreateImagePixenResponse, error) {
-	return c.CreateImagePixenWithResult[CreateImagePixenResponse](ctx, body)
-}
-
-// Generates a pixel art image using the Pixen model.
-//
-// Supported image size:
-// - Minimum side 16 and maximum area 512x512
-// - Width and height must be divisible by 4
-// - Must be square when either side is below 32
-//
-// Supported features:
-// - Transparent background
-// - Outline and detail style controls
-// - View and direction
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_pixen(
-//
-//	description="cute wizard",
-//	image_size=dict(width=64, height=64),
-//	no_background=True,
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-image-pixen
-func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body CreateImagePixenRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixen")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -405,15 +301,8 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateImagePixenResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateImagePixenResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -422,7 +311,7 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateImagePixenResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -501,59 +390,6 @@ func (c *Client) CreateImagePixenWithResult[R any](ctx context.Context, body Cre
 //
 //	POST /generate-with-style-v2
 func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRequest) (*JobResponse, error) {
-	return c.GenerateWithStyleWithResult[JobResponse](ctx, body)
-}
-
-// Generate new pixel art images that match the style of reference images.
-//
-// This endpoint creates new pixel art based on a text description while matching
-// the visual style (colors, shading, detail level) of provided style reference images.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Style-consistent generation from reference images
-// - Multiple style references supported (1-4 images)
-// - Optional style description for fine-tuning
-// - Automatic background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Output Size:**
-//   - Deduced from the style images: the largest dimension across all style
-//     images becomes the (square) output size, minimum 16, maximum 512 pixels
-//   - Non-square style images are centered on a square canvas
-//
-// **Output Counts by Size:**
-// - 16-32 pixels: Returns 64 images (8x8 grid)
-// - 33-35 pixels: Returns 49 images (7x7 grid)
-// - 36-41 pixels: Returns 36 images (6x6 grid)
-// - 42-50 pixels: Returns 25 images (5x5 grid)
-// - 51-64 pixels: Returns 16 images (4x4 grid)
-// - 65-84 pixels: Returns 9 images (3x3 grid)
-// - 85 pixels: Returns 16 images (4x4 grid)
-// - 86-170 pixels: Returns 4 images (2x2 grid)
-// - 171-512 pixels: Returns 1 image
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// **Example:**
-// ```python
-// response = client.generate_with_style_v2(
-//
-//	style_images=[{"image": style_img, "width": 64, "height": 64}],
-//	description="a wizard casting a spell",
-//	style_description="16-bit RPG style with bright colors",
-//
-// )
-// # Output size is deduced from the style images (64x64 here)
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-with-style-v2
-func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body GenerateWithStyleRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-with-style-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -586,15 +422,8 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 		// Style generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -603,7 +432,7 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -657,37 +486,6 @@ func (c *Client) GenerateWithStyleWithResult[R any](ctx context.Context, body Ge
 //
 //	POST /create-image-pixflux
 func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixfluxRequest) (*ImageResponse, error) {
-	return c.CreateImagePixfluxWithResult[ImageResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Create image (new)" in the plugin.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_pixflux(
-//
-//	description="cute dragon",
-//	image_size=dict(width=128, height=128),
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-image-pixflux
-func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixflux")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -720,15 +518,8 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -737,7 +528,7 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -787,30 +578,6 @@ func (c *Client) CreateImagePixfluxWithResult[R any](ctx context.Context, body C
 //
 //	POST /create-image-pixflux-background
 func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*JobResponse, error) {
-	return c.CreateImagePixfluxBackgroundWithResult[JobResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters, as a background job.
-//
-// Same parameters and output as `POST /create-image-pixflux`, but returns immediately
-// with a background job ID instead of holding the connection open during generation.
-//
-// Supported image size:
-// - Minimum area 32x32 and maximum area 400x400
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the image is in `last_response.image.base64`
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-image-pixflux-background
-func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Context, body CreateImagePixfluxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pixflux-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -843,15 +610,8 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 		// Image generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -860,7 +620,7 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -916,39 +676,6 @@ func (c *Client) CreateImagePixfluxBackgroundWithResult[R any](ctx context.Conte
 //
 //	POST /create-image-bitforge
 func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitforgeRequest) (*ImageResponse, error) {
-	return c.CreateImageBitforgeWithResult[ImageResponse](ctx, body)
-}
-
-// Generates a pixel art image based on the provided parameters. Called "Create S-M image" in the plugin.
-//
-// Supported image size:
-// - Maximum area 200x200
-//
-// Supported features:
-// - Style image
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_image_bitforge(
-//
-//	description="cute dragon",
-//	image_size=dict(width=128, height=128),
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-image-bitforge
-func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body CreateImageBitforgeRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-bitforge")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -981,15 +708,8 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -998,7 +718,7 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1064,46 +784,6 @@ func (c *Client) CreateImageBitforgeWithResult[R any](ctx context.Context, body 
 //
 //	POST /image-to-pixelart
 func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
-	return c.ImageToPixelartWithResult[ImageResponse](ctx, body)
-}
-
-// Convert regular images to pixel art style.
-//
-// Supported image sizes:
-// - Input: Minimum 16x16, maximum 2048x2048
-// - Output: Minimum 16x16, maximum 512x512
-//
-// **Best practices:**
-// - Recommended output sizes is 1/4 of the input size
-// - Keep the same aspect ratio as the input image
-//
-// **Staying close to the source:** by default the model reinterprets the image as
-// pixel art. To reproduce it faithfully instead, set `fixer=true` (faithful mode)
-// and raise `init_image_strength` (0-999), which starts the diffusion from the
-// source image rather than from noise.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("photo.png")
-//
-// result = client.image_to_pixelart(
-//
-//	image=source_img,
-//	image_size=dict(width=256, height=256),
-//	output_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("pixelart.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /image-to-pixelart
-func (c *Client) ImageToPixelartWithResult[R any](ctx context.Context, body ImageToPixelartRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1136,15 +816,8 @@ func (c *Client) ImageToPixelartWithResult[R any](ctx context.Context, body Imag
 		// Successfully converted image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1153,7 +826,7 @@ func (c *Client) ImageToPixelartWithResult[R any](ctx context.Context, body Imag
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1220,47 +893,6 @@ func (c *Client) ImageToPixelartWithResult[R any](ctx context.Context, body Imag
 //
 //	POST /image-to-pixelart-pro
 func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartProRequest) (*JobResponse, error) {
-	return c.ImageToPixelartProWithResult[JobResponse](ctx, body)
-}
-
-// Convert an arbitrary image into high-quality pixel art.
-//
-// Unlike `image-to-pixelart`, the output size is decided automatically — the
-// native pixel scale is detected and the result is downscaled and cleaned up for
-// you, so you don't pass an output size. Provide an optional `description` to nudge
-// the style (palette, dithering, mood).
-//
-// Returns immediately with a background job ID. Poll
-// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result.
-//
-// **Input:** any PNG/JPEG. Images larger than 2048px on the longest side are scaled
-// down before conversion.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the pixel art image is in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("photo.png")
-//
-// response = client.image_to_pixelart_pro(
-//
-//	image=source_img,
-//	description="retro vibes with light dithering",
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /image-to-pixelart-pro
-func (c *Client) ImageToPixelartProWithResult[R any](ctx context.Context, body ImageToPixelartProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1293,15 +925,8 @@ func (c *Client) ImageToPixelartProWithResult[R any](ctx context.Context, body I
 		// Conversion job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1310,7 +935,7 @@ func (c *Client) ImageToPixelartProWithResult[R any](ctx context.Context, body I
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1350,23 +975,6 @@ func (c *Client) ImageToPixelartProWithResult[R any](ctx context.Context, body I
 //
 //	POST /image-to-pixelart-pro-flash
 func (c *Client) ImageToPixelartProFlash(ctx context.Context, body ImageToPixelartProFlashRequest) (*ImageToPixelartProFlashResponse, error) {
-	return c.ImageToPixelartProFlashWithResult[ImageToPixelartProFlashResponse](ctx, body)
-}
-
-// Convert a photo, painting or render into pixel art, faster and cheaper than Pro.
-//
-// Same conversion as `image-to-pixelart-pro`: the native pixel scale is detected
-// and the output size is chosen for you, so there is no size parameter. Add an
-// optional `description` to steer the style. Sources over 2048px on the longest
-// side are scaled down first. Costs 6 generations per image.
-//
-// Returns a background job. Poll `GET /v2/background-jobs/{background_job_id}`;
-// when it completes, the image is in `last_response` and also saved to your
-// gallery as `source_image_id`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /image-to-pixelart-pro-flash
-func (c *Client) ImageToPixelartProFlashWithResult[R any](ctx context.Context, body ImageToPixelartProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1399,15 +1007,8 @@ func (c *Client) ImageToPixelartProFlashWithResult[R any](ctx context.Context, b
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageToPixelartProFlashResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageToPixelartProFlashResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1416,7 +1017,7 @@ func (c *Client) ImageToPixelartProFlashWithResult[R any](ctx context.Context, b
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageToPixelartProFlashResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1507,62 +1108,6 @@ func (c *Client) ImageToPixelartProFlashWithResult[R any](ctx context.Context, b
 //
 //	POST /create-character-v3
 func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterRequest) (*CreateCharacterResponse, error) {
-	return c.CreateCharacterWithResult[CreateCharacterResponse](ctx, body)
-}
-
-// Create a character with 8 directional rotations using the v3 model.
-//
-// **Two modes:**
-//
-//  1. **Reference image** — provide `reference_image` (south-facing sprite) and the v3 model
-//     rotates it into 8 directional views. Cost: `ceil(w*h*8 / 65536)` generations.
-//
-//  2. **From scratch** — omit `reference_image` and the Pixen model generates a south-facing
-//     sprite from `description`, then v3 rotates it. Cost: 1 (pixen) + `ceil(s*s*8 / 65536)`
-//     where s = max(width, height). Supports `outline` and `detail` style params.
-//
-// The result is persisted as a character — same system as
-// `/v2/create-character-with-8-directions` — so it can be animated, downloaded, and listed
-// alongside template-created characters.
-//
-// **Reference image must be south-facing for best results.** The frontend Character Creator
-// enforces this and the v3 model is trained around a south-facing input.
-//
-// **Sizes:**
-//   - `reference_image`: max 256x256 pixels.
-//   - From-scratch `image_size`: 32-256 pixels (default 64x64). This size is sent to
-//     the sprite generator; a non-square result is padded to a `max(width, height)` square
-//     before rotation, and the character is stored at that square size. Animations get
-//     their own larger canvas when the motion needs room.
-//   - Reference mode uses the uploaded frame dimensions for generation; `image_size` is
-//     advisory.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Reference image mode
-// response = client.create_character_v3(
-//
-//	description="cyberpunk samurai",
-//	reference_image=dict(base64=south_facing_image_b64),
-//
-// )
-//
-// # From-scratch mode
-// response = client.create_character_v3(
-//
-//	description="cute wizard with blue robes",
-//	image_size=dict(width=48, height=48),
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-v3
-func (c *Client) CreateCharacterWithResult[R any](ctx context.Context, body CreateCharacterRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1595,15 +1140,8 @@ func (c *Client) CreateCharacterWithResult[R any](ctx context.Context, body Crea
 		// Generation job submitted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCharacterResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1612,7 +1150,7 @@ func (c *Client) CreateCharacterWithResult[R any](ctx context.Context, body Crea
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCharacterResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1694,65 +1232,6 @@ func (c *Client) CreateCharacterWithResult[R any](ctx context.Context, body Crea
 //
 //	POST /create-character-pro
 func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
-	return c.CreateCharacterProWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Create a character with 8 directional rotations using Pro mode.
-//
-// Pro mode uses a reference-based generator for higher quality and finer style control than
-// template-based standard mode. The result is persisted as a
-// character — same system as `/v2/create-character-with-8-directions` — so it can be
-// animated, downloaded, and listed alongside template-created characters.
-//
-// **Three methods** (controlled by the `method` field):
-// - `create_with_style` (default): text + optional style reference image.
-// - `create_from_concept`: text + concept image (e.g. a sketch/mood board) + optional style reference.
-// - `rotate_character`: rotate an existing character image into 8 directions.
-//
-// **Style character** (`style_character_id`): pass the id of one of your existing
-// 8-direction characters to use it as the style reference — its 8 directional sprites
-// guide the new character's style in every direction. Combine with `create_with_style`
-// (text-driven) or `create_from_concept` (concept image in that character's style).
-//
-// **Sizes:**
-//   - `image_size`: 32-168 pixels (requested output frame). The persisted rotations share
-//     a square canvas whose side is at least `max(width, height)` and may grow up to 256
-//     pixels to fit generated content.
-//     Must be at least the style character's sprite content size when `style_character_id` is set.
-//   - `reference_image`: max 168x168.
-//   - `concept_image`: max 1024x1024.
-//
-// **Cost:** dynamic — typically 10-25 generations depending on output size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Style-guided creation
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai with red coat",
-//	image_size=dict(width=96, height=96),
-//	method="create_with_style",
-//
-// )
-//
-// # Rotate an existing character
-// response = client.create_character_pro(
-//
-//	description="cyberpunk samurai",
-//	image_size=dict(width=96, height=96),
-//	method="rotate_character",
-//	reference_image=dict(base64=existing_character_b64),
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-pro
-func (c *Client) CreateCharacterProWithResult[R any](ctx context.Context, body CreateCharacterProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1785,15 +1264,8 @@ func (c *Client) CreateCharacterProWithResult[R any](ctx context.Context, body C
 		// Generation job submitted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CharacterJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1802,7 +1274,7 @@ func (c *Client) CreateCharacterProWithResult[R any](ctx context.Context, body C
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CharacterJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1839,20 +1311,6 @@ func (c *Client) CreateCharacterProWithResult[R any](ctx context.Context, body C
 //
 //	POST /characters/animations
 func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.CreateCharacterAnimationWithResult[CreateCharacterAnimationResponse](ctx, body)
-}
-
-// Animate an existing character (background processing).
-//
-// Modes:
-// - **template**: Provide template_animation_id for skeleton-based animation (1 gen/direction; canvases over ~100px bill per batch, up to one per clip frame at 256px).
-// - **v3** (default when no template): Custom animation from action text. Supports frame_count (4-16). One job per direction.
-// - **pixminimax**: Custom animation from action text on PixMiniMax (beta). frame_count multiples of 4 up to 40. One job per direction.
-// - **pro** (legacy, prefer v3 or pixminimax): Custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/animations
-func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1885,15 +1343,8 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCharacterAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -1902,7 +1353,7 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCharacterAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2015,84 +1466,6 @@ func (c *Client) CreateCharacterAnimationWithResult[R any](ctx context.Context, 
 //
 //	POST /animate-character
 func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnimationRequest) (*CreateCharacterAnimationResponse, error) {
-	return c.AnimateCharacterWithResult[CreateCharacterAnimationResponse](ctx, body)
-}
-
-// Animate an existing character with multiple frames showing movement or action.
-//
-// This endpoint creates animation sequences for characters that were previously created using
-// the create-character-with-4-directions or create-character-with-8-directions endpoints.
-//
-// **Key Features:**
-// - Animate existing characters by character_id
-// - Support for multiple directions (or all character directions)
-// - Flexible frame count (2-12 frames)
-// - Template-based animations for consistent motion
-// - Asynchronous processing for multiple directions
-// - Automatic storage and organization
-//
-// **Character Requirements:**
-// - Character must exist and belong to the authenticated user
-// - Character must have been created with 4 or 8 directions
-// - Animation will use the same template and settings as the character
-//
-// **Direction Handling:**
-// - Multiple directions per request (specify via directions field)
-// - If directions field is None/empty, animates all available directions
-// - Each direction creates a separate background job
-// - Returns list of job IDs (one per direction)
-//
-// **AI Freedom Parameter:**
-// - ai_freedom controls how closely the AI follows the template (0=strict, 1000=creative)
-// - Lower values produce more consistent animations
-// - Higher values allow more creative variations
-//
-// **Style Settings:**
-// - Uses the same style settings (outline, shading, detail) as the original character by default
-// - Can override individual style settings in the request
-//
-// **Frame Count:**
-// - Determined by the animation template (not configurable in request)
-// - Typically 4-6 frames for most animations
-//
-// **Image Size:**
-// - Uses the same image size as the original character
-// - All frames have consistent dimensions
-// - Stored in organized folder structure
-//
-// **Pricing:**
-// - Template mode: 1 generation per direction; canvases over ~100px run in batches billed 1 each (up to 3 at 128px, 5 at 180px, one per clip frame at 256px)
-// - Custom mode: 10-25 generations per direction (depending on character size)
-//
-// **V3 Mode (default when no template):**
-// Custom animation. Provide `action_description` and optionally `frame_count` (4-16, default 8).
-// - One job per direction, directions independent
-// - Directions default to south only if not specified
-// - Best for: single-direction animations, frame count control
-//
-// **PixMiniMax Mode (beta):**
-// Custom animation on PixMiniMax. Set `mode="pixminimax"` with `action_description`.
-// - `frame_count` a multiple of 4, up to 40, at any size up to 256x256
-// - Priced by size and frame count: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations per direction
-// - Optional `subject_description` / `initial_pose` describe the first frame; left out, they are read from the image
-// - Same custom keyframes, `keep_first_frame` and `enhance_prompt` as v3; one job per direction, ~1-7 min each
-// - `direction_prompts` (v3 too): one prompt per direction, all eight, as the website's per-direction enhancement writes them
-//
-// **Template actions (website "Powered by V3" tiles):**
-// Set `template_action` (e.g. `"walking"`, `"punch"`) instead of `action_description`: the motion is written for each direction from the action, on `mode="pixminimax"` (default) or `mode="v3"` (walking, running and full sprinting only). Frame count is the action's own. The valid actions are the `template_action` enum.
-//
-// **Skeleton v3 motion sliders:**
-// `motion_adjustments` (`arm_swing`, `stride`, `posture`, `leg_extension`) with `mode="skeleton-v3"` and `template_animation_id`, same names and ranges as the website's Motion settings.
-//
-// **Pro Mode (legacy, prefer v3 or PixMiniMax):**
-// Custom animation with sequential direction generation. Set `mode="pro"` with `action_description`.
-// - Generates directions one-by-one, using completed sides as reference
-// - 10-25 generations per direction depending on character size
-// - Directions default to south only if not specified
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-character
-func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body CreateCharacterAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-character")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2125,15 +1498,8 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 		// Successfully started character animation in background
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCharacterAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2142,7 +1508,7 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCharacterAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2179,14 +1545,6 @@ func (c *Client) AnimateCharacterWithResult[R any](ctx context.Context, body Cre
 //
 //	POST /create-character-state
 func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
-	return c.CreateCharacterStateWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-state
-func (c *Client) CreateCharacterStateWithResult[R any](ctx context.Context, body CreateCharacterStateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-state")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2219,15 +1577,8 @@ func (c *Client) CreateCharacterStateWithResult[R any](ctx context.Context, body
 		// State queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CharacterJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2236,7 +1587,7 @@ func (c *Client) CreateCharacterStateWithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CharacterJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2363,83 +1714,6 @@ func (c *Client) CreateCharacterStateWithResult[R any](ctx context.Context, body
 //
 //	POST /create-character-with-4-directions
 func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CharacterJobResponse, error) {
-	return c.CreateCharacterWith4DirectionsWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Generate a character or object facing 4 cardinal directions (south, west, east, north).
-//
-// This endpoint creates 4 separate rotation images plus a combined spritesheet in a 4x1 layout.
-// Perfect for game development where you need character sprites facing all directions.
-//
-// **Key Features:**
-// - Fixed 4-rotation layout (south, west, east, north)
-// - Individual rotation images + combined spritesheet
-// - Style customization (outline, shading, detail)
-// - Color palette support
-// - Character proportions customization
-// - Optional reference images per direction (upload some or all)
-// - Optimized for game sprites and character assets
-//
-// **Character Proportions:**
-// - Use preset proportions: chibi, cartoon, stylized, realistic_male, realistic_female, heroic
-// - Or customize individual body proportions: head size, arm/leg length, shoulder/hip width
-// - All characters use the advanced mannequin template with bone scaling
-//
-// **Reference Images (optional `directions` field):**
-//   - Provide existing sprites for some or all of south/east/north/west.
-//   - Missing directions are AI-generated; provided ones are used as-is (frozen).
-//   - Each image's dimensions must match `image_size` exactly (else 422).
-//   - 'south' is required when any reference is provided (bipedal). Quadruped templates
-//     (bear/cat/dog/horse/lion) additionally require 'east'. Oblique view requires all
-//     4 cardinals.
-//   - When provided, `proportions` / bone scaling is ignored — the reference images
-//     drive the pose.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Example: With preset proportions
-// response = client.generate_4_rotations(
-//
-//	description="futuristic robot warrior",
-//	image_size=dict(width=96, height=96),
-//	view="low_top_down",
-//	proportions=dict(
-//	    type="preset",
-//	    name="heroic"
-//	)
-//
-// )
-//
-// # Access individual images by direction
-// south_facing = response.images["south"]
-// west_facing = response.images["west"]
-// east_facing = response.images["east"]
-// north_facing = response.images["north"]
-//
-// # Example: Provide existing sprites for some directions; generate the rest
-// import base64
-// def to_b64(path):
-//
-//	return base64.b64encode(open(path, "rb").read()).decode()
-//
-// response = client.generate_4_rotations(
-//
-//	description="brave knight",
-//	image_size=dict(width=32, height=32),
-//	directions={
-//	    "south": {"base64": to_b64("knight_south.png")},
-//	},
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-with-4-directions
-func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-with-4-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2472,15 +1746,8 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 		// Successfully generated 4-rotation images
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CharacterJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2489,7 +1756,7 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CharacterJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2603,97 +1870,6 @@ func (c *Client) CreateCharacterWith4DirectionsWithResult[R any](ctx context.Con
 //
 //	POST /create-character-with-8-directions
 func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CharacterJobResponse, error) {
-	return c.CreateCharacterWith8DirectionsWithResult[CharacterJobResponse](ctx, body)
-}
-
-// Generate a character or object facing 8 directions (all cardinal and diagonal directions).
-//
-// This endpoint creates 8 rotation images in a dictionary format for easy access by direction name.
-// Perfect for detailed movement systems in games where smooth directional changes are important.
-//
-// **Two Generation Modes:**
-// - **standard** (default): Template-based skeleton generation. Costs 1 generation. Uses all style parameters.
-// - **pro**: AI reference-based generation for higher quality. Costs 10-25 generations depending on size. Ignores outline, shading, detail, proportions, and text_guidance_scale.
-//
-// **The 8 Directions:**
-// - south (facing down)
-// - south-east (diagonal down-right)
-// - east (facing right)
-// - north-east (diagonal up-right)
-// - north (facing up)
-// - north-west (diagonal up-left)
-// - west (facing left)
-// - south-west (diagonal down-left)
-//
-// **Key Features:**
-// - Fixed 8-rotation layout in clockwise order starting from south
-// - Returns dictionary of images by direction name
-// - Style customization (outline, shading, detail) - standard mode only
-// - Color palette support
-// - Character proportions customization - standard mode only
-// - Optional reference images per direction (standard mode only)
-// - Optimized for games requiring smooth directional movement
-//
-// **Reference Images (optional `directions` field, standard mode only):**
-//   - Provide existing sprites for some or all of the 8 directions.
-//   - Missing directions are AI-generated; provided ones are used as-is (frozen).
-//   - Each image's dimensions must match `image_size` exactly (else 422).
-//   - 'south' is required when any reference is provided (bipedal). Quadruped templates
-//     (bear/cat/dog/horse/lion) additionally require 'east'.
-//   - When provided, `proportions` / bone scaling is ignored — the reference images
-//     drive the pose.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Standard mode (default)
-// response = client.create_character_with_8_directions(
-//
-//	description="futuristic robot warrior",
-//	image_size=dict(width=96, height=96),
-//	view="low top-down",
-//	proportions=dict(type="preset", name="heroic")
-//
-// )
-//
-// # Pro mode (higher quality, costs more)
-// response = client.create_character_with_8_directions(
-//
-//	description="futuristic robot warrior",
-//	image_size=dict(width=48, height=48),
-//	view="low top-down",
-//	mode="pro"
-//
-// )
-//
-// # Provide existing sprites for some directions; generate the rest (standard only)
-// import base64
-// def to_b64(path):
-//
-//	return base64.b64encode(open(path, "rb").read()).decode()
-//
-// response = client.create_character_with_8_directions(
-//
-//	description="brave knight",
-//	image_size=dict(width=32, height=32),
-//	directions={
-//	    "south": {"base64": to_b64("knight_south.png")},
-//	    "east":  {"base64": to_b64("knight_east.png")},
-//	},
-//
-// )
-//
-// # Access individual images by direction
-// south_facing = response.images["south"]
-// east_facing = response.images["east"]
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-with-8-directions
-func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-with-8-directions")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2726,15 +1902,8 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 		// Successfully generated 8-rotation images
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CharacterJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CharacterJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2743,7 +1912,7 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CharacterJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2797,37 +1966,6 @@ func (c *Client) CreateCharacterWith8DirectionsWithResult[R any](ctx context.Con
 //
 //	GET /characters
 func (c *Client) ListCharacters(ctx context.Context, params *ListCharactersParams) (*ListCharactersResponse, error) {
-	return c.ListCharactersWithResult[ListCharactersResponse](ctx, params)
-}
-
-// List all characters created by the authenticated user.
-//
-// This endpoint returns a paginated list of all characters you've created using the
-// create-character-with-4-directions or create-character-with-8-directions endpoints.
-//
-// **Features:**
-// - Pagination support with limit and offset parameters
-// - Animation count for each character
-// - Preview URLs for quick character identification
-// - Complete character metadata
-//
-// **Authentication:**
-// Requires a valid API token in the Authorization header.
-//
-// **Response includes:**
-// - Character basic info (name, prompt, size, directions)
-// - Creation timestamp and template used
-// - Number of animations created for each character
-// - Preview URL for the south-facing rotation
-//
-// **Pagination:**
-// - Use `limit` to control how many characters to return (1-100)
-// - Use `offset` to skip characters for pagination
-// - Total count is included in response for pagination UI
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /characters
-func (c *Client) ListCharactersWithResult[R any](ctx context.Context, params *ListCharactersParams) (*R, error) {
 	u := c.baseURL.JoinPath("characters")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -2867,15 +2005,8 @@ func (c *Client) ListCharactersWithResult[R any](ctx context.Context, params *Li
 		// Successfully retrieved character list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListCharactersResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListCharactersResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2884,7 +2015,7 @@ func (c *Client) ListCharactersWithResult[R any](ctx context.Context, params *Li
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListCharactersResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -2935,37 +2066,6 @@ func (c *Client) ListCharactersWithResult[R any](ctx context.Context, params *Li
 //
 //	GET /characters/{character_id}
 func (c *Client) GetCharacter(ctx context.Context, characterID uuid.UUID) (*GetCharacterResponse, error) {
-	return c.GetCharacterWithResult[GetCharacterResponse](ctx, characterID)
-}
-
-// Get detailed information about a specific character.
-//
-// This endpoint returns complete character information including all rotation image URLs,
-// generation settings, and metadata.
-//
-// **Features:**
-// - Complete character information and settings
-// - URLs for all rotation images (4 or 8 directions)
-// - Animation count and template information
-// - Generation parameters used during creation
-//
-// **Authentication:**
-// Requires a valid API token. You can only access characters you created.
-//
-// **Response includes:**
-// - Basic character info (name, prompt, size, directions)
-// - All rotation image URLs (publicly accessible)
-// - Style settings and generation parameters
-// - Template information and view settings
-// - Animation count for this character
-//
-// **URL Format:**
-// All rotation URLs follow the pattern:
-// `https://supabase.pixellab.ai/storage/v1/object/public/pixellab-characters/{user_id}/{character_id}/rotations/{direction}.png`
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /characters/{character_id}
-func (c *Client) GetCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -2991,15 +2091,8 @@ func (c *Client) GetCharacterWithResult[R any](ctx context.Context, characterID 
 		// Successfully retrieved character details
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetCharacterResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetCharacterResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3008,7 +2101,7 @@ func (c *Client) GetCharacterWithResult[R any](ctx context.Context, characterID 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetCharacterResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3071,22 +2164,6 @@ func (c *Client) GetCharacterWithResult[R any](ctx context.Context, characterID 
 //
 //	DELETE /characters/{character_id}
 func (c *Client) DeleteCharacter(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterResponse, error) {
-	return c.DeleteCharacterWithResult[DeleteCharacterResponse](ctx, characterID)
-}
-
-// Delete ONE state of a character (the given id) with its rotations,
-// animations and files. Irreversible.
-//
-// A character is a group of states. Other states in the same group are untouched;
-// the group itself is removed only when its last state is deleted. To delete a whole
-// multi-state character, call this once per state id.
-//
-// `next_state_id` in the response is the most recently updated remaining state, or
-// null if the group is now gone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}
-func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -3112,15 +2189,8 @@ func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, character
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteCharacterResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteCharacterResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3129,7 +2199,7 @@ func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, character
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteCharacterResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3172,14 +2242,6 @@ func (c *Client) DeleteCharacterWithResult[R any](ctx context.Context, character
 //
 //	PATCH /characters/{character_id}
 func (c *Client) UpdateCharacter(ctx context.Context, characterID uuid.UUID, body UpdateCharacterRequest) (*AssetNamesResponse, error) {
-	return c.UpdateCharacterWithResult[AssetNamesResponse](ctx, characterID, body)
-}
-
-// Change the character's `name` (shared by all its states), this state's `state_name`, or its `prompt` (the description later animations and states are made from). Pass any of them. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /characters/{character_id}
-func (c *Client) UpdateCharacterWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateCharacterRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3212,15 +2274,8 @@ func (c *Client) UpdateCharacterWithResult[R any](ctx context.Context, character
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AssetNamesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out AssetNamesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3229,7 +2284,7 @@ func (c *Client) UpdateCharacterWithResult[R any](ctx context.Context, character
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(AssetNamesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3524,39 +2579,6 @@ func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.U
 //
 //	PATCH /characters/{character_id}/tags
 func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
-	return c.UpdateCharacterTagsWithResult[UpdateTagsResponse](ctx, characterID, body)
-}
-
-// Update the tags for a specific character.
-//
-// This endpoint replaces all tags for a character with the provided list.
-// Tags are used for filtering and organizing your characters.
-//
-// **Features:**
-// - Replace all tags at once (set operation)
-// - Automatic normalization (trim whitespace)
-// - Case-insensitive duplicate detection
-// - Maximum 20 tags per character
-// - Maximum 50 characters per tag
-//
-// **Tag Validation:**
-// - Empty strings are ignored
-// - Duplicate tags (case-insensitive) are removed
-// - Leading/trailing whitespace is trimmed
-// - Tags longer than 50 characters are rejected
-//
-// **Common Use Cases:**
-// - Organize characters by game genre: ["rpg", "fantasy"]
-// - Mark character types: ["npc", "enemy", "boss"]
-// - Track creation status: ["finished", "needs-animation"]
-// - Group by visual style: ["cute", "pixel-art", "8-bit"]
-//
-// **Authentication:**
-// Requires a valid API token. You can only update tags for characters you created.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /characters/{character_id}/tags
-func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, characterID uuid.UUID, body UpdateTagsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3589,15 +2611,8 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 		// Tags updated successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UpdateTagsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UpdateTagsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3606,7 +2621,7 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UpdateTagsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3670,20 +2685,6 @@ func (c *Client) UpdateCharacterTagsWithResult[R any](ctx context.Context, chara
 //
 //	POST /create-1-direction-object
 func (c *Client) Create1DirectionObject(ctx context.Context, body Create1DirectionObjectRequest) (*Create1DirectionObjectResponse, error) {
-	return c.Create1DirectionObjectWithResult[Create1DirectionObjectResponse](ctx, body)
-}
-
-// Queues a 1-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
-//
-// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
-//
-// Produces one or more single-direction object(s). When `size` results in more than one candidate (see the `size` parameter), the object enters `review` status and you must pick which candidates to keep via [POST /v2/objects/{object_id}/select-frames](#api-1/tag/objects/POST/objects/{object_id}/select-frames) (or discard via [POST /v2/objects/{object_id}/dismiss-review](#api-1/tag/objects/POST/objects/{object_id}/dismiss-review)). A single candidate is kept automatically.
-//
-// For an 8-direction object, use [POST /v2/create-8-direction-object](#api-1/tag/objects/POST/create-8-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-1-direction-object
-func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, body Create1DirectionObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-1-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3716,15 +2717,8 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 		// Object generation queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*Create1DirectionObjectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out Create1DirectionObjectResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3733,7 +2727,7 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(Create1DirectionObjectResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3770,20 +2764,6 @@ func (c *Client) Create1DirectionObjectWithResult[R any](ctx context.Context, bo
 //
 //	POST /create-8-direction-object
 func (c *Client) Create8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
-	return c.Create8DirectionObjectWithResult[ObjectJobResponse](ctx, body)
-}
-
-// Queues an 8-direction object generation job. Returns immediately with a `background_job_id` and `object_id`. Poll [GET /v2/objects/{object_id}](#api-1/tag/object-management/GET/objects/{object_id}) for status.
-//
-// Object generation uses the Pro Tools and costs **10–25 generations** per call on a subscription (depending on the resulting image size).
-//
-// Produces an object rendered from 8 angles in one shot.
-//
-// For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-8-direction-object
-func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, body Create8DirectionObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-8-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3816,15 +2796,8 @@ func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, bo
 		// Object generation queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ObjectJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3833,7 +2806,7 @@ func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, bo
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ObjectJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3872,22 +2845,6 @@ func (c *Client) Create8DirectionObjectWithResult[R any](ctx context.Context, bo
 //
 //	POST /objects/{object_id}/animations
 func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, body CreateObjectAnimationRequest) (*CreateObjectAnimationResponse, error) {
-	return c.CreateObjectAnimationWithResult[CreateObjectAnimationResponse](ctx, objectID, body)
-}
-
-// **Cost warning**: when generating on a subscription, `mode='pro'` costs 10-25 generations per direction (80-200 for a full 8-direction animation). Prefer `mode='v3'` (default) — it usually produces higher quality results and is cheaper.
-//
-// Queues animation jobs — one per direction submitted. Returns immediately with the animation_group_id and per-direction job ids. For 8-direction objects you can later add more directions to the same animation by passing the returned `animation_group_id`. Pass `replace_existing=true` to regenerate a direction that's already been animated.
-//
-// **PixMiniMax (`mode='pixminimax'`, beta)**: longer clips — any multiple of 4 frames up to 40 — at any canvas up to 256x256.
-//
-// **Per-direction descriptions (`mode='v3'` or `'pixminimax'`)**: pass `direction_prompts` with all eight directions to animate each from its own text.
-//
-// **Interpolation mode (`mode='v3'` or `'pixminimax'`)**: pass `end_frame` to interpolate toward a target pose — the model animates between the start frame and the end frame. The start defaults to the object's idle frame for that direction, but you can override it with `custom_start_frame`. When either frame is provided, exactly one direction must be specified — for 8-direction objects, pass a one-element `directions` list (e.g. `directions=[<cardinal>]`).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/animations
-func (c *Client) CreateObjectAnimationWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -3920,15 +2877,8 @@ func (c *Client) CreateObjectAnimationWithResult[R any](ctx context.Context, obj
 		// Animation queued (may include rate-limited entries in submissions)
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateObjectAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateObjectAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3937,7 +2887,7 @@ func (c *Client) CreateObjectAnimationWithResult[R any](ctx context.Context, obj
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateObjectAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -3998,14 +2948,6 @@ func (c *Client) CreateObjectAnimationWithResult[R any](ctx context.Context, obj
 //
 //	DELETE /objects/{object_id}/animations
 func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsParams) (*DeleteAnimationsResponse, error) {
-	return c.DeleteObjectAnimationsWithResult[DeleteAnimationsResponse](ctx, objectID, params)
-}
-
-// Delete object animations by animation_type or animation_group_id. For objects `animation_type` matches display_name OR animation_name (legacy rows). Same disambiguation rule as characters — pass animation_group_id when a name matches multiple groups.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /objects/{object_id}/animations
-func (c *Client) DeleteObjectAnimationsWithResult[R any](ctx context.Context, objectID uuid.UUID, params *DeleteObjectAnimationsParams) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
@@ -4049,15 +2991,8 @@ func (c *Client) DeleteObjectAnimationsWithResult[R any](ctx context.Context, ob
 		// Animations deleted (0 count if nothing matched)
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteAnimationsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteAnimationsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4066,7 +3001,7 @@ func (c *Client) DeleteObjectAnimationsWithResult[R any](ctx context.Context, ob
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteAnimationsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4121,14 +3056,6 @@ func (c *Client) DeleteObjectAnimationsWithResult[R any](ctx context.Context, ob
 //
 //	POST /objects/{object_id}/states
 func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
-	return c.CreateObjectStateWithResult[ObjectJobResponse](ctx, objectID, body)
-}
-
-// Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/states
-func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4161,15 +3088,8 @@ func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectI
 		// State queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ObjectJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4178,7 +3098,7 @@ func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ObjectJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4238,16 +3158,6 @@ func (c *Client) CreateObjectStateWithResult[R any](ctx context.Context, objectI
 //
 //	POST /objects/{object_id}/select-frames
 func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*SelectObjectFramesResponse, error) {
-	return c.SelectObjectFramesWithResult[SelectObjectFramesResponse](ctx, objectID, body)
-}
-
-// Consistent-style pack (`status: review`): each index in `indices` becomes its own completed 1-direction object; the pack is deleted once no frames remain.
-//
-// 8-direction expansion (`status: review-expansion`, from `POST /v2/objects/{object_id}/expand-rotations`): send no `indices`. The same object becomes 8-direction with the reviewed images, its canvas grows to the review's size, and its animations move to the expansion's `existing_direction`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/select-frames
-func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, objectID uuid.UUID, body SelectObjectFramesRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "select-frames")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4280,15 +3190,8 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 		// Frames promoted, or expansion kept
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SelectObjectFramesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SelectObjectFramesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4297,7 +3200,7 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SelectObjectFramesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4354,16 +3257,6 @@ func (c *Client) SelectObjectFramesWithResult[R any](ctx context.Context, object
 //
 //	POST /objects/{object_id}/dismiss-review
 func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*DismissObjectReviewResponse, error) {
-	return c.DismissObjectReviewWithResult[DismissObjectReviewResponse](ctx, objectID)
-}
-
-// Consistent-style pack (`status: review`): deletes the pack and every candidate frame.
-//
-// 8-direction expansion (`status: expanding` or `review-expansion`): discards the new directions. The object itself is kept, unchanged and 1-direction.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/dismiss-review
-func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "dismiss-review")
 	req := (&http.Request{
 		Header: http.Header{
@@ -4389,15 +3282,8 @@ func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objec
 		// Review dismissed
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DismissObjectReviewResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DismissObjectReviewResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4406,7 +3292,7 @@ func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objec
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DismissObjectReviewResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4462,18 +3348,6 @@ func (c *Client) DismissObjectReviewWithResult[R any](ctx context.Context, objec
 //
 //	POST /objects/{object_id}/expand-rotations
 func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, body ExpandObjectRotationsRequest) (*ExpandObjectRotationsResponse, error) {
-	return c.ExpandObjectRotationsWithResult[ExpandObjectRotationsResponse](ctx, objectID, body)
-}
-
-// Draws the 7 missing directions of one of your 1-direction objects from its image, keeping the same object (its id, tags and animations). Costs **10-25 generations** on a subscription, by the padded canvas (up to 168x168; larger objects are refused).
-//
-// The object reads `status: expanding` while it generates, then `review-expansion`: `GET /v2/objects/{object_id}` shows the 8 directions under `expansion_review`, and the object stays 1-direction until you decide. Keep them with `POST /v2/objects/{object_id}/select-frames` and no `indices` — the object becomes 8-direction, its canvas grows to the review's size, and its animations move to `existing_direction`. Discard them with `POST /v2/objects/{object_id}/dismiss-review` — the object stays as it was.
-//
-// To make a NEW 8-direction object from an image instead, use `POST /v2/create-8-direction-object` with `reference_image`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/expand-rotations
-func (c *Client) ExpandObjectRotationsWithResult[R any](ctx context.Context, objectID uuid.UUID, body ExpandObjectRotationsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "expand-rotations")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4506,15 +3380,8 @@ func (c *Client) ExpandObjectRotationsWithResult[R any](ctx context.Context, obj
 		// Expansion queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ExpandObjectRotationsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ExpandObjectRotationsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4523,7 +3390,7 @@ func (c *Client) ExpandObjectRotationsWithResult[R any](ctx context.Context, obj
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ExpandObjectRotationsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4596,29 +3463,6 @@ func (c *Client) ExpandObjectRotationsWithResult[R any](ctx context.Context, obj
 //
 //	GET /objects
 func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams) (*ListObjectsResponse, error) {
-	return c.ListObjectsWithResult[ListObjectsResponse](ctx, params)
-}
-
-// List all objects created by the authenticated user.
-//
-// This endpoint returns a paginated list of all objects you've created.
-//
-// **Features:**
-// - Pagination support with limit and offset parameters
-// - Preview URLs for quick object identification
-// - Complete object metadata
-//
-// **Authentication:**
-// Requires a valid API token in the Authorization header.
-//
-// **Pagination:**
-// - Use `limit` to control how many objects to return (1-100)
-// - Use `offset` to skip objects for pagination
-// - Total count is included in response for pagination UI
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /objects
-func (c *Client) ListObjectsWithResult[R any](ctx context.Context, params *ListObjectsParams) (*R, error) {
 	u := c.baseURL.JoinPath("objects")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -4658,15 +3502,8 @@ func (c *Client) ListObjectsWithResult[R any](ctx context.Context, params *ListO
 		// Successfully retrieved object list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListObjectsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListObjectsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4675,7 +3512,7 @@ func (c *Client) ListObjectsWithResult[R any](ctx context.Context, params *ListO
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListObjectsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4711,25 +3548,6 @@ func (c *Client) ListObjectsWithResult[R any](ctx context.Context, params *ListO
 //
 //	GET /objects/{object_id}
 func (c *Client) GetObject(ctx context.Context, objectID uuid.UUID) (*GetObjectResponse, error) {
-	return c.GetObjectWithResult[GetObjectResponse](ctx, objectID)
-}
-
-// Get detailed information about a specific object.
-//
-// This endpoint returns complete object information including all rotation image URLs
-// and metadata.
-//
-// **Features:**
-// - Complete object information and settings
-// - URLs for all rotation images (4 directions)
-// - Generation parameters used during creation
-//
-// **Authentication:**
-// Requires a valid API token. You can only access objects you created.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /objects/{object_id}
-func (c *Client) GetObjectWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -4755,15 +3573,8 @@ func (c *Client) GetObjectWithResult[R any](ctx context.Context, objectID uuid.U
 		// Successfully retrieved object details
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetObjectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetObjectResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4772,7 +3583,7 @@ func (c *Client) GetObjectWithResult[R any](ctx context.Context, objectID uuid.U
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetObjectResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4834,24 +3645,6 @@ func (c *Client) GetObjectWithResult[R any](ctx context.Context, objectID uuid.U
 //
 //	DELETE /objects/{object_id}
 func (c *Client) DeleteObject(ctx context.Context, objectID uuid.UUID) (*DeleteObjectResponse, error) {
-	return c.DeleteObjectWithResult[DeleteObjectResponse](ctx, objectID)
-}
-
-// Delete an object and all its rotation images.
-//
-// This permanently deletes:
-// - The object record from the database
-// - All rotation images from storage
-// - All associated tags
-//
-// **Authentication:**
-// Requires a valid API token. You can only delete objects you created.
-//
-// **Warning:** This action cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /objects/{object_id}
-func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -4877,15 +3670,8 @@ func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uui
 		// Object deleted successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteObjectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteObjectResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4894,7 +3680,7 @@ func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uui
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteObjectResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -4946,14 +3732,6 @@ func (c *Client) DeleteObjectWithResult[R any](ctx context.Context, objectID uui
 //
 //	PATCH /objects/{object_id}
 func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body UpdateObjectRequest) (*AssetNamesResponse, error) {
-	return c.UpdateObjectWithResult[AssetNamesResponse](ctx, objectID, body)
-}
-
-// Change the object's `name` (shared by all its states) and/or this state's `state_name`. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /objects/{object_id}
-func (c *Client) UpdateObjectWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -4986,15 +3764,8 @@ func (c *Client) UpdateObjectWithResult[R any](ctx context.Context, objectID uui
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AssetNamesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out AssetNamesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5003,7 +3774,7 @@ func (c *Client) UpdateObjectWithResult[R any](ctx context.Context, objectID uui
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(AssetNamesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5068,27 +3839,6 @@ func (c *Client) UpdateObjectWithResult[R any](ctx context.Context, objectID uui
 //
 //	PATCH /objects/{object_id}/tags
 func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
-	return c.UpdateObjectTagsWithResult[UpdateTagsResponse](ctx, objectID, body)
-}
-
-// Update the tags for a specific object.
-//
-// This endpoint replaces all tags for an object with the provided list.
-// Tags are used for filtering and organizing your objects.
-//
-// **Features:**
-// - Replace all tags at once (set operation)
-// - Automatic normalization (trim whitespace)
-// - Case-insensitive duplicate detection
-// - Maximum 20 tags per object
-// - Maximum 50 characters per tag
-//
-// **Authentication:**
-// Requires a valid API token. You can only update tags for objects you created.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /objects/{object_id}/tags
-func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID uuid.UUID, body UpdateTagsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "tags")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5121,15 +3871,8 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 		// Tags updated successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UpdateTagsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UpdateTagsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5138,7 +3881,7 @@ func (c *Client) UpdateObjectTagsWithResult[R any](ctx context.Context, objectID
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UpdateTagsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5298,16 +4041,6 @@ func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) (
 //
 //	DELETE /characters/{character_id}/animations
 func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsParams) (*DeleteAnimationsResponse, error) {
-	return c.DeleteCharacterAnimationsWithResult[DeleteAnimationsResponse](ctx, characterID, params)
-}
-
-// **Prefer** [DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}) (all directions of one animation) and [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}) (one direction). They address a single animation by id and return 404 for anything that does not exist. This route matches by name: `animation_type` can match several animations on the character, and a typo returns 200 with `deleted_count` 0.
-//
-// Delete character animations by animation_type or animation_group_id, optionally scoped to a single direction. Pass ONE of `animation_type` or `animation_group_id` (group_id is preferred when a name repeats). Omit `direction` to delete all directions at once.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}/animations
-func (c *Client) DeleteCharacterAnimationsWithResult[R any](ctx context.Context, characterID uuid.UUID, params *DeleteCharacterAnimationsParams) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations")
 	if params != nil {
 		q := make(url.Values, 3)
@@ -5351,15 +4084,8 @@ func (c *Client) DeleteCharacterAnimationsWithResult[R any](ctx context.Context,
 		// Animations deleted (0 count if nothing matched)
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteAnimationsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteAnimationsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5368,7 +4094,7 @@ func (c *Client) DeleteCharacterAnimationsWithResult[R any](ctx context.Context,
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteAnimationsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5423,14 +4149,6 @@ func (c *Client) DeleteCharacterAnimationsWithResult[R any](ctx context.Context,
 //
 //	DELETE /characters/{character_id}/animations/{animation_group_id}
 func (c *Client) DeleteCharacterAnimation(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID) (*DeleteCharacterAnimationResponse, error) {
-	return c.DeleteCharacterAnimationWithResult[DeleteCharacterAnimationResponse](ctx, characterID, animationGroupID)
-}
-
-// Delete one animation, every direction of it, by the `animation_group_id` [GET /v2/characters/{character_id}](#tag/character-library/GET/characters/{character_id}) returns. An animation is all directions sharing one `animation_group_id`, the same grouping the PixelLab website shows as one animation. Other animations and other states of the character are untouched. To remove a single direction use [DELETE /v2/characters/{character_id}/animations/{animation_group_id}/directions/{direction}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id}/directions/{direction}).
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}/animations/{animation_group_id}
-func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -5456,15 +4174,8 @@ func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteCharacterAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5473,7 +4184,7 @@ func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteCharacterAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5522,14 +4233,6 @@ func (c *Client) DeleteCharacterAnimationWithResult[R any](ctx context.Context, 
 //
 //	PATCH /characters/{character_id}/animations/{animation_group_id}
 func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*UpdateAnimationResponse, error) {
-	return c.UpdateCharacterAnimationWithResult[UpdateAnimationResponse](ctx, characterID, animationGroupID, body)
-}
-
-// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/characters/{character_id} returns. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /characters/{character_id}/animations/{animation_group_id}
-func (c *Client) UpdateCharacterAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5562,15 +4265,8 @@ func (c *Client) UpdateCharacterAnimationWithResult[R any](ctx context.Context, 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UpdateAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UpdateAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5579,7 +4275,7 @@ func (c *Client) UpdateCharacterAnimationWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UpdateAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5628,14 +4324,6 @@ func (c *Client) UpdateCharacterAnimationWithResult[R any](ctx context.Context, 
 //
 //	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
 func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*DeleteCharacterAnimationResponse, error) {
-	return c.DeleteCharacterAnimationDirectionWithResult[DeleteCharacterAnimationResponse](ctx, characterID, animationGroupID, direction)
-}
-
-// Delete a single direction of an animation. The rest of the animation keeps its `animation_group_id`; the direction can be generated again into it with [animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
-func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", url.PathEscape(string(direction)))
 	req := (&http.Request{
 		Header: http.Header{
@@ -5661,15 +4349,8 @@ func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteCharacterAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteCharacterAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5678,7 +4359,7 @@ func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteCharacterAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5772,59 +4453,6 @@ func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.
 //
 //	POST /animate-with-text-v3
 func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Request) (*AnimationJobResponse, error) {
-	return c.AnimateWithTextV3WithResult[AnimationJobResponse](ctx, body)
-}
-
-// Generate an animation from a reference frame and a text action description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the first frame and action description; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the generated frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-// - Total pixel budget: width × height × frame_count ≤ 524,288
-//
-// **Frame Count Guidelines:**
-// - 4 frames: Simple loops (idle, breathing)
-// - 8 frames: Standard animations (walk, run)
-// - 16 frames: Complex animations (attack combos)
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.animate_with_text_v3(
-//
-//	first_frame=first_frame_image,
-//	action="walking forward",
-//	frame_count=8,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-with-text-v3
-func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body AnimateWithTextV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5857,15 +4485,8 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 		// Background job accepted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimationJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out AnimationJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5874,7 +4495,7 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(AnimationJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -5932,41 +4553,6 @@ func (c *Client) AnimateWithTextV3WithResult[R any](ctx context.Context, body An
 //
 //	POST /animate-pixminimax
 func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRequest) (*AnimationJobResponse, error) {
-	return c.AnimatePixminimaxWithResult[AnimationJobResponse](ctx, body)
-}
-
-// Beta. Generate an animation from a frame and a text description of the motion. Powered by MiniMax H3.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-//  1. Submit the first frame and motion description; receive a `background_job_id` immediately.
-//  2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-//  3. When `status` is `completed`, `last_response.images` holds `frame_count + 1` frames:
-//     index 0 is your input frame unchanged, then the generated frames.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-// - Frame count: multiples of 4, from 4 to 40 at any size up to 256x256
-//
-// **Prompt enhancement:** set `enhance_prompt: true` to have a short description
-// ("shooting a bow") expanded into a detailed PixMiniMax motion prompt first; add
-// `direction` to hold the sprite's facing and aim attacks that way. The expanded
-// text comes back in `enhanced_prompt` (+0.05 generations).
-//
-// **Caption fields:** `subject_description`, `initial_pose`, `view` and `direction`
-// describe the first frame to the model. Any left out are read off the image by an
-// AI model, which can decline some requests; the job then fails asking you to send
-// them yourself. With all four sent and `enhance_prompt` off, nothing is rewritten.
-//
-// **Cost:** priced by generation time, 6 generations for the longest clip (40 frames). Examples: 64x64 at 4 / 8 / 16 / 40 frames = 1 / 1 / 2 / 6 generations; 80x80 at 8 frames = 1; 32x32 at 4 frames = 1. Use `GET /animate-minimax-h3/cost` semantics: the price depends on size and frame count, and sizes just above 64 or 128 pixels are cheaper than sizes just below them because the model works on an upscaled canvas.
-//
-// Typical generation time: 1-5 minutes.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-pixminimax
-func (c *Client) AnimatePixminimaxWithResult[R any](ctx context.Context, body AnimatePixminimaxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-pixminimax")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -5999,15 +4585,8 @@ func (c *Client) AnimatePixminimaxWithResult[R any](ctx context.Context, body An
 		// Background job accepted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*AnimationJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out AnimationJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6016,7 +4595,7 @@ func (c *Client) AnimatePixminimaxWithResult[R any](ctx context.Context, body An
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(AnimationJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6118,85 +4697,6 @@ func (c *Client) AnimatePixminimaxWithResult[R any](ctx context.Context, body An
 //
 //	POST /interpolation-v2
 func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (*JobResponse, error) {
-	return c.InterpolationWithResult[JobResponse](ctx, body)
-}
-
-// Generate intermediate animation frames between two keyframe images.
-//
-// This endpoint creates smooth transitions between a start and end image,
-// generating intermediate frames that animate the transformation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Generates intermediate frames between two keyframes
-// - Text-guided interpolation with action descriptions
-// - Maintains visual consistency across frames
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Actions:**
-// - "morphing"
-// - "transforming into a werewolf"
-// - "powering up with energy"
-// - "dissolving into particles"
-// - "walking forward"
-//
-// **Output:**
-//   - The in-between frames only — the two keyframes are not returned
-//   - **14 frames when the keyframes' longer side is 64px or less, 2 from 65px up**: the
-//     model paints one grid of 16 or 4 cells and the keyframes take the ends. The frame
-//     count is not a parameter; pick it with `animate_image`/`animate-with-text-v3`'s
-//     `frame_count` instead, which prices by canvas and frames rather than by this grid
-//   - Frames come back at the per-AXIS maximum of the two keyframes, whatever
-//     `image_size` says — 113x128 against 128x110 returns 128x128, a size neither
-//     keyframe had
-//   - Nothing is padded for the motion — the in-betweens are drawn inside the box you
-//     send, so pad the keyframes yourself if the action needs room. The only padding
-//     here equalises the pair: a keyframe smaller than its partner is CENTRED in the
-//     larger frame, which shifts it against the other keyframe
-//
-// **Supported Sizes:**
-//   - Frame sizes from 16x16 to 128x128 pixels
-//   - Each keyframe's `size` must be that image's real pixel size. The two may differ, but
-//     send them at one size: the smaller is centred in the output frame, which shifts the
-//     character against its partner
-//
-// **Cost:** the KEYFRAMES decide it, not `image_size` — 10 generations up to 128px,
-// 15 for 129-170, 25 for 171 and up (in credits $0.08 / $0.115 / $0.15). `image_size`
-// is bounded 16-128 and a keyframe's `size` is not, so a 256x256 pair costs 25 with
-// `image_size` reading 128x128. Charged at completion: a failed job costs nothing.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, interpolated frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.interpolation_v2(
-//
-//	start_image=start_keyframe,
-//	end_image=end_keyframe,
-//	action="transforming",
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save interpolated frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /interpolation-v2
-func (c *Client) InterpolationWithResult[R any](ctx context.Context, body InterpolationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("interpolation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6229,15 +4729,8 @@ func (c *Client) InterpolationWithResult[R any](ctx context.Context, body Interp
 		// Interpolation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6246,7 +4739,7 @@ func (c *Client) InterpolationWithResult[R any](ctx context.Context, body Interp
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6335,72 +4828,6 @@ func (c *Client) InterpolationWithResult[R any](ctx context.Context, body Interp
 //
 //	POST /edit-animation-v2
 func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (*JobResponse, error) {
-	return c.EditAnimationWithResult[JobResponse](ctx, body)
-}
-
-// Edit multiple animation frames with a text description.
-//
-// This endpoint applies a consistent edit across all animation frames,
-// maintaining temporal coherence while transforming the animation.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Apply text-based edits to animation sequences
-// - Maintains frame-to-frame consistency
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Example Edits:**
-// - "add a red cape"
-// - "make it glow blue"
-// - "add armor plating"
-// - "change to ice theme"
-//
-// **Supported Sizes:**
-// - Frame sizes from 16x16 to 256x256 pixels (model supports up to 256x256)
-//
-// **Frame limits by output size (image_size):**
-// - 16-64px: Up to 16 frames (4x4 grid)
-// - 65-80px: Up to 9 frames (3x3 grid)
-// - 81-256px: Up to 4 frames (2x2 grid)
-//
-// All frames are packed into a single grid image for editing, so larger frames
-// fill the fixed generation canvas faster and fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Load your animation frames
-// frames = [...]  # List of FrameImage objects
-//
-// response = client.edit_animation_v2(
-//
-//	description="add a glowing sword",
-//	frames=frames,
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save edited frames
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /edit-animation-v2
-func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-animation-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6433,15 +4860,8 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 		// Animation edit job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6450,7 +4870,7 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6537,70 +4957,6 @@ func (c *Client) EditAnimationWithResult[R any](ctx context.Context, body EditAn
 //
 //	POST /transfer-outfit-v2
 func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest) (*JobResponse, error) {
-	return c.TransferOutfitWithResult[JobResponse](ctx, body)
-}
-
-// Transfer an outfit/appearance from a reference image to animation frames.
-//
-// This endpoint takes a reference image containing a desired outfit or appearance
-// and applies it consistently across multiple animation frames.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Transfer outfit/appearance from reference to animation
-// - Maintains animation motion while changing appearance
-// - Supports 2-16 frames per request (max depends on frame size, see below)
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Use Cases:**
-// - Apply armor/clothing to walking animation
-// - Change character skin/color across animation
-// - Transfer weapon or equipment to action sequence
-// - Consistent reskin of sprite animations
-//
-// **Supported Sizes:**
-// - Frame sizes from 32x32 to 256x256 pixels
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 15 frames (4x4 grid)
-// - 65-80px: Up to 8 frames (3x3 grid)
-// - 81-256px: Up to 3 frames (2x2 grid)
-//
-// The reference image and all frames are packed into a single grid; the reference
-// uses one slot, so each tier holds one fewer frame than a plain edit. Larger
-// frames fill the fixed generation canvas faster, so fewer fit per request.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.transfer_outfit_v2(
-//
-//	reference_image=outfit_reference,  # Image with desired outfit
-//	frames=animation_frames,           # Animation to apply outfit to
-//	image_size=dict(width=64, height=64)
-//
-// )
-//
-// # Save frames with transferred outfit
-// for i, image in enumerate(response.images):
-//
-//	image.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /transfer-outfit-v2
-func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body TransferOutfitRequest) (*R, error) {
 	u := c.baseURL.JoinPath("transfer-outfit-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6633,15 +4989,8 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 		// Outfit transfer job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6650,7 +4999,7 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6749,82 +5098,6 @@ func (c *Client) TransferOutfitWithResult[R any](ctx context.Context, body Trans
 //
 //	POST /animate-with-text-v2
 func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Request) (*JobResponse, error) {
-	return c.AnimateWithTextV2WithResult[JobResponse](ctx, body)
-}
-
-// Generate pixel art animation from text.
-//
-// This endpoint creates animations from a reference image and action description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-//   - Text-guided animation generation
-//   - Optional colour palette (`target_palette`, beta): 2-256 hex colours; the reference is put on
-//     the palette first and every frame uses only these colours. `max_colors` caps the whole animation
-//   - Automatic background removal
-//   - Non-blocking: returns job ID immediately
-//
-// **Frame Counts by Size:**
-// - 32x32 pixels: Returns 16 animation frames
-// - 64x64 pixels: Returns 16 animation frames
-// - 128x128 pixels: Returns 4 animation frames
-// - 170x170 pixels: Returns 4 animation frames
-// - 256x256 pixels: Returns 4 animation frames
-//
-// **Supported Actions:**
-// - Simple actions: walk, run, jump, attack
-// - Complex actions: cast spell, dance, celebrate
-// - Any action description in natural language
-//
-// **Camera Views:**
-// - `none`: No camera hint (default)
-// - `low top-down`: Classic 3/4 RPG view (~20 degrees from horizontal)
-// - `high top-down`: Steeper overhead angle (~35 degrees)
-// - `side`: Side scroller, eye level view
-//
-// **Directions:**
-// - `none`: No direction hint (default)
-// - `south`: Front visible, `north`: Back visible
-// - `east`: Facing right, `west`: Facing left
-// - Also: `south-east`, `south-west`, `north-east`, `north-west`
-//
-// **Image Size Limits:**
-// - Supported sizes: 32x32 to 256x256 pixels for both reference and output images
-// - Recommended: 64x64 for best quality/performance balance
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, animation frames are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text_v2(
-//
-//	reference_image=reference_image,
-//	reference_image_size=dict(width=64, height=64),
-//	action="walk",
-//	image_size=dict(width=64, height=64),
-//	view="low top-down",
-//	direction="south",
-//
-// )
-//
-// # Access individual frames
-// for i, frame in enumerate(response.images):
-//
-//	frame.pil_image().save(f"frame_{i}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-with-text-v2
-func (c *Client) AnimateWithTextV2WithResult[R any](ctx context.Context, body AnimateWithTextV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -6857,15 +5130,8 @@ func (c *Client) AnimateWithTextV2WithResult[R any](ctx context.Context, body An
 		// Animation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6874,7 +5140,7 @@ func (c *Client) AnimateWithTextV2WithResult[R any](ctx context.Context, body An
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -6935,44 +5201,6 @@ func (c *Client) AnimateWithTextV2WithResult[R any](ctx context.Context, body An
 //
 //	POST /animate-with-text
 func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextRequest) (*ImagesResponse, error) {
-	return c.AnimateWithTextWithResult[ImagesResponse](ctx, body)
-}
-
-// Creates a pixel art animation based on text description and parameters.
-//
-// Supported image sizes:
-// - 64x64
-//
-// Supported features:
-// - Text-guided animation generation
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Multiple frames
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_text(
-//
-//	description="human mage",
-//	action="walk",
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	n_frames=4
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-with-text
-func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body AnimateWithTextRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-text")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7005,15 +5233,8 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 		// Successfully generated animation
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImagesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImagesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7022,7 +5243,7 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImagesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7079,37 +5300,6 @@ func (c *Client) AnimateWithTextWithResult[R any](ctx context.Context, body Anim
 //
 //	POST /estimate-skeleton
 func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequest) (*EstimateSkeletonResponse, error) {
-	return c.EstimateSkeletonWithResult[EstimateSkeletonResponse](ctx, body)
-}
-
-// Estimates the skeleton of a character, returning a list of keypoints to use with the skeleton animation tool.
-//
-// Any image size up to 256x256 works. The model runs on 16/32/64/128/256 squares, so an
-// image of another size is padded to the next one that fits and the returned coordinates
-// are converted back — `x`/`y` are fractions 0-1 of the image YOU sent, not of the padded
-// square, so they can be passed straight to the skeleton animation endpoints. A 40x40 or
-// 56x56 sprite therefore needs no padding from you.
-//
-// Cost: 0.1 generations per call. A fully transparent image is refused (422) before it is
-// charged, since there is no character to estimate from.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.estimate_skeleton(
-//
-//	image=image_of_the_character_on_a_transparent_background,
-//
-// )
-// response.keypoints
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /estimate-skeleton
-func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body EstimateSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("estimate-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7142,15 +5332,8 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*EstimateSkeletonResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out EstimateSkeletonResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7159,7 +5342,7 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(EstimateSkeletonResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7217,38 +5400,6 @@ func (c *Client) EstimateSkeletonWithResult[R any](ctx context.Context, body Est
 //
 //	POST /animate-with-skeleton-v3
 func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkeletonV3Request) (*JobResponse, error) {
-	return c.AnimateWithSkeletonV3WithResult[JobResponse](ctx, body)
-}
-
-// Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.
-// 3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.
-//
-// **Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is
-// optional -- leave it out and it is taken from the standing pose of `template_id` for
-// your direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`
-// will derive a skeleton from an image if you do not have one — it returns x/y on the same
-// 0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.
-//
-// **Limits:** 3-15 frames, canvas up to 256x256.
-//
-// **Cost:** by generation time, which depends on frame count and not on canvas size:
-// 3 frames = 2 generations,
-// 8 frames = 3,
-// 15 frames = 4. A longer clip
-// is nearly free, so prefer one long clip to several short ones.
-//
-// Typical generation time: 3-5 minutes.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-with-skeleton-v3
-func (c *Client) AnimateWithSkeletonV3WithResult[R any](ctx context.Context, body AnimateWithSkeletonV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-skeleton-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7281,15 +5432,8 @@ func (c *Client) AnimateWithSkeletonV3WithResult[R any](ctx context.Context, bod
 		// Background job accepted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7298,7 +5442,7 @@ func (c *Client) AnimateWithSkeletonV3WithResult[R any](ctx context.Context, bod
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7361,46 +5505,6 @@ func (c *Client) AnimateWithSkeletonV3WithResult[R any](ctx context.Context, bod
 //
 //	POST /animate-with-skeleton
 func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkeletonRequest) (*ImagesResponse, error) {
-	return c.AnimateWithSkeletonWithResult[ImagesResponse](ctx, body)
-}
-
-// Creates a pixel art animation based on the provided parameters. Called "Animate with skeleton" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-// - 256x256
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.animate_with_skeleton(
-//
-//	view="side",
-//	direction="south",
-//	image_size=dict(width=64, height=64),
-//	reference_image=reference_image,
-//	inpainting_images=existing_animation_frames,
-//	mask_images=mask_images,
-//	skeleton_keypoints=skeleton_keypoints,
-//
-// )
-// images = [image.pil_image() for image in response.images]
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /animate-with-skeleton
-func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body AnimateWithSkeletonRequest) (*R, error) {
 	u := c.baseURL.JoinPath("animate-with-skeleton")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7433,15 +5537,8 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImagesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImagesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7450,7 +5547,7 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImagesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7529,59 +5626,6 @@ func (c *Client) AnimateWithSkeletonWithResult[R any](ctx context.Context, body 
 //
 //	POST /vfx
 func (c *Client) CreateVfx(ctx context.Context, body CreateVfxRequest) (*CreateVfxResponse, error) {
-	return c.CreateVfxWithResult[CreateVfxResponse](ctx, body)
-}
-
-// Our effects artist makes an animated pixel art effect from your
-// description: explosions, slashes, auras, spells, fire, smoke, lightning, hits, pickups.
-//
-// The same artist as the website's VFX creator. It builds the effect from parts, renders
-// it and checks its own work, around your sprite when you send one. The effect is saved
-// to your My effects, so you can open it on the website (`edit_url`) and tweak it with
-// sliders, or change it here with `effect_id`.
-//
-// **Using an AI agent? We recommend the MCP** ([pixellab.ai/mcp](https://pixellab.ai/mcp)):
-// there your agent is the artist. `vfx_workbench` builds, renders and saves the effect with
-// your agent's own model, free for subscribers, and your agent sees every frame.
-//
-// ### Result
-// Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (usually 30-90 s).
-// When `status` is `completed`, `last_response` has:
-// - `files`: download links (no auth needed): `<name>.gif`, the spritesheet `<name>.png`
-//   - `<name>.json` (frames, durations, `pivot` and `meta.anchor`: where the effect's
-//     anchor is), `<name>-game.zip` with `game_pack`, and `<name>-normals.png` when a light
-//     made your sprite's normal map
-//
-// - `effect_id`, `name`, `edit_url`, `message` (what the artist made)
-// - `canvas` {w, h}, `frames`, `fps`, `loop`, `anchor` {kind, x, y}, `parts`
-// - `conversation`: pass it back with `effect_id` to change this effect at the change price
-//
-// ### Cost
-// Quoted when you submit (`quoted_generations`) and charged only when the effect is
-// delivered: the quote, or more when the effect took much longer (the overrun past 25% of
-// the quote), never more than 2x the quote.
-//
-// | | lite | pro |
-// |---|---|---|
-// | new effect, no sprite or up to 128 px | 1 | 6 (8 with a sprite) |
-// | change (with `conversation`) | 1 | 4 |
-// | sprite up to 256 px | 3 (change 2) | 14 (change 5) |
-// | sprite up to 512 px | 5 (change 2) | 28 (change 8) |
-//
-// An animated sprite adds a little per frame. A longer `prompt` costs pro more: from 400
-// characters its quote is 1.25x, from 1,000 characters 1.5x, rounded up (a new effect with
-// no sprite: 6, then 8, then 9). Changing a bigger effect costs pro more too: 3 more for
-// every 16 layers past 8, rounded up with the rest (a 24-layer effect's change: 7). From
-// 700 characters lite's quote is 2x (a new effect with no sprite: 2); the effect's size
-// never changes it.
-//
-// ### Sprites
-// PNG or GIF, up to 512x512 per frame, up to 32 frames. Never rescale pixel art to fit:
-// crop it or pad it.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /vfx
-func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxRequest) (*R, error) {
 	u := c.baseURL.JoinPath("vfx")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -7614,15 +5658,8 @@ func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxR
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateVfxResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateVfxResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7631,7 +5668,7 @@ func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxR
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateVfxResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7672,18 +5709,6 @@ func (c *Client) CreateVfxWithResult[R any](ctx context.Context, body CreateVfxR
 //
 //	GET /vfx/effects
 func (c *Client) GetVfxEffects(ctx context.Context, params *GetVfxEffectsParams) (*GetVfxEffectsResponse, error) {
-	return c.GetVfxEffectsWithResult[GetVfxEffectsResponse](ctx, params)
-}
-
-// Your My effects: every effect `POST /v2/vfx`, the MCP `vfx_workbench`
-// or the website saved, newest-saved first, a page at a time. For the next page pass the
-// last effect's `updated_at` and `id` as `cursor_updated_at` and `cursor_id`.
-//
-// Change one with `POST /v2/vfx` and its `effect_id`, or open its `edit_url`. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /vfx/effects
-func (c *Client) GetVfxEffectsWithResult[R any](ctx context.Context, params *GetVfxEffectsParams) (*R, error) {
 	u := c.baseURL.JoinPath("vfx", "effects")
 	if params != nil {
 		q := make(url.Values, 3)
@@ -7727,15 +5752,8 @@ func (c *Client) GetVfxEffectsWithResult[R any](ctx context.Context, params *Get
 		// OK
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetVfxEffectsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetVfxEffectsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7744,7 +5762,7 @@ func (c *Client) GetVfxEffectsWithResult[R any](ctx context.Context, params *Get
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetVfxEffectsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7793,14 +5811,6 @@ func (c *Client) GetVfxEffectsWithResult[R any](ctx context.Context, params *Get
 //
 //	DELETE /vfx/effects/{effect_id}
 func (c *Client) DeleteVfxEffect(ctx context.Context, effectID uuid.UUID) (*DeleteRoomResponse, error) {
-	return c.DeleteVfxEffectWithResult[DeleteRoomResponse](ctx, effectID)
-}
-
-// Permanently delete an effect from your My effects, with its files. Files an earlier result already handed out (its download links) stay.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /vfx/effects/{effect_id}
-func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("vfx", "effects", effectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -7826,15 +5836,8 @@ func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID 
 		// Deleted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteRoomResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteRoomResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7843,7 +5846,7 @@ func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteRoomResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7892,14 +5895,6 @@ func (c *Client) DeleteVfxEffectWithResult[R any](ctx context.Context, effectID 
 //
 //	GET /music
 func (c *Client) ListMusic(ctx context.Context, params *ListMusicParams) (*ListMusicResponse, error) {
-	return c.ListMusicWithResult[ListMusicResponse](ctx, params)
-}
-
-// Your songs and loops, newest first: being made, failed and completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /music
-func (c *Client) ListMusicWithResult[R any](ctx context.Context, params *ListMusicParams) (*R, error) {
 	u := c.baseURL.JoinPath("music")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -7939,15 +5934,8 @@ func (c *Client) ListMusicWithResult[R any](ctx context.Context, params *ListMus
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListMusicResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListMusicResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -7956,7 +5944,7 @@ func (c *Client) ListMusicWithResult[R any](ctx context.Context, params *ListMus
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListMusicResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8017,29 +6005,6 @@ func (c *Client) ListMusicWithResult[R any](ctx context.Context, params *ListMus
 //
 //	POST /music
 func (c *Client) CreateMusic(ctx context.Context, body CreateMusicRequest) (*StartedMusicResponse, error) {
-	return c.CreateMusicWithResult[StartedMusicResponse](ctx, body)
-}
-
-// Music for your game from a description of its style: two takes of a song,
-// instrumental or with vocals. The same music tool as the website's: both takes are saved
-// to your library there, where they can go in your games.
-//
-// `restyle_song_id` plays one of your songs again in a new style. For music that repeats
-// seamlessly, make a loop of a finished instrumental take: `POST /music/{song_id}/loop`.
-//
-// ### Result
-// Poll `GET /v2/music/{song_id}` (or `GET /v2/background-jobs/{background_job_id}`) every
-// 10 seconds; takes are usually made in 20-60 s, up to 2.5 minutes when busy. A completed
-// song has `audio_url` (MP3, no auth needed) and `duration_ms`; with `auto_lyrics`, its
-// `lyrics` are what it sings.
-//
-// ### Cost
-// 10 generations, or $0.08 in credits, for the two takes; charged only when they are
-// made. Needs a tier 2 subscription or higher.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /music
-func (c *Client) CreateMusicWithResult[R any](ctx context.Context, body CreateMusicRequest) (*R, error) {
 	u := c.baseURL.JoinPath("music")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8072,15 +6037,8 @@ func (c *Client) CreateMusicWithResult[R any](ctx context.Context, body CreateMu
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StartedMusicResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StartedMusicResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8089,7 +6047,7 @@ func (c *Client) CreateMusicWithResult[R any](ctx context.Context, body CreateMu
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StartedMusicResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8137,25 +6095,6 @@ func (c *Client) CreateMusicWithResult[R any](ctx context.Context, body CreateMu
 //
 //	POST /music/{song_id}/loop
 func (c *Client) SetMusicLoop(ctx context.Context, songID uuid.UUID) (*StartedMusicResponse, error) {
-	return c.SetMusicLoopWithResult[StartedMusicResponse](ctx, songID)
-}
-
-// One of your songs made again so that the part between its intro and its
-// ending repeats seamlessly: two new takes, each with loop points. Play a take to
-// `loop_end_s`, then jump back to `loop_start_s`; the intro plays once. Instrumental songs
-// only, for now; the song must be completed and not a loop itself.
-//
-// ### Result
-// Poll `GET /v2/music/{song_id}` every 10-20 seconds; a loop is usually made in 1.5-2.5
-// minutes. A completed take has `audio_url`, `loop_start_s` and `loop_end_s`.
-//
-// ### Cost
-// 4 generations, or $0.033 in credits; charged only when the takes are made. Needs a tier
-// 1 subscription or higher.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /music/{song_id}/loop
-func (c *Client) SetMusicLoopWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("music", songID.String(), "loop")
 	req := (&http.Request{
 		Header: http.Header{
@@ -8181,15 +6120,8 @@ func (c *Client) SetMusicLoopWithResult[R any](ctx context.Context, songID uuid.
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StartedMusicResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StartedMusicResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8198,7 +6130,7 @@ func (c *Client) SetMusicLoopWithResult[R any](ctx context.Context, songID uuid.
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StartedMusicResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8243,19 +6175,6 @@ func (c *Client) SetMusicLoopWithResult[R any](ctx context.Context, songID uuid.
 //
 //	POST /music/improve-style
 func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRequest) (*ImproveMusicStyleResponse, error) {
-	return c.ImproveMusicStyleWithResult[ImproveMusicStyleResponse](ctx, body)
-}
-
-// A short music idea written out as a full style for `POST /music`: a
-// sentence or two that gives each instrument a role, the mood and the ending. Edit it if
-// you like, then send it with the same `instrumental` and `bpm`.
-//
-// ### Cost
-// 0.05 generations, or about $0.002 in credits. Synchronous, 5-15 seconds.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /music/improve-style
-func (c *Client) ImproveMusicStyleWithResult[R any](ctx context.Context, body ImproveMusicStyleRequest) (*R, error) {
 	u := c.baseURL.JoinPath("music", "improve-style")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8288,15 +6207,8 @@ func (c *Client) ImproveMusicStyleWithResult[R any](ctx context.Context, body Im
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImproveMusicStyleResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImproveMusicStyleResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8305,7 +6217,7 @@ func (c *Client) ImproveMusicStyleWithResult[R any](ctx context.Context, body Im
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImproveMusicStyleResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8365,19 +6277,6 @@ func (c *Client) ImproveMusicStyleWithResult[R any](ctx context.Context, body Im
 //
 //	POST /music/lyrics
 func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequest) (*CreateMusicLyricResponse, error) {
-	return c.CreateMusicLyricWithResult[CreateMusicLyricResponse](ctx, body)
-}
-
-// Lyrics for a song about a topic: two versions with section tags. Send one
-// as `lyrics` to `POST /music` with `instrumental: false`, or set `auto_lyrics` there
-// instead.
-//
-// ### Cost
-// 0.05 generations, or about $0.002 in credits. Synchronous, 10-20 seconds.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /music/lyrics
-func (c *Client) CreateMusicLyricWithResult[R any](ctx context.Context, body CreateMusicLyricRequest) (*R, error) {
 	u := c.baseURL.JoinPath("music", "lyrics")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8410,15 +6309,8 @@ func (c *Client) CreateMusicLyricWithResult[R any](ctx context.Context, body Cre
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateMusicLyricResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateMusicLyricResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8427,7 +6319,7 @@ func (c *Client) CreateMusicLyricWithResult[R any](ctx context.Context, body Cre
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateMusicLyricResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8482,14 +6374,6 @@ func (c *Client) CreateMusicLyricWithResult[R any](ctx context.Context, body Cre
 //
 //	GET /music/{song_id}
 func (c *Client) GetMusic(ctx context.Context, songID uuid.UUID) (*Song, error) {
-	return c.GetMusicWithResult[Song](ctx, songID)
-}
-
-// One song or loop take: its status, and its audio once completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /music/{song_id}
-func (c *Client) GetMusicWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("music", songID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -8515,15 +6399,8 @@ func (c *Client) GetMusicWithResult[R any](ctx context.Context, songID uuid.UUID
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*Song); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out Song
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8532,7 +6409,7 @@ func (c *Client) GetMusicWithResult[R any](ctx context.Context, songID uuid.UUID
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(Song)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8583,16 +6460,6 @@ func (c *Client) GetMusicWithResult[R any](ctx context.Context, songID uuid.UUID
 //
 //	DELETE /music/{song_id}
 func (c *Client) DeleteMusic(ctx context.Context, songID uuid.UUID) (*DeleteResponse, error) {
-	return c.DeleteMusicWithResult[DeleteResponse](ctx, songID)
-}
-
-// Delete a song from your library and from your games; it cannot be undone.
-// A song still being made is stopped instead, together with its other take (the two are
-// one request); that is charged if it had already started.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /music/{song_id}
-func (c *Client) DeleteMusicWithResult[R any](ctx context.Context, songID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("music", songID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -8618,15 +6485,8 @@ func (c *Client) DeleteMusicWithResult[R any](ctx context.Context, songID uuid.U
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8635,7 +6495,7 @@ func (c *Client) DeleteMusicWithResult[R any](ctx context.Context, songID uuid.U
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8684,14 +6544,6 @@ func (c *Client) DeleteMusicWithResult[R any](ctx context.Context, songID uuid.U
 //
 //	PATCH /music/{song_id}
 func (c *Client) UpdateMusic(ctx context.Context, songID uuid.UUID, body RenameRequest) (*Song, error) {
-	return c.UpdateMusicWithResult[Song](ctx, songID, body)
-}
-
-// Rename a song, in your library and in the games it is in.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /music/{song_id}
-func (c *Client) UpdateMusicWithResult[R any](ctx context.Context, songID uuid.UUID, body RenameRequest) (*R, error) {
 	u := c.baseURL.JoinPath("music", songID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8724,15 +6576,8 @@ func (c *Client) UpdateMusicWithResult[R any](ctx context.Context, songID uuid.U
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*Song); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out Song
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8741,7 +6586,7 @@ func (c *Client) UpdateMusicWithResult[R any](ctx context.Context, songID uuid.U
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(Song)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8769,14 +6614,6 @@ func (c *Client) UpdateMusicWithResult[R any](ctx context.Context, songID uuid.U
 //
 //	GET /sound-effects
 func (c *Client) ListSoundEffects(ctx context.Context, params *ListSoundEffectsParams) (*ListSoundEffectsResponse, error) {
-	return c.ListSoundEffectsWithResult[ListSoundEffectsResponse](ctx, params)
-}
-
-// Your sound effects, newest first: being made, failed and completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /sound-effects
-func (c *Client) ListSoundEffectsWithResult[R any](ctx context.Context, params *ListSoundEffectsParams) (*R, error) {
 	u := c.baseURL.JoinPath("sound-effects")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -8816,15 +6653,8 @@ func (c *Client) ListSoundEffectsWithResult[R any](ctx context.Context, params *
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListSoundEffectsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListSoundEffectsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8833,7 +6663,7 @@ func (c *Client) ListSoundEffectsWithResult[R any](ctx context.Context, params *
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListSoundEffectsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8897,32 +6727,6 @@ func (c *Client) ListSoundEffectsWithResult[R any](ctx context.Context, params *
 //
 //	POST /sound-effects
 func (c *Client) CreateSoundEffect(ctx context.Context, body CreateSoundEffectRequest) (*CreateSoundEffectResponse, error) {
-	return c.CreateSoundEffectWithResult[CreateSoundEffectResponse](ctx, body)
-}
-
-// A sound effect for your game from a description: hits, shots, explosions,
-// footsteps, creatures, UI clicks, ambience. One clip per request; send it again for
-// another take. The same sound tool as the website's: the clip is saved to your library
-// there, where it can go in your games.
-//
-// ### Result
-// Poll `GET /v2/sound-effects/{id}` (or `GET /v2/background-jobs/{background_job_id}`)
-// every few seconds; a clip is usually made in 5-20 s. A completed clip has `audio_url`
-// (WAV, no auth needed) and `duration_ms`.
-//
-// ### Cost
-// By length, charged only when the clip is made (`quoted_generations`):
-//
-// | length | up to 1.6 s | 3.2 s | 6 s | 10 s | 30 s |
-// |---|---|---|---|---|---|
-// | generations | 1 | 2 | 4 | 7 | 19 |
-//
-// 0.614 generations per second, rounded up; in credits, $0.0027 per second. Needs a tier
-// 1 subscription or higher.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /sound-effects
-func (c *Client) CreateSoundEffectWithResult[R any](ctx context.Context, body CreateSoundEffectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("sound-effects")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -8955,15 +6759,8 @@ func (c *Client) CreateSoundEffectWithResult[R any](ctx context.Context, body Cr
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateSoundEffectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateSoundEffectResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -8972,7 +6769,7 @@ func (c *Client) CreateSoundEffectWithResult[R any](ctx context.Context, body Cr
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateSoundEffectResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9006,14 +6803,6 @@ func (c *Client) CreateSoundEffectWithResult[R any](ctx context.Context, body Cr
 //
 //	GET /sound-effects/{sound_effect_id}
 func (c *Client) GetSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*SoundEffect, error) {
-	return c.GetSoundEffectWithResult[SoundEffect](ctx, soundEffectID)
-}
-
-// One sound effect: its status, and its audio once completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /sound-effects/{sound_effect_id}
-func (c *Client) GetSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -9039,15 +6828,8 @@ func (c *Client) GetSoundEffectWithResult[R any](ctx context.Context, soundEffec
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SoundEffect); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SoundEffect
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9056,7 +6838,7 @@ func (c *Client) GetSoundEffectWithResult[R any](ctx context.Context, soundEffec
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SoundEffect)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9107,16 +6889,6 @@ func (c *Client) GetSoundEffectWithResult[R any](ctx context.Context, soundEffec
 //
 //	DELETE /sound-effects/{sound_effect_id}
 func (c *Client) DeleteSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*DeleteResponse, error) {
-	return c.DeleteSoundEffectWithResult[DeleteResponse](ctx, soundEffectID)
-}
-
-// Delete a sound effect from your library and from your games; it cannot be
-// undone. One still being made is stopped instead; that is charged if it had already
-// started.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /sound-effects/{sound_effect_id}
-func (c *Client) DeleteSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -9142,15 +6914,8 @@ func (c *Client) DeleteSoundEffectWithResult[R any](ctx context.Context, soundEf
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9159,7 +6924,7 @@ func (c *Client) DeleteSoundEffectWithResult[R any](ctx context.Context, soundEf
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9208,14 +6973,6 @@ func (c *Client) DeleteSoundEffectWithResult[R any](ctx context.Context, soundEf
 //
 //	PATCH /sound-effects/{sound_effect_id}
 func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID, body RenameRequest) (*SoundEffect, error) {
-	return c.UpdateSoundEffectWithResult[SoundEffect](ctx, soundEffectID, body)
-}
-
-// Rename a sound effect, in your library and in the games it is in.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /sound-effects/{sound_effect_id}
-func (c *Client) UpdateSoundEffectWithResult[R any](ctx context.Context, soundEffectID uuid.UUID, body RenameRequest) (*R, error) {
 	u := c.baseURL.JoinPath("sound-effects", soundEffectID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9248,15 +7005,8 @@ func (c *Client) UpdateSoundEffectWithResult[R any](ctx context.Context, soundEf
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SoundEffect); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SoundEffect
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9265,7 +7015,7 @@ func (c *Client) UpdateSoundEffectWithResult[R any](ctx context.Context, soundEf
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SoundEffect)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9330,51 +7080,6 @@ func (c *Client) UpdateSoundEffectWithResult[R any](ctx context.Context, soundEf
 //
 //	POST /generate-8-rotations-v3
 func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*JobResponse, error) {
-	return c.Generate8RotationsV3WithResult[JobResponse](ctx, body)
-}
-
-// Generate 8 directional rotations from a reference frame.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to retrieve results when generation completes.
-//
-// **How it works:**
-// 1. Submit the reference frame; receive a `background_job_id` immediately.
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
-// 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
-//
-// **Size Limits:**
-// - Maximum image dimension: 256x256 pixels
-//
-// Typical generation time: 30-180 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab, time
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// job = client.generate_8_rotations_v3(
-//
-//	first_frame=reference_image,
-//
-// )
-//
-// while True:
-//
-//	result = client.get_background_job(job.background_job_id)
-//	if result.status == "completed":
-//	    images = [img.pil_image() for img in result.last_response["images"]]
-//	    break
-//	if result.status == "failed":
-//	    raise RuntimeError(result.last_response["detail"])
-//	time.sleep(2)
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-8-rotations-v3
-func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body Generate8RotationsV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-8-rotations-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9407,15 +7112,8 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 		// Background job accepted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9424,7 +7122,7 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9505,64 +7203,6 @@ func (c *Client) Generate8RotationsV3WithResult[R any](ctx context.Context, body
 //
 //	POST /generate-8-rotations-v2
 func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8RotationsV2Request) (*JobResponse, error) {
-	return c.Generate8RotationsV2WithResult[JobResponse](ctx, body)
-}
-
-// Generate 8 rotational views of a character or object.
-//
-// This endpoint creates 8 directional views from a reference image, useful for
-// game sprites that need to face multiple directions.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Methods:**
-// - **rotate_character**: Rotate existing sprite to 8 directions (`reference_image`)
-// - **create_with_style**: Create new character from description (requires `description`)
-// - **create_from_concept**: Create rotations from concept art (requires `concept_image`)
-//
-// **Output:**
-// Returns 8 images in order: South, South-West, West, North-West, North,
-// North-East, East, South-East
-//
-// **View Angles:**
-// - `low top-down`: ~20 degree angle (most common for RPGs)
-// - `high top-down`: ~35 degree angle
-// - `side`: Side-scroller eye level
-//
-// **Supported Sizes:**
-// - image_size: 32x32 to 168x168 (matches reference_to_8_rotations). reference_image max 168x168, concept_image max 1024x1024.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, rotations are in `last_response`
-//
-// **rotate_character Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="rotate_character",
-//	reference_image={"image": char_img, "width": 64, "height": 64},
-//	image_size={"width": 64, "height": 64},
-//	view="low top-down"
-//
-// )
-// ```
-//
-// **create_with_style Example:**
-// ```python
-// response = client.generate_8_rotations_v2(
-//
-//	method="create_with_style",
-//	description="a knight in armor",
-//	image_size={"width": 64, "height": 64}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-8-rotations-v2
-func (c *Client) Generate8RotationsV2WithResult[R any](ctx context.Context, body Generate8RotationsV2Request) (*R, error) {
 	u := c.baseURL.JoinPath("generate-8-rotations-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9595,15 +7235,8 @@ func (c *Client) Generate8RotationsV2WithResult[R any](ctx context.Context, body
 		// 8 rotations job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9612,7 +7245,7 @@ func (c *Client) Generate8RotationsV2WithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9672,43 +7305,6 @@ func (c *Client) Generate8RotationsV2WithResult[R any](ctx context.Context, body
 //
 //	POST /rotate
 func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse, error) {
-	return c.RotateWithResult[ImageResponse](ctx, body)
-}
-
-// Rotates a pixel art image based on the provided parameters. Called "Rotate" in the plugin.
-//
-// Supported image sizes:
-// - 16x16
-// - 32x32
-// - 64x64
-// - 128x128
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.rotate(
-//
-//	from_view="side",
-//	to_view="side",
-//	from_direction="south",
-//	to_direction="east",
-//	image_size=dict(width=16, height=16),
-//	from_image=image_of_subject_facing_south,
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /rotate
-func (c *Client) RotateWithResult[R any](ctx context.Context, body RotateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("rotate")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9741,15 +7337,8 @@ func (c *Client) RotateWithResult[R any](ctx context.Context, body RotateRequest
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9758,7 +7347,7 @@ func (c *Client) RotateWithResult[R any](ctx context.Context, body RotateRequest
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9845,67 +7434,6 @@ func (c *Client) RotateWithResult[R any](ctx context.Context, body RotateRequest
 //
 //	POST /edit-images-v2
 func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobResponse, error) {
-	return c.EditImagesWithResult[JobResponse](ctx, body)
-}
-
-// Edit pixel art images using text or reference image.
-//
-// This endpoint supports two editing methods:
-// 1. **edit_with_text**: Apply edits based on a text description
-// 2. **edit_with_reference**: Match the style of a reference image
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Output sizes (image_size):**
-// - **Range:** 32x32 to 512x512 pixels. Each returned image has the dimensions you set in `image_size`.
-// - Input images (`edit_images`, `reference_image`) must be at most 512x512 each.
-//
-// **Key Features:**
-// - Edit multiple images consistently
-// - Text-guided or reference-guided editing
-// - Preserves original structure and poses
-// - Optional background removal
-// - Non-blocking: returns job ID immediately
-//
-// **Frame limits by output size (image_size):**
-// - 32-64px: Up to 16 frames (4x4 grid), 15 with reference
-// - 65-80px: Up to 9 frames (3x3 grid), 8 with reference
-// - 81-128px: Up to 4 frames (2x2 grid), 3 with reference
-// - 129-512px: 1 frame (both methods)
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited images are in `last_response`
-//
-// **edit_with_text Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_text",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	description="add a wizard hat"
-//
-// )
-// ```
-//
-// **edit_with_reference Example:**
-// ```python
-// response = client.edit_images_v2(
-//
-//	method="edit_with_reference",
-//	edit_images=[{"image": img, "width": 64, "height": 64}],
-//	image_size={"width": 64, "height": 64},
-//	reference_image={"image": ref_img, "width": 64, "height": 64}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /edit-images-v2
-func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImagesRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-images-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -9938,15 +7466,8 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 		// Image edit job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -9955,7 +7476,7 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10012,40 +7533,6 @@ func (c *Client) EditImagesWithResult[R any](ctx context.Context, body EditImage
 //
 //	POST /edit-image-pixen
 func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest) (*JobResponse, error) {
-	return c.EditImagePixenWithResult[JobResponse](ctx, body)
-}
-
-// Edit an existing pixel art image with a text instruction, on the Pixen model.
-//
-// Returns YOUR image edited — pose, composition and pixel style are preserved and
-// only what you asked for changes. Returns immediately with a background job ID;
-// poll `GET /v2/background-jobs/{job_id}` to check status and retrieve the result.
-//
-// ### Sizes
-// The two canvases are bounded differently, both enforced here so an oversized
-// request costs nothing instead of failing on a worker.
-//   - **Source image**: max **256px per side** (a hard model limit) and area at
-//     least 16x16. Crop an oversized source — do not rescale pixel art, it destroys
-//     the pixel grid.
-//   - **Target canvas**: area **16x16 to 256x256** (65,536px). This is an area, so a
-//     wide-but-short canvas like 128x512 is fine. Defaults to the source image's
-//     size. The model re-renders at the target size rather than rescaling, so the
-//     source and the result may legitimately differ in size.
-//   - **Both canvases**: every side a **multiple of 4**. A 63x222 sprite is rejected
-//     with the aligned size to use (64x224) — pad it with transparent pixels, never
-//     rescale pixel art.
-//
-// ### Cost
-// 1 generation.
-//
-// ### Usage Pattern
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the edited image is in `last_response`
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /edit-image-pixen
-func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditImagePixenRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-image-pixen")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10078,15 +7565,8 @@ func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditI
 		// Edit job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10095,7 +7575,7 @@ func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10143,28 +7623,6 @@ func (c *Client) EditImagePixenWithResult[R any](ctx context.Context, body EditI
 //
 //	POST /save-to-asset
 func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*SaveToAssetResponse, error) {
-	return c.SaveToAssetWithResult[SaveToAssetResponse](ctx, body)
-}
-
-// Write an edited image back into one of your characters,
-// objects, Creator gallery images or tilesets — a rotation, one direction of an
-// animation, a gallery image or a tileset's tiles — or add it to the gallery as a new
-// image. Free: nothing is generated.
-//
-// `target` is one of: `character:<id>:<direction>` or `object:<id>[:<direction>]` (a rotation; a one-direction object needs no direction), the same with `:<group id>` added (one direction of an animation — the animation's group id, names can repeat), `gallery:<id>` (replace a Creator gallery image) or `gallery:new` (add one), `tileset:<id>` (a top-down or sidescroller tileset's whole sheet).
-//
-// The image must match what it replaces: the same canvas size and the same number of
-// frames (pad or crop with transparent pixels, never rescale). A different size can
-// go to the gallery as a new image (`gallery:new`). A tileset takes its whole sheet,
-// the layout its download gives. Save each direction with its own call.
-//
-// The character and object creators, the gallery, the map editor, downloads and game
-// projects then show the new pixels. The replaced frames come back as
-// `previous_frames`: saving them to the same target is the undo.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /save-to-asset
-func (c *Client) SaveToAssetWithResult[R any](ctx context.Context, body SaveToAssetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("save-to-asset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10197,15 +7655,8 @@ func (c *Client) SaveToAssetWithResult[R any](ctx context.Context, body SaveToAs
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SaveToAssetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SaveToAssetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10214,7 +7665,7 @@ func (c *Client) SaveToAssetWithResult[R any](ctx context.Context, body SaveToAs
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SaveToAssetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10267,30 +7718,6 @@ func (c *Client) SaveToAssetWithResult[R any](ctx context.Context, body SaveToAs
 //
 //	POST /edit-image
 func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResponse, error) {
-	return c.EditImageWithResult[JobResponse](ctx, body)
-}
-
-// Edit an existing pixel art image based on a text description.
-//
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// ### Supported Image Sizes
-// - **Reference image**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Target canvas**: 16x16 to 400x400 pixels (minimum 16x16 area)
-// - **Free tier limit**: Maximum 200x200 pixels for target canvas
-//
-// ### Output
-// Returns a single edited image matching the target canvas dimensions.
-//
-// ### Usage Pattern
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, edited image is in `last_response`
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /edit-image
-func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-image")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10323,15 +7750,8 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 		// Edit image job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10340,7 +7760,7 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10415,58 +7835,6 @@ func (c *Client) EditImageWithResult[R any](ctx context.Context, body EditImageR
 //
 //	POST /inpaint-v3
 func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResponse, error) {
-	return c.InpaintV3WithResult[JobResponse](ctx, body)
-}
-
-// Inpaint/edit pixel art images using AI.
-//
-// This endpoint uses AI-powered inpainting for high-quality
-// results. It allows you to edit specific areas of an image based on a
-// text description.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - AI-powered inpainting with text descriptions
-// - Optional context image for style guidance
-// - Bounding box support for precise editing
-// - Background removal option
-// - Mask-based editing (white = generate, black = preserve)
-// - Non-blocking: returns job ID immediately
-//
-// **Image Sizes:**
-// - Inpainting image: 32x32 to 512x512 pixels
-// - Context image: up to 1024x1024 pixels (optional)
-//
-// **Mask Format:**
-// - White pixels = areas to generate/replace
-// - Black pixels = areas to preserve
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, inpainted image is in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint_v3(
-//
-//	description="add a glowing sword",
-//	inpainting_image=character_image,
-//	mask_image=sword_area_mask,
-//
-// )
-//
-// response.images[0].pil_image().save("edited.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /inpaint-v3
-func (c *Client) InpaintV3WithResult[R any](ctx context.Context, body InpaintV3Request) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint-v3")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10499,15 +7867,8 @@ func (c *Client) InpaintV3WithResult[R any](ctx context.Context, body InpaintV3R
 		// Inpainting job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10516,7 +7877,7 @@ func (c *Client) InpaintV3WithResult[R any](ctx context.Context, body InpaintV3R
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10573,40 +7934,6 @@ func (c *Client) InpaintV3WithResult[R any](ctx context.Context, body InpaintV3R
 //
 //	POST /inpaint
 func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageResponse, error) {
-	return c.InpaintWithResult[ImageResponse](ctx, body)
-}
-
-// Creates a pixel art image based on the provided parameters. Called "Inpaint" in the plugin.
-//
-// Supported image size:
-// - Maximum area 200x200
-//
-// Supported features:
-// - Inpainting
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.inpaint(
-//
-//	description="boy with wings",
-//	image_size=dict(width=16, height=16),
-//	inpainting_image=image_of_boy_without_wings,
-//	mask_image=mask_image,
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /inpaint
-func (c *Client) InpaintWithResult[R any](ctx context.Context, body InpaintRequest) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -10639,15 +7966,8 @@ func (c *Client) InpaintWithResult[R any](ctx context.Context, body InpaintReque
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10656,7 +7976,7 @@ func (c *Client) InpaintWithResult[R any](ctx context.Context, body InpaintReque
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10697,21 +8017,6 @@ func (c *Client) InpaintWithResult[R any](ctx context.Context, body InpaintReque
 //
 //	GET /tilesets
 func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (*ListTilesetsResponse, error) {
-	return c.ListTilesetsWithResult[ListTilesetsResponse](ctx, params)
-}
-
-// List all tilesets (top-down and sidescroller) created by the authenticated user.
-//
-// This endpoint returns a paginated list of all tilesets you've created.
-//
-// **Pagination:**
-// - Use `limit` to control how many tilesets to return (1-100)
-// - Use `offset` to skip tilesets for pagination
-// - Total count is included in response for pagination UI
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tilesets
-func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *ListTilesetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -10751,15 +8056,8 @@ func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *List
 		// Successfully retrieved tileset list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListTilesetsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListTilesetsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10768,7 +8066,7 @@ func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *List
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListTilesetsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -10878,99 +8176,6 @@ func (c *Client) ListTilesetsWithResult[R any](ctx context.Context, params *List
 //
 //	POST /create-tileset
 func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (*TilesetJobResponse, error) {
-	return c.CreateTilesetWithResult[TilesetJobResponse](ctx, body)
-}
-
-// Creates a complete tileset for game development with seamlessly connecting tiles.
-//
-// A tileset is a collection of individual tiles (16 for standard, 25 for transition_size=1.0) that can be combined
-// to create larger maps and environments. This endpoint generates tiles representing two terrain levels - "lower"
-// and "upper" - that connect seamlessly when placed adjacent to each other.
-//
-// **Understanding Lower and Upper Terrain:**
-//   - **Lower terrain**: The base level terrain (e.g., water, grass, lava)
-//   - **Upper terrain**: The elevated terrain level (e.g., beach, dirt path, rock)
-//   - **Transition size**: Controls the visual height difference between levels. Larger transitions (0.25-0.5)
-//     create a more pronounced elevation effect, making it appear as if the upper terrain is on a higher plane
-//
-// **Using the tiles (Wang corner autotiling):**
-// Define your terrain on a vertex grid — one terrain value ("lower"/"upper") per vertex, so a
-// map of W×H cells has (W+1)×(H+1) vertices. Each map cell reads its 4 corner vertices
-// (NW, NE, SW, SE) and you place the tile whose `pattern_4x4` (or `corners`) matches those
-// values. Adjacent cells share vertices, so tiles connect seamlessly by construction.
-//
-// **transition_size=1.0 (cliff tilesets):**
-//   - Returns 25 tiles instead of 16, and corners take a third value: "transition"
-//   - A cliff wall occupies the map cell BELOW the terrain boundary, so a cliff spans two rows
-//   - The 25 tiles cover only 21 distinct corner combinations — 4 wall-continuation tiles share
-//     their corners with a twin. Select tiles by `pattern_4x4`, not by `corners` alone, or those
-//     twins collapse into one another
-//
-// Features:
-// - Returns individual tiles with unique IDs (16 for standard, 25 for transition_size=1.0)
-// - Corner-based terrain classification (NW, NE, SW, SE)
-// - A 4x4 terrain pattern per tile, for matching tiles against a painted map
-// - Lower and upper terrain levels for elevation variety
-// - Tile sizes: 16, 24 or 32 (standard); 16/32/64 with mode='pro'
-// - Walkability per terrain (`lower_walkable` / `upper_walkable`) for map and engine-export collision
-// - Seamless tile connections for map creation
-// - Vertical transitions support with transition_size=1.0
-// - Style control via outline, shading, and detail parameters
-// - Reference images for style guidance
-// - Color palette control
-//
-// Response format:
-//   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
-//   - Corner data specifies "lower", "upper", or "transition" terrain for each corner (NW, NE, SW, SE)
-//   - `pattern_4x4` encodes terrain as 0=lower, 1=upper, 2=transition, 255=wildcard. `row_1`/`row_2`
-//     hold the four corners; `row_0`/`row_3` hold the terrain above/below (only meaningful for
-//     transition tiles). This is the field to match on when placing tiles
-//   - `connections` is deprecated and not populated for new top-down tilesets — use `pattern_4x4` (or `corners`) instead
-//   - Metadata includes terrain prompts and creation timestamp
-//
-// Common use cases:
-// - **Beach environments**: water/sand with wet sand transitions
-// - **Forest paths**: grass/dirt with muddy transitions
-// - **Dungeon floors**: stone floor/walls with cracked stone transitions
-// - **Snow landscapes**: snow/rock with icy transitions
-// - **Desert oases**: sand/water with muddy bank transitions
-// - **Lava caves**: rock/lava with molten rock transitions
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Generate a beach/ocean tileset
-// response = client.generate_tileset(
-//
-//	lower_description="deep blue ocean water with gentle waves",
-//	upper_description="golden sandy beach",
-//	transition_description="wet sand with foam",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.5,
-//	view="high top-down"
-//
-// )
-//
-// # Access individual tiles
-// for tile in response.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	print(f"  Corners: NW={tile.corners.NW}, NE={tile.corners.NE}, SW={tile.corners.SW}, SE={tile.corners.SE}")
-//	print(f"  Pattern: {tile.pattern_4x4.row_1} / {tile.pattern_4x4.row_2}")
-//
-//	# Save individual tile images
-//	import base64
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-tileset
-func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body CreateTilesetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tileset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11003,15 +8208,8 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 		// Successfully generated tileset
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TilesetJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TilesetJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11020,7 +8218,7 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TilesetJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11034,15 +8232,8 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TilesetJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TilesetJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11051,7 +8242,7 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TilesetJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11127,56 +8318,6 @@ func (c *Client) CreateTilesetWithResult[R any](ctx context.Context, body Create
 //
 //	GET /tilesets/{tileset_id}
 func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *GetTilesetParams) (*GetTilesetResponse, error) {
-	return c.GetTilesetWithResult[GetTilesetResponse](ctx, tilesetID, params)
-}
-
-// Retrieve a completed tileset by its UUID.
-//
-// This endpoint returns the complete tileset data including all tiles with their images, corner data
-// and metadata. Use this after background processing completes.
-//
-// The tileset ID is returned immediately when you submit a tileset generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Newly generated tilesets have 16 tiles (standard) or 25 (transition_size=1.0). This endpoint also
-// serves tilesets generated by earlier versions, which may report other counts at transition_size=1.0.
-// Always read `total_tiles` / the length of `tiles` rather than assuming a fixed count.
-//
-// Response includes:
-//   - All tiles with base64 PNG images
-//   - Corner classifications (NW, NE, SW, SE) for each tile — "lower", "upper", or, on
-//     transition_size=1.0 tilesets, "transition"
-//   - `pattern_4x4` per tile (0=lower, 1=upper, 2=transition, 255=wildcard). On transition_size=1.0
-//     tilesets the 25 tiles cover only 21 distinct corner combinations, so match on `pattern_4x4`
-//     rather than `corners` alone — 4 wall-continuation tiles are distinguishable no other way
-//   - Generation metadata and parameters
-//   - Terrain descriptions and style settings
-//   - With `?layout=tileset15|wang|godot`, also `sheet`: the whole set as one PNG in the layout
-//     the website's download offers (`tileset15` the canonical 4x4 / 4x8 sheet, `wang` the
-//     5-wide Wang arrangement, `godot` Godot's 3x3 autotile sheet)
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tileset
-// tileset = client.get_tileset("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Access tiles
-// for tile in tileset.tileset.tiles:
-//
-//	print(f"Tile {tile.name}: {tile.description}")
-//	# Save tile image
-//	with open(f"tile_{tile.id[:8]}.png", "wb") as f:
-//	    f.write(base64.b64decode(tile.image.base64))
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tilesets/{tileset_id}
-func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, params *GetTilesetParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
 	if params != nil {
 		q := make(url.Values, 1)
@@ -11212,15 +8353,8 @@ func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid
 		// Successfully retrieved tileset
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetTilesetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11229,7 +8363,7 @@ func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetTilesetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11281,14 +8415,6 @@ func (c *Client) GetTilesetWithResult[R any](ctx context.Context, tilesetID uuid
 //
 //	DELETE /tilesets/{tileset_id}
 func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
-	return c.DeleteTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
-}
-
-// Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /tilesets/{tileset_id}
-func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -11314,15 +8440,8 @@ func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID u
 		// Tileset deleted successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteTilesetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11331,7 +8450,7 @@ func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID u
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteTilesetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11383,14 +8502,6 @@ func (c *Client) DeleteTilesetWithResult[R any](ctx context.Context, tilesetID u
 //
 //	PATCH /tilesets/{tileset_id}
 func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body RenameRequest) (*UpdateTilesetResponse, error) {
-	return c.UpdateTilesetWithResult[UpdateTilesetResponse](ctx, tilesetID, body)
-}
-
-// Rename a top-down or sidescroller tileset. The name is display only: the terrain descriptions that generation and chaining read are left alone. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /tilesets/{tileset_id}
-func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID, body RenameRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11423,15 +8534,8 @@ func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID u
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UpdateTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UpdateTilesetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11440,7 +8544,7 @@ func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID u
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UpdateTilesetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11489,14 +8593,6 @@ func (c *Client) UpdateTilesetWithResult[R any](ctx context.Context, tilesetID u
 //
 //	POST /tilesets/import
 func (c *Client) SetTilesetImport(ctx context.Context, body SetTilesetImportRequest) (*SetTilesetImportResponse, error) {
-	return c.SetTilesetImportWithResult[SetTilesetImportResponse](ctx, body)
-}
-
-// Upload a tileset sheet you made as one completed tileset, as the website's Import does. Free, nothing is generated: the sheet is cut into its 16 (or 25) Wang tiles with new base tile ids, so the tileset works in GET /tilesets/{tileset_id}, maps, chaining and the downloads like a generated one. A sheet that is not a PixelLab layout is a 422 naming the sizes it accepts.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /tilesets/import
-func (c *Client) SetTilesetImportWithResult[R any](ctx context.Context, body SetTilesetImportRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets", "import")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11529,15 +8625,8 @@ func (c *Client) SetTilesetImportWithResult[R any](ctx context.Context, body Set
 		// Tileset created
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetTilesetImportResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetTilesetImportResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11546,7 +8635,7 @@ func (c *Client) SetTilesetImportWithResult[R any](ctx context.Context, body Set
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetTilesetImportResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11571,14 +8660,6 @@ func (c *Client) SetTilesetImportWithResult[R any](ctx context.Context, body Set
 //
 //	GET /tilesets-sidescroller
 func (c *Client) ListSidescrollerTilesets(ctx context.Context, params *ListSidescrollerTilesetsParams) (*ListSidescrollerTilesetsResponse, error) {
-	return c.ListSidescrollerTilesetsWithResult[ListSidescrollerTilesetsResponse](ctx, params)
-}
-
-// List all sidescroller tilesets created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tilesets-sidescroller
-func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, params *ListSidescrollerTilesetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -11618,15 +8699,8 @@ func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, 
 		// Successfully retrieved sidescroller tileset list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListSidescrollerTilesetsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListSidescrollerTilesetsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11635,7 +8709,7 @@ func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListSidescrollerTilesetsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11731,64 +8805,6 @@ func (c *Client) ListSidescrollerTilesetsWithResult[R any](ctx context.Context, 
 //
 //	POST /create-tileset-sidescroller
 func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSidescrollerTilesetRequest) (*TilesetJobResponse, error) {
-	return c.CreateSidescrollerTilesetWithResult[TilesetJobResponse](ctx, body)
-}
-
-// Creates a complete sidescroller tileset for 2D platformer game development.
-//
-// A sidescroller tileset is a collection of individual tiles designed for side-view platformer games.
-// The tiles represent floating platforms with transparent backgrounds, allowing them to be placed
-// over any game background.
-//
-// **Modes** (the same as MCP `create_sidescroller_tileset`):
-//   - **`standard`** (default): the website's standard sidescroller tileset — 1 generation, ~30 s.
-//     `enhance`, `platform_thickness` and `transition_reference_image` apply here.
-//   - **`pro`**: the richest platforms — painted texture, a cleaner cap — 15 generations, a few
-//     minutes; needs a Tier 1+ plan. Connect to an earlier tileset's platform body with
-//     `lower_base_tile_id` (or `lower_reference_image`).
-//
-// Requests without `mode` run `standard`. Until 2026-11 every request ran an older sidescroller
-// model (2-3 generations); `outline`, `text_guidance_scale`, `tile_strength`, the two
-// `tileset_adherence` fields and `color_image` only steered that model and now do nothing.
-//
-// **Key differences from top-down tilesets:**
-// - **View**: Always "side" perspective (fixed, cannot be changed)
-// - **Background**: Always transparent (no background terrain)
-// - **Use case**: 2D platformer games, side-scrolling adventures
-// - **No slopes**: Only flat horizontal platform surfaces
-//
-// **Understanding the layers:**
-// - **Lower terrain**: The main platform/ground material (e.g., stone, grass, metal)
-// - **Transition**: Optional decorative layer on top of the platform (e.g., moss, snow, rust)
-// - **Background**: Automatically transparent (not configurable)
-//
-// **Retrieving results:**
-// After submission, use `GET /tilesets/{tileset_id}` to retrieve the completed tileset.
-// The same endpoint is used for both top-down and sidescroller tilesets.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Generate a stone platform tileset
-// response = client.generate_tileset_sidescroller(
-//
-//	lower_description="stone brick platform with carved details",
-//	transition_description="moss and small green plants",
-//	tile_size=dict(width=16, height=16),
-//	transition_size=0.25,
-//
-// )
-//
-// # Retrieve completed tileset using the tileset_id
-// tileset = client.get_tileset(response.tileset_id)
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-tileset-sidescroller
-func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context, body CreateSidescrollerTilesetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tileset-sidescroller")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -11821,15 +8837,8 @@ func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context,
 		// Tileset creation started, returns job ID
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TilesetJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TilesetJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11838,7 +8847,7 @@ func (c *Client) CreateSidescrollerTilesetWithResult[R any](ctx context.Context,
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TilesetJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -11975,14 +8984,6 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 //
 //	DELETE /tilesets-sidescroller/{tileset_id}
 func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
-	return c.DeleteSidescrollerTilesetWithResult[DeleteTilesetResponse](ctx, tilesetID)
-}
-
-// Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /tilesets-sidescroller/{tileset_id}
-func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context, tilesetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -12008,15 +9009,8 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 		// Tileset deleted successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTilesetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteTilesetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12025,7 +9019,7 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteTilesetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12147,84 +9141,6 @@ func (c *Client) DeleteSidescrollerTilesetWithResult[R any](ctx context.Context,
 //
 //	POST /create-tiles-pro
 func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
-	return c.CreateTilesProWithResult[TileJobResponse](ctx, body)
-}
-
-// Creates pixel art tiles based on the provided parameters.
-//
-// Generates multiple tile variations by drawing tile shape outlines and having
-// AI fill them with pixel art — or, with `tile_feature`, a connectable set:
-//
-//   - **`tile_feature: "roads"`** — an 18-configuration path/road autotile set
-//     (square_topdown, isometric)
-//   - **`tile_feature: "tileset"`** — a terrain-transition Wang set: 16 corner
-//     tiles for square_topdown/isometric/oblique, a 32-tile coastline for
-//     hex/hex_pointy; describe it as a transition ("grass to water").
-//     Terrain shaping as on the website: `boundary_amplitude` + `boundary_seed`
-//     (uneven boundary), `elevation` (raised terrain, corner shapes) and
-//     `step_slope` (edge steepness of that raise)
-//   - **`tile_feature: "building"`** — a construction kit: floor, connectable
-//     wall segments, doorways, pillar and staircase (square_topdown, isometric,
-//     oblique; see the `building_*` parameters and `roof_profile`)
-//   - omit `tile_feature` for independent tile variations
-//
-// Supported tile types:
-//   - **hex**: Flat-top hexagonal tiles
-//   - **hex_pointy**: Pointy-top hexagonal tiles
-//   - **isometric**: Diamond/rhombus tiles
-//   - **oblique**: Square top with sheared depth — connectable sets only
-//     (`tile_feature` tileset or building; see `oblique_lean`)
-//   - **octagon**: 8-sided polygon tiles
-//   - **square_topdown**: Square tiles at angle
-//
-// Supported tile sizes: 16-128px (32px recommended). Connectable sets have
-// tighter per-shape ranges — most top out at 96px, and square top-down roads
-// are exactly 32px.
-//
-// Generation time: ~1-2 minutes (async processing)
-//
-// **Prompting tip:** For best control over each tile variation, number each tile in the description:
-// `"1). grass tile 2). dirt tile 3). stone tile 4). water tile"` — the number of tiles is auto-computed based on tile size.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # independent tile variations
-// response = client.create_tiles_pro(
-//
-//	description="1). grass tile 2). dirt tile 3). stone tile 4). water tile 5). sand tile 6). lava tile",
-//	tile_type="isometric",
-//	tile_size=32,
-//
-// )
-//
-// # connectable sets
-// response = client.create_tiles_pro(
-//
-//	description="grass to water",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="tileset",
-//
-// )
-// response = client.create_tiles_pro(
-//
-//	description="stone walls with wooden floor",
-//	tile_type="isometric",
-//	tile_size=32,
-//	tile_feature="building",
-//	building_wall_description="rough stone brick walls",
-//	building_floor_description="wooden plank floor",
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-tiles-pro
-func (c *Client) CreateTilesProWithResult[R any](ctx context.Context, body CreateTilesProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-tiles-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -12257,15 +9173,8 @@ func (c *Client) CreateTilesProWithResult[R any](ctx context.Context, body Creat
 		// Generation started successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TileJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12274,7 +9183,7 @@ func (c *Client) CreateTilesProWithResult[R any](ctx context.Context, body Creat
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TileJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12330,39 +9239,6 @@ func (c *Client) CreateTilesProWithResult[R any](ctx context.Context, body Creat
 //
 //	GET /tiles-pro/{tile_id}
 func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesProResponse, error) {
-	return c.GetTilesProWithResult[GetTilesProResponse](ctx, tileID)
-}
-
-// Retrieve completed tiles pro by their UUID.
-//
-// This endpoint returns the tile images after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-//
-// Response includes:
-// - List of base64 PNG tile variation images
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tiles
-// tiles = client.get_tiles_pro("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile images
-// for tile in tiles.tiles:
-//
-//	save_base64_image(tile.base64, f"tile_{tile.index}.png")
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tiles-pro/{tile_id}
-func (c *Client) GetTilesProWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -12388,15 +9264,8 @@ func (c *Client) GetTilesProWithResult[R any](ctx context.Context, tileID uuid.U
 		// Successfully retrieved tiles
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetTilesProResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetTilesProResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12405,7 +9274,7 @@ func (c *Client) GetTilesProWithResult[R any](ctx context.Context, tileID uuid.U
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetTilesProResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12457,14 +9326,6 @@ func (c *Client) GetTilesProWithResult[R any](ctx context.Context, tileID uuid.U
 //
 //	DELETE /tiles-pro/{tile_id}
 func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
-	return c.DeleteTilesProWithResult[DeleteTileResponse](ctx, tileID)
-}
-
-// Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /tiles-pro/{tile_id}
-func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -12490,15 +9351,8 @@ func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uui
 		// Tile deleted successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTileResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteTileResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12507,7 +9361,7 @@ func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uui
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteTileResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12562,14 +9416,6 @@ func (c *Client) DeleteTilesProWithResult[R any](ctx context.Context, tileID uui
 //
 //	POST /tiles-pro/import
 func (c *Client) SetTilesProImport(ctx context.Context, body SetTilesProImportRequest) (*SetTilesProImportResponse, error) {
-	return c.SetTilesProImportWithResult[SetTilesProImportResponse](ctx, body)
-}
-
-// Upload your own tile images as one completed tile group, as the website's Import tiles does. Free, nothing is generated; the group appears in GET /tiles-pro and on the website, ready for maps. Frames are checked against tile_type and tile_size (422 names the size each frame needs).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /tiles-pro/import
-func (c *Client) SetTilesProImportWithResult[R any](ctx context.Context, body SetTilesProImportRequest) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro", "import")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -12602,15 +9448,8 @@ func (c *Client) SetTilesProImportWithResult[R any](ctx context.Context, body Se
 		// Tile group created
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetTilesProImportResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetTilesProImportResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12619,7 +9458,7 @@ func (c *Client) SetTilesProImportWithResult[R any](ctx context.Context, body Se
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetTilesProImportResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12644,14 +9483,6 @@ func (c *Client) SetTilesProImportWithResult[R any](ctx context.Context, body Se
 //
 //	GET /tiles-pro
 func (c *Client) ListTilesPro(ctx context.Context, params *ListTilesProParams) (*ListTilesProResponse, error) {
-	return c.ListTilesProWithResult[ListTilesProResponse](ctx, params)
-}
-
-// List all tiles-pro tiles created by the authenticated user, most recent first. Paginated via limit/offset. `total` reflects the full count, not the page size.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /tiles-pro
-func (c *Client) ListTilesProWithResult[R any](ctx context.Context, params *ListTilesProParams) (*R, error) {
 	u := c.baseURL.JoinPath("tiles-pro")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -12691,15 +9522,8 @@ func (c *Client) ListTilesProWithResult[R any](ctx context.Context, params *List
 		// Successfully retrieved tiles list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListTilesProResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListTilesProResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12708,7 +9532,7 @@ func (c *Client) ListTilesProWithResult[R any](ctx context.Context, params *List
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListTilesProResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12777,37 +9601,6 @@ func (c *Client) ListTilesProWithResult[R any](ctx context.Context, params *List
 //
 //	POST /create-isometric-tile
 func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
-	return c.CreateIsometricTileWithResult[TileJobResponse](ctx, body)
-}
-
-// Creates a isometric tile based on the provided parameters.
-//
-// Supported image size:
-// - Minimum area 16x16 and maximum area 64x64
-// - Sizes above 24x24 often produce better quality results
-//
-// Supported features:
-// - Init image
-// - Forced palette
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_isometric_tile(
-//
-//	description="grass on top of dirt",
-//	image_size=dict(width=32, height=32),
-//
-// )
-// response.image.pil_image()
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-isometric-tile
-func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body CreateIsometricTileRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-isometric-tile")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -12840,15 +9633,8 @@ func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body 
 		// Successfully generated image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TileJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12857,7 +9643,7 @@ func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TileJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12871,15 +9657,8 @@ func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TileJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TileJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12888,7 +9667,7 @@ func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TileJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -12945,37 +9724,6 @@ func (c *Client) CreateIsometricTileWithResult[R any](ctx context.Context, body 
 //
 //	GET /isometric-tiles/{tile_id}
 func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*ImageResponse, error) {
-	return c.GetIsometricTileWithResult[ImageResponse](ctx, tileID)
-}
-
-// Retrieve a completed isometric tile by its UUID.
-//
-// This endpoint returns the isometric tile image after background processing completes.
-// Use this after the tile generation is finished.
-//
-// The tile ID is returned immediately when you submit a tile generation request.
-// Check the background job status first to ensure generation is complete.
-//
-// Response includes:
-// - Base64 PNG image with transparent background
-// - Usage information
-//
-// Example usage:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// # Get completed tile
-// tile = client.get_isometric_tile("f47ac10b-58cc-4372-a567-0e02b2c3d479")
-//
-// # Save tile image
-// tile.image.pil_image().save("tile.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /isometric-tiles/{tile_id}
-func (c *Client) GetIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -13001,15 +9749,8 @@ func (c *Client) GetIsometricTileWithResult[R any](ctx context.Context, tileID u
 		// Successfully retrieved tile
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13018,7 +9759,7 @@ func (c *Client) GetIsometricTileWithResult[R any](ctx context.Context, tileID u
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13070,14 +9811,6 @@ func (c *Client) GetIsometricTileWithResult[R any](ctx context.Context, tileID u
 //
 //	DELETE /isometric-tiles/{tile_id}
 func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
-	return c.DeleteIsometricTileWithResult[DeleteTileResponse](ctx, tileID)
-}
-
-// Permanently delete an isometric tile you own. Cannot be undone.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /isometric-tiles/{tile_id}
-func (c *Client) DeleteIsometricTileWithResult[R any](ctx context.Context, tileID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -13103,15 +9836,8 @@ func (c *Client) DeleteIsometricTileWithResult[R any](ctx context.Context, tileI
 		// Tile deleted successfully
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteTileResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteTileResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13120,7 +9846,7 @@ func (c *Client) DeleteIsometricTileWithResult[R any](ctx context.Context, tileI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteTileResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13179,21 +9905,6 @@ func (c *Client) DeleteIsometricTileWithResult[R any](ctx context.Context, tileI
 //
 //	GET /isometric-tiles
 func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTilesParams) (*ListIsometricTilesResponse, error) {
-	return c.ListIsometricTilesWithResult[ListIsometricTilesResponse](ctx, params)
-}
-
-// List all isometric tiles created by the authenticated user.
-//
-// This endpoint returns a paginated list of all isometric tiles you've created.
-//
-// **Pagination:**
-// - Use `limit` to control how many tiles to return (1-100)
-// - Use `offset` to skip tiles for pagination
-// - Total count is included in response for pagination UI
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /isometric-tiles
-func (c *Client) ListIsometricTilesWithResult[R any](ctx context.Context, params *ListIsometricTilesParams) (*R, error) {
 	u := c.baseURL.JoinPath("isometric-tiles")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -13233,15 +9944,8 @@ func (c *Client) ListIsometricTilesWithResult[R any](ctx context.Context, params
 		// Successfully retrieved isometric tile list
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListIsometricTilesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListIsometricTilesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13250,7 +9954,7 @@ func (c *Client) ListIsometricTilesWithResult[R any](ctx context.Context, params
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListIsometricTilesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13291,30 +9995,6 @@ func (c *Client) ListIsometricTilesWithResult[R any](ctx context.Context, params
 //
 //	POST /map-objects
 func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
-	return c.CreateMapObjectWithResult[ObjectJobResponse](ctx, body)
-}
-
-// Creates a pixel art object with transparent background for game maps.
-//
-// Returns immediately with job ID. Processing takes ~15-30 seconds.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.create_map_object(
-//
-//	description="wooden treasure chest",
-//	image_size={"width": 128, "height": 128}
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /map-objects
-func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body CreateMapObjectRequest) (*R, error) {
 	u := c.baseURL.JoinPath("map-objects")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -13347,15 +10027,8 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 		// Object generation queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ObjectJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ObjectJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13364,7 +10037,7 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ObjectJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13401,20 +10074,6 @@ func (c *Client) CreateMapObjectWithResult[R any](ctx context.Context, body Crea
 //
 //	GET /map-objects/{object_id}
 func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapObjectResponse, error) {
-	return c.GetMapObjectWithResult[GetMapObjectResponse](ctx, objectID)
-}
-
-// Poll a map object's status. Returns:
-// - 200 with metadata + download_url when completed
-// - 423 Locked with Retry-After header while still generating
-// - 410 Gone with a hint when generation failed permanently
-// - 404 when no job for this user+object_id exists
-//
-// Map objects auto-delete 8h after creation — grab the PNG promptly.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /map-objects/{object_id}
-func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("map-objects", objectID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -13440,15 +10099,8 @@ func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID uui
 		// Object metadata + download URL
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetMapObjectResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetMapObjectResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13457,7 +10109,7 @@ func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID uui
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetMapObjectResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13523,25 +10175,6 @@ func (c *Client) GetMapObjectWithResult[R any](ctx context.Context, objectID uui
 //
 //	POST /create-room
 func (c *Client) CreateRoom(ctx context.Context, body CreateRoomRequest) (*RoomQueuedResponse, error) {
-	return c.CreateRoomWithResult[RoomQueuedResponse](ctx, body)
-}
-
-// Paint one room (a 7 x 6 grid of 32 px floor cells; top-down
-// 256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways
-// where `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down
-// room's building kit can also come as a 16, 24, 48 or 64 px tileset (`tile_size`).
-//
-// Returns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with
-// `pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.
-//
-// Costs 20 generations (or $0.16 of credits) when the room is ready,
-// 25 ($0.20) with `tile_size` 48 or 64, and
-// 10 more for its pieces. Nothing is charged if it fails. Needs Tier 1 (Pixel
-// Apprentice) or higher.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-room
-func (c *Client) CreateRoomWithResult[R any](ctx context.Context, body CreateRoomRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-room")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -13574,15 +10207,8 @@ func (c *Client) CreateRoomWithResult[R any](ctx context.Context, body CreateRoo
 		// The room is being made
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*RoomQueuedResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out RoomQueuedResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13591,7 +10217,7 @@ func (c *Client) CreateRoomWithResult[R any](ctx context.Context, body CreateRoo
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(RoomQueuedResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13637,20 +10263,6 @@ func (c *Client) CreateRoomWithResult[R any](ctx context.Context, body CreateRoo
 //
 //	POST /rooms/{room_id}/cut-out-furniture
 func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*RoomQueuedResponse, error) {
-	return c.CutRoomOutFurnitureWithResult[RoomQueuedResponse](ctx, roomID)
-}
-
-// Cut a painted room's furniture out as movable pieces, each with its own
-// shadow, to move, remove or reuse in the website's room editor. Only when the furniture is to be
-// rearranged: the painted room is complete without it. Oblique rooms have no furniture to cut yet.
-//
-// Takes ~5-8 minutes; poll `GET /rooms/{room_id}` until `pieces_status` is `completed`. Costs
-// 10 generations (or $0.08 of credits) when the pieces are
-// ready. Needs Tier 1 (Pixel Apprentice) or higher.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /rooms/{room_id}/cut-out-furniture
-func (c *Client) CutRoomOutFurnitureWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("rooms", roomID.String(), "cut-out-furniture")
 	req := (&http.Request{
 		Header: http.Header{
@@ -13676,15 +10288,8 @@ func (c *Client) CutRoomOutFurnitureWithResult[R any](ctx context.Context, roomI
 		// The furniture is being cut out
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*RoomQueuedResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out RoomQueuedResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13693,7 +10298,7 @@ func (c *Client) CutRoomOutFurnitureWithResult[R any](ctx context.Context, roomI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(RoomQueuedResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13754,14 +10359,6 @@ func (c *Client) CutRoomOutFurnitureWithResult[R any](ctx context.Context, roomI
 //
 //	GET /rooms
 func (c *Client) ListRooms(ctx context.Context, params *ListRoomsParams) (*ListRoomsResponse, error) {
-	return c.ListRoomsWithResult[ListRoomsResponse](ctx, params)
-}
-
-// Your rooms, newest first. Open to every plan: they stay yours after a downgrade.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /rooms
-func (c *Client) ListRoomsWithResult[R any](ctx context.Context, params *ListRoomsParams) (*R, error) {
 	u := c.baseURL.JoinPath("rooms")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -13801,15 +10398,8 @@ func (c *Client) ListRoomsWithResult[R any](ctx context.Context, params *ListRoo
 		// OK
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListRoomsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListRoomsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13818,7 +10408,7 @@ func (c *Client) ListRoomsWithResult[R any](ctx context.Context, params *ListRoo
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListRoomsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13865,15 +10455,6 @@ func (c *Client) ListRoomsWithResult[R any](ctx context.Context, params *ListRoo
 //
 //	GET /rooms/{room_id}
 func (c *Client) GetRoom(ctx context.Context, roomID uuid.UUID) (*GetRoomResponse, error) {
-	return c.GetRoomWithResult[GetRoomResponse](ctx, roomID)
-}
-
-// A room: its stage while it is made, then its picture, floor plan and doors
-// (a top-down room's join anchors and walkable rects too), and its pieces once cut out.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /rooms/{room_id}
-func (c *Client) GetRoomWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("rooms", roomID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -13899,15 +10480,8 @@ func (c *Client) GetRoomWithResult[R any](ctx context.Context, roomID uuid.UUID)
 		// OK
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetRoomResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetRoomResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13916,7 +10490,7 @@ func (c *Client) GetRoomWithResult[R any](ctx context.Context, roomID uuid.UUID)
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetRoomResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -13967,16 +10541,6 @@ func (c *Client) GetRoomWithResult[R any](ctx context.Context, roomID uuid.UUID)
 //
 //	DELETE /rooms/{room_id}
 func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomResponse, error) {
-	return c.DeleteRoomWithResult[DeleteRoomResponse](ctx, roomID)
-}
-
-// Delete a finished room. Refused (409) while it or its furniture's cut is
-// being made, and while another of your rooms' saved arrangements uses its pieces. Placements on
-// maps keep their picture; objects made from its pieces stay in Objects.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /rooms/{room_id}
-func (c *Client) DeleteRoomWithResult[R any](ctx context.Context, roomID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("rooms", roomID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -14002,15 +10566,8 @@ func (c *Client) DeleteRoomWithResult[R any](ctx context.Context, roomID uuid.UU
 		// Deleted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteRoomResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteRoomResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14019,7 +10576,7 @@ func (c *Client) DeleteRoomWithResult[R any](ctx context.Context, roomID uuid.UU
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteRoomResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14155,14 +10712,6 @@ func (c *Client) GetRoomKitZip(ctx context.Context, roomID uuid.UUID) (io.ReadCl
 //
 //	PATCH /objects/{object_id}/animations/{animation_group_id}
 func (c *Client) UpdateObjectAnimation(ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*UpdateAnimationResponse, error) {
-	return c.UpdateObjectAnimationWithResult[UpdateAnimationResponse](ctx, objectID, animationGroupID, body)
-}
-
-// Rename one animation (every direction of it), addressed by the `animation_group_id` GET /v2/objects/{object_id} returns. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /objects/{object_id}/animations/{animation_group_id}
-func (c *Client) UpdateObjectAnimationWithResult[R any](ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body UpdateAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations", animationGroupID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -14195,15 +10744,8 @@ func (c *Client) UpdateObjectAnimationWithResult[R any](ctx context.Context, obj
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UpdateAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UpdateAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14212,7 +10754,7 @@ func (c *Client) UpdateObjectAnimationWithResult[R any](ctx context.Context, obj
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UpdateAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14261,14 +10803,6 @@ func (c *Client) UpdateObjectAnimationWithResult[R any](ctx context.Context, obj
 //
 //	POST /characters/{character_id}/duplicate
 func (c *Client) SetCharacterDuplicate(ctx context.Context, characterID uuid.UUID) (*StateResponse, error) {
-	return c.SetCharacterDuplicateWithResult[StateResponse](ctx, characterID)
-}
-
-// Copy this character state into a new state of the same character: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The character must be completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/{character_id}/duplicate
-func (c *Client) SetCharacterDuplicateWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "duplicate")
 	req := (&http.Request{
 		Header: http.Header{
@@ -14294,15 +10828,8 @@ func (c *Client) SetCharacterDuplicateWithResult[R any](ctx context.Context, cha
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StateResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StateResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14311,7 +10838,7 @@ func (c *Client) SetCharacterDuplicateWithResult[R any](ctx context.Context, cha
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StateResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14363,14 +10890,6 @@ func (c *Client) SetCharacterDuplicateWithResult[R any](ctx context.Context, cha
 //
 //	POST /characters/{character_id}/ungroup
 func (c *Client) SetCharacterUngroup(ctx context.Context, characterID uuid.UUID) (*StateResponse, error) {
-	return c.SetCharacterUngroupWithResult[StateResponse](ctx, characterID)
-}
-
-// Split this state off into a character of its own. The new character takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A character with a single state has nothing to split off (400).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/{character_id}/ungroup
-func (c *Client) SetCharacterUngroupWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "ungroup")
 	req := (&http.Request{
 		Header: http.Header{
@@ -14396,15 +10915,8 @@ func (c *Client) SetCharacterUngroupWithResult[R any](ctx context.Context, chara
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StateResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StateResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14413,7 +10925,7 @@ func (c *Client) SetCharacterUngroupWithResult[R any](ctx context.Context, chara
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StateResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14465,14 +10977,6 @@ func (c *Client) SetCharacterUngroupWithResult[R any](ctx context.Context, chara
 //
 //	POST /objects/{object_id}/duplicate
 func (c *Client) SetObjectDuplicate(ctx context.Context, objectID uuid.UUID) (*StateResponse, error) {
-	return c.SetObjectDuplicateWithResult[StateResponse](ctx, objectID)
-}
-
-// Copy this object state into a new state of the same object: its rotations, tags and project links. Animations are not copied. The copy is named after the source ('Idle (copy)', 'Idle (copy 2)'...). Free. The object must be completed.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/duplicate
-func (c *Client) SetObjectDuplicateWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "duplicate")
 	req := (&http.Request{
 		Header: http.Header{
@@ -14498,15 +11002,8 @@ func (c *Client) SetObjectDuplicateWithResult[R any](ctx context.Context, object
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StateResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StateResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14515,7 +11012,7 @@ func (c *Client) SetObjectDuplicateWithResult[R any](ctx context.Context, object
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StateResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14567,14 +11064,6 @@ func (c *Client) SetObjectDuplicateWithResult[R any](ctx context.Context, object
 //
 //	POST /objects/{object_id}/ungroup
 func (c *Client) SetObjectUngroup(ctx context.Context, objectID uuid.UUID) (*StateResponse, error) {
-	return c.SetObjectUngroupWithResult[StateResponse](ctx, objectID)
-}
-
-// Split this state off into a object of its own. The new object takes the old name with the next copy number; the state keeps its own name, rotations and animations. Free. A object with a single state has nothing to split off (400).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/ungroup
-func (c *Client) SetObjectUngroupWithResult[R any](ctx context.Context, objectID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "ungroup")
 	req := (&http.Request{
 		Header: http.Header{
@@ -14600,15 +11089,8 @@ func (c *Client) SetObjectUngroupWithResult[R any](ctx context.Context, objectID
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*StateResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out StateResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14617,7 +11099,7 @@ func (c *Client) SetObjectUngroupWithResult[R any](ctx context.Context, objectID
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(StateResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14669,14 +11151,6 @@ func (c *Client) SetObjectUngroupWithResult[R any](ctx context.Context, objectID
 //
 //	POST /characters/{character_id}/canvas
 func (c *Client) CreateCharacterCanva(ctx context.Context, characterID uuid.UUID, body CreateObjectCanva) (*CreateCanvaResponse, error) {
-	return c.CreateCharacterCanvaWithResult[CreateCanvaResponse](ctx, characterID, body)
-}
-
-// Set the character's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-256px. Animations keep the canvas they were made on. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/{character_id}/canvas
-func (c *Client) CreateCharacterCanvaWithResult[R any](ctx context.Context, characterID uuid.UUID, body CreateObjectCanva) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "canvas")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -14709,15 +11183,8 @@ func (c *Client) CreateCharacterCanvaWithResult[R any](ctx context.Context, char
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCanvaResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCanvaResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14726,7 +11193,7 @@ func (c *Client) CreateCharacterCanvaWithResult[R any](ctx context.Context, char
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCanvaResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14784,14 +11251,6 @@ func (c *Client) CreateCharacterCanvaWithResult[R any](ctx context.Context, char
 //
 //	POST /objects/{object_id}/canvas
 func (c *Client) CreateObjectCanva(ctx context.Context, objectID uuid.UUID, body CreateObjectCanva) (*CreateCanvaResponse, error) {
-	return c.CreateObjectCanvaWithResult[CreateCanvaResponse](ctx, objectID, body)
-}
-
-// Set the object's canvas to image_size by adding or removing transparent margin around every rotation, centred on the pivot. The artwork is never scaled or cropped: a size smaller than the rotations' own bounds is refused with those bounds. Sides are multiples of 4, 8-400px. Animations keep the canvas they were made on. Free. Map placements of the object follow the new canvas.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/canvas
-func (c *Client) CreateObjectCanvaWithResult[R any](ctx context.Context, objectID uuid.UUID, body CreateObjectCanva) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "canvas")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -14824,15 +11283,8 @@ func (c *Client) CreateObjectCanvaWithResult[R any](ctx context.Context, objectI
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCanvaResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCanvaResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14841,7 +11293,7 @@ func (c *Client) CreateObjectCanvaWithResult[R any](ctx context.Context, objectI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCanvaResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14899,14 +11351,6 @@ func (c *Client) CreateObjectCanvaWithResult[R any](ctx context.Context, objectI
 //
 //	POST /characters/{character_id}/animations/{animation_group_id}/mirror
 func (c *Client) SetCharacterAnimationMirror(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*SetAnimationMirrorResponse, error) {
-	return c.SetCharacterAnimationMirrorWithResult[SetAnimationMirrorResponse](ctx, characterID, animationGroupID, body)
-}
-
-// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction character. Free: nothing is generated.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/{character_id}/animations/{animation_group_id}/mirror
-func (c *Client) SetCharacterAnimationMirrorWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "mirror")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -14939,15 +11383,8 @@ func (c *Client) SetCharacterAnimationMirrorWithResult[R any](ctx context.Contex
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetAnimationMirrorResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetAnimationMirrorResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -14956,7 +11393,7 @@ func (c *Client) SetCharacterAnimationMirrorWithResult[R any](ctx context.Contex
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetAnimationMirrorResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15008,14 +11445,6 @@ func (c *Client) SetCharacterAnimationMirrorWithResult[R any](ctx context.Contex
 //
 //	POST /objects/{object_id}/animations/{animation_group_id}/mirror
 func (c *Client) SetObjectAnimationMirror(ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*SetAnimationMirrorResponse, error) {
-	return c.SetObjectAnimationMirrorWithResult[SetAnimationMirrorResponse](ctx, objectID, animationGroupID, body)
-}
-
-// Create the missing opposite direction of an animation by flipping `source_direction` horizontally, the website's Mirror. The new direction joins the same `animation_group_id`. Refused when the target direction already exists (delete it first). Diagonals need an 8-direction object. Free: nothing is generated.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/{object_id}/animations/{animation_group_id}/mirror
-func (c *Client) SetObjectAnimationMirrorWithResult[R any](ctx context.Context, objectID uuid.UUID, animationGroupID uuid.UUID, body SetAnimationMirrorRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "animations", animationGroupID.String(), "mirror")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -15048,15 +11477,8 @@ func (c *Client) SetObjectAnimationMirrorWithResult[R any](ctx context.Context, 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetAnimationMirrorResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetAnimationMirrorResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15065,7 +11487,7 @@ func (c *Client) SetObjectAnimationMirrorWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetAnimationMirrorResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15560,14 +11982,6 @@ func (c *Client) GetObjectZip(ctx context.Context, objectID uuid.UUID) (io.ReadC
 //
 //	POST /objects/import
 func (c *Client) SetObjectImport(ctx context.Context, body SetObjectImportRequest) (*SetObjectImportResponse, error) {
-	return c.SetObjectImportWithResult[SetObjectImportResponse](ctx, body)
-}
-
-// Add your own pixel art to your object library as a completed 1-direction object, the same as uploading it on the website. It can then be animated, given states, exported and placed on maps like a generated one. PNG only, up to 256x256. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /objects/import
-func (c *Client) SetObjectImportWithResult[R any](ctx context.Context, body SetObjectImportRequest) (*R, error) {
 	u := c.baseURL.JoinPath("objects", "import")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -15600,15 +12014,8 @@ func (c *Client) SetObjectImportWithResult[R any](ctx context.Context, body SetO
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetObjectImportResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetObjectImportResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15617,7 +12024,7 @@ func (c *Client) SetObjectImportWithResult[R any](ctx context.Context, body SetO
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetObjectImportResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15673,21 +12080,6 @@ func (c *Client) SetObjectImportWithResult[R any](ctx context.Context, body SetO
 //
 //	POST /create-ui-asset
 func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (*CreateUIAssetResponse, error) {
-	return c.CreateUIAssetWithResult[CreateUIAssetResponse](ctx, body)
-}
-
-// Generate a shape-based pixel-art UI panel from a text description.
-//
-// Returns immediately with a `background_job_id` and `ui_asset_id`. Poll
-// `GET /v2/ui-assets/{ui_asset_id}` until `status` is `completed`, then read
-// `image_url`.
-//
-// Provide `pieces` to control the panel shape (editor view coords: longer side 512,
-// shorter side aspect-scaled); omit it for a default full-canvas rounded-rect panel.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-ui-asset
-func (c *Client) CreateUIAssetWithResult[R any](ctx context.Context, body CreateUIAssetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-ui-asset")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -15720,15 +12112,8 @@ func (c *Client) CreateUIAssetWithResult[R any](ctx context.Context, body Create
 		// UI generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateUIAssetResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateUIAssetResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15737,7 +12122,7 @@ func (c *Client) CreateUIAssetWithResult[R any](ctx context.Context, body Create
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateUIAssetResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15812,58 +12197,6 @@ func (c *Client) CreateUIAssetWithResult[R any](ctx context.Context, body Create
 //
 //	POST /generate-ui-v2
 func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobResponse, error) {
-	return c.GenerateUIWithResult[JobResponse](ctx, body)
-}
-
-// Generate pixel art UI elements from text description.
-//
-// This endpoint creates pixel art UI elements such as buttons, health bars,
-// inventory slots, dialogue boxes, and other game interface components.
-// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
-// to check status and retrieve results.
-//
-// **Key Features:**
-// - Text-to-image UI generation
-// - Optional concept image for design guidance
-// - Optional color palette specification
-// - Automatic background removal
-// - Optimized for game UI assets
-// - Non-blocking: returns job ID immediately
-//
-// **Supported Sizes:**
-// - Minimum 16x16. Maximum depends on aspect ratio (e.g. 512x512 for square, 688x384 for 16:9).
-//
-// **Example Descriptions:**
-// - "medieval stone button with gold trim"
-// - "sci-fi health bar with neon glow"
-// - "wooden inventory slot with metal corners"
-// - "pixel art dialogue box with decorative border"
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, images are in `last_response`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_ui_v2(
-//
-//	description="medieval stone button",
-//	image_size=dict(width=256, height=256),
-//	color_palette="brown and gold"
-//
-// )
-//
-// response.images[0].pil_image().save("button.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-ui-v2
-func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateUIRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-ui-v2")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -15896,15 +12229,8 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 		// UI generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15913,7 +12239,7 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -15951,21 +12277,6 @@ func (c *Client) GenerateUIWithResult[R any](ctx context.Context, body GenerateU
 //
 //	POST /ui-assets/{ui_asset_id}/split
 func (c *Client) SetUIAssetSplit(ctx context.Context, uiAssetID uuid.UUID, body *SetUIAssetSplitRequest) (*SetUIAssetSplitResponse, error) {
-	return c.SetUIAssetSplitWithResult[SetUIAssetSplitResponse](ctx, uiAssetID, body)
-}
-
-// Cut a template (what `create-ui-asset` makes) into one UI asset per
-// shape: each button, bar, frame or icon becomes its own PNG you can place, 9-slice,
-// give states and download. Free; nothing is generated.
-//
-// `GET /v2/ui-assets/{id}` shows `split_preview` first: the boxes this cuts by default.
-// Send `boxes` to cut your own instead. A template splits once: delete its elements to
-// split it differently. Afterwards `GET /v2/ui-assets/{id}` lists them under `elements`,
-// and editing or deleting an element re-composes the template's image from them.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /ui-assets/{ui_asset_id}/split
-func (c *Client) SetUIAssetSplitWithResult[R any](ctx context.Context, uiAssetID uuid.UUID, body *SetUIAssetSplitRequest) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String(), "split")
 	req := (&http.Request{
 		Header: http.Header{
@@ -16001,15 +12312,8 @@ func (c *Client) SetUIAssetSplitWithResult[R any](ctx context.Context, uiAssetID
 		// Split
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetUIAssetSplitResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetUIAssetSplitResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16018,7 +12322,7 @@ func (c *Client) SetUIAssetSplitWithResult[R any](ctx context.Context, uiAssetID
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetUIAssetSplitResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16055,23 +12359,6 @@ func (c *Client) SetUIAssetSplitWithResult[R any](ctx context.Context, uiAssetID
 //
 //	POST /ui-assets/states
 func (c *Client) CreateUIAssetState(ctx context.Context, body CreateUIAssetStateRequest) (*CreateUIAssetStateResponse, error) {
-	return c.CreateUIAssetStateWithResult[CreateUIAssetStateResponse](ctx, body)
-}
-
-// Make states for elements split from a UI template (`POST
-// /v2/ui-assets/{id}/split`): hover, pressed, disabled, selected, or anything you
-// describe. Each becomes a UI asset of kind `state` under its element, in the same art.
-//
-// One generation draws every element in every state on one labelled grid, so a set stays consistent. Priced by that grid's side (each element plus an 18 px margin, a 24 px label per state): 10 generations up to 256 px, 15 up to 341, 25 above. One 64x24 button in hover + pressed is 10; two 96x32 buttons in the same two states are 15. Charged when the states are saved.
-//
-// Poll `GET /v2/background-jobs/{background_job_id}` (usually 1-2 minutes); when
-// `status` is `completed`, `last_response.created_state_ids` are the new states
-// (`failed` names any that could not be saved). `GET /v2/ui-assets/{element or template
-// id}` lists them under `states`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /ui-assets/states
-func (c *Client) CreateUIAssetStateWithResult[R any](ctx context.Context, body CreateUIAssetStateRequest) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -16104,15 +12391,8 @@ func (c *Client) CreateUIAssetStateWithResult[R any](ctx context.Context, body C
 		// Queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateUIAssetStateResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateUIAssetStateResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16121,7 +12401,7 @@ func (c *Client) CreateUIAssetStateWithResult[R any](ctx context.Context, body C
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateUIAssetStateResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16155,14 +12435,6 @@ func (c *Client) CreateUIAssetStateWithResult[R any](ctx context.Context, body C
 //
 //	GET /ui-assets
 func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (*ListUIAssetsResponse, error) {
-	return c.ListUIAssetsWithResult[ListUIAssetsResponse](ctx, params)
-}
-
-// List the authenticated user's UI panels (newest first). Includes ghost rows for jobs still generating.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /ui-assets
-func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *ListUIAssetsParams) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets")
 	if params != nil {
 		q := make(url.Values, 2)
@@ -16202,15 +12474,8 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 		// OK
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ListUIAssetsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ListUIAssetsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16219,7 +12484,7 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ListUIAssetsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16270,19 +12535,6 @@ func (c *Client) ListUIAssetsWithResult[R any](ctx context.Context, params *List
 //
 //	GET /ui-assets/{ui_asset_id}
 func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetDetail, error) {
-	return c.GetUIAssetWithResult[UIAssetDetail](ctx, uiAssetID)
-}
-
-// Get a UI asset's details. Reports progress while a panel is still
-// generating.
-//
-// A template (what `create-ui-asset` makes) lists the `elements` split from it, each with
-// its `states`; an element lists its `states`. A template not split yet shows
-// `split_preview`: where `POST /v2/ui-assets/{id}/split` cuts by default.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /ui-assets/{ui_asset_id}
-func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -16308,15 +12560,8 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 		// OK
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UIAssetDetail); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UIAssetDetail
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16325,7 +12570,7 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UIAssetDetail)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16376,16 +12621,6 @@ func (c *Client) GetUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid
 //
 //	DELETE /ui-assets/{ui_asset_id}
 func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*DeleteRoomResponse, error) {
-	return c.DeleteUIAssetWithResult[DeleteRoomResponse](ctx, uiAssetID)
-}
-
-// Permanently delete a UI asset and its image files. A template takes
-// its elements and their states with it, an element its states; deleting an element
-// re-composes its template from the elements left.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /ui-assets/{ui_asset_id}
-func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -16411,15 +12646,8 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		// Deleted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteRoomResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteRoomResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16428,7 +12656,7 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteRoomResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16479,16 +12707,6 @@ func (c *Client) DeleteUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 //
 //	PATCH /ui-assets/{ui_asset_id}
 func (c *Client) UpdateUIAsset(ctx context.Context, uiAssetID uuid.UUID, body UpdateUIAssetRequest) (*UIAssetDetail, error) {
-	return c.UpdateUIAssetWithResult[UIAssetDetail](ctx, uiAssetID, body)
-}
-
-// Rename a UI asset (template, element or state) and/or set its
-// 9-slice: the border insets that stay crisp when the image is stretched to another
-// size. Returns the asset as `GET /v2/ui-assets/{id}` does. Free.
-// You can define a custom result to unmarshal the response into.
-//
-//	PATCH /ui-assets/{ui_asset_id}
-func (c *Client) UpdateUIAssetWithResult[R any](ctx context.Context, uiAssetID uuid.UUID, body UpdateUIAssetRequest) (*R, error) {
 	u := c.baseURL.JoinPath("ui-assets", uiAssetID.String())
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -16521,15 +12739,8 @@ func (c *Client) UpdateUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 		// Updated
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UIAssetDetail); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UIAssetDetail
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16538,7 +12749,7 @@ func (c *Client) UpdateUIAssetWithResult[R any](ctx context.Context, uiAssetID u
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UIAssetDetail)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16690,46 +12901,6 @@ func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.Rea
 //
 //	POST /portrait-character-pro
 func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePortraitCharacterProRequest) (*JobResponse, error) {
-	return c.CreatePortraitCharacterProWithResult[JobResponse](ctx, body)
-}
-
-// Convert between a bust portrait and a full-body character sprite.
-//
-// Pick the conversion with `direction`:
-// - `portrait_to_character`: a bust portrait in → a full-body character sprite out.
-// - `character_to_portrait`: a full-body character in → a bust portrait out.
-//
-// The output preserves the subject's identity/outfit while matching an internal
-// size-specific pixel-art style. Returns immediately with a background job ID. Poll
-// `GET /v2/background-jobs/{job_id}` to check status and retrieve the result image.
-//
-// **Supported Sizes:** 16, 32, 48, 64, 128, 160 px (128/160 are drawn with extra detail).
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. When `status` is `completed`, the sprite is in `last_response.images[0]`
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.portrait_character_pro(
-//
-//	direction="portrait_to_character",
-//	image=portrait_image,
-//	view="low top-down",
-//	result_size=64,
-//
-// )
-// response.images[0].pil_image().save("character.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /portrait-character-pro
-func (c *Client) CreatePortraitCharacterProWithResult[R any](ctx context.Context, body CreatePortraitCharacterProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("portrait-character-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -16762,15 +12933,8 @@ func (c *Client) CreatePortraitCharacterProWithResult[R any](ctx context.Context
 		// Portrait ↔ character job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16779,7 +12943,7 @@ func (c *Client) CreatePortraitCharacterProWithResult[R any](ctx context.Context
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16813,14 +12977,6 @@ func (c *Client) CreatePortraitCharacterProWithResult[R any](ctx context.Context
 //
 //	GET /portrait-character-pro/{job_id}
 func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID uuid.UUID) (*GetPortraitCharacterProJobResponse, error) {
-	return c.GetPortraitCharacterProJobWithResult[GetPortraitCharacterProJobResponse](ctx, jobID)
-}
-
-// Get portrait ↔ character job status + result
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /portrait-character-pro/{job_id}
-func (c *Client) GetPortraitCharacterProJobWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("portrait-character-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -16846,15 +13002,8 @@ func (c *Client) GetPortraitCharacterProJobWithResult[R any](ctx context.Context
 		// Completed sprite metadata + download URL
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetPortraitCharacterProJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetPortraitCharacterProJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16863,7 +13012,7 @@ func (c *Client) GetPortraitCharacterProJobWithResult[R any](ctx context.Context
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetPortraitCharacterProJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16924,20 +13073,6 @@ func (c *Client) GetPortraitCharacterProJobWithResult[R any](ctx context.Context
 //
 //	POST /characters/{character_id}/portrait
 func (c *Client) SetCharacterPortrait(ctx context.Context, characterID uuid.UUID, body SetCharacterPortraitRequest) (*SetCharacterPortraitResponse, error) {
-	return c.SetCharacterPortraitWithResult[SetCharacterPortraitResponse](ctx, characterID, body)
-}
-
-// Attach a bust portrait to a character. Free — no generation runs.
-//
-// A portrait is the starting frame for talking animations: `POST /v2/vocal-animation`
-// generates the mouth positions from it. Overwrites any existing portrait.
-//
-// To generate a portrait from a full-body sprite first, use
-// `POST /v2/portrait-character-pro` with `direction="character_to_portrait"`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /characters/{character_id}/portrait
-func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID, body SetCharacterPortraitRequest) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "portrait")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -16970,15 +13105,8 @@ func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, char
 		// Portrait stored
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*SetCharacterPortraitResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out SetCharacterPortraitResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -16987,7 +13115,7 @@ func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, char
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(SetCharacterPortraitResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17019,18 +13147,6 @@ func (c *Client) SetCharacterPortraitWithResult[R any](ctx context.Context, char
 //
 //	DELETE /characters/{character_id}/portrait
 func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.UUID) (*DeleteCharacterPortraitResponse, error) {
-	return c.DeleteCharacterPortraitWithResult[DeleteCharacterPortraitResponse](ctx, characterID)
-}
-
-// Remove a character's portrait. Free.
-//
-// Expressions already generated from it stay on the character and keep working with
-// `/v2/talking-gif` and `/v2/lip-sync`. Generating a new expression needs a portrait
-// again: `POST /v2/characters/{character_id}/portrait`.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}/portrait
-func (c *Client) DeleteCharacterPortraitWithResult[R any](ctx context.Context, characterID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "portrait")
 	req := (&http.Request{
 		Header: http.Header{
@@ -17056,15 +13172,8 @@ func (c *Client) DeleteCharacterPortraitWithResult[R any](ctx context.Context, c
 		// Portrait deleted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteCharacterPortraitResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteCharacterPortraitResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17073,7 +13182,7 @@ func (c *Client) DeleteCharacterPortraitWithResult[R any](ctx context.Context, c
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteCharacterPortraitResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17107,20 +13216,6 @@ func (c *Client) DeleteCharacterPortraitWithResult[R any](ctx context.Context, c
 //
 //	DELETE /characters/{character_id}/vocal-animation/{mood}
 func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID uuid.UUID, mood Mood) (*DeleteCharacterVocalAnimationResponse, error) {
-	return c.DeleteCharacterVocalAnimationWithResult[DeleteCharacterVocalAnimationResponse](ctx, characterID, mood)
-}
-
-// Remove one expression (`mood`) from a character's mouth positions.
-// Free.
-//
-// The other expressions are kept; the spritesheet is rebuilt without that row, so the
-// rows below it move up (read `moods_on_character` for the new order). Deleting the
-// last expression removes the whole set. Generate it again with
-// `POST /v2/vocal-animation`.
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /characters/{character_id}/vocal-animation/{mood}
-func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, mood Mood) (*R, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", url.PathEscape(string(mood)))
 	req := (&http.Request{
 		Header: http.Header{
@@ -17146,15 +13241,8 @@ func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Cont
 		// Expression deleted
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*DeleteCharacterVocalAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out DeleteCharacterVocalAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17163,7 +13251,7 @@ func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Cont
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(DeleteCharacterVocalAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17219,40 +13307,6 @@ func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Cont
 //
 //     POST /vocal-animation
 func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnimationRequest) (*CreateVocalAnimationResponse, error) {
-	return c.CreateVocalAnimationWithResult[CreateVocalAnimationResponse](ctx, body)
-}
-
-// Generate the set of mouth positions ("visemes") that lets a
-// portrait be lip-synced to any line of text.
-//
-// This is the only step that costs generations, and you pay it once per expression.
-// Turning the result into talking animations with `POST /v2/talking-gif` is free and
-// unlimited.
-//
-// Provide **either**:
-//   - `character_id` — generates from that character's stored portrait and saves the
-//     set onto it, so `/v2/talking-gif` only needs the character id afterwards.
-//   - `portrait` — generates from the image you supply and stores nothing; the mouth
-//     positions come back inline from the GET below for you to keep.
-//
-// Call once per expression (`mood`). `viseme_count` must match across expressions on
-// one character. `engine="pixminimax"` (PixMiniMax, beta) keeps the rest of the face
-// still while the mouth moves and costs the same at every portrait size.
-//
-// To remove an expression again, `DELETE /v2/characters/{character_id}/vocal-animation/{mood}`.
-//
-// **Requires a paid plan.**
-//
-// **Usage pattern:**
-//  1. POST here (returns `background_job_id`)
-//  2. Poll `GET /v2/vocal-animation/{background_job_id}` every 10-15 seconds
-//  3. When `status` is `completed`, either the set is on your character, or the
-//     frames are in `visemes`
-//
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /vocal-animation
-func (c *Client) CreateVocalAnimationWithResult[R any](ctx context.Context, body CreateVocalAnimationRequest) (*R, error) {
 	u := c.baseURL.JoinPath("vocal-animation")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -17285,15 +13339,8 @@ func (c *Client) CreateVocalAnimationWithResult[R any](ctx context.Context, body
 		// Job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateVocalAnimationResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateVocalAnimationResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17302,7 +13349,7 @@ func (c *Client) CreateVocalAnimationWithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateVocalAnimationResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17346,18 +13393,6 @@ func (c *Client) CreateVocalAnimationWithResult[R any](ctx context.Context, body
 //
 //	GET /vocal-animation/{job_id}
 func (c *Client) GetVocalAnimationJob(ctx context.Context, jobID uuid.UUID) (*GetVocalAnimationJobResponse, error) {
-	return c.GetVocalAnimationJobWithResult[GetVocalAnimationJobResponse](ctx, jobID)
-}
-
-// Poll a `/v2/vocal-animation` job.
-//
-// Mouth positions stream in as they are produced, so `completed_visemes` fills up
-// while the job runs. On completion, a `character_id` job has saved the set onto the
-// character; a `portrait` job returns the frames in `visemes`.
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /vocal-animation/{job_id}
-func (c *Client) GetVocalAnimationJobWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("vocal-animation", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -17383,15 +13418,8 @@ func (c *Client) GetVocalAnimationJobWithResult[R any](ctx context.Context, jobI
 		// Job status (and result when completed)
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetVocalAnimationJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetVocalAnimationJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17400,7 +13428,7 @@ func (c *Client) GetVocalAnimationJobWithResult[R any](ctx context.Context, jobI
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetVocalAnimationJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17462,24 +13490,6 @@ func (c *Client) GetVocalAnimationJobWithResult[R any](ctx context.Context, jobI
 //
 //	POST /talking-gif
 func (c *Client) TalkingGif(ctx context.Context, body TalkingGifRequest) (*TalkingGifResponse, error) {
-	return c.TalkingGifWithResult[TalkingGifResponse](ctx, body)
-}
-
-// Turn a line of text into an animated GIF of the character speaking it.
-//
-// **Free** — this spends no generations. It only re-orders mouth positions that
-// `POST /v2/vocal-animation` already produced, so the cost lands once per expression
-// and every line of dialogue after that is free. Returns immediately; there is no job
-// to poll.
-//
-// Provide **either** `character_id` (plus an optional `mood`) to use the positions
-// stored on a character, **or** `visemes` to pass them in directly.
-//
-// Mouth shapes come from the letters of `text`, so any latin-alphabet language works.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /talking-gif
-func (c *Client) TalkingGifWithResult[R any](ctx context.Context, body TalkingGifRequest) (*R, error) {
 	u := c.baseURL.JoinPath("talking-gif")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -17512,15 +13522,8 @@ func (c *Client) TalkingGifWithResult[R any](ctx context.Context, body TalkingGi
 		// The GIF
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*TalkingGifResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out TalkingGifResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17529,7 +13532,7 @@ func (c *Client) TalkingGifWithResult[R any](ctx context.Context, body TalkingGi
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(TalkingGifResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17571,25 +13574,6 @@ func (c *Client) TalkingGifWithResult[R any](ctx context.Context, body TalkingGi
 //
 //	POST /lip-sync
 func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResponse, error) {
-	return c.LipSyncWithResult[LipSyncResponse](ctx, body)
-}
-
-// Return the frame-by-frame plan for speaking a line — which mouth
-// position to show, for how long, and how far through the text it lands.
-//
-// **Free**, and nothing is rendered: use this instead of `/v2/talking-gif` when you
-// are animating in a game engine and want to drive the mouth yourself rather than
-// play a GIF.
-//
-// With `character_id` the response also carries `grid_url`, `row` and `viseme_order`,
-// which is everything needed to blit the right cell: column comes from each frame,
-// row from the chosen expression.
-//
-// Timings are exact here — unlike a GIF, an engine can hold a frame for any duration.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /lip-sync
-func (c *Client) LipSyncWithResult[R any](ctx context.Context, body LipSyncRequest) (*R, error) {
 	u := c.baseURL.JoinPath("lip-sync")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -17622,15 +13606,8 @@ func (c *Client) LipSyncWithResult[R any](ctx context.Context, body LipSyncReque
 		// The frame plan
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*LipSyncResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out LipSyncResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17639,7 +13616,7 @@ func (c *Client) LipSyncWithResult[R any](ctx context.Context, body LipSyncReque
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(LipSyncResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17699,43 +13676,6 @@ func (c *Client) LipSyncWithResult[R any](ctx context.Context, body LipSyncReque
 //
 //	POST /generate-font-pro
 func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProRequest) (*JobResponse, error) {
-	return c.GenerateFontProWithResult[JobResponse](ctx, body)
-}
-
-// Generate a styled pixel-art font from a text description.
-//
-// Produces an 80-glyph atlas plus a ready-to-use TrueType (`.ttf`) font with A-Z,
-// a-z, digits 0-9, and common game-UI punctuation. Returns immediately with a
-// background job ID. Poll `GET /v2/background-jobs/{job_id}`; when `status` is
-// `completed`, `last_response` contains `images[0]` (the glyph atlas PNG) and
-// `ttf_base64` (the font file as base64).
-//
-// **Price:** 15 subscription generations or at least $0.115 in credits. `glyph_px`
-// 8/12/16/24/32/64 is the native bitmap size per glyph.
-//
-// **Usage Pattern:**
-// 1. POST to this endpoint (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
-// 3. On `completed`: decode `ttf_base64` to a `.ttf`; `images[0]` is the atlas
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// response = client.generate_font_pro(
-//
-//	description="warm orange arcade font",
-//	weight="Bold",
-//	glyph_px=16,
-//
-// )
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /generate-font-pro
-func (c *Client) GenerateFontProWithResult[R any](ctx context.Context, body GenerateFontProRequest) (*R, error) {
 	u := c.baseURL.JoinPath("generate-font-pro")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -17768,15 +13708,8 @@ func (c *Client) GenerateFontProWithResult[R any](ctx context.Context, body Gene
 		// Font generation job accepted and processing
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17785,7 +13718,7 @@ func (c *Client) GenerateFontProWithResult[R any](ctx context.Context, body Gene
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17816,14 +13749,6 @@ func (c *Client) GenerateFontProWithResult[R any](ctx context.Context, body Gene
 //
 //	GET /generate-font-pro/{job_id}
 func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID uuid.UUID) (*GetGenerateFontProJobResponse, error) {
-	return c.GetGenerateFontProJobWithResult[GetGenerateFontProJobResponse](ctx, jobID)
-}
-
-// Get font-pro job status + result
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /generate-font-pro/{job_id}
-func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("generate-font-pro", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -17849,15 +13774,8 @@ func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, job
 		// Completed font metadata + download URLs (atlas + ttf)
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetGenerateFontProJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetGenerateFontProJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17866,7 +13784,7 @@ func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, job
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetGenerateFontProJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -17948,41 +13866,6 @@ func (c *Client) GetGenerateFontProJobWithResult[R any](ctx context.Context, job
 //
 //	POST /unzoom
 func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomResponse, error) {
-	return c.UnzoomWithResult[UnzoomResponse](ctx, body)
-}
-
-// Recover native-resolution pixel art from an upscaled image.
-//
-// Pixel art posted online is almost always scaled up — a 32x32 sprite saved at
-// 512x512. Feeding that to a generation endpoint as a reference wastes detail and
-// confuses the models, because every art pixel is a 16x16 block. This endpoint
-// detects the underlying pixel grid and downsamples back onto it, so you get the
-// 32x32 sprite the artist actually drew.
-//
-// Use it before sending user-supplied artwork to `create-image-bitforge`,
-// `image-to-pixelart` or any endpoint taking a style/reference image.
-//
-// Constraints:
-//   - Minimum 256x256 — grid detection needs enough pixels to find the lattice
-//   - Maximum area 2048x2048
-//   - **The result is opaque**: transparency is composited onto white. Run
-//     `/remove-background` on the result if you need a cut-out.
-//
-// Works best on exact nearest-neighbour upscales; uneven grids (e.g. AI renders)
-// can come back at the wrong size.
-//
-// ```bash
-//
-//	curl -X POST https://api.pixellab.ai/v2/unzoom \
-//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
-//	    -H "Content-Type: application/json" \
-//	    -d '{"image": {"base64": "iVBORw0KGgoAAAANS..."}}'
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /unzoom
-func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest) (*R, error) {
 	u := c.baseURL.JoinPath("unzoom")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18015,15 +13898,8 @@ func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest
 		// Successfully unzoomed
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UnzoomResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UnzoomResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18032,7 +13908,7 @@ func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UnzoomResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18083,34 +13959,6 @@ func (c *Client) UnzoomWithResult[R any](ctx context.Context, body UnzoomRequest
 //
 //	POST /correct-pixelart
 func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartRequest) (*ImagesResponse, error) {
-	return c.CorrectPixelartWithResult[ImagesResponse](ctx, body)
-}
-
-// Clean up and refine existing pixel art without changing its size.
-//
-// Sharpens edges and removes stray and anti-aliased pixels. There is no palette
-// step. Use it on native-size art damaged by JPEG, blur or noise, or on hand-drawn
-// art that needs tidying.
-//
-// This does NOT resize. If your image is upscaled (each art pixel a block of screen
-// pixels), run `/unzoom` first.
-//
-// - Maximum area 1024x1024
-// - Transparency is preserved
-// - `strength` 0.0-1.0: start at 0.1 and raise it only if the art needs real repair
-//
-// ```bash
-//
-//	curl -X POST https://api.pixellab.ai/v2/correct-pixelart \
-//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
-//	    -H "Content-Type: application/json" \
-//	    -d '{"images": [{"base64": "iVBORw0KGgoAAAANS..."}], "strength": 0.1}'
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /correct-pixelart
-func (c *Client) CorrectPixelartWithResult[R any](ctx context.Context, body CorrectPixelartRequest) (*R, error) {
 	u := c.baseURL.JoinPath("correct-pixelart")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18143,15 +13991,8 @@ func (c *Client) CorrectPixelartWithResult[R any](ctx context.Context, body Corr
 		// Successfully corrected
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImagesResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImagesResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18160,7 +14001,7 @@ func (c *Client) CorrectPixelartWithResult[R any](ctx context.Context, body Corr
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImagesResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18216,39 +14057,6 @@ func (c *Client) CorrectPixelartWithResult[R any](ctx context.Context, body Corr
 //
 //	POST /reduce-colors
 func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*ReduceColorsResponse, error) {
-	return c.ReduceColorsWithResult[ReduceColorsResponse](ctx, body)
-}
-
-// Quantize images onto a smaller, shared palette.
-//
-// Pixel art reads as pixel art partly because of its restricted palette. AI output
-// and converted artwork often carry hundreds of near-identical colors; this snaps
-// them onto a tight palette, optionally with ordered dithering.
-//
-// Passing several frames in one call is the point of the endpoint: they are
-// quantized together, so an animation or a character's eight directions come back
-// sharing ONE palette instead of drifting apart frame by frame.
-//
-// Three ways to choose the palette:
-// - omit `num_colors` and `palette_image` — the palette size is auto-detected
-// - `num_colors` — quantize to exactly this many colors
-// - `palette_image` — reuse the colors of an existing image (your game's palette)
-//
-// Total size limit across all frames is 512x512 worth of pixels (e.g. sixteen
-// 64x64 frames, or four 128x128).
-//
-// ```bash
-//
-//	curl -X POST https://api.pixellab.ai/v2/reduce-colors \
-//	    -H "Authorization: Bearer YOUR_API_TOKEN" \
-//	    -H "Content-Type: application/json" \
-//	    -d '{"images": [{"base64": "..."}, {"base64": "..."}], "num_colors": 16}'
-//
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /reduce-colors
-func (c *Client) ReduceColorsWithResult[R any](ctx context.Context, body ReduceColorsRequest) (*R, error) {
 	u := c.baseURL.JoinPath("reduce-colors")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18281,15 +14089,8 @@ func (c *Client) ReduceColorsWithResult[R any](ctx context.Context, body ReduceC
 		// Successfully quantized
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ReduceColorsResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ReduceColorsResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18298,7 +14099,7 @@ func (c *Client) ReduceColorsWithResult[R any](ctx context.Context, body ReduceC
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ReduceColorsResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18356,41 +14157,6 @@ func (c *Client) ReduceColorsWithResult[R any](ctx context.Context, body ReduceC
 //
 //	POST /remove-background
 func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
-	return c.RemoveBackgroundWithResult[ImageResponse](ctx, body)
-}
-
-// Remove the background from a pixel art image, producing a transparent PNG.
-//
-// Supported image size:
-// - Maximum area 400x400
-//
-// **Background Removal Tasks:**
-// - `remove_simple_background` (default) — Faster, works well for simple/solid backgrounds
-// - `remove_complex_background` — Slower, better for complex edges and detailed backgrounds
-//
-// **Optional text hint:** Provide a description of the foreground object to improve accuracy.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character.png")
-//
-// result = client.remove_background(
-//
-//	image=source_img,
-//	image_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_no_bg.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /remove-background
-func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body RemoveBackgroundRequest) (*R, error) {
 	u := c.baseURL.JoinPath("remove-background")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18423,15 +14189,8 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 		// Successfully removed background
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18440,7 +14199,7 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18506,49 +14265,6 @@ func (c *Client) RemoveBackgroundWithResult[R any](ctx context.Context, body Rem
 //
 //	POST /normal-map
 func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResponse, error) {
-	return c.NormalMapWithResult[JobResponse](ctx, body)
-}
-
-// Make the normal map of a sprite, so a game engine can light it.
-//
-// The map is a PNG the sprite's size: RGB = which way each pixel faces (red right,
-// green up in the `opengl` convention, blue toward the viewer), alpha 255 wherever the
-// sprite shows and 0 elsewhere.
-// Each part of the sprite gets its own 3D shape, so a moving light shades it like a
-// model. An animation is sent and returned as a horizontal strip, one map per frame,
-// made from one plan so the light stays steady.
-//
-// ### Pro or Lite
-// `mode` `pro` plans each part of the picture: its shape, what is in front, what is sunk
-// (cracks, gaps). `lite` makes the map from the art alone in about a second, for less.
-//
-// ### Look
-// `kind` says what the picture is: `character`, `object`, `topdown`, `side` (a side view:
-// sidescroller tiles, a landscape), `iso` (isometric) or `ui`. Left out, it is read from
-// the picture; set it for sidescroller, isometric and UI art, which are easy to mistake
-// for something else.
-//
-// `strength`, `outline_rounding`, `part_shapes`, `surface_detail` and `detail_softness`
-// tune the map: how far it bends light, how much the outline and the sprite's parts round
-// off, and how much the art's own light and dark become bumps. Each one left out starts
-// where the kind puts it (an isometric box gets flat faces); the job's
-// `last_response.look` says all five.
-//
-// ### Sizes
-// Each frame 8 to 512 px per side, up to 32 frames. Any number of colours. Crop or
-// split a bigger picture; never rescale pixel art.
-//
-// ### Cost
-// Pro 0.5 generation, Lite 0.1 generation, charged only when the map is delivered.
-//
-// ### Usage
-// 1. POST here (returns `background_job_id`)
-// 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds (15-60 s)
-// 3. When `status` is `completed`, the map is `last_response.image` (PNG base64)
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /normal-map
-func (c *Client) NormalMapWithResult[R any](ctx context.Context, body NormalMapRequest) (*R, error) {
 	u := c.baseURL.JoinPath("normal-map")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18581,15 +14297,8 @@ func (c *Client) NormalMapWithResult[R any](ctx context.Context, body NormalMapR
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*JobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18598,7 +14307,7 @@ func (c *Client) NormalMapWithResult[R any](ctx context.Context, body NormalMapR
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(JobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18665,47 +14374,6 @@ func (c *Client) NormalMapWithResult[R any](ctx context.Context, body NormalMapR
 //
 //	POST /resize
 func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {
-	return c.ResizeWithResult[ImageResponse](ctx, body)
-}
-
-// Intelligently resize pixel art images while maintaining pixel art aesthetics.
-//
-// Supported image sizes:
-// - Minimum area 16x16 and maximum area 200x200 (both source and target)
-//
-// Supported features:
-// - Init image
-// - Forced palette
-// - Transparent background
-//
-// **Best practices:**
-// - For best results, resize iteratively in small steps
-// - Recommended: At most 50% decrease or 2x increase per resize
-// - Example: 32x32 → 64x64 (2x) is good, 32x32 → 128x128 (4x) should be done in two steps
-//
-// Using the Python client:
-// ```python
-// import pixellab
-// from PIL import Image
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-//
-// source_img = Image.open("character_32x32.png")
-//
-// result = client.resize(
-//
-//	description="cute wizard with blue robe",
-//	reference_image=source_img,
-//	reference_image_size=dict(width=32, height=32),
-//	target_size=dict(width=64, height=64),
-//
-// )
-// result.image.pil_image().save("character_64x64.png")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /resize
-func (c *Client) ResizeWithResult[R any](ctx context.Context, body ResizeRequest) (*R, error) {
 	u := c.baseURL.JoinPath("resize")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18738,15 +14406,8 @@ func (c *Client) ResizeWithResult[R any](ctx context.Context, body ResizeRequest
 		// Successfully resized image
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18755,7 +14416,7 @@ func (c *Client) ResizeWithResult[R any](ctx context.Context, body ResizeRequest
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18794,19 +14455,6 @@ func (c *Client) ResizeWithResult[R any](ctx context.Context, body ResizeRequest
 //
 //	POST /enhance-pixen-prompt
 func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPromptRequest) (*EnhancedPromptResponse, error) {
-	return c.EnhancePixenPromptWithResult[EnhancedPromptResponse](ctx, body)
-}
-
-// Enhance a Pixen image description.
-//
-// Returns a more detailed, model-friendly prompt that produces better results when passed
-// to `/v2/create-image-pixen`. The enhanced description scales detail to `image_size`
-// (small images get short focused prompts, large images get rich detail) and respects
-// `outline`, `detail`, `view`, `direction`, and `no_background`.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /enhance-pixen-prompt
-func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body EnhancePixenPromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-pixen-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18839,15 +14487,8 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 		// Successfully enhanced prompt
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*EnhancedPromptResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out EnhancedPromptResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18856,7 +14497,7 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(EnhancedPromptResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18889,19 +14530,6 @@ func (c *Client) EnhancePixenPromptWithResult[R any](ctx context.Context, body E
 //
 //	POST /enhance-character-v3-prompt
 func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceCharacterV3PromptRequest) (*EnhancedPromptResponse, error) {
-	return c.EnhanceCharacterV3PromptWithResult[EnhancedPromptResponse](ctx, body)
-}
-
-// Enhance a v3 character description.
-//
-// Returns a more detailed, model-friendly prompt for `/v2/create-character-v3`. The
-// enhanced description never mentions facing direction (v3 rotates south-facing into
-// 8 directions automatically) and never describes a background (v3 always renders
-// transparent).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /enhance-character-v3-prompt
-func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, body EnhanceCharacterV3PromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-character-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -18934,15 +14562,8 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 		// Successfully enhanced prompt
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*EnhancedPromptResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out EnhancedPromptResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18951,7 +14572,7 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(EnhancedPromptResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -18995,30 +14616,6 @@ func (c *Client) EnhanceCharacterV3PromptWithResult[R any](ctx context.Context, 
 //
 //	POST /enhance-animation-v3-prompt
 func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnimationV3PromptRequest) (*EnhancedPromptResponse, error) {
-	return c.EnhanceAnimationV3PromptWithResult[EnhancedPromptResponse](ctx, body)
-}
-
-// Enhance an animation action description.
-//
-// Returns a richer motion description suitable for use as the `action` field of
-// `/v2/animate-with-text-v3`, or — with `engine: "pixminimax"` — as the
-// `description` of `/v2/animate-pixminimax` (send the sprite's facing to that route
-// as `direction`); `/v2/animate-pixminimax` can also do this step for you with
-// `enhance_prompt: true`.
-// Two modes:
-//
-//   - **Single-frame mode** (default): provide only `first_frame`. The enhanced prompt
-//     describes how the visible subject animates from that pose.
-//   - **Interpolation mode**: also provide `last_frame`. The enhanced prompt describes
-//     the motion that smoothly transitions between the two poses.
-//
-// The enhanced description is grounded in the visible image content (pose, props,
-// orientation, clothing) and does not introduce camera moves, cuts, or new objects
-// unless explicitly requested.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /enhance-animation-v3-prompt
-func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, body EnhanceAnimationV3PromptRequest) (*R, error) {
 	u := c.baseURL.JoinPath("enhance-animation-v3-prompt")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19051,15 +14648,8 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 		// Successfully enhanced prompt
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*EnhancedPromptResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out EnhancedPromptResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19068,7 +14658,7 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(EnhancedPromptResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19118,36 +14708,6 @@ func (c *Client) EnhanceAnimationV3PromptWithResult[R any](ctx context.Context, 
 //
 //	POST /image-to-text
 func (c *Client) ImageToText(ctx context.Context, body ImageToTextRequest) (*ImageToTextResponse, error) {
-	return c.ImageToTextWithResult[ImageToTextResponse](ctx, body)
-}
-
-// Describe an image, or ask anything about it.
-//
-// Send one `image` and get `text` back. Two modes:
-//
-//   - **Describe** (default): omit `prompt`. Returns a 1–3 sentence
-//     image-generation prompt covering subject, pose, notable details, style,
-//     lighting, camera angle and background — ready to paste into a `description`
-//     field of a create endpoint.
-//   - **Ask**: set `prompt` to your own instruction or question. It replaces the
-//     default instruction, so include everything you want the answer to follow
-//     (length, format, what to focus on).
-//
-// The default instruction is:
-//
-// > You are an expert prompt engineer for image generation. Describe the image in 1–3 sentences as an image-generation prompt. Include: subject, pose, notable details, style, lighting, camera angle, background. Avoid speculation about sensitive attributes. Keep it concise.
-//
-// **Cost:** a small fraction of a generation — typically around 0.09 for a
-// sprite or screenshot, more for a long answer. The exact amount is
-// returned in `usage`.
-//
-// Small pixel art is enlarged (whole-number nearest-neighbour) before it is read.
-// When the image has transparency, the model is told so, in both modes — a sprite
-// is described as having a transparent background, not a white one.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /image-to-text
-func (c *Client) ImageToTextWithResult[R any](ctx context.Context, body ImageToTextRequest) (*R, error) {
 	u := c.baseURL.JoinPath("image-to-text")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19180,15 +14740,8 @@ func (c *Client) ImageToTextWithResult[R any](ctx context.Context, body ImageToT
 		// Text returned
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ImageToTextResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ImageToTextResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19197,7 +14750,7 @@ func (c *Client) ImageToTextWithResult[R any](ctx context.Context, body ImageToT
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ImageToTextResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19269,50 +14822,6 @@ func (c *Client) ImageToTextWithResult[R any](ctx context.Context, body ImageToT
 //
 //     GET /background-jobs/{job_id}
 func (c *Client) GetBackgroundJob(ctx context.Context, jobID uuid.UUID) (*GetBackgroundJobResponse, error) {
-	return c.GetBackgroundJobWithResult[GetBackgroundJobResponse](ctx, jobID)
-}
-
-// Check the status and results of a background job.
-//
-// This endpoint allows you to monitor the progress of background operations like
-// character creation and animation generation. Background jobs are used for
-// expensive operations that take time to complete.
-//
-// **Job Statuses:**
-// - `processing` - Job is currently running
-// - `completed` - Job finished successfully
-// - `failed` - Job encountered an error
-//
-// **Usage Pattern:**
-// 1. Create a character or animation (returns `background_job_id`)
-// 2. Poll this endpoint periodically to check status
-// 3. When status is `completed`, access results in `last_response`
-//
-// **Response Data:**
-// - For character creation: `character_id`, `directions_count`, character info
-// - For animations: `animation_id`, `frame_count`, animation details
-// - Storage information and file organization details
-//
-// **Authentication:**
-// Requires a valid API token. You can only access jobs you created.
-//
-// **Error Handling:**
-// - 404: Job not found or doesn't belong to you
-// - Jobs are automatically cleaned up after completion
-//
-// **Polling Recommendations:**
-//   - Poll every 5-10 seconds while status is `processing`
-//   - Stop polling once status is `completed` or `failed`
-//   - While `processing`, `last_response.queue_position` and
-//     `last_response.estimated_wait_seconds` show a job waiting for a GPU
-//   - To stop a job, `DELETE /v2/background-jobs/{job_id}`
-//   - Character creation typically takes 30-60 seconds
-//   - Animations may take longer depending on frame count and directions
-//
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /background-jobs/{job_id}
-func (c *Client) GetBackgroundJobWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("background-jobs", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -19338,15 +14847,8 @@ func (c *Client) GetBackgroundJobWithResult[R any](ctx context.Context, jobID uu
 		// Successfully retrieved job status
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetBackgroundJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetBackgroundJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19355,7 +14857,7 @@ func (c *Client) GetBackgroundJobWithResult[R any](ctx context.Context, jobID uu
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetBackgroundJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19419,25 +14921,6 @@ func (c *Client) GetBackgroundJobWithResult[R any](ctx context.Context, jobID uu
 //
 //     DELETE /background-jobs/{job_id}
 func (c *Client) CancelBackgroundJob(ctx context.Context, jobID uuid.UUID) (*CancelBackgroundJobResponse, error) {
-	return c.CancelBackgroundJobWithResult[CancelBackgroundJobResponse](ctx, jobID)
-}
-
-// Cancel a background job that is still `processing`.
-//
-//   - Frees your concurrency slot immediately, so you can submit new work.
-//   - A job still waiting in the queue is removed and not charged. Billing only
-//     covers work a GPU actually did, so a generation that is already running may
-//     still finish and be charged.
-//   - A job you resubmit starts at the back of the queue. While a job is
-//     `processing`, `last_response.queue_position` and
-//     `last_response.estimated_wait_seconds` (from GET
-//     `/v2/background-jobs/{job_id}`) show that it is waiting for a GPU. A waiting
-//     job is not stuck, and cancelling it to resubmit makes the wait longer.
-//
-// You can define a custom result to unmarshal the response into.
-//
-//	DELETE /background-jobs/{job_id}
-func (c *Client) CancelBackgroundJobWithResult[R any](ctx context.Context, jobID uuid.UUID) (*R, error) {
 	u := c.baseURL.JoinPath("background-jobs", jobID.String())
 	req := (&http.Request{
 		Header: http.Header{
@@ -19463,15 +14946,8 @@ func (c *Client) CancelBackgroundJobWithResult[R any](ctx context.Context, jobID
 		// Job cancelled
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CancelBackgroundJobResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CancelBackgroundJobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19480,7 +14956,7 @@ func (c *Client) CancelBackgroundJobWithResult[R any](ctx context.Context, jobID
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CancelBackgroundJobResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19546,25 +15022,6 @@ func (c *Client) CancelBackgroundJobWithResult[R any](ctx context.Context, jobID
 //
 //	POST /create-image-pro-flash
 func (c *Client) CreateImageProFlash(ctx context.Context, body CreateImageProFlashRequest) (*ProFlashImageResponse, error) {
-	return c.CreateImageProFlashWithResult[ProFlashImageResponse](ctx, body)
-}
-
-// Create one native pixel-art image with an optional left-box style image.
-//
-// Poll GET /v2/background-jobs/{background_job_id}; completed last_response
-// contains encoded PNGs, image_url, source_image_id and actual billing usage.
-// Download through /mcp/images/{background_job_id}/download. Save the durable
-// source_image_id for later Pro Flash character/object rotations. Five image
-// generation units provisionally; query /v2/pro-flash/cost for current pricing.
-//
-// Optional colour palette (`target_palette`, beta): 2-256 hex colours the image
-// is drawn for and every result pixel is put on (1-bit, Game Boy, PICO-8, any
-// Lospec palette as hex), plus an optional `max_colors` cap. The style image
-// keeps lending its look; its colours give way to the palette.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-image-pro-flash
-func (c *Client) CreateImageProFlashWithResult[R any](ctx context.Context, body CreateImageProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-image-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19597,15 +15054,8 @@ func (c *Client) CreateImageProFlashWithResult[R any](ctx context.Context, body 
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ProFlashImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ProFlashImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19614,7 +15064,7 @@ func (c *Client) CreateImageProFlashWithResult[R any](ctx context.Context, body 
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ProFlashImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19661,18 +15111,6 @@ func (c *Client) CreateImageProFlashWithResult[R any](ctx context.Context, body 
 //
 //	POST /edit-image-pro-flash
 func (c *Client) EditImageProFlash(ctx context.Context, body EditImageProFlashRequest) (*ProFlashImageResponse, error) {
-	return c.EditImageProFlashWithResult[ProFlashImageResponse](ctx, body)
-}
-
-// Edit one image at a supported native size using an instruction or reference.
-//
-// Query /v2/pro-flash/capabilities for exact native shapes. The source canvas
-// never grows or resizes. Reference art must fit the source canvas. Poll
-// /v2/background-jobs/{background_job_id}, then use its image_url or download.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /edit-image-pro-flash
-func (c *Client) EditImageProFlashWithResult[R any](ctx context.Context, body EditImageProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("edit-image-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19705,15 +15143,8 @@ func (c *Client) EditImageProFlashWithResult[R any](ctx context.Context, body Ed
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ProFlashImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ProFlashImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19722,7 +15153,7 @@ func (c *Client) EditImageProFlashWithResult[R any](ctx context.Context, body Ed
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ProFlashImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19771,20 +15202,6 @@ func (c *Client) EditImageProFlashWithResult[R any](ctx context.Context, body Ed
 //
 //	POST /inpaint-image-pro-flash
 func (c *Client) InpaintImageProFlash(ctx context.Context, body InpaintImageProFlashRequest) (*ProFlashImageResponse, error) {
-	return c.InpaintImageProFlashWithResult[ProFlashImageResponse](ctx, body)
-}
-
-// Replace only white mask pixels, preserving unmasked RGBA exactly.
-//
-// Source and mask must have identical supported native dimensions. Mask RGB
-// must be pure black/white; alpha does not change mask meaning. Empty masks
-// are rejected. Changes-only outputs are transparent outside the mask;
-// Modify current layer returns the full composite. Optional native context
-// requires its source bounding_box. Poll the returned background job.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /inpaint-image-pro-flash
-func (c *Client) InpaintImageProFlashWithResult[R any](ctx context.Context, body InpaintImageProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("inpaint-image-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19817,15 +15234,8 @@ func (c *Client) InpaintImageProFlashWithResult[R any](ctx context.Context, body
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*ProFlashImageResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out ProFlashImageResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19834,7 +15244,7 @@ func (c *Client) InpaintImageProFlashWithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(ProFlashImageResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19884,21 +15294,6 @@ func (c *Client) InpaintImageProFlashWithResult[R any](ctx context.Context, body
 //
 //	POST /create-character-pro-flash
 func (c *Client) CreateCharacterProFlash(ctx context.Context, body CreateCharacterProFlashRequest) (*CreateCharacterProFlashResponse, error) {
-	return c.CreateCharacterProFlashWithResult[CreateCharacterProFlashResponse](ctx, body)
-}
-
-// Generate a south-facing image from description, then create eight V3 views.
-//
-// First-direction generation is included in this one call. Supply image_size
-// and optional style_image to guide creation. Alternatively pass source_image_id
-// or first_frame to reuse a chosen south-facing image and pay only for rotations.
-// Pixels are preserved with transparent padding to the square V3 canvas.
-// Poll the job for itemized billing_stages and combined usage, then read
-// /v2/characters/{character_id} or download /mcp/characters/{character_id}/download.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-character-pro-flash
-func (c *Client) CreateCharacterProFlashWithResult[R any](ctx context.Context, body CreateCharacterProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-character-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -19931,15 +15326,8 @@ func (c *Client) CreateCharacterProFlashWithResult[R any](ctx context.Context, b
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateCharacterProFlashResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateCharacterProFlashResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19948,7 +15336,7 @@ func (c *Client) CreateCharacterProFlashWithResult[R any](ctx context.Context, b
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateCharacterProFlashResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -19999,22 +15387,6 @@ func (c *Client) CreateCharacterProFlashWithResult[R any](ctx context.Context, b
 //
 //	POST /create-object-pro-flash
 func (c *Client) CreateObjectProFlash(ctx context.Context, body CreateObjectProFlashRequest) (*CreateObjectProFlashResponse, error) {
-	return c.CreateObjectProFlashWithResult[CreateObjectProFlashResponse](ctx, body)
-}
-
-// Generate a south-facing object from description and optionally add V3 views.
-//
-// First-direction generation is included in this one call. Set image_size and
-// optional style_image; n_directions=1 generates one image, n_directions=8 also
-// generates rotations. Alternatively pass source_image_id or first_frame to
-// reuse a chosen image: one-direction finalization is then free and eight views
-// charge only rotations. Objects have no skeleton. The job reports billing_stages.
-// Poll the job, then read /v2/objects/{object_id}; download through
-// /mcp/objects/{object_id}/download (one-direction PNG or eight-direction ZIP).
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /create-object-pro-flash
-func (c *Client) CreateObjectProFlashWithResult[R any](ctx context.Context, body CreateObjectProFlashRequest) (*R, error) {
 	u := c.baseURL.JoinPath("create-object-pro-flash")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -20047,15 +15419,8 @@ func (c *Client) CreateObjectProFlashWithResult[R any](ctx context.Context, body
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*CreateObjectProFlashResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out CreateObjectProFlashResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20064,7 +15429,7 @@ func (c *Client) CreateObjectProFlashWithResult[R any](ctx context.Context, body
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(CreateObjectProFlashResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20268,24 +15633,6 @@ func (c *Client) GetProFlashCost(ctx context.Context, params GetProFlashCostPara
 //
 //	GET /balance
 func (c *Client) GetBalance(ctx context.Context) (*GetBalanceResponse, error) {
-	return c.GetBalanceWithResult[GetBalanceResponse](ctx)
-}
-
-// Returns the current balance for your account, including both USD credits and remaining subscription generations.
-//
-// Using the Python client:
-// ```python
-// import pixellab
-//
-// client = pixellab.Client(secret="YOUR_API_TOKEN")
-// balance = client.get_balance()
-// print(f"Credits: ${balance.credits.usd}")
-// print(f"Generations remaining: {balance.subscription.generations}/{balance.subscription.total}")
-// ```
-// You can define a custom result to unmarshal the response into.
-//
-//	GET /balance
-func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 	u := c.baseURL.JoinPath("balance")
 	req := (&http.Request{
 		Header: http.Header{
@@ -20311,15 +15658,8 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 		// Successfully retrieved balance
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*GetBalanceResponse); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out GetBalanceResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20328,7 +15668,7 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(GetBalanceResponse)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20352,16 +15692,6 @@ func (c *Client) GetBalanceWithResult[R any](ctx context.Context) (*R, error) {
 //
 //	POST /uploads
 func (c *Client) CreateUpload(ctx context.Context, body UploadRequest) (*UploadedImage, error) {
-	return c.CreateUploadWithResult[UploadedImage](ctx, body)
-}
-
-// Store an image for 3 days and return the reference tools accept.
-//
-// Free: no generation runs, so nothing is charged.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /uploads
-func (c *Client) CreateUploadWithResult[R any](ctx context.Context, body UploadRequest) (*R, error) {
 	u := c.baseURL.JoinPath("uploads")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -20394,15 +15724,8 @@ func (c *Client) CreateUploadWithResult[R any](ctx context.Context, body UploadR
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UploadedImage); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UploadedImage
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20411,7 +15734,7 @@ func (c *Client) CreateUploadWithResult[R any](ctx context.Context, body UploadR
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UploadedImage)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20458,18 +15781,6 @@ func (c *Client) CreateUploadWithResult[R any](ctx context.Context, body UploadR
 //
 //	POST /uploads/{ticket}
 func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body UploadRequest) (*UploadedImage, error) {
-	return c.UploadWithTicketWithResult[UploadedImage](ctx, ticket, body)
-}
-
-// Same upload, authorised by the URL instead of a bearer token.
-//
-// For agents that hold an MCP connection but cannot read its token: the MCP
-// tool `get_upload_url` returns a URL that works here for 15 minutes. The
-// ticket only uploads, and only as the user it was issued to.
-// You can define a custom result to unmarshal the response into.
-//
-//	POST /uploads/{ticket}
-func (c *Client) UploadWithTicketWithResult[R any](ctx context.Context, ticket string, body UploadRequest) (*R, error) {
 	u := c.baseURL.JoinPath("uploads", url.PathEscape(ticket))
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -20502,15 +15813,8 @@ func (c *Client) UploadWithTicketWithResult[R any](ctx context.Context, ticket s
 		// Successful Response
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out R
-
-			// a type of the caller's own declares only what it needs of the response, so it is decoded leniently
-			opts := jsonOptsLenient
-			if _, ok := any(&out).(*UploadedImage); ok {
-				opts = jsonOpts
-			}
-
-			if err := json.UnmarshalRead(rsp.Body, &out, opts); err != nil {
+			var out UploadedImage
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if ia == nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}
@@ -20519,7 +15823,7 @@ func (c *Client) UploadWithTicketWithResult[R any](ctx context.Context, ticket s
 					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
 				}
 
-				out = *new(R)
+				out = *new(UploadedImage)
 				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
 					return nil, api.WrapDecodingError(rsp, err)
 				}

@@ -31,7 +31,7 @@ var jsonOpts = json.JoinOptions(
 )
 
 // jsonOptsLenient is jsonOpts accepting members the specification does not know, as debug mode decodes once a strict
-// decoding failed, and as a caller's own type of a result is decoded.
+// decoding failed.
 var jsonOptsLenient = json.JoinOptions(jsonOpts, json.RejectUnknownMembers(false))
 
 // ListCharactersParams holds the query parameters for ListCharacters.
@@ -3804,8 +3804,8 @@ func (v *JobImages) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	// leniently, more than one may match, and the first does
 	if strict || matched == 0 {
 		// decoding checks neither the members the alternative requires nor those it pins to one value
-		required, pinned := []string{"east", "north", "south", "west"}, map[string]string{}
-		if jsonFits(raw, required, pinned) {
+		required, nullable, pinned := []string{"east", "north", "south", "west"}, map[string]bool{}, map[string]string{}
+		if jsonFits(raw, required, nullable, pinned) {
 			var vv DirectionalImages
 			if err := json.Unmarshal(raw, &vv, opts); err == nil {
 				v.DirectionalImages = &vv
@@ -6203,6 +6203,8 @@ type jsonVariant struct {
 	value    string
 	members  map[string]bool
 	required []string
+	// nullable are the members of required that may be null
+	nullable map[string]bool
 	// pinned are the members it allows one value for, written as compact JSON
 	pinned map[string]string
 	// enums are the members it allows the values of an enum for, written so
@@ -6256,8 +6258,9 @@ func jsonEnumPasses(strict bool) []bool {
 }
 
 // jsonFits reports whether the JSON value raw has the members required, and those of pinned it has with the value
-// each pins, written as compact JSON. Any value fits where nothing is required or pinned.
-func jsonFits(raw jsontext.Value, required []string, pinned map[string]string) bool {
+// each pins, written as compact JSON. A member that is null is there only where nullable allows it to be. Any value
+// fits where nothing is required or pinned.
+func jsonFits(raw jsontext.Value, required []string, nullable map[string]bool, pinned map[string]string) bool {
 	if len(required) == 0 && len(pinned) == 0 {
 		return true
 	}
@@ -6286,7 +6289,7 @@ func jsonFits(raw jsontext.Value, required []string, pinned map[string]string) b
 			return false
 		}
 
-		present[name] = true
+		present[name] = val.Kind() != jsontext.KindNull || nullable[name]
 
 		if want, ok := pinned[name]; ok {
 			got := val.Clone()
@@ -6345,7 +6348,7 @@ func jsonChooseVariants(raw jsontext.Value, discriminator string, variants []jso
 	} else {
 	variants:
 		for i, v := range variants {
-			if !jsonFits(raw, v.required, v.pinned) {
+			if !jsonFits(raw, v.required, v.nullable, v.pinned) {
 				continue variants
 			}
 
