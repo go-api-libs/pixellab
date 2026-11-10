@@ -36406,4 +36406,8 @@ func TestClient_Interactions(t *testing.T) {
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
 		t.Fatalf("CreateCharacterAnimation: got: %T, want: *HTTPValidationError", err)
 	}
+
+	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1f2ccd9d-218c-4031-a2ab-e8283543738a")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	}
 }

@@ -1831,5 +1831,58 @@
 				"detail": "Generation failed"
 			}
 		}
+	},	
+	
+	
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/1f2ccd9d-218c-4031-a2ab-e8283543738a",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json",
+				"Date": "Tue, 10 Nov 2026 22:32:01 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "generations",
+					"generations": 3.0
+				},
+				"id": "1f2ccd9d-218c-4031-a2ab-e8283543738a",
+				"status": "completed",
+				"created_at": "2026-11-10T22:08:51.638994+00:00",
+				"last_response": {
+					"status": "completed",
+					"character_id": "18036593-b14a-4fda-9e5b-b9d882501173",
+					"storage_urls": {
+						"east": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/east.png",
+						"west": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/west.png",
+						"north": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north.png",
+						"south": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south.png",
+						"north-east": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-east.png",
+						"north-west": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-west.png",
+						"south-east": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-east.png",
+						"south-west": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-west.png"
+					},
+					"billing_usage": {
+						"type": "generations",
+						"generations": 3.0
+					},
+					"character_name": "A featureless mannequin. Plain grey all over, with",
+					"directions_type": "8-directions",
+					"generation_mode": "pixen_v3",
+					"directions_count": 8,
+					"character_description": "A featureless mannequin. Plain grey all over, with no face and no hair. A large white question mark on the chest."
+				}
+			}
+		}
 	}
 ]

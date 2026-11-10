@@ -12466,12 +12466,12 @@
             "example": "generations"
           },
           "generations": {
-            "type": "integer",
-            "example": 1
+            "type": "number",
+            "format": "double",
+            "example": 3.0
           }
         },
         "required": [
-          "usd",
           "type",
           "generations"
         ]
@@ -12506,6 +12506,26 @@
               "format": "uri",
               "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
             }
+          },
+          "north-east": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-east.png"
+          },
+          "north-west": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-west.png"
+          },
+          "south-east": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-east.png"
+          },
+          "south-west": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-west.png"
           }
         }
       },

@@ -3081,18 +3081,22 @@ type GetBackgroundJobResponseLastResponse struct {
 
 // GetBackgroundJobResponseLastResponseBillingUsage defines a model
 type GetBackgroundJobResponseLastResponseBillingUsage struct {
-	Usd         float64 `json:"usd"`
-	Type        string  `json:"type"`
-	Generations int     `json:"generations"`
+	Usd         *float64 `json:"usd,omitzero"`
+	Type        string   `json:"type"`
+	Generations float64  `json:"generations"`
 }
 
 // GetBackgroundJobResponseLastResponseStorageURLs defines a model
 type GetBackgroundJobResponseLastResponseStorageURLs struct {
-	East   url.URL   `json:"east,omitzero"`
-	West   url.URL   `json:"west,omitzero"`
-	North  url.URL   `json:"north,omitzero"`
-	South  url.URL   `json:"south,omitzero"`
-	Frames []url.URL `json:"frames,omitzero"`
+	East      url.URL   `json:"east,omitzero"`
+	West      url.URL   `json:"west,omitzero"`
+	North     url.URL   `json:"north,omitzero"`
+	South     url.URL   `json:"south,omitzero"`
+	Frames    []url.URL `json:"frames,omitzero"`
+	NorthEast url.URL   `json:"north-east,omitzero"`
+	NorthWest url.URL   `json:"north-west,omitzero"`
+	SouthEast url.URL   `json:"south-east,omitzero"`
+	SouthWest url.URL   `json:"south-west,omitzero"`
 }
 
 // GetBackgroundJobResponseLastResponseUsage defines a model
