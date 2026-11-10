@@ -29,6 +29,8 @@ specification in five steps:
    `DirectionalImages`, `Images` and `JobImages`, either of the two.
 5. **Generate**: write `api/openapi.json`, the library with `openapi-codegen`,
    and `pkg/pixellab/image_size.go`, a checked constructor per request size.
+   The library's tests replay `api/interactions.json` through the client, so a
+   response the API sent that the library cannot read fails them.
 
 Every rule finds what it changes by what upstream cannot rename without
 changing the API, a method and path or a schema's shape, never by a name a pass
