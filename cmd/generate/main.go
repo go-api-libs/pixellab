@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"slices"
 
 	"github.com/MarkRosemaker/cassette"
 	"github.com/MarkRosemaker/openapi"
@@ -71,8 +70,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// the placeholder for the next interaction to record has no response
-	ias = slices.DeleteFunc(ias, func(ia *cassette.Interaction) bool { return ia.Response.StatusCode == 0 })
+	// rewrite to reformat
+	if err := ias.WriteFile(interactionsPath); err != nil {
+		return err
+	}
 
 	if err := applyPasses(doc, ias); err != nil {
 		return err

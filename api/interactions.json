@@ -1831,9 +1831,7 @@
 				"detail": "Generation failed"
 			}
 		}
-	},	
-	
-	
+	},
 	{
 		"request": {
 			"method": "GET",
