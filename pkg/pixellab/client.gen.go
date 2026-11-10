@@ -5636,7 +5636,7 @@ func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characte
 //
 //	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
 func (c *Client) DeleteCharacterAnimationDirectionWithResult[R any](ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", string(direction))
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", url.PathEscape(string(direction)))
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -17121,7 +17121,7 @@ func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID 
 //
 //	DELETE /characters/{character_id}/vocal-animation/{mood}
 func (c *Client) DeleteCharacterVocalAnimationWithResult[R any](ctx context.Context, characterID uuid.UUID, mood Mood) (*R, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", string(mood))
+	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", url.PathEscape(string(mood)))
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -20470,7 +20470,7 @@ func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body Uploa
 //
 //	POST /uploads/{ticket}
 func (c *Client) UploadWithTicketWithResult[R any](ctx context.Context, ticket string, body UploadRequest) (*R, error) {
-	u := c.baseURL.JoinPath("uploads", ticket)
+	u := c.baseURL.JoinPath("uploads", url.PathEscape(ticket))
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
