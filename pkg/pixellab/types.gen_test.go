@@ -517,95 +517,72 @@ func TestEnums_Valid(t *testing.T) {
 // choose the same variant again, and encode as before.
 func TestUnions_RoundTrip(t *testing.T) {
 	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportionsPreset", func(t *testing.T) {
-		v := CharacterProportionsPreset{}
-		v.Type = "preset"
-		v.Name = "default"
-
+		v := CharacterProportionsPreset{Type: "preset", Name: "default"}
 		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportionsPreset: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportionsPreset != nil })
 	})
 
 	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportions", func(t *testing.T) {
-		v := CharacterProportions{}
-		v.Type = "custom"
-
+		v := CharacterProportions{Type: "custom"}
 		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportions: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportions != nil })
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/MaskInpainting", func(t *testing.T) {
-		v := MaskInpainting{}
-		v.Type = "mask"
-
+		v := MaskInpainting{Type: "mask"}
 		roundTrip(t, CreateMapObjectRequestInpainting{MaskInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.MaskInpainting != nil })
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/OvalInpainting", func(t *testing.T) {
-		v := OvalInpainting{}
-		v.Type = "oval"
-
+		v := OvalInpainting{Type: "oval"}
 		roundTrip(t, CreateMapObjectRequestInpainting{OvalInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.OvalInpainting != nil })
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/RectangleInpainting", func(t *testing.T) {
-		v := RectangleInpainting{}
-		v.Type = "rectangle"
-
+		v := RectangleInpainting{Type: "rectangle"}
 		roundTrip(t, CreateMapObjectRequestInpainting{RectangleInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.RectangleInpainting != nil })
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPieceRect", func(t *testing.T) {
-		v := UIPieceRect{}
-		v.Kind = "rounded_rect"
-
+		v := UIPieceRect{Kind: "rounded_rect"}
 		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceRect: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceRect != nil })
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPieceCircle", func(t *testing.T) {
-		v := UIPieceCircle{}
-		v.Kind = "circle"
-
+		v := UIPieceCircle{Kind: "circle"}
 		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceCircle: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceCircle != nil })
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPiecePolygon", func(t *testing.T) {
-		v := UIPiecePolygon{}
-		v.Kind = "polygon"
-
+		v := UIPiecePolygon{Kind: "polygon"}
 		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPiecePolygon: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPiecePolygon != nil })
 	})
 
 	t.Run("HTTPValidationErrorDetail/String", func(t *testing.T) {
 		v := "sample"
-
 		roundTrip(t, HTTPValidationErrorDetail{String: v}, func(u HTTPValidationErrorDetail) bool { return u.String != "" })
 	})
 
 	t.Run("HTTPValidationErrorDetail/ValidationError", func(t *testing.T) {
 		v := []ValidationError{{}}
-
 		roundTrip(t, HTTPValidationErrorDetail{ValidationError: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationError != nil })
 	})
 
 	t.Run("JobImages/DirectionalImages", func(t *testing.T) {
 		v := DirectionalImages{}
-
 		roundTrip(t, JobImages{DirectionalImages: &v}, func(u JobImages) bool { return u.DirectionalImages != nil })
 	})
 
 	t.Run("JobImages/Images", func(t *testing.T) {
 		v := Images{Image{}}
-
 		roundTrip(t, JobImages{Images: v}, func(u JobImages) bool { return u.Images != nil })
 	})
 
 	t.Run("ValidationErrorLocItem/String", func(t *testing.T) {
 		v := "sample"
-
 		roundTrip(t, ValidationErrorLocItem{String: v}, func(u ValidationErrorLocItem) bool { return u.String != "" })
 	})
 
 	t.Run("ValidationErrorLocItem/Int", func(t *testing.T) {
 		v := 1
-
 		roundTrip(t, ValidationErrorLocItem{Int: &v}, func(u ValidationErrorLocItem) bool { return u.Int != nil })
 	})
 }
