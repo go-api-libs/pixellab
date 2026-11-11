@@ -5,18 +5,23 @@
 package pixellab
 
 import (
+	"bytes"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 	"uuid"
 
 	"github.com/MarkRosemaker/cassette"
@@ -36288,6 +36293,189 @@ func replay(t *testing.T) http.RoundTripper {
 	return rec
 }
 
+// lastBody passes requests on to next, and keeps the body of the last response, so that a test can compare what a call
+// decoded with what was sent.
+type lastBody struct {
+	next http.RoundTripper
+	body []byte
+}
+
+func (l *lastBody) RoundTrip(req *http.Request) (*http.Response, error) {
+	rsp, err := l.next.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rsp.Body.Close()
+
+	if l.body, err = io.ReadAll(rsp.Body); err != nil {
+		return nil, err
+	}
+
+	rsp.Body = io.NopCloser(bytes.NewReader(l.body))
+
+	return rsp, nil
+}
+
+// decodedAsSent fails unless out, what a call decoded from body, encodes to what body holds. A member one side lacks is
+// fine where the other holds nothing there (null, false, 0, "", [] or {}, or the zero text of a date or a time), as an
+// optional value left out is, and members may come in another order. A value may be written another way, as long as it
+// is the same: a time as the same instant, a UUID with or without dashes, a number as a string of it.
+func decodedAsSent(t *testing.T, op string, out any, body []byte) {
+	t.Helper()
+
+	encoded, err := json.Marshal(out, jsonOpts)
+	if err != nil {
+		t.Fatalf("%s: encoding what was decoded: %v", op, err)
+	}
+
+	var sent, got any
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("%s: the recorded body: %v", op, err)
+	}
+
+	if err := json.Unmarshal(encoded, &got); err != nil {
+		t.Fatalf("%s: %v", op, err)
+	}
+
+	if at, same := jsonSame(sent, got, ""); !same {
+		t.Errorf("%s: decoded something else than was sent, at %q:\nsent %s\ngot  %s", op, at, body, encoded)
+	}
+}
+
+// jsonSame reports whether the JSON values a and b, decoded into any, hold the same, as decodedAsSent compares them,
+// and where they first differ if not.
+func jsonSame(a, b any, at string) (string, bool) {
+	if jsonEmpty(a) && jsonEmpty(b) || jsonSameInstant(a, b) || jsonSameInstant(b, a) ||
+		jsonSameNumber(a, b) || jsonSameNumber(b, a) {
+		return "", true
+	}
+
+	switch a := a.(type) {
+	case map[string]any:
+		b, ok := b.(map[string]any)
+		if !ok {
+			return at, false
+		}
+
+		names := slices.Sorted(maps.Keys(a))
+		for name := range b {
+			if _, ok := a[name]; !ok {
+				names = append(names, name)
+			}
+		}
+
+		for _, name := range names {
+			if where, same := jsonSame(a[name], b[name], at+"/"+name); !same {
+				return where, false
+			}
+		}
+
+		return "", true
+	case []any:
+		b, ok := b.([]any)
+		if !ok || len(a) != len(b) {
+			return at, false
+		}
+
+		for i := range a {
+			if where, same := jsonSame(a[i], b[i], at+"/"+strconv.Itoa(i)); !same {
+				return where, false
+			}
+		}
+
+		return "", true
+	case string:
+		b, ok := b.(string)
+		if !ok {
+			return at, false
+		}
+
+		if a == b {
+			return "", true
+		}
+
+		if ua, ok := jsonUUID(a); ok {
+			if ub, ok := jsonUUID(b); ok {
+				return at, ua == ub
+			}
+		}
+
+		ta, errA := time.Parse(time.RFC3339Nano, a)
+		tb, errB := time.Parse(time.RFC3339Nano, b)
+
+		return at, errA == nil && errB == nil && ta.Equal(tb)
+	default:
+		return at, a == b
+	}
+}
+
+// jsonSameInstant reports whether a is a Unix time and b a date-time of the same second, as a type that takes either
+// writes one as the other.
+func jsonSameInstant(a, b any) bool {
+	n, ok := a.(float64)
+	if !ok {
+		return false
+	}
+
+	s, ok := b.(string)
+	if !ok {
+		return false
+	}
+
+	ts, err := time.Parse(time.RFC3339Nano, s)
+
+	return err == nil && float64(ts.Unix()) == n
+}
+
+// jsonSameNumber reports whether a is a number and b a string of the same number, as a string type writes one.
+func jsonSameNumber(a, b any) bool {
+	n, ok := a.(float64)
+	if !ok {
+		return false
+	}
+
+	s, ok := b.(string)
+	if !ok {
+		return false
+	}
+
+	f, err := strconv.ParseFloat(s, 64)
+
+	return err == nil && f == n
+}
+
+// jsonUUID is s, a UUID with or without dashes, as its 32 hex digits in lower case.
+func jsonUUID(s string) (string, bool) {
+	hex := strings.ToLower(strings.ReplaceAll(s, "-", ""))
+	if len(hex) != 32 || len(s) != 32 && len(s) != 36 || strings.Trim(hex, "0123456789abcdef") != "" {
+		return "", false
+	}
+
+	return hex, true
+}
+
+// jsonEmpty reports whether v, a JSON value decoded into any, holds nothing: null, false, 0, "", [] or {}, or the text
+// a zero date or time is written as, which is what an empty one decodes into.
+func jsonEmpty(v any) bool {
+	switch v := v.(type) {
+	case nil:
+		return true
+	case bool:
+		return !v
+	case float64:
+		return v == 0
+	case string:
+		return v == "" || v == "0000-00-00" || v == "0001-01-01T00:00:00Z"
+	case []any:
+		return len(v) == 0
+	case map[string]any:
+		return len(v) == 0
+	default:
+		return false
+	}
+}
+
 // mustDecodeBody decodes data, the recorded JSON for one request body value
 // (or field of one) an interaction's own literal couldn't be built for, into
 // T so a replayed call still carries the value it was recorded with.
@@ -36306,45 +36494,65 @@ func TestClient_Interactions(t *testing.T) {
 	ctx := t.Context()
 	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
-	c, err := NewClient(WithHTTPClient(&http.Client{Transport: replay(t)}))
+	last := &lastBody{next: replay(t)}
+
+	c, err := NewClient(WithHTTPClient(&http.Client{Transport: last}))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetCharacter(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
+	if out, err := c.GetCharacter(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
+	} else {
+		decodedAsSent(t, "GetCharacter", out, last.body)
 	}
 
 	if _, err := c.GetCharacterZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &GetCharacterZipParams{}); err != nil {
@@ -36355,23 +36563,31 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetCharacterSpritesheet: %v", err)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetCharacter(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
+	if out, err := c.GetCharacter(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
+	} else {
+		decodedAsSent(t, "GetCharacter", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
+	if out, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
 		CharacterID:       uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"),
 		AnimationName:     "walking",
 		ActionDescription: "walking",
@@ -36382,14 +36598,20 @@ func TestClient_Interactions(t *testing.T) {
 		Directions:        mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"north\",\"west\"]"),
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
+	} else {
+		decodedAsSent(t, "CreateCharacterAnimation", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
@@ -36407,7 +36629,9 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("CreateCharacterAnimation: got: %T, want: *HTTPValidationError", err)
 	}
 
-	if _, err := c.GetBackgroundJob(ctx, uuid.MustParse("1f2ccd9d-218c-4031-a2ab-e8283543738a")); err != nil {
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1f2ccd9d-218c-4031-a2ab-e8283543738a")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
 }
