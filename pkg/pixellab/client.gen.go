@@ -4324,7 +4324,7 @@ func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.
 //
 //	DELETE /characters/{character_id}/animations/{animation_group_id}/directions/{direction}
 func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characterID uuid.UUID, animationGroupID uuid.UUID, direction Direction) (*DeleteCharacterAnimationResponse, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", url.PathEscape(string(direction)))
+	u := c.baseURL.JoinPath("characters", characterID.String(), "animations", animationGroupID.String(), "directions", escapePathSegment(string(direction)))
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -13216,7 +13216,7 @@ func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.U
 //
 //	DELETE /characters/{character_id}/vocal-animation/{mood}
 func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID uuid.UUID, mood Mood) (*DeleteCharacterVocalAnimationResponse, error) {
-	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", url.PathEscape(string(mood)))
+	u := c.baseURL.JoinPath("characters", characterID.String(), "vocal-animation", escapePathSegment(string(mood)))
 	req := (&http.Request{
 		Header: http.Header{
 			"Authorization": []string{c.bearer},
@@ -15781,7 +15781,7 @@ func (c *Client) CreateUpload(ctx context.Context, body UploadRequest) (*Uploade
 //
 //	POST /uploads/{ticket}
 func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body UploadRequest) (*UploadedImage, error) {
-	u := c.baseURL.JoinPath("uploads", url.PathEscape(ticket))
+	u := c.baseURL.JoinPath("uploads", escapePathSegment(ticket))
 	pr, pw := io.Pipe()
 	req := (&http.Request{
 		Header: http.Header{
@@ -15912,6 +15912,18 @@ func (c *Client) GetAPIDocs(ctx context.Context) ([]byte, error) {
 		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
+// escapePathSegment escapes s, a path parameter, as one segment of a path: all but the characters RFC 3986 leaves
+// unreserved, as encodeURIComponent does, and a segment of . or .., so the client does not drop it, nor the segment
+// before it, from the path.
+func escapePathSegment(s string) string {
+	switch s {
+	case ".", "..":
+		return strings.ReplaceAll(s, ".", "%2E")
+	default:
+		return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 	}
 }
 
