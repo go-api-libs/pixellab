@@ -4,7 +4,11 @@
 
 package pixellab
 
-import "testing"
+import (
+	"bytes"
+	"encoding/json/v2"
+	"testing"
+)
 
 // TestEnums_Valid checks that every member of an enum is valid, and that a value of its type none is, is not.
 func TestEnums_Valid(t *testing.T) {
@@ -506,5 +510,131 @@ func TestEnums_Valid(t *testing.T) {
 
 	if UsageType("not a member").Valid() {
 		t.Errorf("UsageType(%v): valid, though no member", "not a member")
+	}
+}
+
+// TestUnions_RoundTrip sets each variant of each union in turn, encodes it and decodes it strictly: the union must
+// choose the same variant again, and encode as before.
+func TestUnions_RoundTrip(t *testing.T) {
+	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportionsPreset", func(t *testing.T) {
+		v := CharacterProportionsPreset{}
+		v.Type = "preset"
+		v.Name = "default"
+
+		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportionsPreset: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportionsPreset != nil })
+	})
+
+	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportions", func(t *testing.T) {
+		v := CharacterProportions{}
+		v.Type = "custom"
+
+		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportions: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportions != nil })
+	})
+
+	t.Run("CreateMapObjectRequestInpainting/MaskInpainting", func(t *testing.T) {
+		v := MaskInpainting{}
+		v.Type = "mask"
+
+		roundTrip(t, CreateMapObjectRequestInpainting{MaskInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.MaskInpainting != nil })
+	})
+
+	t.Run("CreateMapObjectRequestInpainting/OvalInpainting", func(t *testing.T) {
+		v := OvalInpainting{}
+		v.Type = "oval"
+
+		roundTrip(t, CreateMapObjectRequestInpainting{OvalInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.OvalInpainting != nil })
+	})
+
+	t.Run("CreateMapObjectRequestInpainting/RectangleInpainting", func(t *testing.T) {
+		v := RectangleInpainting{}
+		v.Type = "rectangle"
+
+		roundTrip(t, CreateMapObjectRequestInpainting{RectangleInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.RectangleInpainting != nil })
+	})
+
+	t.Run("CreateUIAssetRequestPiecesItem/UIPieceRect", func(t *testing.T) {
+		v := UIPieceRect{}
+		v.Kind = "rounded_rect"
+
+		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceRect: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceRect != nil })
+	})
+
+	t.Run("CreateUIAssetRequestPiecesItem/UIPieceCircle", func(t *testing.T) {
+		v := UIPieceCircle{}
+		v.Kind = "circle"
+
+		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceCircle: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceCircle != nil })
+	})
+
+	t.Run("CreateUIAssetRequestPiecesItem/UIPiecePolygon", func(t *testing.T) {
+		v := UIPiecePolygon{}
+		v.Kind = "polygon"
+
+		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPiecePolygon: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPiecePolygon != nil })
+	})
+
+	t.Run("HTTPValidationErrorDetail/String", func(t *testing.T) {
+		v := "sample"
+
+		roundTrip(t, HTTPValidationErrorDetail{String: v}, func(u HTTPValidationErrorDetail) bool { return u.String != "" })
+	})
+
+	t.Run("HTTPValidationErrorDetail/ValidationError", func(t *testing.T) {
+		v := []ValidationError{{}}
+
+		roundTrip(t, HTTPValidationErrorDetail{ValidationError: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationError != nil })
+	})
+
+	t.Run("JobImages/DirectionalImages", func(t *testing.T) {
+		v := DirectionalImages{}
+
+		roundTrip(t, JobImages{DirectionalImages: &v}, func(u JobImages) bool { return u.DirectionalImages != nil })
+	})
+
+	t.Run("JobImages/Images", func(t *testing.T) {
+		v := Images{Image{}}
+
+		roundTrip(t, JobImages{Images: v}, func(u JobImages) bool { return u.Images != nil })
+	})
+
+	t.Run("ValidationErrorLocItem/String", func(t *testing.T) {
+		v := "sample"
+
+		roundTrip(t, ValidationErrorLocItem{String: v}, func(u ValidationErrorLocItem) bool { return u.String != "" })
+	})
+
+	t.Run("ValidationErrorLocItem/Int", func(t *testing.T) {
+		v := 1
+
+		roundTrip(t, ValidationErrorLocItem{Int: &v}, func(u ValidationErrorLocItem) bool { return u.Int != nil })
+	})
+}
+
+// roundTrip encodes in and decodes it strictly into a new value, which set must report holds the variant in did, and
+// which must encode as in did.
+func roundTrip[T any](t *testing.T, in T, set func(T) bool) {
+	t.Helper()
+
+	raw, err := json.Marshal(&in, jsonOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got T
+	if err := json.Unmarshal(raw, &got, jsonOpts); err != nil {
+		t.Fatalf("%s: %v", raw, err)
+	}
+
+	if !set(got) {
+		t.Fatalf("%s decoded as another variant: %+v", raw, got)
+	}
+
+	again, err := json.Marshal(&got, jsonOpts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(again, raw) {
+		t.Errorf("encoded %s, then %s", raw, again)
 	}
 }
