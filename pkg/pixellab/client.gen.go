@@ -204,17 +204,8 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -222,16 +213,10 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
 	default:
@@ -303,17 +288,8 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 		case "application/json":
 			var out CreateImagePixenResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateImagePixenResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -321,19 +297,11 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
 	default:
@@ -424,17 +392,8 @@ func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRe
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -442,16 +401,10 @@ func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
 	default:
@@ -520,17 +473,8 @@ func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixflux
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -538,19 +482,11 @@ func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixflux
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
 	default:
@@ -612,17 +548,8 @@ func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateIm
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -630,16 +557,10 @@ func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateIm
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
 	default:
@@ -710,17 +631,8 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -728,19 +640,11 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
 	default:
@@ -818,17 +722,8 @@ func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartReques
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -836,19 +731,11 @@ func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid image size constraints
-		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
 	default:
@@ -927,17 +814,8 @@ func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartPro
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -945,16 +823,10 @@ func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartPro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
 	default:
@@ -1009,17 +881,8 @@ func (c *Client) ImageToPixelartProFlash(ctx context.Context, body ImageToPixela
 		case "application/json":
 			var out ImageToPixelartProFlashResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageToPixelartProFlashResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1033,17 +896,8 @@ func (c *Client) ImageToPixelartProFlash(ctx context.Context, body ImageToPixela
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1142,17 +996,8 @@ func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterReques
 		case "application/json":
 			var out CreateCharacterResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCharacterResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1160,16 +1005,10 @@ func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error (bad dimensions, invalid image)
-		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
 	default:
@@ -1266,17 +1105,8 @@ func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterPro
 		case "application/json":
 			var out CharacterJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CharacterJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1284,16 +1114,10 @@ func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterPro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error (bad dimensions, missing required image)
-		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
 	default:
@@ -1345,17 +1169,8 @@ func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharac
 		case "application/json":
 			var out CreateCharacterAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCharacterAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1369,17 +1184,8 @@ func (c *Client) CreateCharacterAnimation(ctx context.Context, body CreateCharac
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1500,17 +1306,8 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 		case "application/json":
 			var out CreateCharacterAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCharacterAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1518,22 +1315,12 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character or animation_group_id not found
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusConflict:
 		// animation_group_id already has one of the requested directions
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
 	default:
@@ -1579,17 +1366,8 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 		case "application/json":
 			var out CharacterJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CharacterJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1597,17 +1375,12 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusTooManyRequests:
 		// Source character is not completed
-		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Source character not found
+		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -1615,17 +1388,8 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1633,9 +1397,6 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateCharacterState: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1748,17 +1509,8 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 		case "application/json":
 			var out CharacterJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CharacterJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1766,16 +1518,10 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
 	default:
@@ -1904,17 +1650,8 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 		case "application/json":
 			var out CharacterJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CharacterJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -1922,16 +1659,10 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
 	default:
@@ -2007,17 +1738,8 @@ func (c *Client) ListCharacters(ctx context.Context, params *ListCharactersParam
 		case "application/json":
 			var out ListCharactersResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListCharactersResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2025,13 +1747,9 @@ func (c *Client) ListCharacters(ctx context.Context, params *ListCharactersParam
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
-		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
 	default:
@@ -2093,17 +1811,8 @@ func (c *Client) GetCharacter(ctx context.Context, characterID uuid.UUID) (*GetC
 		case "application/json":
 			var out GetCharacterResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetCharacterResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2111,14 +1820,11 @@ func (c *Client) GetCharacter(ctx context.Context, characterID uuid.UUID) (*GetC
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Character belongs to another user
-		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
+		// Too many requests
 		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -2126,17 +1832,8 @@ func (c *Client) GetCharacter(ctx context.Context, characterID uuid.UUID) (*GetC
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2144,9 +1841,6 @@ func (c *Client) GetCharacter(ctx context.Context, characterID uuid.UUID) (*GetC
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("GetCharacter: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2191,17 +1885,8 @@ func (c *Client) DeleteCharacter(ctx context.Context, characterID uuid.UUID) (*D
 		case "application/json":
 			var out DeleteCharacterResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteCharacterResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2215,17 +1900,8 @@ func (c *Client) DeleteCharacter(ctx context.Context, characterID uuid.UUID) (*D
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2276,17 +1952,8 @@ func (c *Client) UpdateCharacter(ctx context.Context, characterID uuid.UUID, bod
 		case "application/json":
 			var out AssetNamesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(AssetNamesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2294,13 +1961,9 @@ func (c *Client) UpdateCharacter(ctx context.Context, characterID uuid.UUID, bod
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Character has no state group to carry a name
 		return nil, fmt.Errorf("UpdateCharacter: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -2309,17 +1972,8 @@ func (c *Client) UpdateCharacter(ctx context.Context, characterID uuid.UUID, bod
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2438,8 +2092,9 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusNotFound:
+	case http.StatusNotFound, http.StatusLocked:
 		// Character not found
+		// Character or animations still being generated
 		return nil, fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -2447,17 +2102,8 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2465,9 +2111,6 @@ func (c *Client) GetCharacterZip(ctx context.Context, characterID uuid.UUID, par
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Character or animations still being generated
-		return nil, fmt.Errorf("GetCharacterZip: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2536,13 +2179,9 @@ func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.U
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusNotFound:
+	case http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusLocked:
 		// Character not found
-		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Character generation failed
-		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
-	case http.StatusLocked:
 		// Character or animations still being generated
 		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
 	default:
@@ -2613,17 +2252,8 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 		case "application/json":
 			var out UpdateTagsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UpdateTagsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2631,17 +2261,12 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusTooManyRequests:
 		// Invalid tag format or validation error
-		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Character belongs to another user
-		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
+		// Too many requests
 		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -2649,17 +2274,8 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2667,9 +2283,6 @@ func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID,
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("UpdateCharacterTags: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2719,17 +2332,8 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 		case "application/json":
 			var out Create1DirectionObjectResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(Create1DirectionObjectResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2737,16 +2341,10 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
 	default:
@@ -2798,17 +2396,8 @@ func (c *Client) Create8DirectionObject(ctx context.Context, body Create8Directi
 		case "application/json":
 			var out ObjectJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ObjectJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2816,16 +2405,10 @@ func (c *Client) Create8DirectionObject(ctx context.Context, body Create8Directi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
 	default:
@@ -2879,17 +2462,8 @@ func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out CreateObjectAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateObjectAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2897,20 +2471,13 @@ func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
 		// Validation error (object not ready, invalid directions/frame_count, missing description for a new animation)
-		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object or animation_group_id not found
-		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Direction already animated (pass replace_existing=true to overwrite)
+		// All directions rate-limited (no jobs queued)
 		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -2918,17 +2485,8 @@ func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -2936,9 +2494,6 @@ func (c *Client) CreateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// All directions rate-limited (no jobs queued)
-		return nil, fmt.Errorf("CreateObjectAnimation: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2993,17 +2548,8 @@ func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID,
 		case "application/json":
 			var out DeleteAnimationsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteAnimationsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3011,16 +2557,10 @@ func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID,
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found or not owned by you
-		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
-	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
 		return nil, fmt.Errorf("DeleteObjectAnimations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3029,17 +2569,8 @@ func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID,
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3090,17 +2621,8 @@ func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body
 		case "application/json":
 			var out ObjectJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ObjectJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3108,17 +2630,12 @@ func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusTooManyRequests:
 		// Source object is not completed
-		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations
-		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Source object not found
+		// Concurrent job limit reached
 		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -3126,17 +2643,8 @@ func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3144,9 +2652,6 @@ func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Concurrent job limit reached
-		return nil, fmt.Errorf("CreateObjectState: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -3192,17 +2697,8 @@ func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, bod
 		case "application/json":
 			var out SelectObjectFramesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SelectObjectFramesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3210,16 +2706,10 @@ func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, bod
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Object not in review status / invalid indices
-		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
-	case http.StatusConflict:
 		// The expansion is still generating
 		return nil, fmt.Errorf("SelectObjectFrames: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3228,17 +2718,8 @@ func (c *Client) SelectObjectFrames(ctx context.Context, objectID uuid.UUID, bod
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3284,17 +2765,8 @@ func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*
 		case "application/json":
 			var out DismissObjectReviewResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DismissObjectReviewResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3302,13 +2774,9 @@ func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Object not in review status
-		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("DismissObjectReview: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3317,17 +2785,8 @@ func (c *Client) DismissObjectReview(ctx context.Context, objectID uuid.UUID) (*
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3382,17 +2841,8 @@ func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out ExpandObjectRotationsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ExpandObjectRotationsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3400,17 +2850,12 @@ func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusTooManyRequests:
 		// Object is not 1-direction, not ready, or larger than 168x168
-		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
+		// Concurrent job limit reached
 		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -3418,17 +2863,8 @@ func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3436,9 +2872,6 @@ func (c *Client) ExpandObjectRotations(ctx context.Context, objectID uuid.UUID, 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Concurrent job limit reached
-		return nil, fmt.Errorf("ExpandObjectRotations: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -3504,17 +2937,8 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams) (*L
 		case "application/json":
 			var out ListObjectsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListObjectsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3522,10 +2946,8 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams) (*L
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("ListObjects: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListObjects: status %s", rsp.Status)
 	default:
@@ -3575,17 +2997,8 @@ func (c *Client) GetObject(ctx context.Context, objectID uuid.UUID) (*GetObjectR
 		case "application/json":
 			var out GetObjectResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetObjectResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3593,13 +3006,9 @@ func (c *Client) GetObject(ctx context.Context, objectID uuid.UUID) (*GetObjectR
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("GetObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3608,17 +3017,8 @@ func (c *Client) GetObject(ctx context.Context, objectID uuid.UUID) (*GetObjectR
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3672,17 +3072,8 @@ func (c *Client) DeleteObject(ctx context.Context, objectID uuid.UUID) (*DeleteO
 		case "application/json":
 			var out DeleteObjectResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteObjectResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3690,13 +3081,9 @@ func (c *Client) DeleteObject(ctx context.Context, objectID uuid.UUID) (*DeleteO
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("DeleteObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3705,17 +3092,8 @@ func (c *Client) DeleteObject(ctx context.Context, objectID uuid.UUID) (*DeleteO
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3766,17 +3144,8 @@ func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body Upda
 		case "application/json":
 			var out AssetNamesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(AssetNamesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3784,13 +3153,9 @@ func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body Upda
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Object has no state group to carry a name
 		return nil, fmt.Errorf("UpdateObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3799,17 +3164,8 @@ func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body Upda
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3873,17 +3229,8 @@ func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body 
 		case "application/json":
 			var out UpdateTagsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UpdateTagsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3891,16 +3238,10 @@ func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid tag format or validation error
-		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("UpdateObjectTags: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -3909,17 +3250,8 @@ func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -3994,16 +3326,10 @@ func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Object has no rotation images
-		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Object belongs to another user
-		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
 		return nil, fmt.Errorf("GetObjectSpritesheet: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -4012,17 +3338,8 @@ func (c *Client) GetObjectSpritesheet(ctx context.Context, objectID uuid.UUID) (
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4086,17 +3403,8 @@ func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid
 		case "application/json":
 			var out DeleteAnimationsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteAnimationsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4104,16 +3412,10 @@ func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Neither animation_type nor animation_group_id supplied
-		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found or not owned by you
-		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
-	case http.StatusConflict:
 		// animation_type is ambiguous — pass animation_group_id
 		return nil, fmt.Errorf("DeleteCharacterAnimations: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -4122,17 +3424,8 @@ func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4176,17 +3469,8 @@ func (c *Client) DeleteCharacterAnimation(ctx context.Context, characterID uuid.
 		case "application/json":
 			var out DeleteCharacterAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteCharacterAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4194,10 +3478,8 @@ func (c *Client) DeleteCharacterAnimation(ctx context.Context, characterID uuid.
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character, or animation on it, not found
 		return nil, fmt.Errorf("DeleteCharacterAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -4206,17 +3488,8 @@ func (c *Client) DeleteCharacterAnimation(ctx context.Context, characterID uuid.
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4267,17 +3540,8 @@ func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.
 		case "application/json":
 			var out UpdateAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UpdateAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4285,10 +3549,8 @@ func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateCharacterAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character or animation not found
 		return nil, fmt.Errorf("UpdateCharacterAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -4297,17 +3559,8 @@ func (c *Client) UpdateCharacterAnimation(ctx context.Context, characterID uuid.
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4351,17 +3604,8 @@ func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characte
 		case "application/json":
 			var out DeleteCharacterAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteCharacterAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4369,10 +3613,8 @@ func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characte
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterAnimationDirection: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character, animation, or direction not found
 		return nil, fmt.Errorf("DeleteCharacterAnimationDirection: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -4381,17 +3623,8 @@ func (c *Client) DeleteCharacterAnimationDirection(ctx context.Context, characte
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4487,17 +3720,8 @@ func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Re
 		case "application/json":
 			var out AnimationJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(AnimationJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4505,16 +3729,10 @@ func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Re
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
 	default:
@@ -4587,17 +3805,8 @@ func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRe
 		case "application/json":
 			var out AnimationJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(AnimationJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4605,16 +3814,10 @@ func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
 	default:
@@ -4731,17 +3934,8 @@ func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4749,16 +3943,10 @@ func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
 	default:
@@ -4862,17 +4050,8 @@ func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -4880,16 +4059,10 @@ func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
 	default:
@@ -4991,17 +4164,8 @@ func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest)
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5009,16 +4173,10 @@ func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
 	default:
@@ -5132,17 +4290,8 @@ func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Re
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5150,16 +4299,10 @@ func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Re
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
 	default:
@@ -5235,17 +4378,8 @@ func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextReques
 		case "application/json":
 			var out ImagesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImagesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5253,19 +4387,11 @@ func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
 	default:
@@ -5334,17 +4460,8 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 		case "application/json":
 			var out EstimateSkeletonResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(EstimateSkeletonResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5352,19 +4469,11 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
 	default:
@@ -5434,17 +4543,8 @@ func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkel
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5452,16 +4552,10 @@ func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkel
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
 	default:
@@ -5539,17 +4633,8 @@ func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkelet
 		case "application/json":
 			var out ImagesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImagesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5557,19 +4642,11 @@ func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkelet
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
 	default:
@@ -5660,17 +4737,8 @@ func (c *Client) CreateVfx(ctx context.Context, body CreateVfxRequest) (*CreateV
 		case "application/json":
 			var out CreateVfxResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateVfxResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5678,22 +4746,12 @@ func (c *Client) CreateVfx(ctx context.Context, body CreateVfxRequest) (*CreateV
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusServiceUnavailable:
 		// A request to change (the detail says what)
-		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
-		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
-	case http.StatusServiceUnavailable:
 		// The renderer is busy; retry in a few seconds
 		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
 	default:
@@ -5754,17 +4812,8 @@ func (c *Client) GetVfxEffects(ctx context.Context, params *GetVfxEffectsParams)
 		case "application/json":
 			var out GetVfxEffectsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetVfxEffectsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5772,10 +4821,8 @@ func (c *Client) GetVfxEffects(ctx context.Context, params *GetVfxEffectsParams)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized:
 		// Cursor given halfway or not ISO 8601
-		return nil, fmt.Errorf("GetVfxEffects: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
 		return nil, fmt.Errorf("GetVfxEffects: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -5784,17 +4831,8 @@ func (c *Client) GetVfxEffects(ctx context.Context, params *GetVfxEffectsParams)
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5838,17 +4876,8 @@ func (c *Client) DeleteVfxEffect(ctx context.Context, effectID uuid.UUID) (*Dele
 		case "application/json":
 			var out DeleteRoomResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteRoomResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5856,10 +4885,8 @@ func (c *Client) DeleteVfxEffect(ctx context.Context, effectID uuid.UUID) (*Dele
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteVfxEffect: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// No saved effect with that id in your library
 		return nil, fmt.Errorf("DeleteVfxEffect: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -5868,17 +4895,8 @@ func (c *Client) DeleteVfxEffect(ctx context.Context, effectID uuid.UUID) (*Dele
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5936,17 +4954,8 @@ func (c *Client) ListMusic(ctx context.Context, params *ListMusicParams) (*ListM
 		case "application/json":
 			var out ListMusicResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListMusicResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -5963,17 +4972,8 @@ func (c *Client) ListMusic(ctx context.Context, params *ListMusicParams) (*ListM
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6039,17 +5039,8 @@ func (c *Client) CreateMusic(ctx context.Context, body CreateMusicRequest) (*Sta
 		case "application/json":
 			var out StartedMusicResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StartedMusicResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6057,22 +5048,12 @@ func (c *Client) CreateMusic(ctx context.Context, body CreateMusicRequest) (*Sta
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Needs a tier 2 subscription or higher
-		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// The song to restyle was not found
-		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// The request breaks a rule (the detail says which)
-		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many jobs running
 		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
 	default:
@@ -6122,17 +5103,8 @@ func (c *Client) SetMusicLoop(ctx context.Context, songID uuid.UUID) (*StartedMu
 		case "application/json":
 			var out StartedMusicResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StartedMusicResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6140,25 +5112,13 @@ func (c *Client) SetMusicLoop(ctx context.Context, songID uuid.UUID) (*StartedMu
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Needs a tier 2 subscription or higher
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Song not found
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusConflict:
 		// The song has no audio yet
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// The song can't be looped (the detail says why)
-		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many jobs running
 		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
 	default:
@@ -6209,17 +5169,8 @@ func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRe
 		case "application/json":
 			var out ImproveMusicStyleResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImproveMusicStyleResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6227,14 +5178,11 @@ func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusBadGateway:
 		// Invalid API token
-		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Needs a tier 2 subscription or higher
+		// The writer failed; try again
 		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -6242,17 +5190,8 @@ func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRe
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6260,9 +5199,6 @@ func (c *Client) ImproveMusicStyle(ctx context.Context, body ImproveMusicStyleRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadGateway:
-		// The writer failed; try again
-		return nil, fmt.Errorf("ImproveMusicStyle: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6311,17 +5247,8 @@ func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequ
 		case "application/json":
 			var out CreateMusicLyricResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateMusicLyricResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6329,14 +5256,11 @@ func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusBadGateway:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Needs a tier 2 subscription or higher
+		// The writer failed; try again
 		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -6344,17 +5268,8 @@ func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequ
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6362,9 +5277,6 @@ func (c *Client) CreateMusicLyric(ctx context.Context, body CreateMusicLyricRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadGateway:
-		// The writer failed; try again
-		return nil, fmt.Errorf("CreateMusicLyric: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6401,17 +5313,8 @@ func (c *Client) GetMusic(ctx context.Context, songID uuid.UUID) (*Song, error) 
 		case "application/json":
 			var out Song
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(Song)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6419,10 +5322,8 @@ func (c *Client) GetMusic(ctx context.Context, songID uuid.UUID) (*Song, error) 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("GetMusic: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetMusic: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -6431,17 +5332,8 @@ func (c *Client) GetMusic(ctx context.Context, songID uuid.UUID) (*Song, error) 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6487,17 +5379,8 @@ func (c *Client) DeleteMusic(ctx context.Context, songID uuid.UUID) (*DeleteResp
 		case "application/json":
 			var out DeleteResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6505,10 +5388,8 @@ func (c *Client) DeleteMusic(ctx context.Context, songID uuid.UUID) (*DeleteResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteMusic: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("DeleteMusic: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -6517,17 +5398,8 @@ func (c *Client) DeleteMusic(ctx context.Context, songID uuid.UUID) (*DeleteResp
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6578,17 +5450,8 @@ func (c *Client) UpdateMusic(ctx context.Context, songID uuid.UUID, body RenameR
 		case "application/json":
 			var out Song
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(Song)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6596,13 +5459,9 @@ func (c *Client) UpdateMusic(ctx context.Context, songID uuid.UUID, body RenameR
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
-		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// A blank name
 		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
 	default:
@@ -6655,17 +5514,8 @@ func (c *Client) ListSoundEffects(ctx context.Context, params *ListSoundEffectsP
 		case "application/json":
 			var out ListSoundEffectsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListSoundEffectsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6682,17 +5532,8 @@ func (c *Client) ListSoundEffects(ctx context.Context, params *ListSoundEffectsP
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6761,17 +5602,8 @@ func (c *Client) CreateSoundEffect(ctx context.Context, body CreateSoundEffectRe
 		case "application/json":
 			var out CreateSoundEffectResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateSoundEffectResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6779,19 +5611,11 @@ func (c *Client) CreateSoundEffect(ctx context.Context, body CreateSoundEffectRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Needs a tier 2 subscription or higher
-		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many jobs running
 		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
 	default:
@@ -6830,17 +5654,8 @@ func (c *Client) GetSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*
 		case "application/json":
 			var out SoundEffect
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SoundEffect)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6848,10 +5663,8 @@ func (c *Client) GetSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("GetSoundEffect: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetSoundEffect: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -6860,17 +5673,8 @@ func (c *Client) GetSoundEffect(ctx context.Context, soundEffectID uuid.UUID) (*
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6916,17 +5720,8 @@ func (c *Client) DeleteSoundEffect(ctx context.Context, soundEffectID uuid.UUID)
 		case "application/json":
 			var out DeleteResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -6934,10 +5729,8 @@ func (c *Client) DeleteSoundEffect(ctx context.Context, soundEffectID uuid.UUID)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteSoundEffect: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("DeleteSoundEffect: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -6946,17 +5739,8 @@ func (c *Client) DeleteSoundEffect(ctx context.Context, soundEffectID uuid.UUID)
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7007,17 +5791,8 @@ func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID,
 		case "application/json":
 			var out SoundEffect
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SoundEffect)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7025,13 +5800,9 @@ func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID,
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
-		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// A blank name
 		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
 	default:
@@ -7114,17 +5885,8 @@ func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8Rotatio
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7132,16 +5894,10 @@ func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8Rotatio
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
 	default:
@@ -7237,17 +5993,8 @@ func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8Rotatio
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7255,16 +6002,10 @@ func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8Rotatio
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
 	default:
@@ -7339,17 +6080,8 @@ func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7357,19 +6089,11 @@ func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
 	default:
@@ -7468,17 +6192,8 @@ func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobRe
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7486,16 +6201,10 @@ func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
 	default:
@@ -7567,17 +6276,8 @@ func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest)
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7585,19 +6285,11 @@ func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Image or canvas outside the supported sizes
-		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
 	default:
@@ -7657,17 +6349,8 @@ func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*Sav
 		case "application/json":
 			var out SaveToAssetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SaveToAssetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7675,22 +6358,12 @@ func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*Sav
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusInternalServerError:
 		// Invalid API token
-		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Target not found or not yours
-		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Another save to this asset is running; retry
-		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Refused: the detail says what to change
-		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many calls; retry shortly
-		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
-	case http.StatusInternalServerError:
 		// Failed partway: `detail.previous_frames` restores what was there
 		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
 	default:
@@ -7752,17 +6425,8 @@ func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResp
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7770,16 +6434,10 @@ func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
 	default:
@@ -7869,17 +6527,8 @@ func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResp
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7887,16 +6536,10 @@ func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
 	default:
@@ -7968,17 +6611,8 @@ func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageRespon
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -7986,19 +6620,11 @@ func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageRespon
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
 	default:
@@ -8058,17 +6684,8 @@ func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (
 		case "application/json":
 			var out ListTilesetsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListTilesetsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8076,10 +6693,8 @@ func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("ListTilesets: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListTilesets: status %s", rsp.Status)
 	default:
@@ -8210,17 +6825,8 @@ func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (
 		case "application/json":
 			var out TilesetJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TilesetJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8234,17 +6840,8 @@ func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (
 		case "application/json":
 			var out TilesetJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TilesetJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8252,19 +6849,11 @@ func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
 	default:
@@ -8355,17 +6944,8 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *Ge
 		case "application/json":
 			var out GetTilesetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetTilesetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8373,11 +6953,10 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *Ge
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tileset not found
+		// Tileset is still being generated
 		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -8385,17 +6964,8 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *Ge
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8403,9 +6973,6 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *Ge
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Tileset is still being generated
-		return nil, fmt.Errorf("GetTileset: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8442,17 +7009,8 @@ func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*Delet
 		case "application/json":
 			var out DeleteTilesetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteTilesetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8460,13 +7018,9 @@ func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*Delet
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tileset not found
 		return nil, fmt.Errorf("DeleteTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -8475,17 +7029,8 @@ func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*Delet
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8536,17 +7081,8 @@ func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body Re
 		case "application/json":
 			var out UpdateTilesetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UpdateTilesetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8554,10 +7090,8 @@ func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body Re
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tileset not found
 		return nil, fmt.Errorf("UpdateTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -8566,17 +7100,8 @@ func (c *Client) UpdateTileset(ctx context.Context, tilesetID uuid.UUID, body Re
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8627,17 +7152,8 @@ func (c *Client) SetTilesetImport(ctx context.Context, body SetTilesetImportRequ
 		case "application/json":
 			var out SetTilesetImportResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetTilesetImportResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8645,10 +7161,8 @@ func (c *Client) SetTilesetImport(ctx context.Context, body SetTilesetImportRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("SetTilesetImport: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Not a tileset sheet of a supported size
 		return nil, fmt.Errorf("SetTilesetImport: status %s", rsp.Status)
 	default:
@@ -8701,17 +7215,8 @@ func (c *Client) ListSidescrollerTilesets(ctx context.Context, params *ListSides
 		case "application/json":
 			var out ListSidescrollerTilesetsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListSidescrollerTilesetsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8728,17 +7233,8 @@ func (c *Client) ListSidescrollerTilesets(ctx context.Context, params *ListSides
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8839,17 +7335,8 @@ func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSides
 		case "application/json":
 			var out TilesetJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TilesetJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -8857,25 +7344,13 @@ func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSides
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// mode='pro' needs a Tier 1+ plan
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// lower_base_tile_id not found
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
 	default:
@@ -8924,17 +7399,8 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 		case "application/json":
 			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return err
 				}
 			}
 
@@ -8942,11 +7408,10 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 		default:
 			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusLocked:
 		// Invalid API token
-		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Sidescroller tileset not found
+		// Still being generated; see Retry-After header
 		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -8954,17 +7419,8 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return err
 				}
 			}
 
@@ -8972,9 +7428,6 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 		default:
 			return c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Still being generated; see Retry-After header
-		return fmt.Errorf("GetSidescrollerTileset: status %s", rsp.Status)
 	default:
 		return c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9011,17 +7464,8 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 		case "application/json":
 			var out DeleteTilesetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteTilesetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9029,13 +7473,9 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Tileset belongs to another user
-		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tileset not found
 		return nil, fmt.Errorf("DeleteSidescrollerTileset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -9044,17 +7484,8 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9175,17 +7606,8 @@ func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest)
 		case "application/json":
 			var out TileJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TileJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9193,16 +7615,10 @@ func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
 	default:
@@ -9266,17 +7682,8 @@ func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesPr
 		case "application/json":
 			var out GetTilesProResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetTilesProResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9284,11 +7691,10 @@ func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesPr
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tiles not found
+		// Tiles still processing
 		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -9296,17 +7702,8 @@ func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesPr
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9314,9 +7711,6 @@ func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesPr
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Tiles still processing
-		return nil, fmt.Errorf("GetTilesPro: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9353,17 +7747,8 @@ func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteT
 		case "application/json":
 			var out DeleteTileResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteTileResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9371,16 +7756,10 @@ func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteT
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tile not found
-		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Tile is still generating
 		return nil, fmt.Errorf("DeleteTilesPro: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -9389,17 +7768,8 @@ func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteT
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9450,17 +7820,8 @@ func (c *Client) SetTilesProImport(ctx context.Context, body SetTilesProImportRe
 		case "application/json":
 			var out SetTilesProImportResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetTilesProImportResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9468,10 +7829,8 @@ func (c *Client) SetTilesProImport(ctx context.Context, body SetTilesProImportRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("SetTilesProImport: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// A frame is not a PNG of the size tile_type needs
 		return nil, fmt.Errorf("SetTilesProImport: status %s", rsp.Status)
 	default:
@@ -9524,17 +7883,8 @@ func (c *Client) ListTilesPro(ctx context.Context, params *ListTilesProParams) (
 		case "application/json":
 			var out ListTilesProResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListTilesProResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9551,17 +7901,8 @@ func (c *Client) ListTilesPro(ctx context.Context, params *ListTilesProParams) (
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9635,17 +7976,8 @@ func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTi
 		case "application/json":
 			var out TileJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TileJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9659,17 +7991,8 @@ func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTi
 		case "application/json":
 			var out TileJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TileJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9677,19 +8000,11 @@ func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
-		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
-	case 529:
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
 	default:
@@ -9751,17 +8066,8 @@ func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*Image
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9769,11 +8075,10 @@ func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*Image
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tile not found
+		// Tile still processing
 		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -9781,17 +8086,8 @@ func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*Image
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9799,9 +8095,6 @@ func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*Image
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Tile still processing
-		return nil, fmt.Errorf("GetIsometricTile: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9838,17 +8131,8 @@ func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*De
 		case "application/json":
 			var out DeleteTileResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteTileResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9856,13 +8140,9 @@ func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*De
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Tile belongs to another user
-		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Tile not found
 		return nil, fmt.Errorf("DeleteIsometricTile: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -9871,17 +8151,8 @@ func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*De
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9946,17 +8217,8 @@ func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTi
 		case "application/json":
 			var out ListIsometricTilesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListIsometricTilesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -9964,10 +8226,8 @@ func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("ListIsometricTiles: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListIsometricTiles: status %s", rsp.Status)
 	default:
@@ -10029,17 +8289,8 @@ func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectReques
 		case "application/json":
 			var out ObjectJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ObjectJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10047,16 +8298,10 @@ func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
 	default:
@@ -10101,17 +8346,8 @@ func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapO
 		case "application/json":
 			var out GetMapObjectResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetMapObjectResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10119,14 +8355,11 @@ func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapO
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusGone, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object not found
-		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
-	case http.StatusGone:
 		// Object generation failed permanently
+		// Still generating; see Retry-After header
 		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -10134,17 +8367,8 @@ func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapO
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10152,9 +8376,6 @@ func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapO
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Still generating; see Retry-After header
-		return nil, fmt.Errorf("GetMapObject: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10209,17 +8430,8 @@ func (c *Client) CreateRoom(ctx context.Context, body CreateRoomRequest) (*RoomQ
 		case "application/json":
 			var out RoomQueuedResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(RoomQueuedResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10227,25 +8439,13 @@ func (c *Client) CreateRoom(ctx context.Context, body CreateRoomRequest) (*RoomQ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Below Tier 1
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// The style room or project isn't yours
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusConflict:
 		// The style room can't be one (says why)
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error (the floor plan or doors say what is wrong)
-		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many background jobs running
 		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
 	default:
@@ -10290,17 +8490,8 @@ func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*Ro
 		case "application/json":
 			var out RoomQueuedResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(RoomQueuedResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10308,20 +8499,13 @@ func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*Ro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Not enough generations or credits
-		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Below Tier 1
-		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Room not found
-		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Its furniture can't be cut out now (says why)
+		// Too many background jobs running
 		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -10329,17 +8513,8 @@ func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*Ro
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10347,9 +8522,6 @@ func (c *Client) CutRoomOutFurniture(ctx context.Context, roomID uuid.UUID) (*Ro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Too many background jobs running
-		return nil, fmt.Errorf("CutRoomOutFurniture: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10400,17 +8572,8 @@ func (c *Client) ListRooms(ctx context.Context, params *ListRoomsParams) (*ListR
 		case "application/json":
 			var out ListRoomsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListRoomsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10427,17 +8590,8 @@ func (c *Client) ListRooms(ctx context.Context, params *ListRoomsParams) (*ListR
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10482,17 +8636,8 @@ func (c *Client) GetRoom(ctx context.Context, roomID uuid.UUID) (*GetRoomRespons
 		case "application/json":
 			var out GetRoomResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetRoomResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10500,10 +8645,8 @@ func (c *Client) GetRoom(ctx context.Context, roomID uuid.UUID) (*GetRoomRespons
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("GetRoom: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Room not found
 		return nil, fmt.Errorf("GetRoom: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10512,17 +8655,8 @@ func (c *Client) GetRoom(ctx context.Context, roomID uuid.UUID) (*GetRoomRespons
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10568,17 +8702,8 @@ func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomR
 		case "application/json":
 			var out DeleteRoomResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteRoomResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10586,13 +8711,9 @@ func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomR
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Room not found
-		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Still being made, or its pieces are used elsewhere
 		return nil, fmt.Errorf("DeleteRoom: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10601,17 +8722,8 @@ func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomR
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10670,13 +8782,9 @@ func (c *Client) GetRoomKitZip(ctx context.Context, roomID uuid.UUID) (io.ReadCl
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Invalid API token
-		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Room not found
-		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Not finished, or not built from a building kit
 		return nil, fmt.Errorf("GetRoomKitZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10685,17 +8793,8 @@ func (c *Client) GetRoomKitZip(ctx context.Context, roomID uuid.UUID) (io.ReadCl
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10746,17 +8845,8 @@ func (c *Client) UpdateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out UpdateAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UpdateAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10764,10 +8854,8 @@ func (c *Client) UpdateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateObjectAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Object or animation not found
 		return nil, fmt.Errorf("UpdateObjectAnimation: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10776,17 +8864,8 @@ func (c *Client) UpdateObjectAnimation(ctx context.Context, objectID uuid.UUID, 
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10830,17 +8909,8 @@ func (c *Client) SetCharacterDuplicate(ctx context.Context, characterID uuid.UUI
 		case "application/json":
 			var out StateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StateResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10848,13 +8918,9 @@ func (c *Client) SetCharacterDuplicate(ctx context.Context, characterID uuid.UUI
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Not completed / nothing to split off
-		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("SetCharacterDuplicate: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10863,17 +8929,8 @@ func (c *Client) SetCharacterDuplicate(ctx context.Context, characterID uuid.UUI
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10917,17 +8974,8 @@ func (c *Client) SetCharacterUngroup(ctx context.Context, characterID uuid.UUID)
 		case "application/json":
 			var out StateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StateResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -10935,13 +8983,9 @@ func (c *Client) SetCharacterUngroup(ctx context.Context, characterID uuid.UUID)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Not completed / nothing to split off
-		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("SetCharacterUngroup: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -10950,17 +8994,8 @@ func (c *Client) SetCharacterUngroup(ctx context.Context, characterID uuid.UUID)
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11004,17 +9039,8 @@ func (c *Client) SetObjectDuplicate(ctx context.Context, objectID uuid.UUID) (*S
 		case "application/json":
 			var out StateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StateResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11022,13 +9048,9 @@ func (c *Client) SetObjectDuplicate(ctx context.Context, objectID uuid.UUID) (*S
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Not completed / nothing to split off
-		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("SetObjectDuplicate: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11037,17 +9059,8 @@ func (c *Client) SetObjectDuplicate(ctx context.Context, objectID uuid.UUID) (*S
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11091,17 +9104,8 @@ func (c *Client) SetObjectUngroup(ctx context.Context, objectID uuid.UUID) (*Sta
 		case "application/json":
 			var out StateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(StateResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11109,13 +9113,9 @@ func (c *Client) SetObjectUngroup(ctx context.Context, objectID uuid.UUID) (*Sta
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Not completed / nothing to split off
-		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("SetObjectUngroup: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11124,17 +9124,8 @@ func (c *Client) SetObjectUngroup(ctx context.Context, objectID uuid.UUID) (*Sta
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11185,17 +9176,8 @@ func (c *Client) CreateCharacterCanva(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out CreateCanvaResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCanvaResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11203,19 +9185,11 @@ func (c *Client) CreateCharacterCanva(ctx context.Context, characterID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict:
 		// The size would crop the artwork
-		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
-		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Another canvas change of it is still running
 		return nil, fmt.Errorf("CreateCharacterCanva: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11224,17 +9198,8 @@ func (c *Client) CreateCharacterCanva(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11285,17 +9250,8 @@ func (c *Client) CreateObjectCanva(ctx context.Context, objectID uuid.UUID, body
 		case "application/json":
 			var out CreateCanvaResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCanvaResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11303,19 +9259,11 @@ func (c *Client) CreateObjectCanva(ctx context.Context, objectID uuid.UUID, body
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound, http.StatusConflict:
 		// The size would crop the artwork
-		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
-		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Another canvas change of it is still running
 		return nil, fmt.Errorf("CreateObjectCanva: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11324,17 +9272,8 @@ func (c *Client) CreateObjectCanva(ctx context.Context, objectID uuid.UUID, body
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11385,17 +9324,8 @@ func (c *Client) SetCharacterAnimationMirror(ctx context.Context, characterID uu
 		case "application/json":
 			var out SetAnimationMirrorResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetAnimationMirrorResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11403,13 +9333,9 @@ func (c *Client) SetCharacterAnimationMirror(ctx context.Context, characterID uu
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Target direction exists, or is not on this asset
-		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Asset, animation, or source direction not found
 		return nil, fmt.Errorf("SetCharacterAnimationMirror: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11418,17 +9344,8 @@ func (c *Client) SetCharacterAnimationMirror(ctx context.Context, characterID uu
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11479,17 +9396,8 @@ func (c *Client) SetObjectAnimationMirror(ctx context.Context, objectID uuid.UUI
 		case "application/json":
 			var out SetAnimationMirrorResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetAnimationMirrorResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11497,13 +9405,9 @@ func (c *Client) SetObjectAnimationMirror(ctx context.Context, objectID uuid.UUI
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Target direction exists, or is not on this asset
-		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Asset, animation, or source direction not found
 		return nil, fmt.Errorf("SetObjectAnimationMirror: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11512,17 +9416,8 @@ func (c *Client) SetObjectAnimationMirror(ctx context.Context, objectID uuid.UUI
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11577,16 +9472,10 @@ func (c *Client) GetCharacterAseprite(ctx context.Context, characterID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Not completed, or a bad parameter combination
-		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetCharacterAseprite: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11595,17 +9484,8 @@ func (c *Client) GetCharacterAseprite(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11674,16 +9554,10 @@ func (c *Client) GetCharacterGif(ctx context.Context, characterID uuid.UUID, par
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Not completed, or a bad parameter combination
-		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetCharacterGif: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11692,17 +9566,8 @@ func (c *Client) GetCharacterGif(ctx context.Context, characterID uuid.UUID, par
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11757,16 +9622,10 @@ func (c *Client) GetObjectAseprite(ctx context.Context, objectID uuid.UUID) (io.
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Not completed, or a bad parameter combination
-		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetObjectAseprite: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11775,17 +9634,8 @@ func (c *Client) GetObjectAseprite(ctx context.Context, objectID uuid.UUID) (io.
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11854,16 +9704,10 @@ func (c *Client) GetObjectGif(ctx context.Context, objectID uuid.UUID, params *G
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Not completed, or a bad parameter combination
-		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetObjectGif: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11872,17 +9716,8 @@ func (c *Client) GetObjectGif(ctx context.Context, objectID uuid.UUID, params *G
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -11937,16 +9772,10 @@ func (c *Client) GetObjectZip(ctx context.Context, objectID uuid.UUID) (io.ReadC
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
 		// Not completed, or a bad parameter combination
-		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Belongs to another user
-		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Not found
 		return nil, fmt.Errorf("GetObjectZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -11955,17 +9784,8 @@ func (c *Client) GetObjectZip(ctx context.Context, objectID uuid.UUID) (io.ReadC
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12016,17 +9836,8 @@ func (c *Client) SetObjectImport(ctx context.Context, body SetObjectImportReques
 		case "application/json":
 			var out SetObjectImportResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetObjectImportResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12034,10 +9845,8 @@ func (c *Client) SetObjectImport(ctx context.Context, body SetObjectImportReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized:
 		// Not a PNG, or too large
-		return nil, fmt.Errorf("SetObjectImport: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
 		return nil, fmt.Errorf("SetObjectImport: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -12046,17 +9855,8 @@ func (c *Client) SetObjectImport(ctx context.Context, body SetObjectImportReques
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12114,17 +9914,8 @@ func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (
 		case "application/json":
 			var out CreateUIAssetResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateUIAssetResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12132,16 +9923,10 @@ func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
 	default:
@@ -12231,17 +10016,8 @@ func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobRe
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12249,16 +10025,10 @@ func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
 	default:
@@ -12314,17 +10084,8 @@ func (c *Client) SetUIAssetSplit(ctx context.Context, uiAssetID uuid.UUID, body 
 		case "application/json":
 			var out SetUIAssetSplitResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetUIAssetSplitResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12332,13 +10093,9 @@ func (c *Client) SetUIAssetSplit(ctx context.Context, uiAssetID uuid.UUID, body 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// UI asset not found
-		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Not a template, already split, or a box off the image
 		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
 	default:
@@ -12393,17 +10150,8 @@ func (c *Client) CreateUIAssetState(ctx context.Context, body CreateUIAssetState
 		case "application/json":
 			var out CreateUIAssetStateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateUIAssetStateResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12411,19 +10159,11 @@ func (c *Client) CreateUIAssetState(ctx context.Context, body CreateUIAssetState
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient generations or credits
-		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// An element id that isn't one of your elements
-		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
 	default:
@@ -12476,17 +10216,8 @@ func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (
 		case "application/json":
 			var out ListUIAssetsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ListUIAssetsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12503,17 +10234,8 @@ func (c *Client) ListUIAssets(ctx context.Context, params *ListUIAssetsParams) (
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12562,17 +10284,8 @@ func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetD
 		case "application/json":
 			var out UIAssetDetail
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UIAssetDetail)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12580,10 +10293,8 @@ func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetD
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// UI asset not found
 		return nil, fmt.Errorf("GetUIAsset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -12592,17 +10303,8 @@ func (c *Client) GetUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*UIAssetD
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12648,17 +10350,8 @@ func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*Delet
 		case "application/json":
 			var out DeleteRoomResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteRoomResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12666,10 +10359,8 @@ func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*Delet
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// UI asset not found
 		return nil, fmt.Errorf("DeleteUIAsset: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -12678,17 +10369,8 @@ func (c *Client) DeleteUIAsset(ctx context.Context, uiAssetID uuid.UUID) (*Delet
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12741,17 +10423,8 @@ func (c *Client) UpdateUIAsset(ctx context.Context, uiAssetID uuid.UUID, body Up
 		case "application/json":
 			var out UIAssetDetail
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UIAssetDetail)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12759,13 +10432,9 @@ func (c *Client) UpdateUIAsset(ctx context.Context, uiAssetID uuid.UUID, body Up
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// UI asset not found
-		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error (the detail says what to change)
 		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
 	default:
@@ -12827,11 +10496,10 @@ func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.Rea
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// UI asset not found
+		// Still generating; retry after Retry-After seconds
 		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -12839,17 +10507,8 @@ func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.Rea
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12857,9 +10516,6 @@ func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.Rea
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Still generating; retry after Retry-After seconds
-		return nil, fmt.Errorf("GetUIAssetZip: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12935,17 +10591,8 @@ func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePort
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -12953,19 +10600,11 @@ func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePort
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// No internal style for this size/view
-		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
 	default:
@@ -13004,17 +10643,8 @@ func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID uuid.UUID
 		case "application/json":
 			var out GetPortraitCharacterProJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetPortraitCharacterProJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13022,14 +10652,11 @@ func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusGone, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
-	case http.StatusGone:
 		// Generation failed permanently
+		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -13037,17 +10664,8 @@ func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID uuid.UUID
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13055,9 +10673,6 @@ func (c *Client) GetPortraitCharacterProJob(ctx context.Context, jobID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetPortraitCharacterProJob: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -13107,17 +10722,8 @@ func (c *Client) SetCharacterPortrait(ctx context.Context, characterID uuid.UUID
 		case "application/json":
 			var out SetCharacterPortraitResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(SetCharacterPortraitResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13125,13 +10731,9 @@ func (c *Client) SetCharacterPortrait(ctx context.Context, characterID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Image is not a valid PNG, or outside 16-256px
 		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
 	default:
@@ -13174,17 +10776,8 @@ func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.U
 		case "application/json":
 			var out DeleteCharacterPortraitResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteCharacterPortraitResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13192,13 +10785,9 @@ func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.U
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found, or it has no portrait
-		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// character_id is not a valid id
 		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
 	default:
@@ -13243,17 +10832,8 @@ func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID 
 		case "application/json":
 			var out DeleteCharacterVocalAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(DeleteCharacterVocalAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13261,13 +10841,9 @@ func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found, it has no mouth positions, or not this expression
-		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Invalid character id or mood
 		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
 	default:
@@ -13341,17 +10917,8 @@ func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnima
 		case "application/json":
 			var out CreateVocalAnimationResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateVocalAnimationResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13359,25 +10926,13 @@ func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Character has no portrait, or viseme_count mismatch
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient resources
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusForbidden:
 		// Requires a paid plan
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
 	default:
@@ -13420,17 +10975,8 @@ func (c *Client) GetVocalAnimationJob(ctx context.Context, jobID uuid.UUID) (*Ge
 		case "application/json":
 			var out GetVocalAnimationJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetVocalAnimationJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13438,13 +10984,9 @@ func (c *Client) GetVocalAnimationJob(ctx context.Context, jobID uuid.UUID) (*Ge
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusGone:
 		// Invalid API token
-		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
-	case http.StatusGone:
 		// Generation failed
 		return nil, fmt.Errorf("GetVocalAnimationJob: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -13453,17 +10995,8 @@ func (c *Client) GetVocalAnimationJob(ctx context.Context, jobID uuid.UUID) (*Ge
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13524,17 +11057,8 @@ func (c *Client) TalkingGif(ctx context.Context, body TalkingGifRequest) (*Talki
 		case "application/json":
 			var out TalkingGifResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(TalkingGifResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13542,16 +11066,10 @@ func (c *Client) TalkingGif(ctx context.Context, body TalkingGifRequest) (*Talki
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error, or the line is too long to encode
 		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
 	default:
@@ -13608,17 +11126,8 @@ func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResp
 		case "application/json":
 			var out LipSyncResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(LipSyncResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13626,16 +11135,10 @@ func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
 		// Character has no mouth positions, or unknown mood
-		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Character not found
-		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
 	default:
@@ -13710,17 +11213,8 @@ func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProReques
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13728,16 +11222,10 @@ func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
 	default:
@@ -13776,17 +11264,8 @@ func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID uuid.UUID) (*G
 		case "application/json":
 			var out GetGenerateFontProJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetGenerateFontProJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13794,14 +11273,11 @@ func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID uuid.UUID) (*G
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusGone, http.StatusLocked:
 		// Invalid API token
-		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Job not found
-		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
-	case http.StatusGone:
 		// Generation failed permanently
+		// Still processing; see Retry-After header
 		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -13809,17 +11285,8 @@ func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID uuid.UUID) (*G
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13827,9 +11294,6 @@ func (c *Client) GetGenerateFontProJob(ctx context.Context, jobID uuid.UUID) (*G
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusLocked:
-		// Still processing; see Retry-After header
-		return nil, fmt.Errorf("GetGenerateFontProJob: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -13900,17 +11364,8 @@ func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomRespons
 		case "application/json":
 			var out UnzoomResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UnzoomResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -13918,16 +11373,10 @@ func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomRespons
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Image too small or too large
-		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
 	default:
@@ -13993,17 +11442,8 @@ func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartReques
 		case "application/json":
 			var out ImagesResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImagesResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14011,16 +11451,10 @@ func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
 	default:
@@ -14091,17 +11525,8 @@ func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*R
 		case "application/json":
 			var out ReduceColorsResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ReduceColorsResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14109,16 +11534,10 @@ func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*R
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
 	default:
@@ -14191,17 +11610,8 @@ func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequ
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14209,16 +11619,10 @@ func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
 	default:
@@ -14299,17 +11703,8 @@ func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResp
 		case "application/json":
 			var out JobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(JobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14317,19 +11712,11 @@ func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Image outside the supported sizes
-		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
 	default:
@@ -14408,17 +11795,8 @@ func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse
 		case "application/json":
 			var out ImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14426,19 +11804,11 @@ func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
 		// Invalid image size constraints
-		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
-		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
-	case http.StatusTooManyRequests:
 		// Too many requests
 		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
 	default:
@@ -14489,17 +11859,8 @@ func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPrompt
 		case "application/json":
 			var out EnhancedPromptResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(EnhancedPromptResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14507,13 +11868,9 @@ func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPrompt
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
 	default:
@@ -14564,17 +11921,8 @@ func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceChara
 		case "application/json":
 			var out EnhancedPromptResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(EnhancedPromptResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14582,13 +11930,9 @@ func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceChara
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
 	default:
@@ -14650,17 +11994,8 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 		case "application/json":
 			var out EnhancedPromptResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(EnhancedPromptResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14668,13 +12003,9 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
 		// Invalid API token
-		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error
 		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
 	default:
@@ -14742,17 +12073,8 @@ func (c *Client) ImageToText(ctx context.Context, body ImageToTextRequest) (*Ima
 		case "application/json":
 			var out ImageToTextResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ImageToTextResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14760,16 +12082,10 @@ func (c *Client) ImageToText(ctx context.Context, body ImageToTextRequest) (*Ima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusServiceUnavailable:
 		// Invalid API token
-		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
-	case http.StatusPaymentRequired:
 		// Insufficient credits
-		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
-	case http.StatusUnprocessableEntity:
 		// Validation error, unreadable or oversized image
-		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
-	case http.StatusServiceUnavailable:
 		// Temporarily unavailable upstream; retry
 		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
 	default:
@@ -14849,17 +12165,8 @@ func (c *Client) GetBackgroundJob(ctx context.Context, jobID uuid.UUID) (*GetBac
 		case "application/json":
 			var out GetBackgroundJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetBackgroundJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14867,11 +12174,10 @@ func (c *Client) GetBackgroundJob(ctx context.Context, jobID uuid.UUID) (*GetBac
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusTooManyRequests:
 		// Invalid API token
-		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Job not found or doesn't belong to user
+		// Too many requests
 		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
 		// Validation Error
@@ -14879,17 +12185,8 @@ func (c *Client) GetBackgroundJob(ctx context.Context, jobID uuid.UUID) (*GetBac
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14897,9 +12194,6 @@ func (c *Client) GetBackgroundJob(ctx context.Context, jobID uuid.UUID) (*GetBac
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusTooManyRequests:
-		// Too many requests
-		return nil, fmt.Errorf("GetBackgroundJob: status %s", rsp.Status)
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -14948,17 +12242,8 @@ func (c *Client) CancelBackgroundJob(ctx context.Context, jobID uuid.UUID) (*Can
 		case "application/json":
 			var out CancelBackgroundJobResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CancelBackgroundJobResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -14966,16 +12251,10 @@ func (c *Client) CancelBackgroundJob(ctx context.Context, jobID uuid.UUID) (*Can
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict:
 		// Job already completed or failed; nothing to cancel
-		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
-	case http.StatusUnauthorized:
 		// Invalid API token
-		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
-	case http.StatusNotFound:
 		// Job not found or doesn't belong to user
-		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
-	case http.StatusConflict:
 		// Job completed while the cancel was being applied
 		return nil, fmt.Errorf("CancelBackgroundJob: status %s", rsp.Status)
 	case http.StatusUnprocessableEntity:
@@ -14984,17 +12263,8 @@ func (c *Client) CancelBackgroundJob(ctx context.Context, jobID uuid.UUID) (*Can
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15056,17 +12326,8 @@ func (c *Client) CreateImageProFlash(ctx context.Context, body CreateImageProFla
 		case "application/json":
 			var out ProFlashImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ProFlashImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15080,17 +12341,8 @@ func (c *Client) CreateImageProFlash(ctx context.Context, body CreateImageProFla
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15145,17 +12397,8 @@ func (c *Client) EditImageProFlash(ctx context.Context, body EditImageProFlashRe
 		case "application/json":
 			var out ProFlashImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ProFlashImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15169,17 +12412,8 @@ func (c *Client) EditImageProFlash(ctx context.Context, body EditImageProFlashRe
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15236,17 +12470,8 @@ func (c *Client) InpaintImageProFlash(ctx context.Context, body InpaintImageProF
 		case "application/json":
 			var out ProFlashImageResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(ProFlashImageResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15260,17 +12485,8 @@ func (c *Client) InpaintImageProFlash(ctx context.Context, body InpaintImageProF
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15328,17 +12544,8 @@ func (c *Client) CreateCharacterProFlash(ctx context.Context, body CreateCharact
 		case "application/json":
 			var out CreateCharacterProFlashResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateCharacterProFlashResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15352,17 +12559,8 @@ func (c *Client) CreateCharacterProFlash(ctx context.Context, body CreateCharact
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15421,17 +12619,8 @@ func (c *Client) CreateObjectProFlash(ctx context.Context, body CreateObjectProF
 		case "application/json":
 			var out CreateObjectProFlashResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(CreateObjectProFlashResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15445,17 +12634,8 @@ func (c *Client) CreateObjectProFlash(ctx context.Context, body CreateObjectProF
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15499,17 +12679,8 @@ func (c *Client) GetProFlashCapabilities(ctx context.Context) error {
 		case "application/json":
 			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return err
 				}
 			}
 
@@ -15572,17 +12743,8 @@ func (c *Client) GetProFlashCost(ctx context.Context, params GetProFlashCostPara
 		case "application/json":
 			var out struct{}
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(struct{})
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return err
 				}
 			}
 
@@ -15596,17 +12758,8 @@ func (c *Client) GetProFlashCost(ctx context.Context, params GetProFlashCostPara
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return err
 				}
 			}
 
@@ -15660,17 +12813,8 @@ func (c *Client) GetBalance(ctx context.Context) (*GetBalanceResponse, error) {
 		case "application/json":
 			var out GetBalanceResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(GetBalanceResponse)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15726,17 +12870,8 @@ func (c *Client) CreateUpload(ctx context.Context, body UploadRequest) (*Uploade
 		case "application/json":
 			var out UploadedImage
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UploadedImage)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15750,17 +12885,8 @@ func (c *Client) CreateUpload(ctx context.Context, body UploadRequest) (*Uploade
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15815,17 +12941,8 @@ func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body Uploa
 		case "application/json":
 			var out UploadedImage
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(UploadedImage)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
@@ -15839,17 +12956,8 @@ func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body Uploa
 		case "application/json":
 			var out HTTPValidationError
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
-				if ia == nil {
-					return nil, api.WrapDecodingError(rsp, err)
-				}
-
-				if kerr := c.keep(ia); kerr != nil {
-					return nil, errors.Join(api.WrapDecodingError(rsp, err), kerr)
-				}
-
-				out = *new(HTTPValidationError)
-				if err := json.Unmarshal(ia.Response.Body, &out, jsonOptsLenient); err != nil {
-					return nil, api.WrapDecodingError(rsp, err)
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
 				}
 			}
 
