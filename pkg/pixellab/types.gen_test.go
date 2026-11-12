@@ -22,7 +22,7 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("AnimateWithSkeletonV3RequestTemplateID(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []CameraView{CameraViewNone, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewSide, CameraViewTopDown, CameraViewSidescroller, CameraViewOblique, CameraViewIsometric} {
+	for _, v := range []CameraView{CameraViewNone, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewSide, CameraViewOblique, CameraViewTopDown, CameraViewSidescroller, CameraViewIsometric} {
 		if !v.Valid() {
 			t.Errorf("CameraView %v: not valid", v)
 		}

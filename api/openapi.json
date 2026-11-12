@@ -1848,7 +1848,7 @@
           "Skeleton Animation"
         ],
         "summary": "Animate with skeleton v3",
-        "description": "Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.\n3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.\n\n**Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is\noptional -- leave it out and it is taken from the standing pose of `template_id` for\nyour direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`\nwill derive a skeleton from an image if you do not have one — it returns x/y on the same\n0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.\n\n**Limits:** 3-15 frames, canvas up to 256x256.\n\n**Cost:** by generation time, which depends on frame count and not on canvas size:\n3 frames = 2 generations,\n8 frames = 3,\n15 frames = 4. A longer clip\nis nearly free, so prefer one long clip to several short ones.\n\nTypical generation time: 3-5 minutes.",
+        "description": "Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.\n3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.\n\n**Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is\noptional -- leave it out and it is taken from the standing pose of `template_id` for\nyour direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`\nwill derive a skeleton from an image if you do not have one — it returns x/y on the same\n0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.\n\n**Limits:** 3-15 frames, canvas up to 256x256.\n\n**Cost:** by generation time, which depends on frame count and not on canvas size:\n3 frames = 2 generations,\n8 frames = 3,\n15 frames = 4. A longer clip\nis nearly free, so prefer one long clip to several short ones.\n\nTypical generation time: 2-3 minutes.",
         "operationId": "AnimateWithSkeletonV3",
         "requestBody": {
           "$ref": "#/components/requestBodies/AnimateWithSkeletonV3"
@@ -6684,9 +6684,9 @@
           "low top-down",
           "high top-down",
           "side",
+          "oblique",
           "top-down",
           "sidescroller",
-          "oblique",
           "isometric"
         ]
       },
@@ -7040,7 +7040,7 @@
             "type": "string"
           },
           "view": {
-            "description": "Camera view angle used",
+            "description": "The view the character was created with, in the values the create endpoints take: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down).\nOne of: low top-down, high top-down, side, oblique.",
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
@@ -7076,7 +7076,8 @@
           "directions",
           "created_at",
           "animation_count",
-          "template_id"
+          "template_id",
+          "view"
         ],
         "example": {
           "animation_count": 5,
@@ -7505,7 +7506,7 @@
       },
       "CreateCharacterAnimationRequestMode": {
         "title": "Mode",
-        "description": "Animation mode. \"template\": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). \"skeleton-v3\": the same template_animation_id posed onto the character, which moves the character instead of redrawing it each frame — steadier identity and colours, 2-4 generations and ~3-5 min per direction, beta. Without template_animation_id, \"skeleton-v3\" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid characters). \"v3\": custom animation from action_description with frame_count control. \"pixminimax\": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. \"pro\" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.",
+        "description": "Animation mode. \"template\": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). \"skeleton-v3\": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, \"skeleton-v3\" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). \"v3\": custom animation from action_description with frame_count control. \"pixminimax\": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. \"pro\" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.",
         "type": "string",
         "enum": [
           "template",
@@ -8120,7 +8121,7 @@
             "$ref": "#/components/schemas/Detail"
           },
           "view": {
-            "description": "Camera view: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down; max 128x128).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
+            "description": "Camera view: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down; max 128x128).\nOne of: low top-down, high top-down, side, oblique.",
             "$ref": "#/components/schemas/CameraView"
           },
           "isometric": {
@@ -8234,7 +8235,7 @@
             "$ref": "#/components/schemas/Detail"
           },
           "view": {
-            "description": "Camera view: \"low top-down\", \"high top-down\" or \"side\". \"oblique\" is 4 directions only (create-character-with-4-directions).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
+            "description": "Camera view: \"low top-down\", \"high top-down\" or \"side\". \"oblique\" is 4 directions only (create-character-with-4-directions).\nOne of: low top-down, high top-down, side, oblique.",
             "$ref": "#/components/schemas/CameraView"
           },
           "isometric": {
@@ -12623,7 +12624,7 @@
             "example": "mannequin"
           },
           "view": {
-            "description": "Camera view angle used",
+            "description": "The view the character was created with, in the values the create endpoints take: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down).\nOne of: low top-down, high top-down, side, oblique.",
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
@@ -12690,7 +12691,8 @@
           "directions",
           "created_at",
           "animation_count",
-          "template_id"
+          "template_id",
+          "view"
         ],
         "example": {
           "ai_freedom": 600,

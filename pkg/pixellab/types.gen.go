@@ -442,16 +442,16 @@ const (
 	CameraViewLowTopDown   CameraView = "low top-down"
 	CameraViewHighTopDown  CameraView = "high top-down"
 	CameraViewSide         CameraView = "side"
+	CameraViewOblique      CameraView = "oblique"
 	CameraViewTopDown      CameraView = "top-down"
 	CameraViewSidescroller CameraView = "sidescroller"
-	CameraViewOblique      CameraView = "oblique"
 	CameraViewIsometric    CameraView = "isometric"
 )
 
 // Valid indicates whether the value is a known member of the CameraView enum.
 func (e CameraView) Valid() bool {
 	switch e {
-	case CameraViewNone, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewSide, CameraViewTopDown, CameraViewSidescroller, CameraViewOblique, CameraViewIsometric:
+	case CameraViewNone, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewSide, CameraViewOblique, CameraViewTopDown, CameraViewSidescroller, CameraViewIsometric:
 		return true
 	default:
 		return false
@@ -619,8 +619,9 @@ type CharacterSummary struct {
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
 	TemplateID string `json:"template_id"`
-	// Camera view angle used
-	View CameraView `json:"view,omitzero"`
+	// The view the character was created with, in the values the create endpoints take: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down).
+	// One of: low top-down, high top-down, side, oblique.
+	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. Only 'completed' characters have a preview_url.
 	Status string `json:"status,omitzero"`
 	// Public URL to the south direction sprite (null unless status == 'completed')
@@ -711,7 +712,7 @@ type CreateCharacterAnimationRequest struct {
 	ActionDescription string `json:"action_description,omitzero"`
 	// Process in background (always true - no foreground processing yet)
 	AsyncMode bool `json:"async_mode,omitzero"`
-	// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id posed onto the character, which moves the character instead of redrawing it each frame — steadier identity and colours, 2-4 generations and ~3-5 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
+	// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 	Mode CreateCharacterAnimationRequestMode `json:"mode,omitzero"`
 	// Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...
 	TemplateAnimationID string `json:"template_animation_id,omitzero"`
@@ -760,7 +761,7 @@ type CreateCharacterAnimationRequest struct {
 // List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
 type CreateCharacterAnimationRequestDirections []Direction
 
-// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id posed onto the character, which moves the character instead of redrawing it each frame — steadier identity and colours, 2-4 generations and ~3-5 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
+// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 type CreateCharacterAnimationRequestMode string
 
 const (
@@ -1049,7 +1050,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down; max 128x128).
-	// One of: low top-down, high top-down, side, oblique. Defaults to "low top-down".
+	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -1090,7 +1091,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view: "low top-down", "high top-down" or "side". "oblique" is 4 directions only (create-character-with-4-directions).
-	// One of: low top-down, high top-down, side, oblique. Defaults to "low top-down".
+	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -3135,8 +3136,9 @@ type GetCharacterResponse struct {
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
 	TemplateID string `json:"template_id"`
-	// Camera view angle used
-	View CameraView `json:"view,omitzero"`
+	// The view the character was created with, in the values the create endpoints take: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down).
+	// One of: low top-down, high top-down, side, oblique.
+	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
 	Status string `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
