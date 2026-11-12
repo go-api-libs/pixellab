@@ -36730,4 +36730,40 @@ func TestClient_Interactions(t *testing.T) {
 	} else {
 		decodedAsSent(t, "GetBackgroundJob", out, last.body)
 	}
+
+	if out, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("18036593-b14a-4fda-9e5b-b9d882501173"),
+		AnimationGroupID:    uuid.MustParse("3928b1c6-afcc-479f-87b2-9d2be959fb82"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: "walking-8-frames",
+		Directions:          mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"west\"]"),
+	}); err != nil {
+		t.Fatalf("AnimateCharacter: %v", err)
+	} else {
+		decodedAsSent(t, "AnimateCharacter", out, last.body)
+	}
+
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b8c785ca-9986-473b-beb1-be61e45b3fb4")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+	}
+
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b8c785ca-9986-473b-beb1-be61e45b3fb4")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+	}
+
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b8c785ca-9986-473b-beb1-be61e45b3fb4")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+	}
+
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b8c785ca-9986-473b-beb1-be61e45b3fb4")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+	}
 }

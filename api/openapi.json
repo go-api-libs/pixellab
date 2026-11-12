@@ -7333,7 +7333,8 @@
             "title": "Animation Group Id",
             "description": "Pass the animation_group_id of an existing animation on this character to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it. Same semantics as animate_object. A direction the group already has is rejected with 409: delete it first, or omit the id to create a new animation.",
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "example": "3928b1c6-afcc-479f-87b2-9d2be959fb82"
           },
           "animation_name": {
             "title": "Animation Name",
@@ -7367,7 +7368,8 @@
           "template_animation_id": {
             "title": "Template Animation Id",
             "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
-            "type": "string"
+            "type": "string",
+            "example": "walking-8-frames"
           },
           "template_action": {
             "$ref": "#/components/schemas/CreateCharacterAnimationRequestTemplateAction"
@@ -12433,7 +12435,10 @@
             "example": 8
           },
           "animation_name": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "example": "custom-walking"
           },
           "generation_model": {
@@ -12449,6 +12454,20 @@
             "type": "string",
             "format": "uuid",
             "example": "880ba3bc-08db-4647-b4aa-a3775b3f0cad"
+          },
+          "target_palette": {
+            "type": "null"
+          },
+          "motion_adjustments": {
+            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseMotionAdjustments"
+          },
+          "animation_description": {
+            "type": "string",
+            "example": "walking"
+          },
+          "template_animation_id": {
+            "type": "string",
+            "example": "walking-8-frames"
           }
         },
         "additionalProperties": true
@@ -12474,6 +12493,37 @@
         "required": [
           "type",
           "generations"
+        ]
+      },
+      "GetBackgroundJobResponseLastResponseMotionAdjustments": {
+        "type": "object",
+        "properties": {
+          "stride": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "posture": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          },
+          "arm_swing": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "leg_extension": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          }
+        },
+        "required": [
+          "stride",
+          "posture",
+          "arm_swing",
+          "leg_extension"
         ]
       },
       "GetBackgroundJobResponseLastResponseStorageURLs": {
