@@ -12,12 +12,12 @@ tool (
 require (
 	github.com/MarkRosemaker/cassette v0.0.0-20261111155207-3bee9a17aeeb
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261111155129-3eb35e1f56f9
-	github.com/MarkRosemaker/openapi v0.0.0-20261112162126-f853e838175d
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261112163116-42dc918ba3d5
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20261112162518-e7e0b82d9c2e
-	github.com/MarkRosemaker/openapi-edit v0.0.0-20261112162236-a2824d5b95e1
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261112162415-528831d94645
-	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261112162235-3adfaf5c7b08
+	github.com/MarkRosemaker/openapi v0.0.0-20261112170301-fecf7e9d18db
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261112171450-64ac687e1918
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20261112170751-78dcac76bcaa
+	github.com/MarkRosemaker/openapi-edit v0.0.0-20261112170427-61c8d3f47565
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261112170630-9d8e9a2a3b4f
+	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261112170427-24892c766d78
 	github.com/ettle/strcase v0.2.0
 	github.com/go-api-libs/api v0.0.0-20261111181121-bc153be31ced
 	golang.org/x/sync v0.25.0
@@ -27,9 +27,9 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/MarkRosemaker/errpath v0.0.0-20261109120451-91cd29644c73 // indirect
 	github.com/MarkRosemaker/json2yaml v0.0.0-20261109120452-2329987d7bc8 // indirect
-	github.com/MarkRosemaker/openapi-compare v0.0.0-20261112162234-45b138a1d5ab // indirect
-	github.com/MarkRosemaker/openapi-merge v0.0.0-20261112162234-a5ec8a48dfe6 // indirect
-	github.com/MarkRosemaker/ordmap v0.0.0-20261112162023-d7f4218a519a // indirect
+	github.com/MarkRosemaker/openapi-compare v0.0.0-20261112170426-6eb7ff03e1b0 // indirect
+	github.com/MarkRosemaker/openapi-merge v0.0.0-20261112170426-9e8c1f6a57ac // indirect
+	github.com/MarkRosemaker/ordmap v0.0.0-20261112170224-3309eab45f7b // indirect
 	github.com/MarkRosemaker/yaml v0.0.0-20261109161623-86a6a512ccb9 // indirect
 	github.com/MarkRosemaker/yaml2json v0.0.0-20261109120453-1b901dbf7e8f // indirect
 	github.com/go-api-libs/types v0.0.0-20261109120451-6cd1daca4971 // indirect
