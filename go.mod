@@ -34,7 +34,7 @@ require (
 	github.com/MarkRosemaker/yaml2json v0.0.0-20261109120453-1b901dbf7e8f // indirect
 	github.com/go-api-libs/types v0.0.0-20261109120451-6cd1daca4971 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
-	golang.org/x/exp v0.0.0-20261112160707-e95cf140231d // indirect
+	golang.org/x/exp v0.0.0-20261112162710-dab199d8bf38 // indirect
 	golang.org/x/mod v0.43.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/tools v0.52.1-0.20261106145633-d407941a339a // indirect
