@@ -26,7 +26,10 @@ specification in five steps:
    shares a value with another, and a plain string of a family's property, as
    a response's `direction`, refers to the merged enum. A job's images, which
    upstream gives no schema, are named by their shape: `Image`,
-   `DirectionalImages`, `Images` and `JobImages`, either of the two.
+   `DirectionalImages`, `Images` and `JobImages`, either of the two. A job's
+   echo of the motion sliders it was asked with refers to the request's
+   `MotionSliders`, as the interactions cannot show which of them the API
+   always sends.
 5. **Generate**: write `api/openapi.json`, the library with `openapi-codegen`,
    and `pkg/pixellab/image_size.go`, a checked constructor per request size.
    The library's tests replay `api/interactions.json` through the client, so a

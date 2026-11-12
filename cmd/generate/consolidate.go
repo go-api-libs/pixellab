@@ -353,6 +353,38 @@ func consolidateRotations(doc *openapi.Document) error {
 	return replaceSchemas(doc, "RotationURLs", merged, members)
 }
 
+// motionSliders is the request's own schema of the motion sliders.
+const motionSliders = "MotionSliders"
+
+// referMotionSliders has a job's echo of the motion sliders it was asked with, which upstream gives no schema, refer
+// to the request's: every object of nothing but its properties. What the interactions happened to hold says nothing
+// of which the API always sends.
+func referMotionSliders(doc *openapi.Document) error {
+	sliders := doc.Components.Schemas[motionSliders]
+	if sliders == nil {
+		return errors.New("no " + motionSliders + " schema any more")
+	}
+
+	to := map[string]string{}
+
+	for name, s := range doc.Components.Schemas.ByIndex() {
+		if name == motionSliders || s.Type != openapi.TypeObject || len(s.Properties) != len(sliders.Properties) {
+			continue
+		}
+
+		same := true
+		for prop := range sliders.Properties.ByIndex() {
+			same = same && s.Properties[prop] != nil
+		}
+
+		if same {
+			to[name] = motionSliders
+		}
+	}
+
+	return edit.RedirectSchemas(doc, to)
+}
+
 // nameImages names a job's images by their shape, as upstream gives them no schema: an image of its own encoding and
 // size is an Image, one per compass point DirectionalImages, a list of them Images, and either of those JobImages.
 func nameImages(doc *openapi.Document) error {

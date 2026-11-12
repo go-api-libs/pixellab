@@ -12459,7 +12459,7 @@
             "type": "null"
           },
           "motion_adjustments": {
-            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseMotionAdjustments"
+            "$ref": "#/components/schemas/MotionSliders"
           },
           "animation_description": {
             "type": "string",
@@ -12493,37 +12493,6 @@
         "required": [
           "type",
           "generations"
-        ]
-      },
-      "GetBackgroundJobResponseLastResponseMotionAdjustments": {
-        "type": "object",
-        "properties": {
-          "stride": {
-            "type": "number",
-            "format": "double",
-            "example": 1.0
-          },
-          "posture": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          },
-          "arm_swing": {
-            "type": "number",
-            "format": "double",
-            "example": 1.0
-          },
-          "leg_extension": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          }
-        },
-        "required": [
-          "stride",
-          "posture",
-          "arm_swing",
-          "leg_extension"
         ]
       },
       "GetBackgroundJobResponseLastResponseStorageURLs": {
