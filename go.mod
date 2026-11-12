@@ -13,7 +13,7 @@ require (
 	github.com/MarkRosemaker/cassette v0.0.0-20261111155207-3bee9a17aeeb
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261111155129-3eb35e1f56f9
 	github.com/MarkRosemaker/openapi v0.0.0-20261111155237-ec206989fd90
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261111181545-dab98e2016cd
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261112050822-a326a8b9a203
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261111155553-9a2fe93a4068
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261111155348-f25d23c6efed
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261111155507-e997f24104a4
