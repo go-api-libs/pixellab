@@ -19,7 +19,7 @@ require (
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261112181646-990112080a63
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261112181512-46b453b2a7e8
 	github.com/ettle/strcase v0.2.0
-	github.com/go-api-libs/api v0.0.0-20261111181121-bc153be31ced
+	github.com/go-api-libs/api v0.0.0-20261112184314-5e0f94e7887c
 	golang.org/x/sync v0.25.0
 )
 
