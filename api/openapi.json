@@ -3793,7 +3793,7 @@
           "Rooms"
         ],
         "summary": "Download a room's building kit",
-        "description": "A ZIP of the building kit the room was built from: the kit painting (every\nwall, corner, door and floor tile of its look), and for a top-down room the same tiles as a\ntileset-15 sheet (32 px, 4 x 8) with its metadata, which the website's tileset import takes as\nit is. 409 while the room is being made, and for a room not built from a kit (`building_kit`\nfalse).",
+        "description": "A ZIP of the building kit the room was built from: the kit painting (every\nwall, corner, door and floor tile of its look), and for a top-down room the same tiles as a\ntileset-15 sheet (32 px, 4 x 8) with its metadata, which the website's tileset import takes as\nit is; for an oblique room its 16 corner tiles (72 px frames on a 32 px grid) on one sheet with\na JSON of which frame is which (made the first time it is asked for: up to half a minute). 409\nwhile the room is being made, and for a room not built from a kit (`building_kit` false).",
         "operationId": "GetRoomKitZip",
         "responses": {
           "200": {

@@ -8746,8 +8746,9 @@ func (c *Client) DeleteRoom(ctx context.Context, roomID uuid.UUID) (*DeleteRoomR
 // A ZIP of the building kit the room was built from: the kit painting (every
 // wall, corner, door and floor tile of its look), and for a top-down room the same tiles as a
 // tileset-15 sheet (32 px, 4 x 8) with its metadata, which the website's tileset import takes as
-// it is. 409 while the room is being made, and for a room not built from a kit (`building_kit`
-// false).
+// it is; for an oblique room its 16 corner tiles (72 px frames on a 32 px grid) on one sheet with
+// a JSON of which frame is which (made the first time it is asked for: up to half a minute). 409
+// while the room is being made, and for a room not built from a kit (`building_kit` false).
 //
 //	GET /rooms/{room_id}/kit.zip
 func (c *Client) GetRoomKitZip(ctx context.Context, roomID uuid.UUID) (io.ReadCloser, error) {
