@@ -5,18 +5,16 @@
 package pixellab
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/url"
-	"slices"
-	"strconv"
 	"time"
 	"uuid"
 
 	"github.com/MarkRosemaker/jsonutil"
+	"github.com/go-api-libs/api/union"
 )
 
 var jsonOpts = json.JoinOptions(
@@ -208,10 +206,10 @@ type AnimateWithSkeletonRequest struct {
 	// How closely to follow the reference image and skeleton keypoints
 	GuidanceScale float64 `json:"guidance_scale,omitzero"`
 	// Camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -245,7 +243,7 @@ type AnimateWithSkeletonV3Request struct {
 	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction"`
 	// Camera angle.
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// The sprite to animate, PNG base64, up to 256x256. Frames come back at this size.
 	FirstFrame BaseImage `json:"first_frame"`
@@ -302,10 +300,10 @@ type AnimateWithTextRequest struct {
 	// Starting frame index of the full animation
 	StartFrameIndex int `json:"start_frame_index,omitzero"`
 	// Camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	Direction Direction `json:"direction,omitzero"`
 	// Initial images to start the generation from
 	InitImages []BaseImage `json:"init_images,omitzero"`
@@ -339,8 +337,10 @@ type AnimateWithTextV2Request struct {
 	Seed *int `json:"seed,omitzero"`
 	// Remove background from generated frames
 	NoBackground *bool `json:"no_background,omitzero"`
+	// Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')
 	// One of: none, low top-down, high top-down, side. Defaults to "none".
 	View CameraView `json:"view,omitzero"`
+	// Direction the character faces during the animation.
 	// One of: none, south, east, west, north, south-east, south-west, north-east, north-west. Defaults to "none".
 	Direction Direction `json:"direction,omitzero"`
 	// Colours the frames must use and/or a colour cap, shared by all frames: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. The reference image is put on the palette first. `smart` is for single images and is refused here.
@@ -645,6 +645,7 @@ type Create1DirectionObjectRequest struct {
 	Description string `json:"description"`
 	// Square image size in pixels (16-256). Defaults to 64 when omitted. Cannot be set together with `style_images` — when style_images are provided, the largest style image determines the output size. The effective size also determines how many candidate objects the generator produces in one shot (≤42→64, ≤85→16, ≤170→4, else 1). When >1, the resulting object enters 'review' status — call POST /v2/objects/{id}/select-frames (or use the review UI) to pick which to keep.
 	Size int `json:"size,omitzero"`
+	// View.
 	// One of: top-down, sidescroller. Defaults to "top-down".
 	View CameraView `json:"view,omitzero"`
 	// Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.
@@ -837,7 +838,7 @@ type CreateCharacterProFlashRequest struct {
 	FirstFrameDirection string     `json:"first_frame_direction,omitzero"`
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: any. Height: any.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
 	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
@@ -1122,11 +1123,16 @@ type CreateCharacterWithDirectionsProportions struct {
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member type names the alternative, which then
-// decodes each further member as it is read. With type first, nothing is read twice.
+// decodes each further member as it is read. With type first, nothing is read twice. Null sets no alternative.
 func (v *CreateCharacterWithDirectionsProportions) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = CreateCharacterWithDirectionsProportions{}
 
-	tag, first, dec, err := jsonFirstMember(dec, "type")
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
+
+	tag, first, dec, err := union.FirstMember(dec, "type")
 	if err != nil {
 		return err
 	}
@@ -1134,26 +1140,27 @@ func (v *CreateCharacterWithDirectionsProportions) UnmarshalJSONFrom(dec *jsonte
 	switch tag {
 	case "preset":
 		var vv CharacterProportionsPreset
-		if err := jsonMembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.CharacterProportionsPreset = &vv
 	case "custom":
 		var vv CharacterProportions
-		if err := jsonMembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.CharacterProportions = &vv
 	default:
-		return jsonUnknownValue("type", tag)
+		return union.UnknownValue("type", tag)
 	}
 
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with type first, as decoding wants it, and set to the variant's value.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with type first, as decoding wants it, and set to the variant's value, or null
+// where none is set.
 func (v *CreateCharacterWithDirectionsProportions) MarshalJSONTo(enc *jsontext.Encoder) error {
 	var (
 		variant any
@@ -1166,7 +1173,7 @@ func (v *CreateCharacterWithDirectionsProportions) MarshalJSONTo(enc *jsontext.E
 	case v.CharacterProportions != nil:
 		variant, tag = v.CharacterProportions, "custom"
 	default:
-		return &json.SemanticError{Err: errors.New("no alternative set")}
+		return enc.WriteToken(jsontext.Null)
 	}
 
 	out, err := json.Marshal(variant, jsonOptsTo(enc))
@@ -1174,7 +1181,7 @@ func (v *CreateCharacterWithDirectionsProportions) MarshalJSONTo(enc *jsontext.E
 		return err
 	}
 
-	if out, err = jsonFirst(out, "type", tag); err != nil {
+	if out, err = union.First(out, "type", tag); err != nil {
 		return err
 	}
 
@@ -1260,13 +1267,13 @@ func (e CreateImagePixenBackgroundRemovalTask) Valid() bool {
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description"`
-	// Width: 16-768 px. Height: 16-768 px.
+	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style
 	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level (default: highly detailed)
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "highly detailed".
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle
 	// One of: side, low top-down, high top-down.
@@ -1345,7 +1352,7 @@ type CreateImagePixfluxRequest struct {
 type CreateImageProFlashRequest struct {
 	Description string `json:"description"`
 	// Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: any. Height: any.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize    ImageSize `json:"image_size"`
 	NoBackground *bool     `json:"no_background,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
@@ -1368,13 +1375,13 @@ type CreateIsometricTileRequest struct {
 	// How closely to follow the text description
 	TextGuidanceScale float64 `json:"text_guidance_scale,omitzero"`
 	// Outline style for the tile
-	// One of: single color outline, selective outline, lineless. Defaults to "single color outline".
+	// One of: single color outline, selective outline, lineless. Defaults to "lineless".
 	Outline Outline `json:"outline,omitzero"`
 	// Shading complexity
-	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading. Defaults to "basic shading".
 	Shading Shading `json:"shading,omitzero"`
 	// Level of detail in the tile
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "medium detail".
 	Detail Detail `json:"detail,omitzero"`
 	// Initial image to start from
 	InitImage BaseImage `json:"init_image,omitzero"`
@@ -1422,8 +1429,10 @@ type CreateMapObjectRequest struct {
 	// Outline style
 	// One of: single color outline, selective outline, lineless. Defaults to "single color outline".
 	Outline Outline `json:"outline,omitzero"`
+	// Shading complexity
 	// One of: flat shading, basic shading, medium shading, detailed shading. Defaults to "medium shading".
 	Shading Shading `json:"shading,omitzero"`
+	// Level of detail
 	// One of: low detail, medium detail, high detail. Defaults to "medium detail".
 	Detail Detail `json:"detail,omitzero"`
 	// How closely to follow the description
@@ -1451,11 +1460,16 @@ type CreateMapObjectRequestInpainting struct {
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member type names the alternative, which then
-// decodes each further member as it is read. With type first, nothing is read twice.
+// decodes each further member as it is read. With type first, nothing is read twice. Null sets no alternative.
 func (v *CreateMapObjectRequestInpainting) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = CreateMapObjectRequestInpainting{}
 
-	tag, first, dec, err := jsonFirstMember(dec, "type")
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
+
+	tag, first, dec, err := union.FirstMember(dec, "type")
 	if err != nil {
 		return err
 	}
@@ -1463,33 +1477,34 @@ func (v *CreateMapObjectRequestInpainting) UnmarshalJSONFrom(dec *jsontext.Decod
 	switch tag {
 	case "mask":
 		var vv MaskInpainting
-		if err := jsonMembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.MaskInpainting = &vv
 	case "oval":
 		var vv OvalInpainting
-		if err := jsonMembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.OvalInpainting = &vv
 	case "rectangle":
 		var vv RectangleInpainting
-		if err := jsonMembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "type", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.RectangleInpainting = &vv
 	default:
-		return jsonUnknownValue("type", tag)
+		return union.UnknownValue("type", tag)
 	}
 
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with type first, as decoding wants it, and set to the variant's value.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with type first, as decoding wants it, and set to the variant's value, or null
+// where none is set.
 func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) error {
 	var (
 		variant any
@@ -1504,7 +1519,7 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 	case v.RectangleInpainting != nil:
 		variant, tag = v.RectangleInpainting, "rectangle"
 	default:
-		return &json.SemanticError{Err: errors.New("no alternative set")}
+		return enc.WriteToken(jsontext.Null)
 	}
 
 	out, err := json.Marshal(variant, jsonOptsTo(enc))
@@ -1512,7 +1527,7 @@ func (v *CreateMapObjectRequestInpainting) MarshalJSONTo(enc *jsontext.Encoder) 
 		return err
 	}
 
-	if out, err = jsonFirst(out, "type", tag); err != nil {
+	if out, err = union.First(out, "type", tag); err != nil {
 		return err
 	}
 
@@ -1694,7 +1709,7 @@ type CreateObjectAnimationResponse struct {
 // CreateObjectCanva defines a model
 type CreateObjectCanva struct {
 	// The new canvas size
-	// Width: 8-400 px. Height: 8-400 px.
+	// Width: 8-400 px, a multiple of 4. Height: 8-400 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 }
 
@@ -1711,7 +1726,7 @@ type CreateObjectProFlashRequest struct {
 	FirstFrameDirection string     `json:"first_frame_direction,omitzero"`
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: any. Height: any.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
 	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
@@ -1793,6 +1808,7 @@ type CreateRoomRequest struct {
 	StyleRoomID uuid.UUID `json:"style_room_id,omitzero"`
 	// With style_room_id: take the style room's floor too. False gives the new room its own floor, decided by `theme` ("its chapel, with a wooden floor")
 	StyleRoomFloor *bool `json:"style_room_floor,omitzero"`
+	// top-down: the back walls' faces show above the floor (256x256 px). isometric: 2:1, the n and w walls tall with their doors, the s and e walls low curbs with open doorways (about 248x176 px for the full grid). oblique: the floor a square grid seen from above, heights leaning up and to the left, the n and w walls tall, the s and e walls low curbs; walls, doors and floor only, no furniture yet (pieces must be false; about 272x240 px for the full grid)
 	// One of: top-down, isometric, oblique. Defaults to "top-down".
 	View CameraView `json:"view,omitzero"`
 	// A project of yours to file the room in (a game also uses it); left out: your auto-add setting
@@ -2125,7 +2141,7 @@ type CreateTilesetRequest struct {
 	// One of: low detail, medium detail, highly detailed.
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle, honoured by mode='pro'. Standard (pixen) always draws high top-down.
-	// One of: low top-down, high top-down.
+	// One of: low top-down, high top-down. Defaults to "high top-down".
 	View CameraView `json:"view,omitzero"`
 	// No effect: standard runs on pixen and pro ignores it; kept so existing calls work.
 	TileStrength float64 `json:"tile_strength,omitzero"`
@@ -2203,11 +2219,16 @@ type CreateUIAssetRequestPiecesItem struct {
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Its member kind names the alternative, which then
-// decodes each further member as it is read. With kind first, nothing is read twice.
+// decodes each further member as it is read. With kind first, nothing is read twice. Null sets no alternative.
 func (v *CreateUIAssetRequestPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = CreateUIAssetRequestPiecesItem{}
 
-	tag, first, dec, err := jsonFirstMember(dec, "kind")
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
+
+	tag, first, dec, err := union.FirstMember(dec, "kind")
 	if err != nil {
 		return err
 	}
@@ -2215,33 +2236,34 @@ func (v *CreateUIAssetRequestPiecesItem) UnmarshalJSONFrom(dec *jsontext.Decoder
 	switch tag {
 	case "rounded_rect":
 		var vv UIPieceRect
-		if err := jsonMembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.UIPieceRect = &vv
 	case "circle":
 		var vv UIPieceCircle
-		if err := jsonMembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.UIPieceCircle = &vv
 	case "polygon":
 		var vv UIPiecePolygon
-		if err := jsonMembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
+		if err := union.MembersFrom(dec, "kind", first, vv.unmarshalJSONMember); err != nil {
 			return err
 		}
 
 		v.UIPiecePolygon = &vv
 	default:
-		return jsonUnknownValue("kind", tag)
+		return union.UnknownValue("kind", tag)
 	}
 
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with kind first, as decoding wants it, and set to the variant's value.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, with kind first, as decoding wants it, and set to the variant's value, or null
+// where none is set.
 func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 	var (
 		variant any
@@ -2256,7 +2278,7 @@ func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) er
 	case v.UIPiecePolygon != nil:
 		variant, tag = v.UIPiecePolygon, "polygon"
 	default:
-		return &json.SemanticError{Err: errors.New("no alternative set")}
+		return enc.WriteToken(jsontext.Null)
 	}
 
 	out, err := json.Marshal(variant, jsonOptsTo(enc))
@@ -2264,7 +2286,7 @@ func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) er
 		return err
 	}
 
-	if out, err = jsonFirst(out, "kind", tag); err != nil {
+	if out, err = union.First(out, "kind", tag); err != nil {
 		return err
 	}
 
@@ -2786,13 +2808,13 @@ type EnhancePixenPromptRequest struct {
 	// User's image description to enhance.
 	Description string `json:"description"`
 	// Target image size. Prompt complexity scales with size.
-	// Width: 16-768 px. Height: 16-768 px.
+	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style hint.
 	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level hint.
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "highly detailed".
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle.
 	// One of: side, low top-down, high top-down.
@@ -3443,12 +3465,17 @@ type HTTPValidationErrorDetail struct {
 	ValidationError []ValidationError
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Null sets no alternative.
 func (v *HTTPValidationErrorDetail) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = HTTPValidationErrorDetail{}
 
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
+
 	opts := jsonOptsOf(dec)
-	strict := jsonStrict(dec)
+	strict := union.Strict(dec)
 
 	raw, err := dec.ReadValue()
 	if err != nil {
@@ -3482,7 +3509,8 @@ func (v *HTTPValidationErrorDetail) UnmarshalJSONFrom(dec *jsontext.Decoder) err
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, or null
+// where none is set.
 func (v *HTTPValidationErrorDetail) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.String != "":
@@ -3491,7 +3519,7 @@ func (v *HTTPValidationErrorDetail) MarshalJSONTo(enc *jsontext.Encoder) error {
 		return json.MarshalEncode(enc, v.ValidationError, jsonOptsTo(enc))
 	}
 
-	return &json.SemanticError{Err: errors.New("no alternative set")}
+	return enc.WriteToken(jsontext.Null)
 }
 
 // Image defines a model
@@ -3793,12 +3821,17 @@ type JobImages struct {
 	Images            Images
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Null sets no alternative.
 func (v *JobImages) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = JobImages{}
 
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
+
 	opts := jsonOptsOf(dec)
-	strict := jsonStrict(dec)
+	strict := union.Strict(dec)
 
 	raw, err := dec.ReadValue()
 	if err != nil {
@@ -3811,7 +3844,7 @@ func (v *JobImages) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	if strict || matched == 0 {
 		// decoding checks neither the members the alternative requires nor those it pins to one value
 		required, nullable, pinned := []string{"east", "north", "south", "west"}, map[string]bool{}, map[string]string{}
-		if jsonFits(raw, required, nullable, pinned) {
+		if union.Fits(raw, required, nullable, pinned) {
 			var vv DirectionalImages
 			if err := json.Unmarshal(raw, &vv, opts); err == nil {
 				v.DirectionalImages = &vv
@@ -3836,7 +3869,8 @@ func (v *JobImages) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, or null
+// where none is set.
 func (v *JobImages) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.DirectionalImages != nil:
@@ -3845,7 +3879,7 @@ func (v *JobImages) MarshalJSONTo(enc *jsontext.Encoder) error {
 		return json.MarshalEncode(enc, v.Images, jsonOptsTo(enc))
 	}
 
-	return &json.SemanticError{Err: errors.New("no alternative set")}
+	return enc.WriteToken(jsontext.Null)
 }
 
 // JobResponse defines a model
@@ -4545,16 +4579,16 @@ type RotateRequest struct {
 	// How many degrees to rotate the subject
 	DirectionChange *int `json:"direction_change,omitzero"`
 	// From camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	FromView CameraView `json:"from_view,omitzero"`
 	// To camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	ToView CameraView `json:"to_view,omitzero"`
 	// From subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "south".
 	FromDirection Direction `json:"from_direction,omitzero"`
 	// From subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	ToDirection Direction `json:"to_direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -5637,9 +5671,14 @@ type ValidationErrorLocItem struct {
 	Int    *int
 }
 
-// UnmarshalJSONFrom implements [json.UnmarshalerFrom].
+// UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Null sets no alternative.
 func (v *ValidationErrorLocItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	*v = ValidationErrorLocItem{}
+
+	if dec.PeekKind() == 'n' {
+		_, err := dec.ReadToken()
+		return err
+	}
 
 	opts := jsonOptsOf(dec)
 
@@ -5673,7 +5712,8 @@ func (v *ValidationErrorLocItem) UnmarshalJSONFrom(dec *jsontext.Decoder) error 
 	return nil
 }
 
-// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant.
+// MarshalJSONTo implements [json.MarshalerTo]. It emits the first non-nil variant, or null
+// where none is set.
 func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.String != "":
@@ -5682,7 +5722,7 @@ func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 		return json.MarshalEncode(enc, v.Int, jsonOptsTo(enc))
 	}
 
-	return &json.SemanticError{Err: errors.New("no alternative set")}
+	return enc.WriteToken(jsontext.Null)
 }
 
 // VfxEffectCanvas defines a model
@@ -5721,15 +5761,9 @@ type VfxEffectSummary struct {
 	EditURL string `json:"edit_url"`
 }
 
-// jsonStrict reports whether dec rejects members the specification does not know, as it does unless told otherwise.
-func jsonStrict(dec *jsontext.Decoder) bool {
-	v, ok := json.GetOption(dec.Options(), json.RejectUnknownMembers)
-	return v || !ok
-}
-
 // jsonOptsOf is jsonOpts, or jsonOptsLenient where dec accepts members the specification does not know.
 func jsonOptsOf(dec *jsontext.Decoder) json.Options {
-	if jsonStrict(dec) {
+	if union.Strict(dec) {
 		return jsonOpts
 	}
 
@@ -5740,663 +5774,4 @@ func jsonOptsOf(dec *jsontext.Decoder) json.Options {
 // request or a response does not carry, so that what a type encodes itself passes them on.
 func jsonOptsTo(enc *jsontext.Encoder) json.Options {
 	return json.JoinOptions(jsonOpts, enc.Options())
-}
-
-// jsonUnknownName reports a member no part of the type declares, as encoding/json reports one of a struct.
-func jsonUnknownName(name string) error {
-	return &json.SemanticError{JSONKind: jsontext.KindString, Err: fmt.Errorf("%w %q", json.ErrUnknownName, name)}
-}
-
-// jsonMissing reports a member the type needs and the object lacks.
-func jsonMissing(name string) error {
-	return &json.SemanticError{JSONKind: jsontext.KindBeginObject, Err: fmt.Errorf("missing object member name %q", name)}
-}
-
-// jsonUnknownValue reports a value of the discriminator that names no alternative.
-func jsonUnknownValue(name, value string) error {
-	return &json.SemanticError{JSONKind: jsontext.KindString, JSONValue: jsontext.Value(strconv.Quote(value)), Err: fmt.Errorf("unknown value of %q", name)}
-}
-
-// jsonFirstMember reads the opening of a JSON object and its member name, which must have a string value. It returns
-// the string, the value as written, and the decoder to read the object's further members from: dec itself when name
-// comes first, the fast way, and otherwise one over the object read whole, with name moved to the front.
-func jsonFirstMember(dec *jsontext.Decoder, name string) (string, jsontext.Value, *jsontext.Decoder, error) {
-	if tok, err := dec.ReadToken(); err != nil {
-		return "", nil, nil, err
-	} else if tok.Kind() != jsontext.KindBeginObject {
-		return "", nil, nil, &json.SemanticError{JSONKind: tok.Kind(), Err: errors.New("want an object")}
-	}
-
-	if dec.PeekKind() == jsontext.KindEndObject {
-		return "", nil, nil, jsonMissing(name)
-	}
-
-	tok, err := dec.ReadToken()
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	if got := tok.String(); got != name {
-		// read the rest of the object, and start again with name first
-		var buf bytes.Buffer
-		enc := jsontext.NewEncoder(&buf)
-		if err := enc.WriteToken(jsontext.BeginObject); err != nil {
-			return "", nil, nil, err
-		}
-
-		if err := enc.WriteToken(jsontext.String(got)); err != nil {
-			return "", nil, nil, err
-		}
-
-		for dec.PeekKind() != jsontext.KindEndObject {
-			val, err := dec.ReadValue()
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			if err := enc.WriteValue(val); err != nil {
-				return "", nil, nil, err
-			}
-
-			if dec.PeekKind() == jsontext.KindEndObject {
-				break
-			}
-
-			tok, err := dec.ReadToken()
-			if err != nil {
-				return "", nil, nil, err
-			}
-
-			if err := enc.WriteToken(tok); err != nil {
-				return "", nil, nil, err
-			}
-		}
-
-		if _, err := dec.ReadToken(); err != nil { // the end of the object
-			return "", nil, nil, err
-		}
-
-		if err := enc.WriteToken(jsontext.EndObject); err != nil {
-			return "", nil, nil, err
-		}
-
-		ordered, err := jsonFirst(buf.Bytes(), name, "")
-		if err != nil {
-			return "", nil, nil, err
-		}
-
-		return jsonFirstMember(jsontext.NewDecoder(bytes.NewReader(ordered), dec.Options()), name)
-	}
-
-	val, err := dec.ReadValue()
-	if err != nil {
-		return "", nil, nil, err
-	}
-
-	var tag string
-	if err := json.Unmarshal(val, &tag); err != nil {
-		return "", nil, nil, &json.SemanticError{JSONKind: val.Kind(), Err: fmt.Errorf("member %q is not a string", name)}
-	}
-
-	return tag, val.Clone(), dec, nil
-}
-
-// jsonMembersFrom decodes the first member, already read, and every further member of the object dec is in, each
-// into the field decode declares for it; a member it does not declare is an error, unless dec is lenient.
-func jsonMembersFrom(dec *jsontext.Decoder, firstName string, first jsontext.Value, decode func(*jsontext.Decoder, string) (bool, error)) error {
-	strict := jsonStrict(dec)
-
-	if ok, err := decode(jsontext.NewDecoder(bytes.NewReader(first), dec.Options()), firstName); err != nil {
-		return err
-	} else if !ok && strict {
-		return jsonUnknownName(firstName)
-	}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return err
-		}
-
-		name := tok.String() // a token is void once the decoder reads on
-
-		if ok, err := decode(dec, name); err != nil {
-			return err
-		} else if !ok && strict {
-			return jsonUnknownName(name)
-		} else if !ok {
-			if err := dec.SkipValue(); err != nil {
-				return err
-			}
-		}
-	}
-
-	_, err := dec.ReadToken()
-	return err
-}
-
-// jsonPart is one of the parts an object decodes into: the members it declares and how it decodes one of them.
-type jsonPart struct {
-	members map[string]bool
-	decode  func(*jsontext.Decoder, string) (bool, error)
-}
-
-// jsonPartsFrom is jsonMembersFrom for an object that several parts declare members of. A member one part declares
-// decodes straight from dec; one several declare is read once and decoded into each.
-func jsonPartsFrom(dec *jsontext.Decoder, firstName string, first jsontext.Value, parts []jsonPart) error {
-	member := func(name string, val jsontext.Value) error {
-		var declaring []jsonPart
-		for _, p := range parts {
-			if p.members[name] {
-				declaring = append(declaring, p)
-			}
-		}
-
-		switch {
-		case len(declaring) > 0:
-		case jsonStrict(dec):
-			return jsonUnknownName(name)
-		case val == nil:
-			return dec.SkipValue()
-		default:
-			return nil
-		}
-
-		if val == nil && len(declaring) == 1 {
-			_, err := declaring[0].decode(dec, name)
-			return err
-		}
-
-		if val == nil {
-			v, err := dec.ReadValue()
-			if err != nil {
-				return err
-			}
-
-			val = v.Clone()
-		}
-
-		for _, p := range declaring {
-			if _, err := p.decode(jsontext.NewDecoder(bytes.NewReader(val), dec.Options()), name); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	if err := member(firstName, first); err != nil {
-		return err
-	}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return err
-		}
-
-		if err := member(tok.String(), nil); err != nil {
-			return err
-		}
-	}
-
-	_, err := dec.ReadToken()
-	return err
-}
-
-// jsonFirst returns the JSON object raw with its member name first, as decoding by a discriminator wants it. If value
-// is known, the member must have it, and is written in if raw lacks it or leaves it empty. raw is returned as it is if
-// all is in order.
-func jsonFirst(raw jsontext.Value, name, value string) (jsontext.Value, error) {
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if _, err := dec.ReadToken(); err != nil {
-		return nil, err
-	}
-
-	if dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return nil, err
-		}
-
-		if tok.String() == name {
-			if value == "" {
-				return raw, nil
-			}
-
-			val, err := dec.ReadToken()
-			if err != nil {
-				return nil, err
-			}
-
-			switch got := val.String(); got {
-			case value:
-				return raw, nil
-			case "": // left for the union to fill in, below
-			default:
-				return nil, &json.SemanticError{Err: fmt.Errorf("member %q is %q, want %q", name, got, value)}
-			}
-		}
-	}
-
-	names, err := jsonMembers(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	var first jsontext.Value
-	switch {
-	case slices.Contains(names, name):
-		if first, err = jsonSelect(raw, map[string]bool{name: true}); err != nil {
-			return nil, err
-		}
-
-		if value == "" {
-			break
-		}
-
-		got, err := jsonMemberString(first, name)
-		switch {
-		case err != nil:
-			return nil, err
-		case got == "": // left empty: the union knows what it holds
-			rest := make(map[string]bool, len(names))
-			for _, n := range names {
-				rest[n] = n != name
-			}
-
-			if raw, err = jsonSelect(raw, rest); err != nil {
-				return nil, err
-			}
-
-			if first, err = json.Marshal(map[string]string{name: value}); err != nil {
-				return nil, err
-			}
-		case got != value:
-			return nil, &json.SemanticError{Err: fmt.Errorf("member %q is %q, want %q", name, got, value)}
-		}
-	case value != "":
-		member, err := json.Marshal(map[string]string{name: value})
-		if err != nil {
-			return nil, err
-		}
-
-		first = member
-	default:
-		return nil, jsonMissing(name)
-	}
-
-	return jsonMerge(first, raw)
-}
-
-// jsonMemberString returns the string value of the member name of the JSON object raw, reading no further than it.
-func jsonMemberString(raw jsontext.Value, name string) (string, error) {
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if tok, err := dec.ReadToken(); err != nil {
-		return "", err
-	} else if tok.Kind() != jsontext.KindBeginObject {
-		return "", &json.SemanticError{JSONKind: tok.Kind(), Err: errors.New("want an object")}
-	}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return "", err
-		}
-
-		if tok.String() != name {
-			if err := dec.SkipValue(); err != nil {
-				return "", err
-			}
-
-			continue
-		}
-
-		val, err := dec.ReadToken()
-		if err != nil {
-			return "", err
-		}
-
-		if val.Kind() != jsontext.KindString {
-			return "", &json.SemanticError{JSONKind: val.Kind(), Err: fmt.Errorf("member %q is not a string", name)}
-		}
-
-		return val.String(), nil
-	}
-
-	return "", jsonMissing(name)
-}
-
-// jsonMembers returns the names of the members of the JSON object raw, in order.
-func jsonMembers(raw jsontext.Value) ([]string, error) {
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if tok, err := dec.ReadToken(); err != nil {
-		return nil, err
-	} else if tok.Kind() != jsontext.KindBeginObject {
-		return nil, &json.SemanticError{JSONKind: tok.Kind(), Err: errors.New("want an object")}
-	}
-
-	var names []string
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return nil, err
-		}
-
-		names = append(names, tok.String())
-
-		if err := dec.SkipValue(); err != nil {
-			return nil, err
-		}
-	}
-
-	return names, nil
-}
-
-// jsonSelect returns the JSON object raw with only the members keep holds.
-func jsonSelect(raw jsontext.Value, keep map[string]bool) (jsontext.Value, error) {
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if _, err := dec.ReadToken(); err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	enc := jsontext.NewEncoder(&buf)
-	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
-		return nil, err
-	}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return nil, err
-		}
-
-		name := tok.String() // a token is void once the decoder reads on
-
-		val, err := dec.ReadValue()
-		if err != nil {
-			return nil, err
-		}
-
-		if !keep[name] {
-			continue
-		}
-
-		if err := enc.WriteToken(jsontext.String(name)); err != nil {
-			return nil, err
-		}
-
-		if err := enc.WriteValue(val); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := enc.WriteToken(jsontext.EndObject); err != nil {
-		return nil, err
-	}
-
-	return bytes.TrimSpace(buf.Bytes()), nil
-}
-
-// jsonMerge returns the members of the JSON objects a and b in one object. A member both hold must have the same
-// value in each.
-func jsonMerge(a, b jsontext.Value) (jsontext.Value, error) {
-	var buf bytes.Buffer
-	enc := jsontext.NewEncoder(&buf)
-	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
-		return nil, err
-	}
-
-	written := map[string]jsontext.Value{}
-	for _, raw := range []jsontext.Value{a, b} {
-		dec := jsontext.NewDecoder(bytes.NewReader(raw))
-		if _, err := dec.ReadToken(); err != nil {
-			return nil, err
-		}
-
-		for dec.PeekKind() != jsontext.KindEndObject {
-			tok, err := dec.ReadToken()
-			if err != nil {
-				return nil, err
-			}
-
-			name := tok.String() // a token is void once the decoder reads on
-
-			val, err := dec.ReadValue()
-			if err != nil {
-				return nil, err
-			}
-			if prev, ok := written[name]; ok {
-				if err := prev.Canonicalize(); err != nil {
-					return nil, err
-				}
-
-				cur := val.Clone()
-				if err := cur.Canonicalize(); err != nil {
-					return nil, err
-				}
-
-				if !bytes.Equal(prev, cur) {
-					return nil, &json.SemanticError{Err: fmt.Errorf("member %q is %s in one part and %s in another", name, prev, cur)}
-				}
-
-				continue
-			}
-
-			written[name] = val.Clone()
-
-			if err := enc.WriteToken(jsontext.String(name)); err != nil {
-				return nil, err
-			}
-
-			if err := enc.WriteValue(val); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := enc.WriteToken(jsontext.EndObject); err != nil {
-		return nil, err
-	}
-
-	return bytes.TrimSpace(buf.Bytes()), nil
-}
-
-// jsonVariant is an alternative of a union: its value of the discriminator, the members it declares and those it
-// requires.
-type jsonVariant struct {
-	value    string
-	members  map[string]bool
-	required []string
-	// nullable are the members of required that may be null
-	nullable map[string]bool
-	// pinned are the members it allows one value for, written as compact JSON
-	pinned map[string]string
-	// enums are the members it allows the values of an enum for, written so
-	enums map[string][]string
-}
-
-// jsonEnumsFit reports whether each member of the JSON object raw that enums names has one of the values it allows,
-// written as compact JSON.
-func jsonEnumsFit(raw jsontext.Value, enums map[string][]string) bool {
-	if len(enums) == 0 {
-		return true
-	}
-
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if tok, err := dec.ReadToken(); err != nil || tok.Kind() != jsontext.KindBeginObject {
-		return false
-	}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return false
-		}
-
-		name := tok.String()
-
-		val, err := dec.ReadValue()
-		if err != nil {
-			return false
-		}
-
-		if allowed, ok := enums[name]; ok {
-			got := val.Clone()
-			if err := got.Compact(); err != nil || !slices.Contains(allowed, string(got)) {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-// jsonEnumPasses are whether to check enums in each attempt at choosing an alternative: strict, always; leniently,
-// first, then not, should no alternative fit, as an API may add a value to an enum.
-func jsonEnumPasses(strict bool) []bool {
-	if strict {
-		return []bool{true}
-	}
-
-	return []bool{true, false}
-}
-
-// jsonFits reports whether the JSON value raw has the members required, and those of pinned it has with the value
-// each pins, written as compact JSON. A member that is null is there only where nullable allows it to be. Any value
-// fits where nothing is required or pinned.
-func jsonFits(raw jsontext.Value, required []string, nullable map[string]bool, pinned map[string]string) bool {
-	if len(required) == 0 && len(pinned) == 0 {
-		return true
-	}
-
-	if raw.Kind() != jsontext.KindBeginObject {
-		return false
-	}
-
-	dec := jsontext.NewDecoder(bytes.NewReader(raw))
-	if _, err := dec.ReadToken(); err != nil {
-		return false
-	}
-
-	present := map[string]bool{}
-
-	for dec.PeekKind() != jsontext.KindEndObject {
-		tok, err := dec.ReadToken()
-		if err != nil {
-			return false
-		}
-
-		name := tok.String()
-
-		val, err := dec.ReadValue()
-		if err != nil {
-			return false
-		}
-
-		present[name] = val.Kind() != jsontext.KindNull || nullable[name]
-
-		if want, ok := pinned[name]; ok {
-			got := val.Clone()
-			if err := got.Compact(); err != nil || string(got) != want {
-				return false
-			}
-		}
-	}
-
-	for _, r := range required {
-		if !present[r] {
-			return false
-		}
-	}
-
-	return true
-}
-
-// jsonChooseVariants returns the alternatives the JSON object raw is: the one its discriminator names, if there is
-// one, else those whose required members it has and whose members it holds, besides those of plain. Every member
-// must belong to plain or to a chosen alternative. Not strict, a member nothing declares is left out of the choice,
-// and of several alternatives of a oneOf the first is chosen.
-func jsonChooseVariants(raw jsontext.Value, discriminator string, variants []jsonVariant, plain map[string]bool, oneOf, strict bool) ([]int, error) {
-	names, err := jsonMembers(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	if !strict {
-		names = slices.DeleteFunc(names, func(n string) bool {
-			return !plain[n] && !slices.ContainsFunc(variants, func(v jsonVariant) bool { return v.members[n] })
-		})
-	}
-
-	present := make(map[string]bool, len(names))
-	for _, n := range names {
-		present[n] = true
-	}
-
-	var chosen []int
-	if discriminator != "" {
-		tag, err := jsonMemberString(raw, discriminator)
-		if err != nil {
-			return nil, err
-		}
-
-		for i, v := range variants {
-			if v.value == tag {
-				chosen = append(chosen, i)
-			}
-		}
-
-		if len(chosen) == 0 {
-			return nil, jsonUnknownValue(discriminator, tag)
-		}
-	} else {
-	variants:
-		for i, v := range variants {
-			if !jsonFits(raw, v.required, v.nullable, v.pinned) {
-				continue variants
-			}
-
-			for _, n := range names {
-				if !plain[n] && !v.members[n] {
-					continue variants
-				}
-			}
-
-			chosen = append(chosen, i)
-		}
-
-		// a member outside its enum rules an alternative out; leniently, only while another fits
-		fit := slices.DeleteFunc(slices.Clone(chosen), func(i int) bool { return !jsonEnumsFit(raw, variants[i].enums) })
-		if len(fit) > 0 || strict {
-			chosen = fit
-		}
-
-		switch {
-		case len(chosen) == 0:
-			return nil, &json.SemanticError{Err: errors.New("matches none of its alternatives")}
-		case oneOf && len(chosen) > 1 && strict:
-			return nil, &json.SemanticError{Err: fmt.Errorf("matches %d of its alternatives, want exactly one", len(chosen))}
-		case oneOf:
-			chosen = chosen[:1]
-		}
-	}
-
-	for _, n := range names {
-		if plain[n] {
-			continue
-		}
-
-		known := false
-		for _, i := range chosen {
-			known = known || variants[i].members[n]
-		}
-
-		if !known {
-			return nil, jsonUnknownName(n)
-		}
-	}
-
-	return chosen, nil
 }

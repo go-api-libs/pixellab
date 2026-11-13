@@ -7,7 +7,8 @@ specification in five steps:
    diff shows what changed upstream, and `api/llms.txt` with their newest. In a
    Claude Code session (`CLAUDECODE`), the copies are used as they are.
 2. **Transform** (`transform.go`, `names.go`, `bodies.go`): put the version in
-   every path, drop the null of FastAPI's optional values, the JSON of no
+   every path, move the bounds upstream declares beside a reference, as an
+   image size's, into a copy of what it refers to, drop the JSON of no
    schema FastAPI declares beside a download's own media type, and the operations
    that are only aliases of another, let a 422's detail be a message as well as
    validation errors, and name every operation after its method

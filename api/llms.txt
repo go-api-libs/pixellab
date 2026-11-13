@@ -13,7 +13,7 @@ Base URL: `https://api.pixellab.ai/v2`. Authenticate every request with a Bearer
 
 - [Python SDK](https://github.com/pixellab-code/pixellab-python): official Python client (`pip install pixellab`).
 - [JavaScript SDK](https://github.com/pixellab-code/pixellab-js): official JavaScript/TypeScript client.
-- [MCP server](https://github.com/pixellab-code/pixellab-mcp): Model Context Protocol server for AI coding assistants (Claude, Cursor, Windsurf).
+- [MCP server](https://www.pixellab.ai/mcp): the same generation tools for AI coding assistants (Claude, Cursor, Windsurf), hosted at `https://api.pixellab.ai/mcp` with nothing to install; the page has the setup for each client. [Tool guide](https://api.pixellab.ai/mcp/docs).
 
 ## Endpoints
 

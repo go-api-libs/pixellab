@@ -5,86 +5,31 @@
 package pixellab
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"io"
 	"io/fs"
-	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
-	"strconv"
 	"strings"
 	"testing"
-	"time"
 	"uuid"
 
 	"github.com/MarkRosemaker/cassette"
 	"github.com/go-api-libs/api"
+	"github.com/go-api-libs/api/apitest"
 )
-
-func newTestServer(t *testing.T, status int) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(status)
-	}))
-	t.Cleanup(srv.Close)
-	return srv
-}
-
-// newBodyServer is the base URL of a server that answers every request with status, contentType and body.
-func newBodyServer(t *testing.T, status int, contentType string, body []byte) *url.URL {
-	t.Helper()
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", contentType)
-		w.WriteHeader(status)
-		_, _ = w.Write(body)
-	}))
-	t.Cleanup(srv.Close)
-
-	u, err := url.Parse(srv.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return u
-}
-
-// withUnknownMember is v as JSON, with a member no type declares added to it.
-func withUnknownMember(t *testing.T, v any) []byte {
-	t.Helper()
-
-	b, err := json.Marshal(v, jsonOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if string(b) == "{}" {
-		return []byte(`{"not_a_member_of_any_type": true}`)
-	}
-
-	return append([]byte(`{"not_a_member_of_any_type": true, `), b[1:]...)
-}
-
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
-	return f(r)
-}
 
 func TestClient_Error(t *testing.T) {
 	t.Run("GenerateImage", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -99,7 +44,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -176,7 +121,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -197,7 +142,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -222,7 +167,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -237,7 +182,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -248,7 +193,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -259,7 +204,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -270,7 +215,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -285,7 +230,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -300,7 +245,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -377,7 +322,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateImagePixenResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateImagePixenResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -398,7 +343,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -423,7 +368,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -438,7 +383,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -449,7 +394,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -460,7 +405,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -471,7 +416,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -482,7 +427,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -497,7 +442,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -512,7 +457,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -589,7 +534,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -610,7 +555,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -635,7 +580,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -650,7 +595,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -661,7 +606,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -672,7 +617,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -683,7 +628,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -698,7 +643,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -713,7 +658,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -790,7 +735,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -811,7 +756,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -836,7 +781,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -851,7 +796,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -862,7 +807,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -873,7 +818,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -884,7 +829,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -895,7 +840,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -910,7 +855,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -925,7 +870,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -1002,7 +947,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1023,7 +968,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1048,7 +993,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1063,7 +1008,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1074,7 +1019,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1085,7 +1030,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1096,7 +1041,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1111,7 +1056,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -1126,7 +1071,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -1203,7 +1148,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1224,7 +1169,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1249,7 +1194,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1264,7 +1209,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1275,7 +1220,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1286,7 +1231,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1297,7 +1242,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1308,7 +1253,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1323,7 +1268,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -1338,7 +1283,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -1415,7 +1360,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1436,7 +1381,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1461,7 +1406,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1476,7 +1421,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1487,7 +1432,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1498,7 +1443,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1509,7 +1454,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1520,7 +1465,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1535,7 +1480,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -1550,7 +1495,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -1627,7 +1572,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1648,7 +1593,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1673,7 +1618,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1688,7 +1633,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1699,7 +1644,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1710,7 +1655,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1721,7 +1666,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1736,7 +1681,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -1751,7 +1696,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -1828,7 +1773,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, ImageToPixelartProFlashResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, ImageToPixelartProFlashResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1849,7 +1794,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1874,7 +1819,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1894,7 +1839,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1911,7 +1856,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1924,7 +1869,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1939,7 +1884,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1962,7 +1907,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -1977,7 +1922,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -2054,7 +1999,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateCharacterResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCharacterResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2075,7 +2020,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2100,7 +2045,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2115,7 +2060,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2126,7 +2071,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2137,7 +2082,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2148,7 +2093,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2163,7 +2108,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -2178,7 +2123,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -2255,7 +2200,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CharacterJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CharacterJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2276,7 +2221,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2301,7 +2246,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2316,7 +2261,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2327,7 +2272,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2338,7 +2283,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2349,7 +2294,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2364,7 +2309,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -2379,7 +2324,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -2456,7 +2401,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateCharacterAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCharacterAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2477,7 +2422,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2502,7 +2447,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2522,7 +2467,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2539,7 +2484,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2552,7 +2497,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2567,7 +2512,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2590,7 +2535,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -2605,7 +2550,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -2682,7 +2627,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateCharacterAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCharacterAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2703,7 +2648,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2728,7 +2673,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2743,7 +2688,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2754,7 +2699,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2765,7 +2710,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2776,7 +2721,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2787,7 +2732,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2798,7 +2743,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2813,7 +2758,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -2828,7 +2773,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -2905,7 +2850,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CharacterJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CharacterJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2926,7 +2871,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2951,7 +2896,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2971,7 +2916,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2988,7 +2933,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3001,7 +2946,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3016,7 +2961,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3035,7 +2980,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3046,7 +2991,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3057,7 +3002,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3068,7 +3013,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3079,7 +3024,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3094,7 +3039,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -3109,7 +3054,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -3186,7 +3131,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CharacterJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CharacterJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3207,7 +3152,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3232,7 +3177,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3247,7 +3192,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3258,7 +3203,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3269,7 +3214,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3280,7 +3225,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3295,7 +3240,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -3310,7 +3255,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -3387,7 +3332,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CharacterJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CharacterJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3408,7 +3353,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3433,7 +3378,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3448,7 +3393,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3459,7 +3404,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3470,7 +3415,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3481,7 +3426,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3496,7 +3441,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -3511,7 +3456,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -3588,7 +3533,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListCharactersResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListCharactersResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3609,7 +3554,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3634,7 +3579,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3649,7 +3594,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3660,7 +3605,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3671,7 +3616,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3686,7 +3631,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -3701,7 +3646,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -3778,7 +3723,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetCharacterResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetCharacterResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3799,7 +3744,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3824,7 +3769,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3844,7 +3789,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3861,7 +3806,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3874,7 +3819,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3889,7 +3834,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3908,7 +3853,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3919,7 +3864,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3930,7 +3875,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3941,7 +3886,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3956,7 +3901,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -3971,7 +3916,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -4048,7 +3993,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteCharacterResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteCharacterResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4069,7 +4014,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4094,7 +4039,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4114,7 +4059,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4131,7 +4076,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4144,7 +4089,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4159,7 +4104,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4182,7 +4127,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -4197,7 +4142,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -4274,7 +4219,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, AssetNamesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, AssetNamesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4295,7 +4240,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4320,7 +4265,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4340,7 +4285,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4357,7 +4302,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4370,7 +4315,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4385,7 +4330,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4404,7 +4349,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4415,7 +4360,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4426,7 +4371,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4441,7 +4386,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -4456,7 +4401,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -4509,7 +4454,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4526,7 +4471,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4539,7 +4484,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4554,7 +4499,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4573,7 +4518,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4584,7 +4529,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4599,7 +4544,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -4614,7 +4559,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -4662,7 +4607,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4673,7 +4618,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4684,7 +4629,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4699,7 +4644,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -4714,7 +4659,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -4791,7 +4736,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UpdateTagsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UpdateTagsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4812,7 +4757,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4837,7 +4782,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4857,7 +4802,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4874,7 +4819,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4887,7 +4832,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4902,7 +4847,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4921,7 +4866,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4932,7 +4877,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4943,7 +4888,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4954,7 +4899,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4965,7 +4910,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4980,7 +4925,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -4995,7 +4940,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -5072,7 +5017,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, Create1DirectionObjectResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, Create1DirectionObjectResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5093,7 +5038,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5118,7 +5063,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5133,7 +5078,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5144,7 +5089,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5155,7 +5100,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5166,7 +5111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5181,7 +5126,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -5196,7 +5141,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -5273,7 +5218,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ObjectJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ObjectJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5294,7 +5239,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5319,7 +5264,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5334,7 +5279,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5345,7 +5290,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5356,7 +5301,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5367,7 +5312,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5382,7 +5327,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -5397,7 +5342,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -5474,7 +5419,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateObjectAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateObjectAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5495,7 +5440,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5520,7 +5465,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5540,7 +5485,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5557,7 +5502,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5570,7 +5515,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5585,7 +5530,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5604,7 +5549,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5615,7 +5560,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5626,7 +5571,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5637,7 +5582,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5648,7 +5593,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5659,7 +5604,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5674,7 +5619,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -5689,7 +5634,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -5766,7 +5711,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteAnimationsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteAnimationsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5787,7 +5732,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5812,7 +5757,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5832,7 +5777,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5849,7 +5794,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5862,7 +5807,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5877,7 +5822,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5896,7 +5841,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5907,7 +5852,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5918,7 +5863,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5929,7 +5874,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5944,7 +5889,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -5959,7 +5904,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -6036,7 +5981,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ObjectJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ObjectJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6057,7 +6002,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6082,7 +6027,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6102,7 +6047,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6119,7 +6064,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6132,7 +6077,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6147,7 +6092,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6166,7 +6111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6177,7 +6122,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6188,7 +6133,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6199,7 +6144,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6210,7 +6155,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6225,7 +6170,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -6240,7 +6185,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -6317,7 +6262,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SelectObjectFramesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SelectObjectFramesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6338,7 +6283,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6363,7 +6308,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6383,7 +6328,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6400,7 +6345,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6413,7 +6358,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6428,7 +6373,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6447,7 +6392,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6458,7 +6403,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6469,7 +6414,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6480,7 +6425,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6495,7 +6440,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -6510,7 +6455,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -6587,7 +6532,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DismissObjectReviewResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DismissObjectReviewResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6608,7 +6553,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6633,7 +6578,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6653,7 +6598,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6670,7 +6615,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6683,7 +6628,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6698,7 +6643,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6717,7 +6662,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6728,7 +6673,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6739,7 +6684,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6754,7 +6699,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -6769,7 +6714,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -6846,7 +6791,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ExpandObjectRotationsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ExpandObjectRotationsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6867,7 +6812,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6892,7 +6837,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6912,7 +6857,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6929,7 +6874,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6942,7 +6887,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6957,7 +6902,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6976,7 +6921,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6987,7 +6932,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6998,7 +6943,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7009,7 +6954,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7020,7 +6965,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7035,7 +6980,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -7050,7 +6995,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -7127,7 +7072,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListObjectsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListObjectsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7148,7 +7093,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7173,7 +7118,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7188,7 +7133,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7199,7 +7144,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7214,7 +7159,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -7229,7 +7174,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -7306,7 +7251,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetObjectResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetObjectResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7327,7 +7272,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7352,7 +7297,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7372,7 +7317,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7389,7 +7334,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7402,7 +7347,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7417,7 +7362,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7436,7 +7381,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7447,7 +7392,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7458,7 +7403,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7473,7 +7418,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -7488,7 +7433,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -7565,7 +7510,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteObjectResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteObjectResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7586,7 +7531,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7611,7 +7556,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7631,7 +7576,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7648,7 +7593,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7661,7 +7606,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7676,7 +7621,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7695,7 +7640,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7706,7 +7651,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7717,7 +7662,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7732,7 +7677,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -7747,7 +7692,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -7824,7 +7769,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, AssetNamesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, AssetNamesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7845,7 +7790,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7870,7 +7815,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7890,7 +7835,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7907,7 +7852,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7920,7 +7865,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7935,7 +7880,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7954,7 +7899,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7965,7 +7910,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7976,7 +7921,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7991,7 +7936,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -8006,7 +7951,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -8083,7 +8028,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UpdateTagsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UpdateTagsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8104,7 +8049,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8129,7 +8074,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8149,7 +8094,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8166,7 +8111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8179,7 +8124,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8194,7 +8139,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8213,7 +8158,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8224,7 +8169,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8235,7 +8180,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8246,7 +8191,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8261,7 +8206,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -8276,7 +8221,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -8329,7 +8274,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8346,7 +8291,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8359,7 +8304,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8374,7 +8319,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8393,7 +8338,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8404,7 +8349,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8415,7 +8360,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8426,7 +8371,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8441,7 +8386,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -8456,7 +8401,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -8533,7 +8478,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteAnimationsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteAnimationsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8554,7 +8499,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8579,7 +8524,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8599,7 +8544,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8616,7 +8561,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8629,7 +8574,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8644,7 +8589,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8663,7 +8608,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8674,7 +8619,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8685,7 +8630,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8696,7 +8641,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8711,7 +8656,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -8726,7 +8671,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -8803,7 +8748,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteCharacterAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteCharacterAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8824,7 +8769,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8849,7 +8794,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8869,7 +8814,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8886,7 +8831,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8899,7 +8844,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8914,7 +8859,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8933,7 +8878,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8944,7 +8889,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -8959,7 +8904,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -8974,7 +8919,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -9051,7 +8996,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UpdateAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UpdateAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9072,7 +9017,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9097,7 +9042,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9117,7 +9062,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9134,7 +9079,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9147,7 +9092,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9162,7 +9107,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9181,7 +9126,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9192,7 +9137,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9207,7 +9152,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -9222,7 +9167,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -9299,7 +9244,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteCharacterAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteCharacterAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9320,7 +9265,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9345,7 +9290,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9365,7 +9310,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9382,7 +9327,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9395,7 +9340,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9410,7 +9355,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9429,7 +9374,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9440,7 +9385,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9455,7 +9400,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -9470,7 +9415,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -9547,7 +9492,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, AnimationJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, AnimationJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9568,7 +9513,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9593,7 +9538,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9608,7 +9553,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9619,7 +9564,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9630,7 +9575,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9641,7 +9586,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9656,7 +9601,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -9671,7 +9616,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -9748,7 +9693,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, AnimationJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, AnimationJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9769,7 +9714,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9794,7 +9739,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9809,7 +9754,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9820,7 +9765,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9831,7 +9776,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9842,7 +9787,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9857,7 +9802,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -9872,7 +9817,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -9949,7 +9894,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9970,7 +9915,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9995,7 +9940,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10010,7 +9955,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10021,7 +9966,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10032,7 +9977,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10043,7 +9988,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10058,7 +10003,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -10073,7 +10018,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -10150,7 +10095,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10171,7 +10116,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10196,7 +10141,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10211,7 +10156,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10222,7 +10167,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10233,7 +10178,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10244,7 +10189,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10259,7 +10204,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -10274,7 +10219,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -10351,7 +10296,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10372,7 +10317,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10397,7 +10342,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10412,7 +10357,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10423,7 +10368,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10434,7 +10379,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10445,7 +10390,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10460,7 +10405,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -10475,7 +10420,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -10552,7 +10497,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10573,7 +10518,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10598,7 +10543,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10613,7 +10558,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10624,7 +10569,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10635,7 +10580,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10646,7 +10591,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10661,7 +10606,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -10676,7 +10621,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -10753,7 +10698,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImagesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImagesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10774,7 +10719,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10799,7 +10744,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10814,7 +10759,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10825,7 +10770,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10836,7 +10781,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10847,7 +10792,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10858,7 +10803,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10873,7 +10818,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -10888,7 +10833,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -10965,7 +10910,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, EstimateSkeletonResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, EstimateSkeletonResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10986,7 +10931,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11011,7 +10956,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11026,7 +10971,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11037,7 +10982,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11048,7 +10993,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11059,7 +11004,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11070,7 +11015,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11085,7 +11030,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -11100,7 +11045,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -11177,7 +11122,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11198,7 +11143,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11223,7 +11168,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11238,7 +11183,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11249,7 +11194,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11260,7 +11205,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11271,7 +11216,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11286,7 +11231,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -11301,7 +11246,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -11378,7 +11323,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImagesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImagesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11399,7 +11344,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11424,7 +11369,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11439,7 +11384,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11450,7 +11395,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11461,7 +11406,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11472,7 +11417,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11483,7 +11428,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11498,7 +11443,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -11513,7 +11458,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -11590,7 +11535,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateVfxResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateVfxResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11611,7 +11556,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11636,7 +11581,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11651,7 +11596,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11662,7 +11607,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11673,7 +11618,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11684,7 +11629,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11695,7 +11640,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11706,7 +11651,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("503 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusServiceUnavailable, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusServiceUnavailable, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11721,7 +11666,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -11736,7 +11681,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -11813,7 +11758,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetVfxEffectsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetVfxEffectsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11834,7 +11779,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11859,7 +11804,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11879,7 +11824,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11896,7 +11841,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11909,7 +11854,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11924,7 +11869,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11943,7 +11888,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11954,7 +11899,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11969,7 +11914,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -11984,7 +11929,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -12061,7 +12006,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteRoomResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteRoomResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12082,7 +12027,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12107,7 +12052,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12127,7 +12072,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12144,7 +12089,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12157,7 +12102,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12172,7 +12117,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12191,7 +12136,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12202,7 +12147,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12217,7 +12162,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -12232,7 +12177,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -12309,7 +12254,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListMusicResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListMusicResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12330,7 +12275,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12355,7 +12300,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12375,7 +12320,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12392,7 +12337,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12405,7 +12350,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12420,7 +12365,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12439,7 +12384,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12454,7 +12399,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -12469,7 +12414,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -12546,7 +12491,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, StartedMusicResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, StartedMusicResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12567,7 +12512,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12592,7 +12537,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12607,7 +12552,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12618,7 +12563,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12629,7 +12574,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12640,7 +12585,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12651,7 +12596,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12662,7 +12607,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12677,7 +12622,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -12692,7 +12637,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -12769,7 +12714,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, StartedMusicResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, StartedMusicResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12790,7 +12735,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12815,7 +12760,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12830,7 +12775,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12841,7 +12786,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12852,7 +12797,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12863,7 +12808,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12874,7 +12819,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12885,7 +12830,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12896,7 +12841,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12911,7 +12856,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -12926,7 +12871,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -13003,7 +12948,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImproveMusicStyleResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImproveMusicStyleResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13024,7 +12969,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13049,7 +12994,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13069,7 +13014,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13086,7 +13031,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13099,7 +13044,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13114,7 +13059,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13133,7 +13078,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13144,7 +13089,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13155,7 +13100,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13166,7 +13111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("502 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadGateway, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadGateway, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13181,7 +13126,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -13196,7 +13141,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -13273,7 +13218,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateMusicLyricResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateMusicLyricResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13294,7 +13239,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13319,7 +13264,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13339,7 +13284,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13356,7 +13301,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13369,7 +13314,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13384,7 +13329,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13403,7 +13348,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13414,7 +13359,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13425,7 +13370,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13436,7 +13381,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("502 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadGateway, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadGateway, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13451,7 +13396,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -13466,7 +13411,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -13543,7 +13488,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, Song{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, Song{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13564,7 +13509,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13589,7 +13534,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13609,7 +13554,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13626,7 +13571,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13639,7 +13584,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13654,7 +13599,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13673,7 +13618,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13684,7 +13629,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13699,7 +13644,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -13714,7 +13659,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -13791,7 +13736,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13812,7 +13757,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13837,7 +13782,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13857,7 +13802,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13874,7 +13819,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13887,7 +13832,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13902,7 +13847,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13921,7 +13866,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13932,7 +13877,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -13947,7 +13892,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -13962,7 +13907,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -14039,7 +13984,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, Song{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, Song{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14060,7 +14005,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14085,7 +14030,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14100,7 +14045,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14111,7 +14056,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14122,7 +14067,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14137,7 +14082,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -14152,7 +14097,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -14229,7 +14174,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListSoundEffectsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListSoundEffectsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14250,7 +14195,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14275,7 +14220,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14295,7 +14240,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14312,7 +14257,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14325,7 +14270,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14340,7 +14285,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14359,7 +14304,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14374,7 +14319,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -14389,7 +14334,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -14466,7 +14411,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateSoundEffectResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateSoundEffectResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14487,7 +14432,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14512,7 +14457,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14527,7 +14472,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14538,7 +14483,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14549,7 +14494,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14560,7 +14505,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14571,7 +14516,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14586,7 +14531,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -14601,7 +14546,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -14678,7 +14623,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SoundEffect{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SoundEffect{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14699,7 +14644,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14724,7 +14669,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14744,7 +14689,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14761,7 +14706,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14774,7 +14719,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14789,7 +14734,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14808,7 +14753,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14819,7 +14764,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14834,7 +14779,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -14849,7 +14794,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -14926,7 +14871,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14947,7 +14892,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14972,7 +14917,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14992,7 +14937,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15009,7 +14954,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15022,7 +14967,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15037,7 +14982,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15056,7 +15001,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15067,7 +15012,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15082,7 +15027,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -15097,7 +15042,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -15174,7 +15119,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SoundEffect{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SoundEffect{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15195,7 +15140,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15220,7 +15165,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15235,7 +15180,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15246,7 +15191,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15257,7 +15202,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15272,7 +15217,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -15287,7 +15232,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -15364,7 +15309,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15385,7 +15330,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15410,7 +15355,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15425,7 +15370,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15436,7 +15381,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15447,7 +15392,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15458,7 +15403,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15473,7 +15418,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -15488,7 +15433,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -15565,7 +15510,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15586,7 +15531,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15611,7 +15556,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15626,7 +15571,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15637,7 +15582,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15648,7 +15593,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15659,7 +15604,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15674,7 +15619,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -15689,7 +15634,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -15766,7 +15711,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15787,7 +15732,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15812,7 +15757,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15827,7 +15772,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15838,7 +15783,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15849,7 +15794,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15860,7 +15805,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15871,7 +15816,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15886,7 +15831,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -15901,7 +15846,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -15978,7 +15923,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15999,7 +15944,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16024,7 +15969,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16039,7 +15984,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16050,7 +15995,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16061,7 +16006,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16072,7 +16017,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16087,7 +16032,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -16102,7 +16047,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -16179,7 +16124,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16200,7 +16145,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16225,7 +16170,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16240,7 +16185,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16251,7 +16196,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16262,7 +16207,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16273,7 +16218,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16284,7 +16229,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16299,7 +16244,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -16314,7 +16259,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -16391,7 +16336,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SaveToAssetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SaveToAssetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16412,7 +16357,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16437,7 +16382,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16452,7 +16397,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16463,7 +16408,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16474,7 +16419,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16485,7 +16430,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16496,7 +16441,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16507,7 +16452,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("500 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusInternalServerError, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusInternalServerError, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16522,7 +16467,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -16537,7 +16482,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -16614,7 +16559,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16635,7 +16580,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16660,7 +16605,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16675,7 +16620,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16686,7 +16631,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16697,7 +16642,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16708,7 +16653,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16723,7 +16668,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -16738,7 +16683,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -16815,7 +16760,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16836,7 +16781,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16861,7 +16806,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16876,7 +16821,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16887,7 +16832,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16898,7 +16843,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16909,7 +16854,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16924,7 +16869,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -16939,7 +16884,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -17016,7 +16961,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17037,7 +16982,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17062,7 +17007,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17077,7 +17022,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17088,7 +17033,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17099,7 +17044,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17110,7 +17055,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17121,7 +17066,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17136,7 +17081,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -17151,7 +17096,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -17228,7 +17173,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListTilesetsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListTilesetsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17249,7 +17194,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17274,7 +17219,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17289,7 +17234,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17300,7 +17245,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17315,7 +17260,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -17330,7 +17275,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -17407,7 +17352,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17432,7 +17377,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17447,7 +17392,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17458,7 +17403,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17469,7 +17414,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17480,7 +17425,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17491,7 +17436,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17506,7 +17451,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -17521,7 +17466,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -17598,7 +17543,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetTilesetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetTilesetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17619,7 +17564,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17644,7 +17589,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17664,7 +17609,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17681,7 +17626,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17694,7 +17639,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17709,7 +17654,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17728,7 +17673,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17739,7 +17684,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17750,7 +17695,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17765,7 +17710,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -17780,7 +17725,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -17857,7 +17802,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteTilesetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteTilesetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17878,7 +17823,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17903,7 +17848,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17923,7 +17868,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17940,7 +17885,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17953,7 +17898,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17968,7 +17913,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17987,7 +17932,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17998,7 +17943,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18009,7 +17954,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18024,7 +17969,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -18039,7 +17984,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -18116,7 +18061,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UpdateTilesetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UpdateTilesetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18137,7 +18082,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18162,7 +18107,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18182,7 +18127,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18199,7 +18144,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18212,7 +18157,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18227,7 +18172,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18246,7 +18191,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18257,7 +18202,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18272,7 +18217,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -18287,7 +18232,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -18364,7 +18309,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", withUnknownMember(t, SetTilesetImportResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", apitest.WithUnknownMember(t, SetTilesetImportResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18385,7 +18330,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18410,7 +18355,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18425,7 +18370,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18436,7 +18381,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18451,7 +18396,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -18466,7 +18411,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -18543,7 +18488,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListSidescrollerTilesetsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListSidescrollerTilesetsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18564,7 +18509,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18589,7 +18534,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18609,7 +18554,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18626,7 +18571,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18639,7 +18584,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18654,7 +18599,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18673,7 +18618,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18688,7 +18633,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -18703,7 +18648,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -18780,7 +18725,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, TilesetJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, TilesetJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18801,7 +18746,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18826,7 +18771,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18841,7 +18786,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18852,7 +18797,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18863,7 +18808,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18874,7 +18819,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18885,7 +18830,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18896,7 +18841,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18907,7 +18852,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18922,7 +18867,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -18937,7 +18882,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -18966,7 +18911,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18983,7 +18928,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18996,7 +18941,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19011,7 +18956,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19030,7 +18975,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19041,7 +18986,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19052,7 +18997,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19067,7 +19012,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -19082,7 +19027,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -19159,7 +19104,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteTilesetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteTilesetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19180,7 +19125,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19205,7 +19150,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19225,7 +19170,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19242,7 +19187,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19255,7 +19200,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19270,7 +19215,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19289,7 +19234,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19300,7 +19245,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19311,7 +19256,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19326,7 +19271,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -19341,7 +19286,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -19418,7 +19363,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, TileJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, TileJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19439,7 +19384,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19464,7 +19409,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19479,7 +19424,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19490,7 +19435,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19501,7 +19446,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19512,7 +19457,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19527,7 +19472,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -19542,7 +19487,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -19619,7 +19564,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetTilesProResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetTilesProResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19640,7 +19585,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19665,7 +19610,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19685,7 +19630,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19702,7 +19647,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19715,7 +19660,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19730,7 +19675,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19749,7 +19694,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19760,7 +19705,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19771,7 +19716,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19786,7 +19731,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -19801,7 +19746,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -19878,7 +19823,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteTileResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteTileResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19899,7 +19844,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19924,7 +19869,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19944,7 +19889,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19961,7 +19906,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19974,7 +19919,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19989,7 +19934,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20008,7 +19953,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20019,7 +19964,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20030,7 +19975,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20041,7 +19986,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20056,7 +20001,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -20071,7 +20016,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -20148,7 +20093,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", withUnknownMember(t, SetTilesProImportResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", apitest.WithUnknownMember(t, SetTilesProImportResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20169,7 +20114,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20194,7 +20139,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusCreated, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20209,7 +20154,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20220,7 +20165,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20235,7 +20180,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -20250,7 +20195,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -20327,7 +20272,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListTilesProResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListTilesProResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20348,7 +20293,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20373,7 +20318,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20393,7 +20338,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20410,7 +20355,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20423,7 +20368,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20438,7 +20383,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20457,7 +20402,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20472,7 +20417,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -20487,7 +20432,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -20564,7 +20509,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20589,7 +20534,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20604,7 +20549,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20615,7 +20560,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20626,7 +20571,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20637,7 +20582,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20648,7 +20593,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("529 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, 529, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, 529, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20663,7 +20608,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -20678,7 +20623,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -20755,7 +20700,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20776,7 +20721,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20801,7 +20746,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20821,7 +20766,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20838,7 +20783,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20851,7 +20796,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20866,7 +20811,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20885,7 +20830,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20896,7 +20841,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20907,7 +20852,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20922,7 +20867,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -20937,7 +20882,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -21014,7 +20959,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteTileResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteTileResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21035,7 +20980,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21060,7 +21005,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21080,7 +21025,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21097,7 +21042,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21110,7 +21055,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21125,7 +21070,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21144,7 +21089,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21155,7 +21100,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21166,7 +21111,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21181,7 +21126,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -21196,7 +21141,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -21273,7 +21218,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListIsometricTilesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListIsometricTilesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21294,7 +21239,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21319,7 +21264,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21334,7 +21279,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21345,7 +21290,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21360,7 +21305,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -21375,7 +21320,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -21452,7 +21397,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ObjectJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ObjectJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21473,7 +21418,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21498,7 +21443,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21513,7 +21458,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21524,7 +21469,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21535,7 +21480,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21546,7 +21491,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21561,7 +21506,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -21576,7 +21521,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -21653,7 +21598,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetMapObjectResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetMapObjectResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21674,7 +21619,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21699,7 +21644,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21719,7 +21664,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21736,7 +21681,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21749,7 +21694,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21764,7 +21709,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21783,7 +21728,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21794,7 +21739,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21805,7 +21750,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("410 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusGone, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusGone, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21816,7 +21761,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21831,7 +21776,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -21846,7 +21791,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -21923,7 +21868,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, RoomQueuedResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, RoomQueuedResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21944,7 +21889,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21969,7 +21914,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21984,7 +21929,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21995,7 +21940,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22006,7 +21951,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22017,7 +21962,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22028,7 +21973,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22039,7 +21984,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22050,7 +21995,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22065,7 +22010,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -22080,7 +22025,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -22157,7 +22102,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, RoomQueuedResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, RoomQueuedResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22178,7 +22123,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22203,7 +22148,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22223,7 +22168,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22240,7 +22185,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22253,7 +22198,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22268,7 +22213,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22287,7 +22232,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22298,7 +22243,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22309,7 +22254,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22320,7 +22265,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22331,7 +22276,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22342,7 +22287,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22357,7 +22302,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -22372,7 +22317,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -22449,7 +22394,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListRoomsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListRoomsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22470,7 +22415,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22495,7 +22440,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22515,7 +22460,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22532,7 +22477,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22545,7 +22490,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22560,7 +22505,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22579,7 +22524,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22594,7 +22539,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -22609,7 +22554,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -22686,7 +22631,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetRoomResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetRoomResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22707,7 +22652,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22732,7 +22677,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22752,7 +22697,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22769,7 +22714,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22782,7 +22727,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22797,7 +22742,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22816,7 +22761,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22827,7 +22772,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22842,7 +22787,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -22857,7 +22802,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -22934,7 +22879,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteRoomResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteRoomResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22955,7 +22900,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22980,7 +22925,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23000,7 +22945,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23017,7 +22962,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23030,7 +22975,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23045,7 +22990,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23064,7 +23009,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23075,7 +23020,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23086,7 +23031,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23101,7 +23046,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -23116,7 +23061,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -23169,7 +23114,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23186,7 +23131,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23199,7 +23144,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23214,7 +23159,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23233,7 +23178,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23244,7 +23189,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23255,7 +23200,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23270,7 +23215,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -23285,7 +23230,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -23362,7 +23307,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UpdateAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UpdateAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23383,7 +23328,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23408,7 +23353,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23428,7 +23373,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23445,7 +23390,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23458,7 +23403,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23473,7 +23418,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23492,7 +23437,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23503,7 +23448,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23518,7 +23463,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -23533,7 +23478,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -23610,7 +23555,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, StateResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, StateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23631,7 +23576,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23656,7 +23601,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23676,7 +23621,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23693,7 +23638,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23706,7 +23651,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23721,7 +23666,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23740,7 +23685,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23751,7 +23696,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23762,7 +23707,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23777,7 +23722,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -23792,7 +23737,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -23869,7 +23814,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, StateResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, StateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23890,7 +23835,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23915,7 +23860,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23935,7 +23880,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23952,7 +23897,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23965,7 +23910,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23980,7 +23925,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -23999,7 +23944,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24010,7 +23955,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24021,7 +23966,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24036,7 +23981,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -24051,7 +23996,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -24128,7 +24073,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, StateResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, StateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24149,7 +24094,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24174,7 +24119,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24194,7 +24139,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24211,7 +24156,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24224,7 +24169,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24239,7 +24184,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24258,7 +24203,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24269,7 +24214,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24280,7 +24225,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24295,7 +24240,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -24310,7 +24255,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -24387,7 +24332,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, StateResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, StateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24408,7 +24353,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24433,7 +24378,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24453,7 +24398,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24470,7 +24415,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24483,7 +24428,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24498,7 +24443,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24517,7 +24462,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24528,7 +24473,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24539,7 +24484,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24554,7 +24499,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -24569,7 +24514,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -24646,7 +24591,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateCanvaResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCanvaResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24667,7 +24612,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24692,7 +24637,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24712,7 +24657,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24729,7 +24674,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24742,7 +24687,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24757,7 +24702,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24776,7 +24721,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24787,7 +24732,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24798,7 +24743,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24809,7 +24754,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24820,7 +24765,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24835,7 +24780,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -24850,7 +24795,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -24927,7 +24872,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CreateCanvaResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCanvaResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24948,7 +24893,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24973,7 +24918,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -24993,7 +24938,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25010,7 +24955,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25023,7 +24968,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25038,7 +24983,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25057,7 +25002,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25068,7 +25013,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25079,7 +25024,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25090,7 +25035,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25101,7 +25046,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25116,7 +25061,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -25131,7 +25076,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -25208,7 +25153,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SetAnimationMirrorResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SetAnimationMirrorResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25229,7 +25174,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25254,7 +25199,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25274,7 +25219,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25291,7 +25236,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25304,7 +25249,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25319,7 +25264,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25338,7 +25283,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25349,7 +25294,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25360,7 +25305,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25375,7 +25320,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -25390,7 +25335,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -25467,7 +25412,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SetAnimationMirrorResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SetAnimationMirrorResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25488,7 +25433,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25513,7 +25458,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25533,7 +25478,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25550,7 +25495,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25563,7 +25508,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25578,7 +25523,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25597,7 +25542,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25608,7 +25553,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25619,7 +25564,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25634,7 +25579,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -25649,7 +25594,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -25702,7 +25647,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25719,7 +25664,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25732,7 +25677,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25747,7 +25692,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25766,7 +25711,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25777,7 +25722,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25788,7 +25733,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25799,7 +25744,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25814,7 +25759,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -25829,7 +25774,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -25882,7 +25827,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25899,7 +25844,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25912,7 +25857,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25927,7 +25872,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25946,7 +25891,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25957,7 +25902,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25968,7 +25913,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25979,7 +25924,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -25994,7 +25939,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26009,7 +25954,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -26062,7 +26007,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26079,7 +26024,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26092,7 +26037,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26107,7 +26052,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26126,7 +26071,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26137,7 +26082,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26148,7 +26093,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26159,7 +26104,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26174,7 +26119,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26189,7 +26134,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -26242,7 +26187,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26259,7 +26204,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26272,7 +26217,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26287,7 +26232,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26306,7 +26251,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26317,7 +26262,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26328,7 +26273,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26339,7 +26284,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26354,7 +26299,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26369,7 +26314,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -26422,7 +26367,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26439,7 +26384,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26452,7 +26397,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26467,7 +26412,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26486,7 +26431,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26497,7 +26442,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26508,7 +26453,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26519,7 +26464,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26534,7 +26479,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26549,7 +26494,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -26626,7 +26571,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SetObjectImportResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SetObjectImportResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26647,7 +26592,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26672,7 +26617,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26692,7 +26637,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26709,7 +26654,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26722,7 +26667,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26737,7 +26682,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26756,7 +26701,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26767,7 +26712,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26782,7 +26727,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26797,7 +26742,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -26874,7 +26819,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateUIAssetResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateUIAssetResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26895,7 +26840,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26920,7 +26865,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26935,7 +26880,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26946,7 +26891,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26957,7 +26902,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26968,7 +26913,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -26983,7 +26928,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -26998,7 +26943,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -27075,7 +27020,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27096,7 +27041,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27121,7 +27066,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27136,7 +27081,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27147,7 +27092,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27158,7 +27103,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27169,7 +27114,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27184,7 +27129,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -27199,7 +27144,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -27279,7 +27224,7 @@ func TestClient_Error(t *testing.T) {
 				sent []byte
 			)
 
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(r *http.Request) (*http.Response, error) {
 					got = r
 
@@ -27318,7 +27263,7 @@ func TestClient_Error(t *testing.T) {
 				sent []byte
 			)
 
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(r *http.Request) (*http.Response, error) {
 					got = r
 
@@ -27354,7 +27299,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SetUIAssetSplitResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SetUIAssetSplitResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27375,7 +27320,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27400,7 +27345,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27415,7 +27360,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27426,7 +27371,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27437,7 +27382,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27452,7 +27397,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -27467,7 +27412,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -27544,7 +27489,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateUIAssetStateResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateUIAssetStateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27565,7 +27510,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27590,7 +27535,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27605,7 +27550,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27616,7 +27561,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27627,7 +27572,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27638,7 +27583,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27649,7 +27594,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27664,7 +27609,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -27679,7 +27624,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -27756,7 +27701,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ListUIAssetsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ListUIAssetsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27777,7 +27722,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27802,7 +27747,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27822,7 +27767,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27839,7 +27784,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27852,7 +27797,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27867,7 +27812,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27886,7 +27831,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27901,7 +27846,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -27916,7 +27861,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -27993,7 +27938,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UIAssetDetail{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UIAssetDetail{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28014,7 +27959,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28039,7 +27984,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28059,7 +28004,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28076,7 +28021,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28089,7 +28034,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28104,7 +28049,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28123,7 +28068,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28134,7 +28079,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28149,7 +28094,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -28164,7 +28109,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -28241,7 +28186,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteRoomResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteRoomResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28262,7 +28207,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28287,7 +28232,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28307,7 +28252,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28324,7 +28269,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28337,7 +28282,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28352,7 +28297,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28371,7 +28316,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28382,7 +28327,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28397,7 +28342,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -28412,7 +28357,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -28489,7 +28434,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UIAssetDetail{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UIAssetDetail{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28510,7 +28455,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28535,7 +28480,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28550,7 +28495,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28561,7 +28506,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28572,7 +28517,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28587,7 +28532,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -28602,7 +28547,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -28655,7 +28600,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28672,7 +28617,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28685,7 +28630,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28700,7 +28645,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28719,7 +28664,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28730,7 +28675,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28741,7 +28686,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28756,7 +28701,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -28771,7 +28716,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -28848,7 +28793,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28869,7 +28814,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28894,7 +28839,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28909,7 +28854,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28920,7 +28865,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28931,7 +28876,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28942,7 +28887,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28953,7 +28898,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28968,7 +28913,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -28983,7 +28928,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -29060,7 +29005,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetPortraitCharacterProJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetPortraitCharacterProJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29081,7 +29026,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29106,7 +29051,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29126,7 +29071,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29143,7 +29088,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29156,7 +29101,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29171,7 +29116,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29190,7 +29135,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29201,7 +29146,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29212,7 +29157,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("410 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusGone, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusGone, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29223,7 +29168,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29238,7 +29183,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -29253,7 +29198,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -29330,7 +29275,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, SetCharacterPortraitResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, SetCharacterPortraitResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29351,7 +29296,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29376,7 +29321,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29391,7 +29336,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29402,7 +29347,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29413,7 +29358,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29428,7 +29373,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -29443,7 +29388,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -29520,7 +29465,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteCharacterPortraitResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteCharacterPortraitResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29541,7 +29486,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29566,7 +29511,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29581,7 +29526,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29592,7 +29537,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29603,7 +29548,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29618,7 +29563,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -29633,7 +29578,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -29710,7 +29655,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, DeleteCharacterVocalAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, DeleteCharacterVocalAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29731,7 +29676,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29756,7 +29701,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29771,7 +29716,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29782,7 +29727,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29793,7 +29738,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29808,7 +29753,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -29823,7 +29768,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -29900,7 +29845,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateVocalAnimationResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateVocalAnimationResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29921,7 +29866,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29946,7 +29891,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29961,7 +29906,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29972,7 +29917,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29983,7 +29928,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29994,7 +29939,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("403 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusForbidden, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30005,7 +29950,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30016,7 +29961,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30027,7 +29972,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30042,7 +29987,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -30057,7 +30002,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -30134,7 +30079,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetVocalAnimationJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetVocalAnimationJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30155,7 +30100,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30180,7 +30125,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30200,7 +30145,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30217,7 +30162,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30230,7 +30175,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30245,7 +30190,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30264,7 +30209,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30275,7 +30220,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30286,7 +30231,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("410 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusGone, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusGone, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30301,7 +30246,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -30316,7 +30261,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -30393,7 +30338,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, TalkingGifResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, TalkingGifResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30414,7 +30359,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30439,7 +30384,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30454,7 +30399,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30465,7 +30410,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30476,7 +30421,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30487,7 +30432,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30502,7 +30447,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -30517,7 +30462,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -30594,7 +30539,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, LipSyncResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, LipSyncResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30615,7 +30560,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30640,7 +30585,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30655,7 +30600,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30666,7 +30611,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30677,7 +30622,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30688,7 +30633,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30703,7 +30648,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -30718,7 +30663,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -30795,7 +30740,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30816,7 +30761,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30841,7 +30786,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30856,7 +30801,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30867,7 +30812,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30878,7 +30823,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30889,7 +30834,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30904,7 +30849,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -30919,7 +30864,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -30996,7 +30941,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetGenerateFontProJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetGenerateFontProJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31017,7 +30962,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31042,7 +30987,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31062,7 +31007,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31079,7 +31024,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31092,7 +31037,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31107,7 +31052,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31126,7 +31071,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31137,7 +31082,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31148,7 +31093,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("410 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusGone, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusGone, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31159,7 +31104,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("423 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusLocked, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusLocked, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31174,7 +31119,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -31189,7 +31134,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -31266,7 +31211,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UnzoomResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UnzoomResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31287,7 +31232,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31312,7 +31257,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31327,7 +31272,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31338,7 +31283,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31349,7 +31294,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31360,7 +31305,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31375,7 +31320,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -31390,7 +31335,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -31467,7 +31412,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImagesResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImagesResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31488,7 +31433,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31513,7 +31458,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31528,7 +31473,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31539,7 +31484,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31550,7 +31495,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31561,7 +31506,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31576,7 +31521,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -31591,7 +31536,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -31668,7 +31613,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ReduceColorsResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ReduceColorsResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31689,7 +31634,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31714,7 +31659,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31729,7 +31674,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31740,7 +31685,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31751,7 +31696,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31762,7 +31707,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31777,7 +31722,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -31792,7 +31737,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -31869,7 +31814,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31890,7 +31835,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31915,7 +31860,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31930,7 +31875,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31941,7 +31886,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31952,7 +31897,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31963,7 +31908,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31978,7 +31923,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -31993,7 +31938,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -32070,7 +32015,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, JobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32091,7 +32036,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32116,7 +32061,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32131,7 +32076,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32142,7 +32087,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32153,7 +32098,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32164,7 +32109,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32175,7 +32120,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32190,7 +32135,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -32205,7 +32150,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -32282,7 +32227,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32303,7 +32248,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32328,7 +32273,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32343,7 +32288,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32354,7 +32299,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32365,7 +32310,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32376,7 +32321,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32387,7 +32332,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32402,7 +32347,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -32417,7 +32362,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -32494,7 +32439,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, EnhancedPromptResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, EnhancedPromptResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32515,7 +32460,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32540,7 +32485,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32555,7 +32500,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32566,7 +32511,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32577,7 +32522,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32592,7 +32537,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -32607,7 +32552,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -32684,7 +32629,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, EnhancedPromptResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, EnhancedPromptResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32705,7 +32650,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32730,7 +32675,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32745,7 +32690,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32756,7 +32701,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32767,7 +32712,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32782,7 +32727,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -32797,7 +32742,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -32874,7 +32819,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, EnhancedPromptResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, EnhancedPromptResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32895,7 +32840,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32920,7 +32865,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32935,7 +32880,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32946,7 +32891,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32957,7 +32902,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32972,7 +32917,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -32987,7 +32932,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -33064,7 +33009,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, ImageToTextResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ImageToTextResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33085,7 +33030,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33110,7 +33055,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33125,7 +33070,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33136,7 +33081,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("402 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusPaymentRequired, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33147,7 +33092,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33158,7 +33103,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("503 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusServiceUnavailable, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusServiceUnavailable, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33173,7 +33118,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -33188,7 +33133,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -33265,7 +33210,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetBackgroundJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetBackgroundJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33286,7 +33231,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33311,7 +33256,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33331,7 +33276,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33348,7 +33293,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33361,7 +33306,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33376,7 +33321,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33395,7 +33340,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33406,7 +33351,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33417,7 +33362,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("429 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusTooManyRequests, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33432,7 +33377,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -33447,7 +33392,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -33524,7 +33469,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, CancelBackgroundJobResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CancelBackgroundJobResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33545,7 +33490,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33570,7 +33515,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33590,7 +33535,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33607,7 +33552,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33620,7 +33565,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33635,7 +33580,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33654,7 +33599,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("400 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusBadRequest, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33665,7 +33610,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33676,7 +33621,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusNotFound, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33687,7 +33632,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("409 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusConflict, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33702,7 +33647,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -33717,7 +33662,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -33794,7 +33739,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, ProFlashImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, ProFlashImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33815,7 +33760,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33840,7 +33785,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33860,7 +33805,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33877,7 +33822,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33890,7 +33835,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33905,7 +33850,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33928,7 +33873,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -33943,7 +33888,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34020,7 +33965,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, ProFlashImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, ProFlashImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34041,7 +33986,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34066,7 +34011,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34086,7 +34031,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34103,7 +34048,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34116,7 +34061,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34131,7 +34076,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34154,7 +34099,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -34169,7 +34114,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34246,7 +34191,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, ProFlashImageResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, ProFlashImageResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34267,7 +34212,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34292,7 +34237,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34312,7 +34257,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34329,7 +34274,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34342,7 +34287,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34357,7 +34302,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34380,7 +34325,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -34395,7 +34340,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34472,7 +34417,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateCharacterProFlashResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateCharacterProFlashResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34493,7 +34438,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34518,7 +34463,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34538,7 +34483,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34555,7 +34500,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34568,7 +34513,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34583,7 +34528,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34606,7 +34551,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -34621,7 +34566,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34698,7 +34643,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", withUnknownMember(t, CreateObjectProFlashResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", apitest.WithUnknownMember(t, CreateObjectProFlashResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34719,7 +34664,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34744,7 +34689,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusAccepted, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34764,7 +34709,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34781,7 +34726,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34794,7 +34739,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34809,7 +34754,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34832,7 +34777,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -34847,7 +34792,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34875,7 +34820,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -34890,7 +34835,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -34919,7 +34864,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34936,7 +34881,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34949,7 +34894,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34964,7 +34909,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -34987,7 +34932,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -35002,7 +34947,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -35079,7 +35024,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, GetBalanceResponse{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, GetBalanceResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35100,7 +35045,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35125,7 +35070,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35140,7 +35085,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnauthorized, "", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35155,7 +35100,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -35170,7 +35115,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -35247,7 +35192,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UploadedImage{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UploadedImage{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35268,7 +35213,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35293,7 +35238,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35313,7 +35258,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35330,7 +35275,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35343,7 +35288,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35358,7 +35303,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35381,7 +35326,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -35396,7 +35341,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -35473,7 +35418,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", withUnknownMember(t, UploadedImage{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, UploadedImage{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35494,7 +35439,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35519,7 +35464,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35539,7 +35484,7 @@ func TestClient_Error(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35556,7 +35501,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response decoding error", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35569,7 +35514,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("422 response unknown content type", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35584,7 +35529,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(newBodyServer(t, http.StatusUnprocessableEntity, "application/json", withUnknownMember(t, HTTPValidationError{}))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -35607,7 +35552,7 @@ func TestClient_Error(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
 		t.Run("transport error", func(t *testing.T) {
-			c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
 			)}))
 			if err != nil {
@@ -35622,7 +35567,7 @@ func TestClient_Error(t *testing.T) {
 		})
 
 		t.Run("unknown status code", func(t *testing.T) {
-			srv := newTestServer(t, http.StatusTeapot)
+			srv := apitest.NewServer(t, http.StatusTeapot)
 
 			baseURL, err := url.Parse(srv.URL)
 			if err != nil {
@@ -35679,7 +35624,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35711,7 +35656,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35739,7 +35684,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35771,7 +35716,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35803,7 +35748,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35835,7 +35780,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35867,7 +35812,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35899,7 +35844,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35931,7 +35876,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35963,7 +35908,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -35991,7 +35936,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36023,7 +35968,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36051,7 +35996,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36083,7 +36028,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36115,7 +36060,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36147,7 +36092,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36175,7 +36120,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36203,7 +36148,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36235,7 +36180,7 @@ func TestClient_Params(t *testing.T) {
 
 		var got *http.Request
 
-		c, err := NewClient(WithHTTPClient(&http.Client{Transport: roundTripFunc(
+		c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
 			func(r *http.Request) (*http.Response, error) {
 				got = r
 
@@ -36272,325 +36217,11 @@ func TestClient_Params(t *testing.T) {
 	})
 }
 
-func replay(t *testing.T) http.RoundTripper {
-	t.Helper()
-
-	interactions, err := cassette.InteractionsReadFile("../../api/interactions.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	match := cassette.MatchRequest(
-		cassette.CompareHeaders("User-Agent"),
-	)
-
-	rec := cassette.Replay(interactions, cassette.InOrder(), cassette.WithMatcher(func(req *http.Request, ia cassette.Request) error {
-		err := match(req, ia)
-		if err == nil || req.Body == nil {
-			return err
-		}
-
-		sent, rerr := io.ReadAll(req.Body)
-		if rerr != nil {
-			return err
-		}
-
-		req.Body = io.NopCloser(bytes.NewReader(sent))
-
-		var a, b any
-		if json.Unmarshal(ia.Body, &a) != nil || json.Unmarshal(sent, &b) != nil || !jsonSameButTags(a, b) {
-			return err
-		}
-
-		ia.Body = sent
-
-		return match(req, ia)
-	}))
-
-	t.Cleanup(func() {
-		if unused := rec.Unused(); len(unused) > 0 {
-			t.Errorf("%d recorded interactions were never replayed, the first: %s %s", len(unused), unused[0].Request.Method, &unused[0].Request.URL)
-		}
-	})
-
-	return rec
-}
-
-// lastBody passes requests on to next, and keeps the body of the last response, so that a test can compare what a call
-// decoded with what was sent.
-type lastBody struct {
-	next http.RoundTripper
-	body []byte
-}
-
-func (l *lastBody) RoundTrip(req *http.Request) (*http.Response, error) {
-	rsp, err := l.next.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rsp.Body.Close()
-
-	if l.body, err = io.ReadAll(rsp.Body); err != nil {
-		return nil, err
-	}
-
-	rsp.Body = io.NopCloser(bytes.NewReader(l.body))
-
-	return rsp, nil
-}
-
-// decodedAsSent fails unless out, what a call decoded from body, encodes to what body holds. A member one side lacks is
-// fine where the other holds nothing there (null, false, 0, "", [], an object of nothing but such members, or the zero
-// text of a date, a time or a UUID), as an optional value left out is, and so is a tag one side leaves out (see
-// jsonInferredTag); members may come in another order. A value may be written another way, as long as it
-// is the same: a time as the same instant, a UUID with or without dashes, a number as a string of it.
-func decodedAsSent(t *testing.T, op string, out any, body []byte) {
-	t.Helper()
-
-	encoded, err := json.Marshal(out, jsonOpts)
-	if err != nil {
-		t.Fatalf("%s: encoding what was decoded: %v", op, err)
-	}
-
-	var sent, got any
-	if err := json.Unmarshal(body, &sent); err != nil {
-		t.Fatalf("%s: the recorded body: %v", op, err)
-	}
-
-	if err := json.Unmarshal(encoded, &got); err != nil {
-		t.Fatalf("%s: %v", op, err)
-	}
-
-	if at, same := jsonSame(sent, got, ""); !same {
-		t.Errorf("%s: decoded something else than was sent, at %q:\nsent %s\ngot  %s", op, at, body, encoded)
-	}
-}
-
-// jsonSame reports whether the JSON values a and b, decoded into any, hold the same, as decodedAsSent compares them,
-// and where they first differ if not.
-func jsonSame(a, b any, at string) (string, bool) {
-	if jsonEmpty(a) && jsonEmpty(b) || jsonSameInstant(a, b) || jsonSameInstant(b, a) ||
-		jsonSameNumber(a, b) || jsonSameNumber(b, a) {
-		return "", true
-	}
-
-	switch a := a.(type) {
-	case map[string]any:
-		b, ok := b.(map[string]any)
-		if !ok {
-			return at, false
-		}
-
-		names := slices.Sorted(maps.Keys(a))
-		for name := range b {
-			if _, ok := a[name]; !ok {
-				names = append(names, name)
-			}
-		}
-
-		for _, name := range names {
-			if jsonInferredTag(a, b, name) || jsonInferredTag(b, a, name) {
-				continue
-			}
-
-			if where, same := jsonSame(a[name], b[name], at+"/"+name); !same {
-				return where, false
-			}
-		}
-
-		return "", true
-	case []any:
-		b, ok := b.([]any)
-		if !ok || len(a) != len(b) {
-			return at, false
-		}
-
-		for i := range a {
-			if where, same := jsonSame(a[i], b[i], at+"/"+strconv.Itoa(i)); !same {
-				return where, false
-			}
-		}
-
-		return "", true
-	case string:
-		b, ok := b.(string)
-		if !ok {
-			return at, false
-		}
-
-		if a == b {
-			return "", true
-		}
-
-		if ua, ok := jsonUUID(a); ok {
-			if ub, ok := jsonUUID(b); ok {
-				return at, ua == ub
-			}
-		}
-
-		ta, errA := time.Parse(time.RFC3339Nano, a)
-		tb, errB := time.Parse(time.RFC3339Nano, b)
-
-		return at, errA == nil && errB == nil && ta.Equal(tb)
-	default:
-		return at, a == b
-	}
-}
-
-// jsonSameInstant reports whether a is a Unix time, in seconds or milliseconds, and b a date-time of the same instant,
-// as a type that takes either writes one as the other.
-func jsonSameInstant(a, b any) bool {
-	n, ok := a.(float64)
-	if !ok {
-		return false
-	}
-
-	s, ok := b.(string)
-	if !ok {
-		return false
-	}
-
-	ts, err := time.Parse(time.RFC3339Nano, s)
-
-	return err == nil && (float64(ts.Unix()) == n || float64(ts.UnixMilli()) == n)
-}
-
-// jsonSameNumber reports whether a is a number and b a string of the same number, as a string type writes one.
-func jsonSameNumber(a, b any) bool {
-	n, ok := a.(float64)
-	if !ok {
-		return false
-	}
-
-	s, ok := b.(string)
-	if !ok {
-		return false
-	}
-
-	f, err := strconv.ParseFloat(s, 64)
-
-	return err == nil && f == n
-}
-
-// jsonUUID is s, a UUID with or without dashes, as its 32 hex digits in lower case.
-func jsonUUID(s string) (string, bool) {
-	hex := strings.ToLower(strings.ReplaceAll(s, "-", ""))
-	if len(hex) != 32 || len(s) != 32 && len(s) != 36 || strings.Trim(hex, "0123456789abcdef") != "" {
-		return "", false
-	}
-
-	return hex, true
-}
-
-// jsonEmpty reports whether v, a JSON value decoded into any, holds nothing: null, false, 0, "", [], an object whose
-// members hold nothing, or the text a zero date, time or UUID is written as, which is what an empty one decodes into:
-// null read into a struct is written back as its members, empty.
-func jsonEmpty(v any) bool {
-	switch v := v.(type) {
-	case nil:
-		return true
-	case bool:
-		return !v
-	case float64:
-		return v == 0
-	case string:
-		return v == "" || v == "0000-00-00" || v == "0001-01-01T00:00:00Z" || v == "00000000-0000-0000-0000-000000000000"
-	case []any:
-		return len(v) == 0
-	case map[string]any:
-		for _, m := range v {
-			if !jsonEmpty(m) {
-				return false
-			}
-		}
-
-		return true
-	default:
-		return false
-	}
-}
-
-// jsonInferredTag reports whether the object a lacks the member name, which b holds as a tag: the name of a member both
-// hold. A tagged object may leave its tag out, and decoding it infers the tag from the member that is set, which
-// encoding then writes.
-func jsonInferredTag(a, b map[string]any, name string) bool {
-	if _, ok := a[name]; ok {
-		return false
-	}
-
-	tag, ok := b[name].(string)
-	if !ok {
-		return false
-	}
-
-	_, inA := a[tag]
-	_, inB := b[tag]
-
-	return inA && inB
-}
-
-// jsonSameButTags reports whether the JSON values a and b, decoded into any, are the same, but for tags either leaves
-// out (see jsonInferredTag): the request a call sends for one that was recorded without them.
-func jsonSameButTags(a, b any) bool {
-	switch a := a.(type) {
-	case map[string]any:
-		b, ok := b.(map[string]any)
-		if !ok {
-			return false
-		}
-
-		for name := range a {
-			if _, ok := b[name]; !ok && !jsonInferredTag(b, a, name) {
-				return false
-			}
-		}
-
-		for name, vb := range b {
-			va, ok := a[name]
-			if !ok && !jsonInferredTag(a, b, name) || ok && !jsonSameButTags(va, vb) {
-				return false
-			}
-		}
-
-		return true
-	case []any:
-		b, ok := b.([]any)
-		if !ok || len(a) != len(b) {
-			return false
-		}
-
-		for i := range a {
-			if !jsonSameButTags(a[i], b[i]) {
-				return false
-			}
-		}
-
-		return true
-	default:
-		return a == b
-	}
-}
-
-// mustDecodeBody decodes data, the recorded JSON for one request body value
-// (or field of one) an interaction's own literal couldn't be built for, into
-// T so a replayed call still carries the value it was recorded with.
-func mustDecodeBody[T any](t *testing.T, data string) T {
-	t.Helper()
-
-	var v T
-	if err := json.Unmarshal([]byte(data), &v, jsonOpts); err != nil {
-		t.Fatalf("decoding request body fixture: %v", err)
-	}
-
-	return v
-}
-
 func TestClient_Interactions(t *testing.T) {
 	ctx := t.Context()
 	t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 
-	last := &lastBody{next: replay(t)}
+	last := &apitest.LastBody{Next: apitest.Replay(t, "../../api/interactions.json")}
 
 	c, err := NewClient(WithHTTPClient(&http.Client{Transport: last}))
 	if err != nil {
@@ -36600,55 +36231,55 @@ func TestClient_Interactions(t *testing.T) {
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("0a54f3a8-4d32-415d-8d34-2a1a222bca19")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetCharacter(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
 	} else {
-		decodedAsSent(t, "GetCharacter", out, last.body)
+		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
 	}
 
 	if _, err := c.GetCharacterZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &GetCharacterZipParams{}); err != nil {
@@ -36662,25 +36293,25 @@ func TestClient_Interactions(t *testing.T) {
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("e1d01ca3-de70-4ffc-8348-4782bf119f3f")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetCharacter(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
 	} else {
-		decodedAsSent(t, "GetCharacter", out, last.body)
+		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
@@ -36691,23 +36322,23 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              CreateCharacterAnimationRequestModeV3,
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"north\",\"west\"]"),
+		Directions:        apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"north\",\"west\"]", jsonOpts),
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	} else {
-		decodedAsSent(t, "CreateCharacterAnimation", out, last.body)
+		apitest.DecodedAsSent(t, "CreateCharacterAnimation", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
@@ -36718,7 +36349,7 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              CreateCharacterAnimationRequestModeV3,
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        mustDecodeBody[CreateCharacterAnimationRequestDirections](t, "[\"south\",\"east\",\"north\",\"west\"]"),
+		Directions:        apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\",\"east\",\"north\",\"west\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("CreateCharacterAnimation: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -36728,6 +36359,6 @@ func TestClient_Interactions(t *testing.T) {
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1f2ccd9d-218c-4031-a2ab-e8283543738a")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
-		decodedAsSent(t, "GetBackgroundJob", out, last.body)
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
 }

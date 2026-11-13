@@ -45,14 +45,34 @@ func NewImageSizeForCreateCharacterCanva(width, height int) (ImageSize, error) {
 	if width < 8 || width > 256 {
 		return ImageSize{}, fmt.Errorf("width must be 8 to 256 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 8 || height > 256 {
 		return ImageSize{}, fmt.Errorf("height must be 8 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// ImageSizeForCreateCharacterProFlash is the size CreateCharacterProFlashRequest.ImageSize requires.
-var ImageSizeForCreateCharacterProFlash = ImageSize{Width: 0, Height: 0}
+// NewImageSizeForCreateCharacterProFlash returns the size for CreateCharacterProFlashRequest.ImageSize, if it is one the request accepts.
+func NewImageSizeForCreateCharacterProFlash(width, height int) (ImageSize, error) {
+	if width < 16 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
+	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
+	if height < 16 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
 // NewImageSizeForCreateCharacterPro returns the size for CreateCharacterProRequest.ImageSize, if it is one the request accepts.
 func NewImageSizeForCreateCharacterPro(width, height int) (ImageSize, error) {
@@ -125,8 +145,14 @@ func NewImageSizeForCreateImagePixen(width, height int) (ImageSize, error) {
 	if width < 16 || width > 768 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 768 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 768 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 768 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -142,8 +168,22 @@ func NewImageSizeForCreateImagePixflux(width, height int) (ImageSize, error) {
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// ImageSizeForCreateImageProFlash is the size CreateImageProFlashRequest.ImageSize requires.
-var ImageSizeForCreateImageProFlash = ImageSize{Width: 0, Height: 0}
+// NewImageSizeForCreateImageProFlash returns the size for CreateImageProFlashRequest.ImageSize, if it is one the request accepts.
+func NewImageSizeForCreateImageProFlash(width, height int) (ImageSize, error) {
+	if width < 16 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
+	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
+	if height < 16 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
 // NewImageSizeForCreateIsometricTile returns the size for CreateIsometricTileRequest.ImageSize, if it is one the request accepts.
 func NewImageSizeForCreateIsometricTile(width, height int) (ImageSize, error) {
@@ -172,14 +212,34 @@ func NewImageSizeForCreateObjectCanva(width, height int) (ImageSize, error) {
 	if width < 8 || width > 400 {
 		return ImageSize{}, fmt.Errorf("width must be 8 to 400 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 8 || height > 400 {
 		return ImageSize{}, fmt.Errorf("height must be 8 to 400 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// ImageSizeForCreateObjectProFlash is the size CreateObjectProFlashRequest.ImageSize requires.
-var ImageSizeForCreateObjectProFlash = ImageSize{Width: 0, Height: 0}
+// NewImageSizeForCreateObjectProFlash returns the size for CreateObjectProFlashRequest.ImageSize, if it is one the request accepts.
+func NewImageSizeForCreateObjectProFlash(width, height int) (ImageSize, error) {
+	if width < 16 || width > 256 {
+		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
+	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
+	if height < 16 || height > 256 {
+		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
 // TileSizeForCreateSidescrollerTileset is the size CreateSidescrollerTilesetRequest.TileSize requires.
 var TileSizeForCreateSidescrollerTileset = ImageSize{Width: 0, Height: 0}
@@ -247,8 +307,14 @@ func NewImageSizeForEnhancePixenPrompt(width, height int) (ImageSize, error) {
 	if width < 16 || width > 768 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 768 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 768 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 768 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }

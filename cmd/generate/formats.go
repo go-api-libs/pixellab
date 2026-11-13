@@ -111,9 +111,7 @@ func declaredFormats(doc *openapi.Document) (map[string]openapi.Format, error) {
 			return
 		}
 
-		if s.Items != nil {
-			s = s.Items
-		}
+		s = stringSchema(s)
 
 		if s.Type != openapi.TypeString || s.Format == "" {
 			return
@@ -161,18 +159,14 @@ func idName(name string) string {
 // disproved reports whether a recorded value took the format of a string, or of the strings of an array, away: it
 // has an example, which enrich gives it, but no format.
 func disproved(s *openapi.Schema) bool {
-	if s.Items != nil {
-		s = s.Items
-	}
+	s = stringSchema(s)
 
 	return s.Format == "" && s.Example != nil
 }
 
 // setFormat gives a string, or the strings of an array, the format, unless it has another.
 func setFormat(s *openapi.Schema, f openapi.Format) error {
-	if s.Items != nil {
-		s = s.Items
-	}
+	s = stringSchema(s)
 
 	switch {
 	case s.Type != openapi.TypeString:
@@ -182,5 +176,29 @@ func setFormat(s *openapi.Schema, f openapi.Format) error {
 		return nil
 	default:
 		return fmt.Errorf("format %s, not %s", s.Format, f)
+	}
+}
+
+// stringSchema is the schema of the strings s holds: s itself, or its items if it is an array, and in either case the
+// one alternative to null where the value may be null, as in anyOf [string, null].
+func stringSchema(s *openapi.Schema) *openapi.Schema {
+	if s = nonNull(s); s.Items != nil {
+		return nonNull(s.Items)
+	}
+
+	return s
+}
+
+// nonNull is the alternative to null of an anyOf of two, or s where it is none such.
+func nonNull(s *openapi.Schema) *openapi.Schema {
+	switch {
+	case len(s.AnyOf) != 2:
+		return s
+	case s.AnyOf[1].Type == openapi.TypeNull:
+		return s.AnyOf[0]
+	case s.AnyOf[0].Type == openapi.TypeNull:
+		return s.AnyOf[1]
+	default:
+		return s
 	}
 }

@@ -48,11 +48,11 @@ type TaggedOwn struct {
 func (o TaggedOwn) Need() string {
 	switch {
 	case !o.Required:
-		return "jsonTagOptional"
+		return "union.TagOptional"
 	case o.Nullable:
-		return "jsonTagRequiredOrNull"
+		return "union.TagRequiredOrNull"
 	default:
-		return "jsonTagRequired"
+		return "union.TagRequired"
 	}
 }
 
@@ -397,7 +397,7 @@ func taggedFields(shape *taggedShape, existing []Field) ([]Field, *Tagged, bool,
 				return nil, nil, false, fmt.Errorf("property %q: %w", p.name, err)
 			}
 
-			nullable := tp.IsPointer || nullableVariant(deref(own)) != nil
+			nullable := tp.IsPointer || allowsNull(own)
 			tv.Members = append(tv.Members, TaggedOwn{Name: p.name, Required: shape.ownRequired[i][p.name], Nullable: nullable})
 
 			if declared[p.name] {

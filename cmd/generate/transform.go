@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json/v2"
 	"errors"
+	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/MarkRosemaker/openapi"
-	edit "github.com/MarkRosemaker/openapi-edit"
 )
 
 // The recorded interactions call the API at its host, with the version in the path.
@@ -16,7 +17,7 @@ const (
 )
 
 // transform makes the original fit for generating a library: every path carries the version the original leaves to
-// its server, and an optional value is one that may be left out rather than one that may also be null.
+// its server.
 func transform(doc *openapi.Document) error {
 	doc.Info.Description = strings.TrimSpace(doc.Info.Description)
 	doc.Servers = openapi.Servers{{URL: serverURL}}
@@ -28,10 +29,53 @@ func transform(doc *openapi.Document) error {
 
 	doc.Paths = paths
 
-	edit.WalkSchemas(doc, dropNull)
+	if err := narrowRefs(doc); err != nil {
+		return err
+	}
+
 	dropEmptyJSON(doc)
 
 	return detailEitherWay(doc)
+}
+
+// narrowRefs moves the properties upstream declares beside a reference, which may be null, into a copy of what it
+// refers to, as an image size's bounds beside {"$ref": ".../ProFlashImageSize"} or beside {"anyOf": [{"$ref": ...},
+// {"type": "null"}]}: they narrow what the reference allows, which a reference cannot say itself.
+func narrowRefs(doc *openapi.Document) error {
+	for name, s := range doc.Components.Schemas.ByIndex() {
+		for prop, p := range s.Properties.ByIndex() {
+			if len(p.Properties) == 0 {
+				continue
+			}
+
+			ref := nonNull(p)
+			if ref.Ref == nil {
+				return fmt.Errorf("%s.%s: properties beside something other than a reference", name, prop)
+			}
+
+			narrowed := *ref.Ref.Value
+			narrowed.Title, narrowed.Description = "", ""
+			narrowed.Properties = maps.Clone(narrowed.Properties)
+
+			for key, bounds := range p.Properties.ByIndex() {
+				if narrowed.Properties[key] == nil {
+					return fmt.Errorf("%s.%s: %s has no property %q", name, prop, ref.Ref.Identifier, key)
+				}
+
+				narrowed.Properties.Set(key, bounds)
+			}
+
+			if ref == p {
+				narrowed.Description = p.Description
+			} else {
+				p.Properties, p.Required = nil, nil
+			}
+
+			ref.Replace(&narrowed)
+		}
+	}
+
+	return nil
 }
 
 // detailEitherWay lets the detail of a 422 be a message as well as the validation errors upstream declares: the API
