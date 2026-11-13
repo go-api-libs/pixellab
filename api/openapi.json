@@ -6014,12 +6014,12 @@
             "default": 4.0
           },
           "view": {
-            "description": "Camera view angle\nOne of: side, low top-down, high top-down.",
+            "description": "Camera view angle\nOne of: side, low top-down, high top-down. Defaults to \"side\".",
             "default": "side",
             "$ref": "#/components/schemas/CameraView"
           },
           "direction": {
-            "description": "Subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west.",
+            "description": "Subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to \"east\".",
             "default": "east",
             "$ref": "#/components/schemas/Direction"
           },
@@ -6175,7 +6175,7 @@
             "$ref": "#/components/schemas/Direction"
           },
           "view": {
-            "description": "Camera angle.\nOne of: side, low top-down, high top-down.",
+            "description": "Camera angle.\nOne of: side, low top-down, high top-down. Defaults to \"low top-down\".",
             "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
@@ -6356,12 +6356,12 @@
             "default": 0
           },
           "view": {
-            "description": "Camera view angle\nOne of: side, low top-down, high top-down.",
+            "description": "Camera view angle\nOne of: side, low top-down, high top-down. Defaults to \"side\".",
             "default": "side",
             "$ref": "#/components/schemas/CameraView"
           },
           "direction": {
-            "description": "Subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west.",
+            "description": "Subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to \"east\".",
             "default": "east",
             "$ref": "#/components/schemas/Direction"
           },
@@ -9662,7 +9662,7 @@
             ]
           },
           "detail": {
-            "description": "Detail level (default: highly detailed)\nOne of: low detail, medium detail, highly detailed.",
+            "description": "Detail level (default: highly detailed)\nOne of: low detail, medium detail, highly detailed. Defaults to \"highly detailed\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -10042,7 +10042,7 @@
           },
           "outline": {
             "title": "Outline",
-            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless.",
+            "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless. Defaults to \"lineless\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Outline"
@@ -10055,7 +10055,7 @@
           },
           "shading": {
             "title": "Shading",
-            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading. Defaults to \"basic shading\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Shading"
@@ -10068,7 +10068,7 @@
           },
           "detail": {
             "title": "Detail",
-            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed.",
+            "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed. Defaults to \"medium detail\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -10194,7 +10194,7 @@
           },
           "outline": {
             "title": "Outline",
-            "description": "Outline style\nOne of: single color outline, selective outline, lineless.",
+            "description": "Outline style\nOne of: single color outline, selective outline, lineless. Defaults to \"single color outline\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Outline"
@@ -10207,7 +10207,7 @@
           },
           "shading": {
             "title": "Shading",
-            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading.",
+            "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading. Defaults to \"medium shading\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Shading"
@@ -10220,7 +10220,7 @@
           },
           "detail": {
             "title": "Detail",
-            "description": "Level of detail\nOne of: low detail, medium detail, high detail.",
+            "description": "Level of detail\nOne of: low detail, medium detail, high detail. Defaults to \"medium detail\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -12128,7 +12128,7 @@
             ]
           },
           "view": {
-            "description": "Camera view angle, honoured by mode='pro'. Standard (pixen) always draws high top-down.\nOne of: low top-down, high top-down.",
+            "description": "Camera view angle, honoured by mode='pro'. Standard (pixen) always draws high top-down.\nOne of: low top-down, high top-down. Defaults to \"high top-down\".",
             "default": "high top-down",
             "$ref": "#/components/schemas/CameraView"
           },
@@ -14158,7 +14158,7 @@
             ]
           },
           "detail": {
-            "description": "Detail level hint.\nOne of: low detail, medium detail, highly detailed.",
+            "description": "Detail level hint.\nOne of: low detail, medium detail, highly detailed. Defaults to \"highly detailed\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Detail"
@@ -20036,7 +20036,7 @@
             ]
           },
           "from_view": {
-            "description": "From camera view angle\nOne of: side, low top-down, high top-down.",
+            "description": "From camera view angle\nOne of: side, low top-down, high top-down. Defaults to \"side\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -20048,7 +20048,7 @@
             "default": "side"
           },
           "to_view": {
-            "description": "To camera view angle\nOne of: side, low top-down, high top-down.",
+            "description": "To camera view angle\nOne of: side, low top-down, high top-down. Defaults to \"side\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/CameraView"
@@ -20060,7 +20060,7 @@
             "default": "side"
           },
           "from_direction": {
-            "description": "From subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west.",
+            "description": "From subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to \"south\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -20072,7 +20072,7 @@
             "default": "south"
           },
           "to_direction": {
-            "description": "From subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west.",
+            "description": "From subject direction\nOne of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to \"east\".",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/Direction"
@@ -20208,21 +20208,25 @@
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
           },
           "south-east": {
+            "description": "URL for south-east rotation (8-dir only)",
             "type": "string",
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-east.png?t=1791201628"
           },
           "north-east": {
+            "description": "URL for north-east rotation (8-dir only)",
             "type": "string",
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-east.png?t=1791201628"
           },
           "north-west": {
+            "description": "URL for north-west rotation (8-dir only)",
             "type": "string",
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-west.png?t=1791201628"
           },
           "south-west": {
+            "description": "URL for south-west rotation (8-dir only)",
             "type": "string",
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-west.png?t=1791201628"

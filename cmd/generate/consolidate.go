@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json/jsontext"
 	"errors"
 	"fmt"
@@ -89,7 +90,7 @@ func consolidateEnums(doc *openapi.Document) error {
 
 			if len(members) > 1 {
 				for _, r := range refs[m] {
-					r.schema.Description = joinLines(r.schema.Description, enumValues(s))
+					r.schema.Description = joinLines(r.schema.Description, enumValues(s, r.schema))
 				}
 			}
 		}
@@ -165,16 +166,17 @@ func referPlainStrings(doc *openapi.Document, name string, props []string) {
 	}
 }
 
-// enumValues tells the values an enum accepts, and the one it defaults to.
-func enumValues(s *openapi.Schema) string {
+// enumValues tells the values an enum accepts, and the one it defaults to: the property's default, which upstream
+// writes beside a reference that may be null, or else the enum's own.
+func enumValues(s, property *openapi.Schema) string {
 	vals := make([]string, len(s.Enum))
 	for i, e := range s.Enum {
 		vals[i] = strings.Trim(string(e), `"`)
 	}
 
 	text := "One of: " + strings.Join(vals, ", ") + "."
-	if len(s.Default) > 0 {
-		text += fmt.Sprintf(" Defaults to %s.", s.Default)
+	if def := cmp.Or(string(property.Default), string(s.Default)); def != "" {
+		text += fmt.Sprintf(" Defaults to %s.", def)
 	}
 
 	return text
@@ -343,6 +345,7 @@ func consolidateRotations(doc *openapi.Document) error {
 
 	for _, d := range directions {
 		p := *nonNull(first.Properties[d])
+		p.Description = cmp.Or(p.Description, first.Properties[d].Description)
 		p.Format = openapi.FormatURI
 		merged.Properties.Set(d, &p)
 	}

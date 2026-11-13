@@ -206,10 +206,10 @@ type AnimateWithSkeletonRequest struct {
 	// How closely to follow the reference image and skeleton keypoints
 	GuidanceScale float64 `json:"guidance_scale,omitzero"`
 	// Camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	Direction Direction `json:"direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -243,7 +243,7 @@ type AnimateWithSkeletonV3Request struct {
 	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
 	Direction Direction `json:"direction"`
 	// Camera angle.
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// The sprite to animate, PNG base64, up to 256x256. Frames come back at this size.
 	FirstFrame BaseImage `json:"first_frame"`
@@ -300,10 +300,10 @@ type AnimateWithTextRequest struct {
 	// Starting frame index of the full animation
 	StartFrameIndex int `json:"start_frame_index,omitzero"`
 	// Camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	View CameraView `json:"view,omitzero"`
 	// Subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	Direction Direction `json:"direction,omitzero"`
 	// Initial images to start the generation from
 	InitImages []BaseImage `json:"init_images,omitzero"`
@@ -1268,7 +1268,7 @@ type CreateImagePixenRequest struct {
 	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level (default: highly detailed)
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "highly detailed".
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle
 	// One of: side, low top-down, high top-down.
@@ -1369,13 +1369,13 @@ type CreateIsometricTileRequest struct {
 	// How closely to follow the text description
 	TextGuidanceScale float64 `json:"text_guidance_scale,omitzero"`
 	// Outline style for the tile
-	// One of: single color outline, selective outline, lineless.
+	// One of: single color outline, selective outline, lineless. Defaults to "lineless".
 	Outline Outline `json:"outline,omitzero"`
 	// Shading complexity
-	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading.
+	// One of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading. Defaults to "basic shading".
 	Shading Shading `json:"shading,omitzero"`
 	// Level of detail in the tile
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "medium detail".
 	Detail Detail `json:"detail,omitzero"`
 	// Initial image to start from
 	InitImage BaseImage `json:"init_image,omitzero"`
@@ -1421,13 +1421,13 @@ type CreateMapObjectRequest struct {
 	// One of: low top-down, high top-down, side. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// Outline style
-	// One of: single color outline, selective outline, lineless.
+	// One of: single color outline, selective outline, lineless. Defaults to "single color outline".
 	Outline Outline `json:"outline,omitzero"`
 	// Shading complexity
-	// One of: flat shading, basic shading, medium shading, detailed shading.
+	// One of: flat shading, basic shading, medium shading, detailed shading. Defaults to "medium shading".
 	Shading Shading `json:"shading,omitzero"`
 	// Level of detail
-	// One of: low detail, medium detail, high detail.
+	// One of: low detail, medium detail, high detail. Defaults to "medium detail".
 	Detail Detail `json:"detail,omitzero"`
 	// How closely to follow the description
 	TextGuidanceScale float64 `json:"text_guidance_scale,omitzero"`
@@ -2126,7 +2126,7 @@ type CreateTilesetRequest struct {
 	// One of: low detail, medium detail, highly detailed.
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle, honoured by mode='pro'. Standard (pixen) always draws high top-down.
-	// One of: low top-down, high top-down.
+	// One of: low top-down, high top-down. Defaults to "high top-down".
 	View CameraView `json:"view,omitzero"`
 	// No effect: standard runs on pixen and pro ignores it; kept so existing calls work.
 	TileStrength float64 `json:"tile_strength,omitzero"`
@@ -2793,7 +2793,7 @@ type EnhancePixenPromptRequest struct {
 	// One of: single color black outline, single color outline, selective outline, lineless.
 	Outline Outline `json:"outline,omitzero"`
 	// Detail level hint.
-	// One of: low detail, medium detail, highly detailed.
+	// One of: low detail, medium detail, highly detailed. Defaults to "highly detailed".
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view angle.
 	// One of: side, low top-down, high top-down.
@@ -4551,16 +4551,16 @@ type RotateRequest struct {
 	// How many degrees to rotate the subject
 	DirectionChange *int `json:"direction_change,omitzero"`
 	// From camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	FromView CameraView `json:"from_view,omitzero"`
 	// To camera view angle
-	// One of: side, low top-down, high top-down.
+	// One of: side, low top-down, high top-down. Defaults to "side".
 	ToView CameraView `json:"to_view,omitzero"`
 	// From subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "south".
 	FromDirection Direction `json:"from_direction,omitzero"`
 	// From subject direction
-	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	ToDirection Direction `json:"to_direction,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -4589,10 +4589,14 @@ type RotationURLs struct {
 	// URL for east-facing rotation
 	East url.URL `json:"east,omitzero"`
 	// URL for north-facing rotation
-	North     url.URL `json:"north,omitzero"`
+	North url.URL `json:"north,omitzero"`
+	// URL for south-east rotation (8-dir only)
 	SouthEast url.URL `json:"south-east,omitzero"`
+	// URL for north-east rotation (8-dir only)
 	NorthEast url.URL `json:"north-east,omitzero"`
+	// URL for north-west rotation (8-dir only)
 	NorthWest url.URL `json:"north-west,omitzero"`
+	// URL for south-west rotation (8-dir only)
 	SouthWest url.URL `json:"south-west,omitzero"`
 }
 
