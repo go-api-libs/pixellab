@@ -55,7 +55,19 @@ func inlineSchema(d *openapi.Document, s *openapi.Schema, name string, alwaysMov
 		}
 	case "": // no explicit type — oneOf / anyOf / allOf composition or bare properties
 		if alt := nonNull(s); alt != nil {
-			return inlineSchema(d, alt, name, false) // X or null is X that may be null, not a shape of its own
+			inline := alt.Ref == nil
+
+			// X or null is X that may be null, not a shape of its own
+			if err := inlineSchema(d, alt, name, false); err != nil {
+				return err
+			}
+
+			// what moved says what X is, as it would have if X had been written alone
+			if moved := alt.Ref; inline && moved != nil && moved.Value.Description == "" {
+				moved.Value.Description = s.Description
+			}
+
+			return nil
 		}
 
 		v := s

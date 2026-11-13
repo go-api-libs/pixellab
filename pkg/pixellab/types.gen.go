@@ -756,10 +756,10 @@ type CreateCharacterAnimationRequest struct {
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
 
-// CreateCharacterAnimationRequestDirections defines a model
+// List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
 type CreateCharacterAnimationRequestDirections []Direction
 
-// CreateCharacterAnimationRequestMode defines a model
+// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 type CreateCharacterAnimationRequestMode string
 
 const (
@@ -780,7 +780,7 @@ func (e CreateCharacterAnimationRequestMode) Valid() bool {
 	}
 }
 
-// CreateCharacterAnimationRequestTemplateAction defines a model
+// One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.
 type CreateCharacterAnimationRequestTemplateAction string
 
 const (
@@ -836,9 +836,11 @@ type CreateCharacterProFlashRequest struct {
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
 	// Width: 16-256 px. Height: 16-256 px.
-	ImageSize    ImageSize              `json:"image_size,omitzero"`
-	StyleImage   ProFlashReferenceImage `json:"style_image,omitzero"`
-	StyleOptions *ProFlashStyleOptions  `json:"style_options,omitzero"`
+	ImageSize ImageSize `json:"image_size,omitzero"`
+	// Encoded image with native dimensions and its subject/style instructions.
+	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
+	// Choose which visual traits to copy from the style image.
+	StyleOptions *ProFlashStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every direction (a first_frame or source_image_id you give stays as it is) is one of them; max_colors (2-64) caps the colours of every direction (a first_frame or source_image_id you give stays as it is).
 	TargetPalette *TargetPalette                           `json:"target_palette,omitzero"`
 	NDirections   int                                      `json:"n_directions,omitzero"`
@@ -1110,7 +1112,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
-// CreateCharacterWithDirectionsProportions defines a model
+// Character body proportions (preset or custom values). Only applies to humanoid characters.
 // CreateCharacterWithDirectionsProportions is an untagged oneOf union: exactly one field is set after unmarshaling.
 type CreateCharacterWithDirectionsProportions struct {
 	CharacterProportionsPreset *CharacterProportionsPreset
@@ -1348,9 +1350,10 @@ type CreateImageProFlashRequest struct {
 	Description string `json:"description"`
 	// Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
 	// Width: 16-256 px. Height: 16-256 px.
-	ImageSize    ImageSize              `json:"image_size"`
-	NoBackground *bool                  `json:"no_background,omitzero"`
-	StyleImage   ProFlashReferenceImage `json:"style_image,omitzero"`
+	ImageSize    ImageSize `json:"image_size"`
+	NoBackground *bool     `json:"no_background,omitzero"`
+	// Encoded image with native dimensions and its subject/style instructions.
+	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
 	// Choose which visual traits to copy from the style image.
 	StyleOptions *ProFlashStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors the image is drawn for them and every pixel is one of them; max_colors (2-64) caps the image.
@@ -1675,7 +1678,13 @@ type CreateObjectAnimationRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
-// CreateObjectAnimationRequestDirections defines a model
+// Which directions to animate.
+//
+// - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
+// - For 8-direction objects:
+//   - **New animation**: omit `directions` to animate all 8 cardinals.
+//   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
+//   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
 type CreateObjectAnimationRequestDirections []CreateObjectAnimationDirectionsItem
 
 // CreateObjectAnimationResponse defines a model
@@ -1715,9 +1724,11 @@ type CreateObjectProFlashRequest struct {
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
 	// Width: 16-256 px. Height: 16-256 px.
-	ImageSize    ImageSize              `json:"image_size,omitzero"`
-	StyleImage   ProFlashReferenceImage `json:"style_image,omitzero"`
-	StyleOptions *ProFlashStyleOptions  `json:"style_options,omitzero"`
+	ImageSize ImageSize `json:"image_size,omitzero"`
+	// Encoded image with native dimensions and its subject/style instructions.
+	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
+	// Choose which visual traits to copy from the style image.
+	StyleOptions *ProFlashStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every direction (a first_frame or source_image_id you give stays as it is) is one of them; max_colors (2-64) caps the colours of every direction (a first_frame or source_image_id you give stays as it is).
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 	NDirections   int            `json:"n_directions,omitzero"`
@@ -1934,7 +1945,7 @@ type CreateTilesProRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
-// CreateTilesProRequestBuildingLayout defines a model
+// Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).
 type CreateTilesProRequestBuildingLayout string
 
 const (
@@ -1970,7 +1981,7 @@ func (e CreateTilesProRequestOutlineMode) Valid() bool {
 	}
 }
 
-// CreateTilesProRequestRoofProfile defines a model
+// Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
 type CreateTilesProRequestRoofProfile string
 
 const (
@@ -1988,7 +1999,7 @@ func (e CreateTilesProRequestRoofProfile) Valid() bool {
 	}
 }
 
-// CreateTilesProRequestTileFeature defines a model
+// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
 type CreateTilesProRequestTileFeature string
 
 const (
@@ -2150,7 +2161,7 @@ type CreateTilesetRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
-// CreateTilesetRequestShapeStyle defines a model
+// Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.
 type CreateTilesetRequestShapeStyle string
 
 const (
@@ -2642,14 +2653,20 @@ type EditImageProFlashRequest struct {
 	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
 	//     base64 (str): The base64 encoded image data
 	//     format (str): The image format (e.g., "png", "jpeg")
-	Image                     BaseImage                      `json:"image"`
-	Method                    EditImageProFlashRequestMethod `json:"method,omitzero"`
-	Description               string                         `json:"description,omitzero"`
-	ReferenceImage            BaseImage                      `json:"reference_image,omitzero"`
-	NoBackground              bool                           `json:"no_background,omitzero"`
-	UseColorPaletteCorrection bool                           `json:"use_color_palette_correction,omitzero"`
-	Seed                      int                            `json:"seed,omitzero"`
-	ProjectID                 uuid.UUID                      `json:"project_id,omitzero"`
+	Image       BaseImage                      `json:"image"`
+	Method      EditImageProFlashRequestMethod `json:"method,omitzero"`
+	Description string                         `json:"description,omitzero"`
+	// A base64 encoded image.
+	//
+	// Attributes:
+	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
+	//     base64 (str): The base64 encoded image data
+	//     format (str): The image format (e.g., "png", "jpeg")
+	ReferenceImage            BaseImage `json:"reference_image,omitzero"`
+	NoBackground              bool      `json:"no_background,omitzero"`
+	UseColorPaletteCorrection bool      `json:"use_color_palette_correction,omitzero"`
+	Seed                      int       `json:"seed,omitzero"`
+	ProjectID                 uuid.UUID `json:"project_id,omitzero"`
 }
 
 // EditImageProFlashRequestMethod defines a model
@@ -3033,7 +3050,7 @@ type GetBackgroundJobResponse struct {
 	LastResponse *GetBackgroundJobResponseLastResponse `json:"last_response,omitzero"`
 }
 
-// GetBackgroundJobResponseLastResponse defines a model
+// Latest response data from the job
 type GetBackgroundJobResponseLastResponse struct {
 	Code                  *int                                             `json:"code,omitzero"`
 	Type                  string                                           `json:"type,omitzero"`
@@ -3160,7 +3177,7 @@ type GetCharacterResponse struct {
 	Animations []AnimationGroup `json:"animations,omitzero"`
 }
 
-// GetCharacterResponseSkeletons defines a model
+// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type GetCharacterResponseSkeletons struct {
 	ThreeD         GetCharacterResponseSkeletons3d           `json:"3d,omitzero"`
 	TwoDReference  CharacterSkeletonsdReference              `json:"2d_reference,omitzero"`
@@ -3207,7 +3224,7 @@ type GetCharacterResponseSkeletons3dKeypoints struct {
 	RightShoulder []float64 `json:"RIGHT SHOULDER"`
 }
 
-// GetCharacterResponseStyleSettings defines a model
+// Style settings used during generation
 type GetCharacterResponseStyleSettings struct {
 	Detail         Detail  `json:"detail,omitzero"`
 	Outline        Outline `json:"outline,omitzero"`
@@ -3651,9 +3668,16 @@ type InpaintImageProFlashRequest struct {
 	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
 	//     base64 (str): The base64 encoded image data
 	//     format (str): The image format (e.g., "png", "jpeg")
-	MaskImage             BaseImage                               `json:"mask_image"`
-	Description           string                                  `json:"description"`
-	ContextImage          BaseImage                               `json:"context_image,omitzero"`
+	MaskImage   BaseImage `json:"mask_image"`
+	Description string    `json:"description"`
+	// A base64 encoded image.
+	//
+	// Attributes:
+	//     type (Literal["base64"]): Always "base64" to indicate the image encoding type
+	//     base64 (str): The base64 encoded image data
+	//     format (str): The image format (e.g., "png", "jpeg")
+	ContextImage BaseImage `json:"context_image,omitzero"`
+	// The native source rectangle within the additional context image.
 	BoundingBox           ProFlashBoundingBox                     `json:"bounding_box,omitzero"`
 	NoBackground          bool                                    `json:"no_background,omitzero"`
 	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask   `json:"background_removal_task,omitzero"`
@@ -3884,7 +3908,7 @@ type KeypointOutput struct {
 	ZIndex float64 `json:"z_index"`
 }
 
-// Layout defines a model
+// Sheet layout, as the website's tileset download offers it: 'tileset15' (default) the canonical 15-tileset sheet (4x4 tiles, 4x8 on a tall set), 'wang' the 5-wide Wang arrangement, 'godot' Godot's 3x3 autotile sheet (24x8 tiles; Godot's 3x3 has no cell for the two diagonal tiles, so they are left out).
 type Layout string
 
 const (
@@ -4143,7 +4167,7 @@ func (e NormalMapRequestConvention) Valid() bool {
 	}
 }
 
-// NormalMapRequestKind defines a model
+// What the picture is: character (a character, creature or portrait), object (an item or effect), topdown (a map, scene or tileset seen from above), side (a side view: sidescroller tiles, a landscape), iso (isometric tiles and objects) or ui (panels, buttons, frames). Left out, it is read from the picture; set it when you know, above all for sidescroller, isometric and UI art.
 type NormalMapRequestKind string
 
 const (

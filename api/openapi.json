@@ -5934,6 +5934,7 @@
             "description": "Facing direction of the sprite (south = towards the camera), the model's facing caption field. Omit to have it read from the image.\nOne of: south, north, east, west, south-east, south-west, north-east, north-west.",
             "anyOf": [
               {
+                "description": "Facing direction of the sprite (south = towards the camera), the model's facing caption field. Omit to have it read from the image.",
                 "$ref": "#/components/schemas/Direction"
               },
               {
@@ -5946,6 +5947,7 @@
             "description": "Camera view of the sprite, the model's view caption field. Omit to have it read from the image.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
             "anyOf": [
               {
+                "description": "Camera view of the sprite, the model's view caption field. Omit to have it read from the image.",
                 "$ref": "#/components/schemas/CameraView"
               },
               {
@@ -8101,12 +8103,14 @@
         }
       },
       "CreateCharacterAnimationRequestDirections": {
+        "description": "List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/Direction"
         }
       },
       "CreateCharacterAnimationRequestMode": {
+        "description": "Animation mode. \"template\": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). \"skeleton-v3\": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, \"skeleton-v3\" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). \"v3\": custom animation from action_description with frame_count control. \"pixminimax\": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. \"pro\" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.",
         "type": "string",
         "enum": [
           "template",
@@ -8118,6 +8122,7 @@
         "example": "v3"
       },
       "CreateCharacterAnimationRequestTemplateAction": {
+        "description": "One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.",
         "type": "string",
         "enum": [
           "walking",
@@ -8292,6 +8297,7 @@
             "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px. Height: 16-256 px.",
             "anyOf": [
               {
+                "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.",
                 "$ref": "#/components/schemas/ImageSize"
               },
               {
@@ -9145,6 +9151,7 @@
             "description": "Generation mode. \"standard\" uses template-based skeleton generation (1 generation). \"pro\" uses AI reference-based generation for higher quality (costs 10-25 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.",
             "anyOf": [
               {
+                "description": "Generation mode. \"standard\" uses template-based skeleton generation (1 generation). \"pro\" uses AI reference-based generation for higher quality (costs 10-25 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.",
                 "$ref": "#/components/schemas/CreateTilesetMode"
               },
               {
@@ -9359,6 +9366,7 @@
         }
       },
       "CreateCharacterWithDirectionsProportions": {
+        "description": "Character body proportions (preset or custom values). Only applies to humanoid characters.",
         "oneOf": [
           {
             "$ref": "#/components/schemas/CharacterProportionsPreset"
@@ -10045,6 +10053,7 @@
             "description": "Outline style for the tile\nOne of: single color outline, selective outline, lineless. Defaults to \"lineless\".",
             "anyOf": [
               {
+                "description": "Outline style for the tile",
                 "$ref": "#/components/schemas/Outline"
               },
               {
@@ -10058,6 +10067,7 @@
             "description": "Shading complexity\nOne of: flat shading, basic shading, medium shading, detailed shading, highly detailed shading. Defaults to \"basic shading\".",
             "anyOf": [
               {
+                "description": "Shading complexity",
                 "$ref": "#/components/schemas/Shading"
               },
               {
@@ -10071,6 +10081,7 @@
             "description": "Level of detail in the tile\nOne of: low detail, medium detail, highly detailed. Defaults to \"medium detail\".",
             "anyOf": [
               {
+                "description": "Level of detail in the tile",
                 "$ref": "#/components/schemas/Detail"
               },
               {
@@ -10197,6 +10208,7 @@
             "description": "Outline style\nOne of: single color outline, selective outline, lineless. Defaults to \"single color outline\".",
             "anyOf": [
               {
+                "description": "Outline style",
                 "$ref": "#/components/schemas/Outline"
               },
               {
@@ -10694,6 +10706,7 @@
         }
       },
       "CreateObjectAnimationRequestDirections": {
+        "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/CreateObjectAnimationDirectionsItem"
@@ -10865,6 +10878,7 @@
             "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px. Height: 16-256 px.",
             "anyOf": [
               {
+                "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.",
                 "$ref": "#/components/schemas/ImageSize"
               },
               {
@@ -11807,6 +11821,7 @@
         }
       },
       "CreateTilesProRequestBuildingLayout": {
+        "description": "Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).",
         "type": "string",
         "enum": [
           "grid",
@@ -11824,6 +11839,7 @@
         "default": "outline"
       },
       "CreateTilesProRequestRoofProfile": {
+        "description": "Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.",
         "type": "string",
         "enum": [
           "gable",
@@ -11831,6 +11847,7 @@
         ]
       },
       "CreateTilesProRequestTileFeature": {
+        "description": "Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition (\"grass to water\"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.",
         "type": "string",
         "enum": [
           "roads",
@@ -12255,6 +12272,7 @@
         }
       },
       "CreateTilesetRequestShapeStyle": {
+        "description": "Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.",
         "type": "string",
         "enum": [
           "square",
@@ -14027,6 +14045,7 @@
             "description": "Accepted but not used: PixMiniMax's facing is its own field, `direction` on /v2/animate-pixminimax.\nOne of: south, north, east, west, south-east, south-west, north-east, north-west.",
             "anyOf": [
               {
+                "description": "Accepted but not used: PixMiniMax's facing is its own field, `direction` on /v2/animate-pixminimax.",
                 "$ref": "#/components/schemas/Direction"
               },
               {
@@ -15108,6 +15127,7 @@
         }
       },
       "GetBackgroundJobResponseLastResponse": {
+        "description": "Latest response data from the job",
         "type": "object",
         "properties": {
           "code": {
@@ -15619,6 +15639,7 @@
         }
       },
       "GetCharacterResponseSkeletons": {
+        "description": "2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.",
         "type": "object",
         "properties": {
           "3d": {
@@ -15858,6 +15879,7 @@
         ]
       },
       "GetCharacterResponseStyleSettings": {
+        "description": "Style settings used during generation",
         "type": "object",
         "properties": {
           "detail": {
@@ -18070,6 +18092,7 @@
         "additionalProperties": false
       },
       "Layout": {
+        "description": "Sheet layout, as the website's tileset download offers it: 'tileset15' (default) the canonical 15-tileset sheet (4x4 tiles, 4x8 on a tall set), 'wang' the 5-wide Wang arrangement, 'godot' Godot's 3x3 autotile sheet (24x8 tiles; Godot's 3x3 has no cell for the two diagonal tiles, so they are left out).",
         "type": "string",
         "enum": [
           "tileset15",
@@ -18138,6 +18161,7 @@
             "description": "Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.",
             "anyOf": [
               {
+                "description": "Which stored expression to use. Defaults to the character's first. Only valid with `character_id`.",
                 "$ref": "#/components/schemas/Mood"
               },
               {
@@ -18889,6 +18913,7 @@
         "default": "opengl"
       },
       "NormalMapRequestKind": {
+        "description": "What the picture is: character (a character, creature or portrait), object (an item or effect), topdown (a map, scene or tileset seen from above), side (a side view: sidescroller tiles, a landscape), iso (isometric tiles and objects) or ui (panels, buttons, frames). Left out, it is read from the picture; set it when you know, above all for sidescroller, isometric and UI art.",
         "type": "string",
         "enum": [
           "character",
@@ -21585,6 +21610,7 @@
             "description": "Which stored expression to talk with. Defaults to the character's first. Only valid with `character_id`.",
             "anyOf": [
               {
+                "description": "Which stored expression to talk with. Defaults to the character's first. Only valid with `character_id`.",
                 "$ref": "#/components/schemas/Mood"
               },
               {
@@ -22395,7 +22421,6 @@
         "type": "object",
         "properties": {
           "layout": {
-            "description": "Sheet layout, as the website's tileset download offers it: 'tileset15' (default) the canonical 15-tileset sheet (4x4 tiles, 4x8 on a tall set), 'wang' the 5-wide Wang arrangement, 'godot' Godot's 3x3 autotile sheet (24x8 tiles; Godot's 3x3 has no cell for the two diagonal tiles, so they are left out).",
             "$ref": "#/components/schemas/Layout"
           },
           "image": {

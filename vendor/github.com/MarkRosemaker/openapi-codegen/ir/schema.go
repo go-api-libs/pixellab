@@ -576,12 +576,17 @@ func getField(jsonName string, propRef *openapi.Schema, requiredSet map[string]b
 		tag = strings.TrimSuffix(tag, `"`) + `,string"` // written as the string it mostly is
 	}
 
+	description := cmp.Or(propRef.Description, v.Description)
+	if nv := nullableVariant(v); description == "" && nv != nil {
+		description = cmp.Or(nv.Description, deref(nv).Description) // what X or null holds says what the field is
+	}
+
 	return Field{
 		Name:             fieldName,
 		JSONName:         jsonName,
 		Type:             goType.String(),
 		JSONTag:          tag,
-		Description:      cmp.Or(propRef.Description, v.Description),
+		Description:      description,
 		Required:         required,
 		ReadOnly:         propRef.ReadOnly || v.ReadOnly,
 		WriteOnly:        propRef.WriteOnly || v.WriteOnly,
