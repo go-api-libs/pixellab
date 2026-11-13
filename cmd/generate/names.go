@@ -269,13 +269,5 @@ func goName(name string) string {
 
 // goNames writes the initialisms of every component schema's name as Go does.
 func goNames(doc *openapi.Document) error {
-	to := map[string]string{}
-
-	for name := range doc.Components.Schemas {
-		if g := goName(name); g != name {
-			to[name] = g
-		}
-	}
-
-	return edit.RenameSchemas(doc, to)
+	return edit.RenameSchemasFunc(doc, goName)
 }

@@ -129,16 +129,13 @@ func sharingValues(doc *openapi.Document, members []string) []string {
 // referPlainStrings makes the plain strings of the properties and parameters, or of their arrays, as a response's
 // direction, refer to the enum: what upstream writes as a string there is a value of it.
 func referPlainStrings(doc *openapi.Document, name string, props []string) {
-	enum := doc.Components.Schemas[name]
-
 	refer := func(p *openapi.Schema) {
 		p = stringSchema(p)
 
 		if p.Type == openapi.TypeString && p.Ref == nil && p.Format == "" && len(p.Enum) == 0 && len(p.Const) == 0 {
-			p.Replace(&openapi.Schema{
-				Description: p.Description,
-				Ref:         &openapi.SchemaRef{Identifier: schemaRefPrefix + name, Value: enum},
-			})
+			ref := edit.SchemaRef(doc, name)
+			ref.Description = p.Description
+			p.Replace(ref)
 		}
 	}
 
