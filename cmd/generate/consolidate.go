@@ -38,8 +38,13 @@ func propertyRefs(doc *openapi.Document) map[string][]propertyRef {
 
 	for owner, s := range doc.Components.Schemas.ByIndex() {
 		for prop, p := range s.Properties.ByIndex() {
-			for _, ref := range []*openapi.Schema{p, p.Items, p.PropertyNames} {
-				if ref != nil && ref.Ref != nil {
+			v := nonNull(p)
+			for _, ref := range []*openapi.Schema{v, v.Items, v.PropertyNames} {
+				if ref == nil {
+					continue
+				}
+
+				if ref = nonNull(ref); ref.Ref != nil {
 					name := strings.TrimPrefix(ref.Ref.Identifier, schemaRefPrefix)
 					refs[name] = append(refs[name], propertyRef{owner: owner, property: prop, schema: p})
 				}
@@ -125,9 +130,7 @@ func referPlainStrings(doc *openapi.Document, name string, props []string) {
 	enum := doc.Components.Schemas[name]
 
 	refer := func(p *openapi.Schema) {
-		if p.Items != nil {
-			p = p.Items
-		}
+		p = stringSchema(p)
 
 		if p.Type == openapi.TypeString && p.Ref == nil && p.Format == "" && len(p.Enum) == 0 && len(p.Const) == 0 {
 			p.Replace(&openapi.Schema{
@@ -320,7 +323,7 @@ func consolidateRotations(doc *openapi.Document) error {
 		// a skeleton's references have a property per direction too, but of keypoints
 		if s.Type == openapi.TypeObject && len(s.Properties) == len(directions) &&
 			!slices.ContainsFunc(directions, func(d string) bool {
-				return s.Properties[d] == nil || s.Properties[d].Type != openapi.TypeString
+				return s.Properties[d] == nil || nonNull(s.Properties[d]).Type != openapi.TypeString
 			}) {
 			members = append(members, name)
 		}
@@ -339,7 +342,7 @@ func consolidateRotations(doc *openapi.Document) error {
 	}
 
 	for _, d := range directions {
-		p := *first.Properties[d]
+		p := *nonNull(first.Properties[d])
 		p.Format = openapi.FormatURI
 		merged.Properties.Set(d, &p)
 	}
@@ -396,5 +399,11 @@ func hasProperties(s *openapi.Schema, props ...string) bool {
 
 // refersTo reports whether s refers to the schema that to renames to name.
 func refersTo(s *openapi.Schema, name string, to map[string]string) bool {
-	return s != nil && s.Ref != nil && to[strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)] == name
+	if s == nil {
+		return false
+	}
+
+	s = nonNull(s)
+
+	return s.Ref != nil && to[strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)] == name
 }

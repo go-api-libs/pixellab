@@ -5,9 +5,9 @@
 package pixellab
 
 import (
-	"bytes"
-	"encoding/json/v2"
 	"testing"
+
+	"github.com/go-api-libs/api/apitest"
 )
 
 // TestEnums_Valid checks that every member of an enum is valid, and that a value of its type none is, is not.
@@ -518,100 +518,71 @@ func TestEnums_Valid(t *testing.T) {
 func TestUnions_RoundTrip(t *testing.T) {
 	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportionsPreset", func(t *testing.T) {
 		v := CharacterProportionsPreset{Type: "preset", Name: "default"}
-		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportionsPreset: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportionsPreset != nil })
+		apitest.RoundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportionsPreset: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportionsPreset != nil }, jsonOpts)
 	})
 
 	t.Run("CreateCharacterWithDirectionsProportions/CharacterProportions", func(t *testing.T) {
 		v := CharacterProportions{Type: "custom"}
-		roundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportions: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportions != nil })
+		apitest.RoundTrip(t, CreateCharacterWithDirectionsProportions{CharacterProportions: &v}, func(u CreateCharacterWithDirectionsProportions) bool { return u.CharacterProportions != nil }, jsonOpts)
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/MaskInpainting", func(t *testing.T) {
 		v := MaskInpainting{Type: "mask"}
-		roundTrip(t, CreateMapObjectRequestInpainting{MaskInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.MaskInpainting != nil })
+		apitest.RoundTrip(t, CreateMapObjectRequestInpainting{MaskInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.MaskInpainting != nil }, jsonOpts)
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/OvalInpainting", func(t *testing.T) {
 		v := OvalInpainting{Type: "oval"}
-		roundTrip(t, CreateMapObjectRequestInpainting{OvalInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.OvalInpainting != nil })
+		apitest.RoundTrip(t, CreateMapObjectRequestInpainting{OvalInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.OvalInpainting != nil }, jsonOpts)
 	})
 
 	t.Run("CreateMapObjectRequestInpainting/RectangleInpainting", func(t *testing.T) {
 		v := RectangleInpainting{Type: "rectangle"}
-		roundTrip(t, CreateMapObjectRequestInpainting{RectangleInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.RectangleInpainting != nil })
+		apitest.RoundTrip(t, CreateMapObjectRequestInpainting{RectangleInpainting: &v}, func(u CreateMapObjectRequestInpainting) bool { return u.RectangleInpainting != nil }, jsonOpts)
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPieceRect", func(t *testing.T) {
 		v := UIPieceRect{Kind: "rounded_rect"}
-		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceRect: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceRect != nil })
+		apitest.RoundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceRect: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceRect != nil }, jsonOpts)
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPieceCircle", func(t *testing.T) {
 		v := UIPieceCircle{Kind: "circle"}
-		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceCircle: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceCircle != nil })
+		apitest.RoundTrip(t, CreateUIAssetRequestPiecesItem{UIPieceCircle: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPieceCircle != nil }, jsonOpts)
 	})
 
 	t.Run("CreateUIAssetRequestPiecesItem/UIPiecePolygon", func(t *testing.T) {
 		v := UIPiecePolygon{Kind: "polygon"}
-		roundTrip(t, CreateUIAssetRequestPiecesItem{UIPiecePolygon: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPiecePolygon != nil })
+		apitest.RoundTrip(t, CreateUIAssetRequestPiecesItem{UIPiecePolygon: &v}, func(u CreateUIAssetRequestPiecesItem) bool { return u.UIPiecePolygon != nil }, jsonOpts)
 	})
 
 	t.Run("HTTPValidationErrorDetail/String", func(t *testing.T) {
 		v := "sample"
-		roundTrip(t, HTTPValidationErrorDetail{String: v}, func(u HTTPValidationErrorDetail) bool { return u.String != "" })
+		apitest.RoundTrip(t, HTTPValidationErrorDetail{String: v}, func(u HTTPValidationErrorDetail) bool { return u.String != "" }, jsonOpts)
 	})
 
 	t.Run("HTTPValidationErrorDetail/ValidationError", func(t *testing.T) {
 		v := []ValidationError{{}}
-		roundTrip(t, HTTPValidationErrorDetail{ValidationError: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationError != nil })
+		apitest.RoundTrip(t, HTTPValidationErrorDetail{ValidationError: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationError != nil }, jsonOpts)
 	})
 
 	t.Run("JobImages/DirectionalImages", func(t *testing.T) {
 		v := DirectionalImages{}
-		roundTrip(t, JobImages{DirectionalImages: &v}, func(u JobImages) bool { return u.DirectionalImages != nil })
+		apitest.RoundTrip(t, JobImages{DirectionalImages: &v}, func(u JobImages) bool { return u.DirectionalImages != nil }, jsonOpts)
 	})
 
 	t.Run("JobImages/Images", func(t *testing.T) {
 		v := Images{Image{}}
-		roundTrip(t, JobImages{Images: v}, func(u JobImages) bool { return u.Images != nil })
+		apitest.RoundTrip(t, JobImages{Images: v}, func(u JobImages) bool { return u.Images != nil }, jsonOpts)
 	})
 
 	t.Run("ValidationErrorLocItem/String", func(t *testing.T) {
 		v := "sample"
-		roundTrip(t, ValidationErrorLocItem{String: v}, func(u ValidationErrorLocItem) bool { return u.String != "" })
+		apitest.RoundTrip(t, ValidationErrorLocItem{String: v}, func(u ValidationErrorLocItem) bool { return u.String != "" }, jsonOpts)
 	})
 
 	t.Run("ValidationErrorLocItem/Int", func(t *testing.T) {
 		v := 1
-		roundTrip(t, ValidationErrorLocItem{Int: &v}, func(u ValidationErrorLocItem) bool { return u.Int != nil })
+		apitest.RoundTrip(t, ValidationErrorLocItem{Int: &v}, func(u ValidationErrorLocItem) bool { return u.Int != nil }, jsonOpts)
 	})
-}
-
-// roundTrip encodes in and decodes it strictly into a new value, which set must report holds the variant in did, and
-// which must encode as in did.
-func roundTrip[T any](t *testing.T, in T, set func(T) bool) {
-	t.Helper()
-
-	raw, err := json.Marshal(&in, jsonOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var got T
-	if err := json.Unmarshal(raw, &got, jsonOpts); err != nil {
-		t.Fatalf("%s: %v", raw, err)
-	}
-
-	if !set(got) {
-		t.Fatalf("%s decoded as another variant: %+v", raw, got)
-	}
-
-	again, err := json.Marshal(&got, jsonOpts)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(again, raw) {
-		t.Errorf("encoded %s, then %s", raw, again)
-	}
 }

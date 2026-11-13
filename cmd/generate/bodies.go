@@ -167,6 +167,10 @@ func words(name string) []string {
 }
 
 func addBodyName(names map[string][]string, s *openapi.Schema, name string) {
+	if s != nil {
+		s = nonNull(s) // an optional body, which upstream writes as one that may be null
+	}
+
 	if s != nil && s.Ref != nil {
 		schema := strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)
 		names[schema] = append(names[schema], name)

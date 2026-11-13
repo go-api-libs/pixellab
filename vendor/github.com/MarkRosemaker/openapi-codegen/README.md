@@ -24,9 +24,10 @@ server scaffold, and tests.
 ## Introduction
 
 Generated code has a reputation for being obviously generated. This module tries
-hard not to earn it: output is run through `goimports` and `gofumpt`, names are
-converted to Go conventions rather than transliterated, and the emitted types are
-the ones you would have declared by hand.
+hard not to earn it: each file imports exactly the packages it uses, sorted,
+and is formatted with `gofumpt`, names are converted to Go conventions rather
+than transliterated, and the emitted types are the ones you would have declared
+by hand.
 
 Getting there depends on the specification being in good shape first, which is why
 this module doesn't work from the raw document. It normalizes the spec through the
@@ -138,16 +139,14 @@ How the specification maps onto Go:
   Nothing the specification leaves open decodes into `any` then: the empty
   schema, an array without `items`, a free-form object and `not` alone become
   `struct{}`, so any value in them is recorded, and any but an object fails.
-- **Fields** — a field is a pointer only where its zero value must be told apart
-  from something else: from leaving the field out, if it is optional, or from
-  null, if it is nullable. That is a boolean, a number that may be 0, or an object
-  that requires nothing, so `{}` says something; nil then leaves the field out,
-  and a pointer to the zero value sends it. A zero value the specification makes
-  the default, or rules out with a bound or an enum, needs no pointer. A string,
-  a slice, a map or a union is never a pointer: its zero value leaves it out. A
-  time or a date is a pointer only if it is nullable, since its zero value is
-  written as a time, not as null. A struct that would contain itself refers to
-  itself through a pointer.
+- **Fields** — a field is a pointer only where it is optional and its zero value
+  must be told apart from leaving it out. That is a boolean, a number that may
+  be 0, or an object that requires nothing, so `{}` says something; nil then
+  leaves the field out, and a pointer to the zero value sends it. A zero value
+  the specification makes the default, or rules out with a bound or an enum,
+  needs no pointer. A string, a time, a date, a slice, a map or a union is never
+  a pointer: its zero value leaves it out. A struct that would contain itself
+  refers to itself through a pointer.
 - **Omitting** — an optional field is tagged `omitzero`, so it is left out while
   it holds its zero value: nil for a pointer, a slice or a map, so an empty one
   is still sent. A required field is always sent, `""`, `0` and `false`
@@ -159,10 +158,12 @@ How the specification maps onto Go:
   write-only members out of a response, as their fields hold them or not, through
   unions and embedded parts alike; any other encoding keeps them.
 - **Null** — a schema that is only ever `null` is `*struct{}`, and "X or null",
-  a `type` of `[X, "null"]` or a `oneOf` or `anyOf` of `X` and `null`, is `X`, a
-  pointer to `X` only by the rule for fields above, so that null and
-  the zero value can differ, or where `X` decodes itself, such as a union or a
-  tuple, which would refuse null.
+  a `type` of `[X, "null"]` or a `oneOf` or `anyOf` of `X` and `null`, is `X`:
+  null reads as its zero value, and a required field sends the zero value where
+  it would have sent null. A union reads null as no alternative and writes an
+  unset union as null. `X` is a pointer only by the rule for fields above,
+  where it is a tuple, which would refuse null, or where it is an object that
+  requires a union, whose zero value would write that member as null.
 - **Fixed parameters** — a required parameter that can take only one value, its
   `const` or the only value of its `enum`, is sent by the client itself: in the
   path, the query or the headers, such as Notion's `Notion-Version`. The caller

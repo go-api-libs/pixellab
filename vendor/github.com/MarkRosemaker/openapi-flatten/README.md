@@ -93,6 +93,10 @@ an object's keys (`propertyNames`) and the schema a value must not match (`not`)
 `allOf` thus ends up as a list of references, plus any entry with no shape of its own,
 such as `{"required": ["id"]}`.
 
+A `oneOf` or `anyOf` of one schema and `null` is that schema, which may also be null:
+it stays where it is, and only its schema is moved, by the same rules. A nullable
+string stays inline, and a nullable object becomes `{"anyOf": [{"$ref": …}, {"type": "null"}]}`.
+
 **Before:**
 
 ```json
