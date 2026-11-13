@@ -90,7 +90,8 @@ func consolidateEnums(doc *openapi.Document) error {
 
 			if len(members) > 1 {
 				for _, r := range refs[m] {
-					r.schema.Description = joinLines(r.schema.Description, enumValues(s, r.schema))
+					// the merged enum says nothing of what each property is for, which its member, flattened from it, did
+					r.schema.Description = joinLines(cmp.Or(r.schema.Description, s.Description), enumValues(s, r.schema))
 				}
 			}
 		}
@@ -186,6 +187,7 @@ func enumValues(s, property *openapi.Schema) string {
 type imageSize struct {
 	owner, field                             string
 	widthMin, widthMax, heightMin, heightMax int
+	widthStep, heightStep                    int // what each must be a multiple of, or 0
 }
 
 // consolidateImageSizes merges every object of nothing but an integer width and height into one ImageSize, and tells
@@ -214,6 +216,7 @@ func consolidateImageSizes(doc *openapi.Document) ([]imageSize, error) {
 				sizes = append(sizes, imageSize{
 					owner: r.owner, field: strcase.ToGoPascal(r.property),
 					widthMin: intOf(w.Min), widthMax: intOf(w.Max), heightMin: intOf(h.Min), heightMax: intOf(h.Max),
+					widthStep: intOf(w.MultipleOf), heightStep: intOf(h.MultipleOf),
 				})
 			}
 		}
@@ -267,6 +270,10 @@ func bounds(p *openapi.Schema) string {
 		text = fmt.Sprintf("up to %d px", int(*hi))
 	default:
 		text = "any"
+	}
+
+	if p.MultipleOf != nil && *p.MultipleOf > 1 {
+		text += fmt.Sprintf(", a multiple of %d", int(*p.MultipleOf))
 	}
 
 	if len(p.Default) > 0 {
@@ -344,10 +351,7 @@ func consolidateRotations(doc *openapi.Document) error {
 	}
 
 	for _, d := range directions {
-		p := *nonNull(first.Properties[d])
-		p.Description = cmp.Or(p.Description, first.Properties[d].Description)
-		p.Format = openapi.FormatURI
-		merged.Properties.Set(d, &p)
+		merged.Properties.Set(d, withFormat(first.Properties[d], openapi.FormatURI))
 	}
 
 	for _, m := range members[1:] {
@@ -409,4 +413,22 @@ func refersTo(s *openapi.Schema, name string, to map[string]string) bool {
 	s = nonNull(s)
 
 	return s.Ref != nil && to[strings.TrimPrefix(s.Ref.Identifier, schemaRefPrefix)] == name
+}
+
+// withFormat is a copy of the string s, or of s that may be null, with the format f, keeping what else s says of it.
+func withFormat(s *openapi.Schema, f openapi.Format) *openapi.Schema {
+	c := *s
+
+	inner := nonNull(s)
+	if inner == s {
+		c.Format = f
+		return &c
+	}
+
+	str := *inner
+	str.Format = f
+	c.AnyOf = slices.Clone(s.AnyOf)
+	c.AnyOf[slices.Index(s.AnyOf, inner)] = &str
+
+	return &c
 }

@@ -28,8 +28,8 @@ func writeImageSizes(sizes []imageSize) error {
 
 		fmt.Fprintf(&b, "\n// New%s returns the size for %s.%s, if it is one the request accepts.\n", name, s.owner, s.field)
 		fmt.Fprintf(&b, "func New%s(width, height int) (ImageSize, error) {\n", name)
-		writeCheck(&b, "width", s.widthMin, s.widthMax)
-		writeCheck(&b, "height", s.heightMin, s.heightMax)
+		writeCheck(&b, "width", s.widthMin, s.widthMax, s.widthStep)
+		writeCheck(&b, "height", s.heightMin, s.heightMax, s.heightStep)
 		b.WriteString("\treturn ImageSize{Width: width, Height: height}, nil\n}\n")
 	}
 
@@ -41,7 +41,7 @@ func writeImageSizes(sizes []imageSize) error {
 	return os.WriteFile(imageSizePath, src, 0o644)
 }
 
-func writeCheck(b *strings.Builder, axis string, lo, hi int) {
+func writeCheck(b *strings.Builder, axis string, lo, hi, step int) {
 	switch {
 	case lo == hi:
 		fmt.Fprintf(b, "\tif %s != %d {\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be %d pixels, got %%d\", %s)\n\t}\n",
@@ -52,5 +52,10 @@ func writeCheck(b *strings.Builder, axis string, lo, hi int) {
 	default:
 		fmt.Fprintf(b, "\tif %s < %d || %s > %d {\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be %d to %d pixels, got %%d\", %s)\n\t}\n",
 			axis, lo, axis, hi, axis, lo, hi, axis)
+	}
+
+	if step > 1 {
+		fmt.Fprintf(b, "\tif %s%%%d != 0 {\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be a multiple of %d pixels, got %%d\", %s)\n\t}\n",
+			axis, step, axis, step, axis)
 	}
 }

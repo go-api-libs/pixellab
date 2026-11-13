@@ -45,8 +45,14 @@ func NewImageSizeForCreateCharacterCanva(width, height int) (ImageSize, error) {
 	if width < 8 || width > 256 {
 		return ImageSize{}, fmt.Errorf("width must be 8 to 256 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 8 || height > 256 {
 		return ImageSize{}, fmt.Errorf("height must be 8 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -56,8 +62,14 @@ func NewImageSizeForCreateCharacterProFlash(width, height int) (ImageSize, error
 	if width < 16 || width > 256 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 256 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -133,8 +145,14 @@ func NewImageSizeForCreateImagePixen(width, height int) (ImageSize, error) {
 	if width < 16 || width > 768 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 768 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 768 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 768 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -155,8 +173,14 @@ func NewImageSizeForCreateImageProFlash(width, height int) (ImageSize, error) {
 	if width < 16 || width > 256 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 256 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -188,8 +212,14 @@ func NewImageSizeForCreateObjectCanva(width, height int) (ImageSize, error) {
 	if width < 8 || width > 400 {
 		return ImageSize{}, fmt.Errorf("width must be 8 to 400 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 8 || height > 400 {
 		return ImageSize{}, fmt.Errorf("height must be 8 to 400 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -199,8 +229,14 @@ func NewImageSizeForCreateObjectProFlash(width, height int) (ImageSize, error) {
 	if width < 16 || width > 256 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 256 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 256 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 256 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -271,8 +307,14 @@ func NewImageSizeForEnhancePixenPrompt(width, height int) (ImageSize, error) {
 	if width < 16 || width > 768 {
 		return ImageSize{}, fmt.Errorf("width must be 16 to 768 pixels, got %d", width)
 	}
+	if width%4 != 0 {
+		return ImageSize{}, fmt.Errorf("width must be a multiple of 4 pixels, got %d", width)
+	}
 	if height < 16 || height > 768 {
 		return ImageSize{}, fmt.Errorf("height must be 16 to 768 pixels, got %d", height)
+	}
+	if height%4 != 0 {
+		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }

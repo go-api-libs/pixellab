@@ -6541,11 +6541,11 @@
             "default": true
           },
           "view": {
-            "description": "One of: none, low top-down, high top-down, side. Defaults to \"none\".",
+            "description": "Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')\nOne of: none, low top-down, high top-down, side. Defaults to \"none\".",
             "$ref": "#/components/schemas/CameraView"
           },
           "direction": {
-            "description": "One of: none, south, east, west, north, south-east, south-west, north-east, north-west. Defaults to \"none\".",
+            "description": "Direction the character faces during the animation.\nOne of: none, south, east, west, north, south-east, south-west, north-east, north-west. Defaults to \"none\".",
             "$ref": "#/components/schemas/Direction"
           },
           "target_palette": {
@@ -7496,7 +7496,7 @@
             ]
           },
           "view": {
-            "description": "One of: top-down, sidescroller. Defaults to \"top-down\".",
+            "description": "View.\nOne of: top-down, sidescroller. Defaults to \"top-down\".",
             "$ref": "#/components/schemas/CameraView"
           },
           "style_images": {
@@ -8226,7 +8226,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "description": "The new canvas size\nWidth: 8-256 px. Height: 8-256 px.",
+            "description": "The new canvas size\nWidth: 8-256 px, a multiple of 4. Height: 8-256 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           }
         },
@@ -8294,7 +8294,7 @@
             "default": 0
           },
           "image_size": {
-            "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px. Height: 16-256 px.",
+            "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.",
             "anyOf": [
               {
                 "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.",
@@ -9655,7 +9655,7 @@
             "type": "string"
           },
           "image_size": {
-            "description": "Width: 16-768 px. Height: 16-768 px.",
+            "description": "Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "outline": {
@@ -9967,7 +9967,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px. Height: 16-256 px.",
+            "description": "Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "no_background": {
@@ -10807,7 +10807,7 @@
         "type": "object",
         "properties": {
           "image_size": {
-            "description": "The new canvas size\nWidth: 8-400 px. Height: 8-400 px.",
+            "description": "The new canvas size\nWidth: 8-400 px, a multiple of 4. Height: 8-400 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           }
         },
@@ -10875,7 +10875,7 @@
             "default": 0
           },
           "image_size": {
-            "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px. Height: 16-256 px.",
+            "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.\nWidth: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.",
             "anyOf": [
               {
                 "description": "Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.",
@@ -11192,7 +11192,7 @@
             "default": true
           },
           "view": {
-            "description": "One of: top-down, isometric, oblique. Defaults to \"top-down\".",
+            "description": "top-down: the back walls' faces show above the floor (256x256 px). isometric: 2:1, the n and w walls tall with their doors, the s and e walls low curbs with open doorways (about 248x176 px for the full grid). oblique: the floor a square grid seen from above, heights leaning up and to the left, the n and w walls tall, the s and e walls low curbs; walls, doors and floor only, no furniture yet (pieces must be false; about 272x240 px for the full grid)\nOne of: top-down, isometric, oblique. Defaults to \"top-down\".",
             "$ref": "#/components/schemas/CameraView"
           },
           "project_id": {
@@ -14162,7 +14162,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Target image size. Prompt complexity scales with size.\nWidth: 16-768 px. Height: 16-768 px.",
+            "description": "Target image size. Prompt complexity scales with size.\nWidth: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "outline": {
@@ -20233,28 +20233,60 @@
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
           },
           "south-east": {
+            "title": "South-East",
             "description": "URL for south-east rotation (8-dir only)",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-east.png?t=1791201628"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-east.png?t=1791201628"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "north-east": {
+            "title": "North-East",
             "description": "URL for north-east rotation (8-dir only)",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-east.png?t=1791201628"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-east.png?t=1791201628"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "north-west": {
+            "title": "North-West",
             "description": "URL for north-west rotation (8-dir only)",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-west.png?t=1791201628"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/north-west.png?t=1791201628"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "south-west": {
+            "title": "South-West",
             "description": "URL for south-west rotation (8-dir only)",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-west.png?t=1791201628"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/a34046fa-fd42-43d5-828c-fa4a6d062f70/rotations/south-west.png?t=1791201628"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },

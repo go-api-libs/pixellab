@@ -337,8 +337,10 @@ type AnimateWithTextV2Request struct {
 	Seed *int `json:"seed,omitzero"`
 	// Remove background from generated frames
 	NoBackground *bool `json:"no_background,omitzero"`
+	// Camera perspective angle. ('none', 'low top-down', 'high top-down', 'side')
 	// One of: none, low top-down, high top-down, side. Defaults to "none".
 	View CameraView `json:"view,omitzero"`
+	// Direction the character faces during the animation.
 	// One of: none, south, east, west, north, south-east, south-west, north-east, north-west. Defaults to "none".
 	Direction Direction `json:"direction,omitzero"`
 	// Colours the frames must use and/or a colour cap, shared by all frames: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. The reference image is put on the palette first. `smart` is for single images and is refused here.
@@ -643,6 +645,7 @@ type Create1DirectionObjectRequest struct {
 	Description string `json:"description"`
 	// Square image size in pixels (16-256). Defaults to 64 when omitted. Cannot be set together with `style_images` — when style_images are provided, the largest style image determines the output size. The effective size also determines how many candidate objects the generator produces in one shot (≤42→64, ≤85→16, ≤170→4, else 1). When >1, the resulting object enters 'review' status — call POST /v2/objects/{id}/select-frames (or use the review UI) to pick which to keep.
 	Size int `json:"size,omitzero"`
+	// View.
 	// One of: top-down, sidescroller. Defaults to "top-down".
 	View CameraView `json:"view,omitzero"`
 	// Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.
@@ -835,7 +838,7 @@ type CreateCharacterProFlashRequest struct {
 	FirstFrameDirection string     `json:"first_frame_direction,omitzero"`
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: 16-256 px. Height: 16-256 px.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
 	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
@@ -1264,7 +1267,7 @@ func (e CreateImagePixenBackgroundRemovalTask) Valid() bool {
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description"`
-	// Width: 16-768 px. Height: 16-768 px.
+	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style
 	// One of: single color black outline, single color outline, selective outline, lineless.
@@ -1349,7 +1352,7 @@ type CreateImagePixfluxRequest struct {
 type CreateImageProFlashRequest struct {
 	Description string `json:"description"`
 	// Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: 16-256 px. Height: 16-256 px.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize    ImageSize `json:"image_size"`
 	NoBackground *bool     `json:"no_background,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
@@ -1706,7 +1709,7 @@ type CreateObjectAnimationResponse struct {
 // CreateObjectCanva defines a model
 type CreateObjectCanva struct {
 	// The new canvas size
-	// Width: 8-400 px. Height: 8-400 px.
+	// Width: 8-400 px, a multiple of 4. Height: 8-400 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 }
 
@@ -1723,7 +1726,7 @@ type CreateObjectProFlashRequest struct {
 	FirstFrameDirection string     `json:"first_frame_direction,omitzero"`
 	Seed                int        `json:"seed,omitzero"`
 	// Defaults to 64x64 for text creation. Native sizes: 16x16 (experimental), 24x24, 32x32, 32x48, 48x48, 64x64, 96x64, 96x96, 128x128. Custom size (Beta): integer width 16–256 and height 16–256. Both dimensions must be multiples of 4 pixels. Pixel-grid recovery uses image-to-pixel-art with fixer when needed. No native image resizing.
-	// Width: 16-256 px. Height: 16-256 px.
+	// Width: 16-256 px, a multiple of 4. Height: 16-256 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Encoded image with native dimensions and its subject/style instructions.
 	StyleImage ProFlashReferenceImage `json:"style_image,omitzero"`
@@ -1805,6 +1808,7 @@ type CreateRoomRequest struct {
 	StyleRoomID uuid.UUID `json:"style_room_id,omitzero"`
 	// With style_room_id: take the style room's floor too. False gives the new room its own floor, decided by `theme` ("its chapel, with a wooden floor")
 	StyleRoomFloor *bool `json:"style_room_floor,omitzero"`
+	// top-down: the back walls' faces show above the floor (256x256 px). isometric: 2:1, the n and w walls tall with their doors, the s and e walls low curbs with open doorways (about 248x176 px for the full grid). oblique: the floor a square grid seen from above, heights leaning up and to the left, the n and w walls tall, the s and e walls low curbs; walls, doors and floor only, no furniture yet (pieces must be false; about 272x240 px for the full grid)
 	// One of: top-down, isometric, oblique. Defaults to "top-down".
 	View CameraView `json:"view,omitzero"`
 	// A project of yours to file the room in (a game also uses it); left out: your auto-add setting
@@ -2804,7 +2808,7 @@ type EnhancePixenPromptRequest struct {
 	// User's image description to enhance.
 	Description string `json:"description"`
 	// Target image size. Prompt complexity scales with size.
-	// Width: 16-768 px. Height: 16-768 px.
+	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style hint.
 	// One of: single color black outline, single color outline, selective outline, lineless.
