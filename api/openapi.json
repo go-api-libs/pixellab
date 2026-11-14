@@ -15174,7 +15174,7 @@
             "$ref": "#/components/schemas/GetCharacterResponseSkeletons3d"
           },
           "2d_reference": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "2d_references": {
             "$ref": "#/components/schemas/GetCharacterResponseSkeletons2dReferences"
@@ -15186,28 +15186,28 @@
         "type": "object",
         "properties": {
           "east": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "west": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north-east": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north-west": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south-east": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south-west": {
-            "$ref": "#/components/schemas/NorthEast"
+            "$ref": "#/components/schemas/SkeletonReference"
           }
         },
         "required": [
@@ -18663,133 +18663,6 @@
           "ui"
         ]
       },
-      "NorthEast": {
-        "type": "object",
-        "properties": {
-          "view": {
-            "$ref": "#/components/schemas/CameraView"
-          },
-          "format": {
-            "type": "string",
-            "example": "2d"
-          },
-          "source": {
-            "type": "string",
-            "example": "estimated"
-          },
-          "direction": {
-            "$ref": "#/components/schemas/Direction"
-          },
-          "keypoints": {
-            "$ref": "#/components/schemas/NorthEastKeypoints"
-          }
-        },
-        "required": [
-          "view",
-          "format",
-          "source",
-          "direction",
-          "keypoints"
-        ]
-      },
-      "NorthEastKeypoints": {
-        "type": "object",
-        "properties": {
-          "NECK": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "NOSE": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT ARM": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT EAR": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT EYE": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT HIP": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT LEG": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT KNEE": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT ARM": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT EAR": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT EYE": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT HIP": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT LEG": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT ELBOW": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT KNEE": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT ELBOW": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "LEFT SHOULDER": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          },
-          "RIGHT SHOULDER": {
-            "$ref": "#/components/schemas/NorthEastKeypointsNeck"
-          }
-        },
-        "required": [
-          "NECK",
-          "NOSE",
-          "LEFT ARM",
-          "LEFT EAR",
-          "LEFT EYE",
-          "LEFT HIP",
-          "LEFT LEG",
-          "LEFT KNEE",
-          "RIGHT ARM",
-          "RIGHT EAR",
-          "RIGHT EYE",
-          "RIGHT HIP",
-          "RIGHT LEG",
-          "LEFT ELBOW",
-          "RIGHT KNEE",
-          "RIGHT ELBOW",
-          "LEFT SHOULDER",
-          "RIGHT SHOULDER"
-        ]
-      },
-      "NorthEastKeypointsNeck": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "number",
-            "format": "double",
-            "example": 0.466813120059669
-          },
-          "y": {
-            "type": "number",
-            "format": "double",
-            "example": 0.28875414530436194
-          }
-        },
-        "required": [
-          "x",
-          "y"
-        ]
-      },
       "ObjectAnimationDirection": {
         "title": "ObjectAnimationDirection",
         "description": "One direction within an animation group.",
@@ -21041,6 +20914,85 @@
           "status"
         ]
       },
+      "SkeletonKeypoints": {
+        "type": "object",
+        "properties": {
+          "NECK": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "NOSE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT ARM": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT EAR": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT EYE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT HIP": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT LEG": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT KNEE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT ARM": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT EAR": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT EYE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT HIP": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT LEG": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT ELBOW": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT KNEE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT ELBOW": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT SHOULDER": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT SHOULDER": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          }
+        },
+        "required": [
+          "NECK",
+          "NOSE",
+          "LEFT ARM",
+          "LEFT EAR",
+          "LEFT EYE",
+          "LEFT HIP",
+          "LEFT LEG",
+          "LEFT KNEE",
+          "RIGHT ARM",
+          "RIGHT EAR",
+          "RIGHT EYE",
+          "RIGHT HIP",
+          "RIGHT LEG",
+          "LEFT ELBOW",
+          "RIGHT KNEE",
+          "RIGHT ELBOW",
+          "LEFT SHOULDER",
+          "RIGHT SHOULDER"
+        ]
+      },
       "SkeletonLabel": {
         "title": "SkeletonLabel",
         "type": "string",
@@ -21063,6 +21015,54 @@
           "LEFT EYE",
           "RIGHT EAR",
           "LEFT EAR"
+        ]
+      },
+      "SkeletonPoint": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double",
+            "example": 0.466813120059669
+          },
+          "y": {
+            "type": "number",
+            "format": "double",
+            "example": 0.28875414530436194
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "SkeletonReference": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "$ref": "#/components/schemas/CameraView"
+          },
+          "format": {
+            "type": "string",
+            "example": "2d"
+          },
+          "source": {
+            "type": "string",
+            "example": "estimated"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "keypoints": {
+            "$ref": "#/components/schemas/SkeletonKeypoints"
+          }
+        },
+        "required": [
+          "view",
+          "format",
+          "source",
+          "direction",
+          "keypoints"
         ]
       },
       "Song": {

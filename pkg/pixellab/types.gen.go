@@ -2914,20 +2914,20 @@ type GetCharacterResponse struct {
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type GetCharacterResponseSkeletons struct {
 	ThreeD         GetCharacterResponseSkeletons3d           `json:"3d,omitzero"`
-	TwoDReference  NorthEast                                 `json:"2d_reference,omitzero"`
+	TwoDReference  SkeletonReference                         `json:"2d_reference,omitzero"`
 	TwoDReferences GetCharacterResponseSkeletons2dReferences `json:"2d_references,omitzero"`
 }
 
 // GetCharacterResponseSkeletons2dReferences defines a model
 type GetCharacterResponseSkeletons2dReferences struct {
-	East      NorthEast `json:"east"`
-	West      NorthEast `json:"west"`
-	North     NorthEast `json:"north"`
-	South     NorthEast `json:"south"`
-	NorthEast NorthEast `json:"north-east"`
-	NorthWest NorthEast `json:"north-west"`
-	SouthEast NorthEast `json:"south-east"`
-	SouthWest NorthEast `json:"south-west"`
+	East      SkeletonReference `json:"east"`
+	West      SkeletonReference `json:"west"`
+	North     SkeletonReference `json:"north"`
+	South     SkeletonReference `json:"south"`
+	NorthEast SkeletonReference `json:"north-east"`
+	NorthWest SkeletonReference `json:"north-west"`
+	SouthEast SkeletonReference `json:"south-east"`
+	SouthWest SkeletonReference `json:"south-west"`
 }
 
 // GetCharacterResponseSkeletons3d defines a model
@@ -3960,43 +3960,6 @@ func (e NormalMapRequestKind) Valid() bool {
 	}
 }
 
-// NorthEast defines a model
-type NorthEast struct {
-	View      CameraView         `json:"view"`
-	Format    string             `json:"format"`
-	Source    string             `json:"source"`
-	Direction Direction          `json:"direction"`
-	Keypoints NorthEastKeypoints `json:"keypoints"`
-}
-
-// NorthEastKeypoints defines a model
-type NorthEastKeypoints struct {
-	Neck          NorthEastKeypointsNeck `json:"NECK"`
-	Nose          NorthEastKeypointsNeck `json:"NOSE"`
-	LeftArm       NorthEastKeypointsNeck `json:"LEFT ARM"`
-	LeftEar       NorthEastKeypointsNeck `json:"LEFT EAR"`
-	LeftEye       NorthEastKeypointsNeck `json:"LEFT EYE"`
-	LeftHip       NorthEastKeypointsNeck `json:"LEFT HIP"`
-	LeftLeg       NorthEastKeypointsNeck `json:"LEFT LEG"`
-	LeftKnee      NorthEastKeypointsNeck `json:"LEFT KNEE"`
-	RightArm      NorthEastKeypointsNeck `json:"RIGHT ARM"`
-	RightEar      NorthEastKeypointsNeck `json:"RIGHT EAR"`
-	RightEye      NorthEastKeypointsNeck `json:"RIGHT EYE"`
-	RightHip      NorthEastKeypointsNeck `json:"RIGHT HIP"`
-	RightLeg      NorthEastKeypointsNeck `json:"RIGHT LEG"`
-	LeftElbow     NorthEastKeypointsNeck `json:"LEFT ELBOW"`
-	RightKnee     NorthEastKeypointsNeck `json:"RIGHT KNEE"`
-	RightElbow    NorthEastKeypointsNeck `json:"RIGHT ELBOW"`
-	LeftShoulder  NorthEastKeypointsNeck `json:"LEFT SHOULDER"`
-	RightShoulder NorthEastKeypointsNeck `json:"RIGHT SHOULDER"`
-}
-
-// NorthEastKeypointsNeck defines a model
-type NorthEastKeypointsNeck struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
 // One direction within an animation group.
 type ObjectAnimationDirection struct {
 	// Direction name (south, west, ..., unknown)
@@ -4775,6 +4738,28 @@ type SidescrollerTilesetSummary struct {
 	Status                string    `json:"status"`
 }
 
+// SkeletonKeypoints defines a model
+type SkeletonKeypoints struct {
+	Neck          SkeletonPoint `json:"NECK"`
+	Nose          SkeletonPoint `json:"NOSE"`
+	LeftArm       SkeletonPoint `json:"LEFT ARM"`
+	LeftEar       SkeletonPoint `json:"LEFT EAR"`
+	LeftEye       SkeletonPoint `json:"LEFT EYE"`
+	LeftHip       SkeletonPoint `json:"LEFT HIP"`
+	LeftLeg       SkeletonPoint `json:"LEFT LEG"`
+	LeftKnee      SkeletonPoint `json:"LEFT KNEE"`
+	RightArm      SkeletonPoint `json:"RIGHT ARM"`
+	RightEar      SkeletonPoint `json:"RIGHT EAR"`
+	RightEye      SkeletonPoint `json:"RIGHT EYE"`
+	RightHip      SkeletonPoint `json:"RIGHT HIP"`
+	RightLeg      SkeletonPoint `json:"RIGHT LEG"`
+	LeftElbow     SkeletonPoint `json:"LEFT ELBOW"`
+	RightKnee     SkeletonPoint `json:"RIGHT KNEE"`
+	RightElbow    SkeletonPoint `json:"RIGHT ELBOW"`
+	LeftShoulder  SkeletonPoint `json:"LEFT SHOULDER"`
+	RightShoulder SkeletonPoint `json:"RIGHT SHOULDER"`
+}
+
 // SkeletonLabel defines a model
 type SkeletonLabel string
 
@@ -4807,6 +4792,21 @@ func (e SkeletonLabel) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// SkeletonPoint defines a model
+type SkeletonPoint struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// SkeletonReference defines a model
+type SkeletonReference struct {
+	View      CameraView        `json:"view"`
+	Format    string            `json:"format"`
+	Source    string            `json:"source"`
+	Direction Direction         `json:"direction"`
+	Keypoints SkeletonKeypoints `json:"keypoints"`
 }
 
 // A song or loop take.

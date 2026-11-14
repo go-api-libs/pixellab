@@ -267,7 +267,35 @@ func goName(name string) string {
 	return strings.Join(ws, "")
 }
 
-// goNames writes the initialisms of every component schema's name as Go does.
+// typeNames names the component schemas whose name says too little of them, as a merged schema named after the
+// one of its members it was merged into: the skeleton reference of every direction is named after north-east. An
+// entry that names no schema fails the run.
+var typeNames = map[string]string{
+	"NorthEast":              "SkeletonReference",
+	"NorthEastKeypoints":     "SkeletonKeypoints",
+	"NorthEastKeypointsNeck": "SkeletonPoint", // unlike Keypoint, which a request sends, unbounded
+}
+
+// goNames gives the schemas of typeNames their names, and writes the initialisms of every component schema's name as
+// Go does.
 func goNames(doc *openapi.Document) error {
-	return edit.RenameSchemasFunc(doc, goName)
+	unused := maps.Clone(typeNames)
+
+	if err := edit.RenameSchemasFunc(doc, func(name string) string {
+		if to, ok := typeNames[name]; ok {
+			delete(unused, name)
+			return to
+		}
+
+		return goName(name)
+	}); err != nil {
+		return err
+	}
+
+	if len(unused) > 0 {
+		return fmt.Errorf("typeNames names schemas upstream no longer has: %s",
+			strings.Join(slices.Sorted(maps.Keys(unused)), ", "))
+	}
+
+	return nil
 }
