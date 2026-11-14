@@ -2850,7 +2850,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CharacterJobResponse{}, jsonOpts))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateCharacterStateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5218,7 +5218,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ObjectJobResponse{}, jsonOpts))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateObjectStateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5981,7 +5981,7 @@ func TestClient_Error(t *testing.T) {
 		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "interactions.json")
 
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, ObjectJobResponse{}, jsonOpts))), WithDebugFile(file))
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, CreateObjectStateResponse{}, jsonOpts))), WithDebugFile(file))
 			if err != nil {
 				t.Fatal(err)
 			}

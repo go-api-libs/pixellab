@@ -67,3 +67,24 @@ func values(ss ...string) []jsontext.Value {
 
 	return vs
 }
+
+func TestIsJobStatus(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		property string
+		s        *openapi.Schema
+		want     bool
+	}{
+		{"status", &openapi.Schema{Type: openapi.TypeString, Default: jsontext.Value(`"processing"`)}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Job status: processing, failed, completed"}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Current job status (processing, completed, failed)"}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Const: jsontext.Value(`"processing"`), Default: jsontext.Value(`"processing"`)}, false},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Generation status: 'completed', 'failed', or 'pending'."}, false},
+		{"state", &openapi.Schema{Type: openapi.TypeString, Default: jsontext.Value(`"processing"`)}, false},
+	} {
+		if got := isJobStatus(tc.property, tc.s); got != tc.want {
+			t.Errorf("isJobStatus(%q, %+v) = %v, want %v", tc.property, tc.s, got, tc.want)
+		}
+	}
+}
