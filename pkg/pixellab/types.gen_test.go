@@ -12,14 +12,24 @@ import (
 
 // TestEnums_Valid checks that every member of an enum is valid, and that a value of its type none is, is not.
 func TestEnums_Valid(t *testing.T) {
-	for _, v := range []AnimateWithSkeletonV3RequestTemplateID{AnimateWithSkeletonV3RequestTemplateIDMannequin, AnimateWithSkeletonV3RequestTemplateIDBear, AnimateWithSkeletonV3RequestTemplateIDCat, AnimateWithSkeletonV3RequestTemplateIDDog, AnimateWithSkeletonV3RequestTemplateIDHorse, AnimateWithSkeletonV3RequestTemplateIDLion} {
+	for _, v := range []BackgroundRemovalTask{BackgroundRemovalTaskRemoveSimpleBackground, BackgroundRemovalTaskRemoveComplexBackground} {
 		if !v.Valid() {
-			t.Errorf("AnimateWithSkeletonV3RequestTemplateID %v: not valid", v)
+			t.Errorf("BackgroundRemovalTask %v: not valid", v)
 		}
 	}
 
-	if AnimateWithSkeletonV3RequestTemplateID("not a member").Valid() {
-		t.Errorf("AnimateWithSkeletonV3RequestTemplateID(%v): valid, though no member", "not a member")
+	if BackgroundRemovalTask("not a member").Valid() {
+		t.Errorf("BackgroundRemovalTask(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []BuildingLayout{BuildingLayoutGrid, BuildingLayoutMaterials} {
+		if !v.Valid() {
+			t.Errorf("BuildingLayout %v: not valid", v)
+		}
+	}
+
+	if BuildingLayout("not a member").Valid() {
+		t.Errorf("BuildingLayout(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []CameraView{CameraViewNone, CameraViewLowTopDown, CameraViewHighTopDown, CameraViewSide, CameraViewOblique, CameraViewTopDown, CameraViewSidescroller, CameraViewIsometric} {
@@ -52,16 +62,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("CreateCharacterAnimationRequestMode(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []CreateCharacterAnimationRequestTemplateAction{CreateCharacterAnimationRequestTemplateActionWalking, CreateCharacterAnimationRequestTemplateActionRunning, CreateCharacterAnimationRequestTemplateActionFullSprinting, CreateCharacterAnimationRequestTemplateActionIdleBreathing, CreateCharacterAnimationRequestTemplateActionPunch, CreateCharacterAnimationRequestTemplateActionLeftPunch, CreateCharacterAnimationRequestTemplateActionHighKick, CreateCharacterAnimationRequestTemplateActionSwoopKick, CreateCharacterAnimationRequestTemplateActionTwoPunchCombo, CreateCharacterAnimationRequestTemplateActionUppercut} {
-		if !v.Valid() {
-			t.Errorf("CreateCharacterAnimationRequestTemplateAction %v: not valid", v)
-		}
-	}
-
-	if CreateCharacterAnimationRequestTemplateAction("not a member").Valid() {
-		t.Errorf("CreateCharacterAnimationRequestTemplateAction(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []CreateCharacterProFlashRequestTemplateID{CreateCharacterProFlashRequestTemplateIDMannequin, CreateCharacterProFlashRequestTemplateIDBear, CreateCharacterProFlashRequestTemplateIDCat, CreateCharacterProFlashRequestTemplateIDDog, CreateCharacterProFlashRequestTemplateIDHorse, CreateCharacterProFlashRequestTemplateIDLion, CreateCharacterProFlashRequestTemplateIDCustom} {
 		if !v.Valid() {
 			t.Errorf("CreateCharacterProFlashRequestTemplateID %v: not valid", v)
@@ -80,46 +80,6 @@ func TestEnums_Valid(t *testing.T) {
 
 	if CreateCharacterProRequestMethod("not a member").Valid() {
 		t.Errorf("CreateCharacterProRequestMethod(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateCharacterRequestDirectionImagesKey{CreateCharacterRequestDirectionImagesKeySouthEast, CreateCharacterRequestDirectionImagesKeyEast, CreateCharacterRequestDirectionImagesKeyNorthEast, CreateCharacterRequestDirectionImagesKeyNorth, CreateCharacterRequestDirectionImagesKeyNorthWest, CreateCharacterRequestDirectionImagesKeyWest, CreateCharacterRequestDirectionImagesKeySouthWest} {
-		if !v.Valid() {
-			t.Errorf("CreateCharacterRequestDirectionImagesKey %v: not valid", v)
-		}
-	}
-
-	if CreateCharacterRequestDirectionImagesKey("not a member").Valid() {
-		t.Errorf("CreateCharacterRequestDirectionImagesKey(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateImagePixenBackgroundRemovalTask{CreateImagePixenBackgroundRemovalTaskRemoveSimpleBackground, CreateImagePixenBackgroundRemovalTaskRemoveComplexBackground} {
-		if !v.Valid() {
-			t.Errorf("CreateImagePixenBackgroundRemovalTask %v: not valid", v)
-		}
-	}
-
-	if CreateImagePixenBackgroundRemovalTask("not a member").Valid() {
-		t.Errorf("CreateImagePixenBackgroundRemovalTask(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateIsometricTileRequestIsometricTileShape{CreateIsometricTileRequestIsometricTileShapeThickTile, CreateIsometricTileRequestIsometricTileShapeThinTile, CreateIsometricTileRequestIsometricTileShapeBlock} {
-		if !v.Valid() {
-			t.Errorf("CreateIsometricTileRequestIsometricTileShape %v: not valid", v)
-		}
-	}
-
-	if CreateIsometricTileRequestIsometricTileShape("not a member").Valid() {
-		t.Errorf("CreateIsometricTileRequestIsometricTileShape(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateObjectAnimationDirectionsItem{CreateObjectAnimationDirectionsItemSouth, CreateObjectAnimationDirectionsItemSouthWest, CreateObjectAnimationDirectionsItemWest, CreateObjectAnimationDirectionsItemNorthWest, CreateObjectAnimationDirectionsItemNorth, CreateObjectAnimationDirectionsItemNorthEast, CreateObjectAnimationDirectionsItemEast, CreateObjectAnimationDirectionsItemSouthEast} {
-		if !v.Valid() {
-			t.Errorf("CreateObjectAnimationDirectionsItem %v: not valid", v)
-		}
-	}
-
-	if CreateObjectAnimationDirectionsItem("not a member").Valid() {
-		t.Errorf("CreateObjectAnimationDirectionsItem(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []CreateObjectAnimationMode{CreateObjectAnimationModePro, CreateObjectAnimationModeV3, CreateObjectAnimationModePixminimax} {
@@ -142,66 +102,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("CreatePortraitCharacterProRequestDirection(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []CreateTilesProRequestBuildingLayout{CreateTilesProRequestBuildingLayoutGrid, CreateTilesProRequestBuildingLayoutMaterials} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProRequestBuildingLayout %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProRequestBuildingLayout("not a member").Valid() {
-		t.Errorf("CreateTilesProRequestBuildingLayout(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesProRequestOutlineMode{CreateTilesProRequestOutlineModeOutline, CreateTilesProRequestOutlineModeSegmentation} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProRequestOutlineMode %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProRequestOutlineMode("not a member").Valid() {
-		t.Errorf("CreateTilesProRequestOutlineMode(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesProRequestRoofProfile{CreateTilesProRequestRoofProfileGable, CreateTilesProRequestRoofProfileRound} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProRequestRoofProfile %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProRequestRoofProfile("not a member").Valid() {
-		t.Errorf("CreateTilesProRequestRoofProfile(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesProRequestTileFeature{CreateTilesProRequestTileFeatureRoads, CreateTilesProRequestTileFeatureTileset, CreateTilesProRequestTileFeatureBuilding} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProRequestTileFeature %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProRequestTileFeature("not a member").Valid() {
-		t.Errorf("CreateTilesProRequestTileFeature(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesProTileType{CreateTilesProTileTypeHex, CreateTilesProTileTypeHexPointy, CreateTilesProTileTypeIsometric, CreateTilesProTileTypeOblique, CreateTilesProTileTypeOctagon, CreateTilesProTileTypeSquareTopdown} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProTileType %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProTileType("not a member").Valid() {
-		t.Errorf("CreateTilesProTileType(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesProTileView{CreateTilesProTileViewTopDown, CreateTilesProTileViewHighTopDown, CreateTilesProTileViewLowTopDown, CreateTilesProTileViewSide} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesProTileView %v: not valid", v)
-		}
-	}
-
-	if CreateTilesProTileView("not a member").Valid() {
-		t.Errorf("CreateTilesProTileView(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []CreateTilesetMode{CreateTilesetModeStandard, CreateTilesetModePro} {
 		if !v.Valid() {
 			t.Errorf("CreateTilesetMode %v: not valid", v)
@@ -210,16 +110,6 @@ func TestEnums_Valid(t *testing.T) {
 
 	if CreateTilesetMode("not a member").Valid() {
 		t.Errorf("CreateTilesetMode(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateTilesetRequestShapeStyle{CreateTilesetRequestShapeStyleSquare, CreateTilesetRequestShapeStyleRound} {
-		if !v.Valid() {
-			t.Errorf("CreateTilesetRequestShapeStyle %v: not valid", v)
-		}
-	}
-
-	if CreateTilesetRequestShapeStyle("not a member").Valid() {
-		t.Errorf("CreateTilesetRequestShapeStyle(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []CreateVocalAnimationEngine{CreateVocalAnimationEngineV3, CreateVocalAnimationEnginePixminimax} {
@@ -250,6 +140,26 @@ func TestEnums_Valid(t *testing.T) {
 
 	if Direction("not a member").Valid() {
 		t.Errorf("Direction(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []DirectionImagesKey{DirectionImagesKeySouthEast, DirectionImagesKeyEast, DirectionImagesKeyNorthEast, DirectionImagesKeyNorth, DirectionImagesKeyNorthWest, DirectionImagesKeyWest, DirectionImagesKeySouthWest} {
+		if !v.Valid() {
+			t.Errorf("DirectionImagesKey %v: not valid", v)
+		}
+	}
+
+	if DirectionImagesKey("not a member").Valid() {
+		t.Errorf("DirectionImagesKey(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []DirectionPromptsKey{DirectionPromptsKeySouth, DirectionPromptsKeySouthWest, DirectionPromptsKeyWest, DirectionPromptsKeyNorthWest, DirectionPromptsKeyNorth, DirectionPromptsKeyNorthEast, DirectionPromptsKeyEast, DirectionPromptsKeySouthEast} {
+		if !v.Valid() {
+			t.Errorf("DirectionPromptsKey %v: not valid", v)
+		}
+	}
+
+	if DirectionPromptsKey("not a member").Valid() {
+		t.Errorf("DirectionPromptsKey(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []DirectionSubmissionStatus{DirectionSubmissionStatusQueued, DirectionSubmissionStatusRateLimited} {
@@ -312,16 +222,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("GenerateFontProRequestWeight(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []GetRoomResponsePiecesStatus{GetRoomResponsePiecesStatusNotCut, GetRoomResponsePiecesStatusProcessing, GetRoomResponsePiecesStatusCompleted, GetRoomResponsePiecesStatusFailed} {
-		if !v.Valid() {
-			t.Errorf("GetRoomResponsePiecesStatus %v: not valid", v)
-		}
-	}
-
-	if GetRoomResponsePiecesStatus("not a member").Valid() {
-		t.Errorf("GetRoomResponsePiecesStatus(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []GetRoomResponseStatus{GetRoomResponseStatusProcessing, GetRoomResponseStatusCompleted, GetRoomResponseStatusFailed} {
 		if !v.Valid() {
 			t.Errorf("GetRoomResponseStatus %v: not valid", v)
@@ -332,14 +232,14 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("GetRoomResponseStatus(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []InpaintImageProFlashRequestOutputMethod{InpaintImageProFlashRequestOutputMethodNewLayerWithChanges, InpaintImageProFlashRequestOutputMethodModifyCurrentLayerOnlyChanges, InpaintImageProFlashRequestOutputMethodModifyCurrentLayer} {
+	for _, v := range []IsometricTileShape{IsometricTileShapeThickTile, IsometricTileShapeThinTile, IsometricTileShapeBlock} {
 		if !v.Valid() {
-			t.Errorf("InpaintImageProFlashRequestOutputMethod %v: not valid", v)
+			t.Errorf("IsometricTileShape %v: not valid", v)
 		}
 	}
 
-	if InpaintImageProFlashRequestOutputMethod("not a member").Valid() {
-		t.Errorf("InpaintImageProFlashRequestOutputMethod(%v): valid, though no member", "not a member")
+	if IsometricTileShape("not a member").Valid() {
+		t.Errorf("IsometricTileShape(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []Layout{LayoutTileset15, LayoutWang, LayoutGodot} {
@@ -412,6 +312,36 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("Outline(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []OutlineMode{OutlineModeOutline, OutlineModeSegmentation} {
+		if !v.Valid() {
+			t.Errorf("OutlineMode %v: not valid", v)
+		}
+	}
+
+	if OutlineMode("not a member").Valid() {
+		t.Errorf("OutlineMode(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []OutputMethod{OutputMethodNewLayerWithChanges, OutputMethodModifyCurrentLayerOnlyChanges, OutputMethodModifyCurrentLayer} {
+		if !v.Valid() {
+			t.Errorf("OutputMethod %v: not valid", v)
+		}
+	}
+
+	if OutputMethod("not a member").Valid() {
+		t.Errorf("OutputMethod(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []PiecesStatus{PiecesStatusNotCut, PiecesStatusProcessing, PiecesStatusCompleted, PiecesStatusFailed} {
+		if !v.Valid() {
+			t.Errorf("PiecesStatus %v: not valid", v)
+		}
+	}
+
+	if PiecesStatus("not a member").Valid() {
+		t.Errorf("PiecesStatus(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []ReduceColorsRequestDithering{ReduceColorsRequestDitheringNone, ReduceColorsRequestDitheringTwoX2, ReduceColorsRequestDitheringFourX4, ReduceColorsRequestDitheringEightX8} {
 		if !v.Valid() {
 			t.Errorf("ReduceColorsRequestDithering %v: not valid", v)
@@ -420,6 +350,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if ReduceColorsRequestDithering("not a member").Valid() {
 		t.Errorf("ReduceColorsRequestDithering(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []RoofProfile{RoofProfileGable, RoofProfileRound} {
+		if !v.Valid() {
+			t.Errorf("RoofProfile %v: not valid", v)
+		}
+	}
+
+	if RoofProfile("not a member").Valid() {
+		t.Errorf("RoofProfile(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []RoomDoorInputSide{RoomDoorInputSideN, RoomDoorInputSideE, RoomDoorInputSideS, RoomDoorInputSideW} {
@@ -452,26 +392,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("SaveToAssetResponseKind(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []SetAnimationMirrorRequestSourceDirection{SetAnimationMirrorRequestSourceDirectionEast, SetAnimationMirrorRequestSourceDirectionWest, SetAnimationMirrorRequestSourceDirectionSouthEast, SetAnimationMirrorRequestSourceDirectionSouthWest, SetAnimationMirrorRequestSourceDirectionNorthEast, SetAnimationMirrorRequestSourceDirectionNorthWest} {
-		if !v.Valid() {
-			t.Errorf("SetAnimationMirrorRequestSourceDirection %v: not valid", v)
-		}
-	}
-
-	if SetAnimationMirrorRequestSourceDirection("not a member").Valid() {
-		t.Errorf("SetAnimationMirrorRequestSourceDirection(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []SetTilesetImportRequestTilesetMode{SetTilesetImportRequestTilesetModeTopdown, SetTilesetImportRequestTilesetModeSidescroller} {
-		if !v.Valid() {
-			t.Errorf("SetTilesetImportRequestTilesetMode %v: not valid", v)
-		}
-	}
-
-	if SetTilesetImportRequestTilesetMode("not a member").Valid() {
-		t.Errorf("SetTilesetImportRequestTilesetMode(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []Shading{ShadingFlatShading, ShadingBasicShading, ShadingMediumShading, ShadingDetailedShading, ShadingHighlyDetailedShading} {
 		if !v.Valid() {
 			t.Errorf("Shading %v: not valid", v)
@@ -480,6 +400,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if Shading("not a member").Valid() {
 		t.Errorf("Shading(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []ShapeStyle{ShapeStyleSquare, ShapeStyleRound} {
+		if !v.Valid() {
+			t.Errorf("ShapeStyle %v: not valid", v)
+		}
+	}
+
+	if ShapeStyle("not a member").Valid() {
+		t.Errorf("ShapeStyle(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []SkeletonLabel{SkeletonLabelNose, SkeletonLabelNeck, SkeletonLabelRightShoulder, SkeletonLabelRightElbow, SkeletonLabelRightArm, SkeletonLabelLeftShoulder, SkeletonLabelLeftElbow, SkeletonLabelLeftArm, SkeletonLabelRightHip, SkeletonLabelRightKnee, SkeletonLabelRightLeg, SkeletonLabelLeftHip, SkeletonLabelLeftKnee, SkeletonLabelLeftLeg, SkeletonLabelRightEye, SkeletonLabelLeftEye, SkeletonLabelRightEar, SkeletonLabelLeftEar} {
@@ -492,6 +422,36 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("SkeletonLabel(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []SourceDirection{SourceDirectionEast, SourceDirectionWest, SourceDirectionSouthEast, SourceDirectionSouthWest, SourceDirectionNorthEast, SourceDirectionNorthWest} {
+		if !v.Valid() {
+			t.Errorf("SourceDirection %v: not valid", v)
+		}
+	}
+
+	if SourceDirection("not a member").Valid() {
+		t.Errorf("SourceDirection(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TemplateAction{TemplateActionWalking, TemplateActionRunning, TemplateActionFullSprinting, TemplateActionIdleBreathing, TemplateActionPunch, TemplateActionLeftPunch, TemplateActionHighKick, TemplateActionSwoopKick, TemplateActionTwoPunchCombo, TemplateActionUppercut} {
+		if !v.Valid() {
+			t.Errorf("TemplateAction %v: not valid", v)
+		}
+	}
+
+	if TemplateAction("not a member").Valid() {
+		t.Errorf("TemplateAction(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TemplateID{TemplateIDMannequin, TemplateIDBear, TemplateIDCat, TemplateIDDog, TemplateIDHorse, TemplateIDLion} {
+		if !v.Valid() {
+			t.Errorf("TemplateID %v: not valid", v)
+		}
+	}
+
+	if TemplateID("not a member").Valid() {
+		t.Errorf("TemplateID(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []TileCornersNe{TileCornersNeLower, TileCornersNeUpper, TileCornersNeTransition} {
 		if !v.Valid() {
 			t.Errorf("TileCornersNe %v: not valid", v)
@@ -500,6 +460,46 @@ func TestEnums_Valid(t *testing.T) {
 
 	if TileCornersNe("not a member").Valid() {
 		t.Errorf("TileCornersNe(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TileFeature{TileFeatureRoads, TileFeatureTileset, TileFeatureBuilding} {
+		if !v.Valid() {
+			t.Errorf("TileFeature %v: not valid", v)
+		}
+	}
+
+	if TileFeature("not a member").Valid() {
+		t.Errorf("TileFeature(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TileType{TileTypeHex, TileTypeHexPointy, TileTypeIsometric, TileTypeOblique, TileTypeOctagon, TileTypeSquareTopdown} {
+		if !v.Valid() {
+			t.Errorf("TileType %v: not valid", v)
+		}
+	}
+
+	if TileType("not a member").Valid() {
+		t.Errorf("TileType(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TileView{TileViewTopDown, TileViewHighTopDown, TileViewLowTopDown, TileViewSide} {
+		if !v.Valid() {
+			t.Errorf("TileView %v: not valid", v)
+		}
+	}
+
+	if TileView("not a member").Valid() {
+		t.Errorf("TileView(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TilesetMode{TilesetModeTopdown, TilesetModeSidescroller} {
+		if !v.Valid() {
+			t.Errorf("TilesetMode %v: not valid", v)
+		}
+	}
+
+	if TilesetMode("not a member").Valid() {
+		t.Errorf("TilesetMode(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []UsageType{UsageTypeUsd, UsageTypeGenerations} {
