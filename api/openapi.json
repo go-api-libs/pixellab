@@ -8933,7 +8933,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Size of each rotation image\nWidth: 16-128 px. Height: 16-128 px.",
+            "description": "Size of each rotation image\nCharacter size in pixels. Canvas will be ~40% larger to make room for animations.\nWidth: 16-128 px. Height: 16-128 px.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "async_mode": {
@@ -9143,7 +9143,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Size of each rotation image\nWidth: 16-128 px. Height: 16-128 px.",
+            "description": "Size of each rotation image\nRequested character size in pixels. Standard mode expands the generation canvas; Pro mode stores rotations on a shared square canvas at least max(width, height).\nWidth: 16-128 px. Height: 16-128 px.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "mode": {
@@ -9655,7 +9655,7 @@
             "type": "string"
           },
           "image_size": {
-            "description": "Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
+            "description": "Width: min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32\nHeight: min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32\nWidth: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "outline": {
@@ -10037,7 +10037,7 @@
             "type": "string"
           },
           "image_size": {
-            "description": "Width: 16-64 px. Height: 16-64 px.",
+            "description": "Width and height: Sizes above 24px often give better results.\nWidth: 16-64 px. Height: 16-64 px.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "text_guidance_scale": {
@@ -11285,7 +11285,7 @@
             "example": "123e4567-e89b-12d3-a456-426614174000"
           },
           "tile_size": {
-            "description": "Size of individual tiles within the tileset (square: width = height)\nWidth: any, 16 by default. Height: any, 16 by default.",
+            "description": "Size of individual tiles within the tileset (square: width = height)\nWidth and height: 16 or 32\nWidth: any, 16 by default. Height: any, 16 by default.",
             "default": {
               "width": 16,
               "height": 16
@@ -11941,7 +11941,7 @@
             "example": "987fcdeb-51a2-43f1-9876-543210fedcba"
           },
           "tile_size": {
-            "description": "Size of individual tiles within the tileset\nWidth: any, 16 by default. Height: any, 16 by default.",
+            "description": "Size of individual tiles within the tileset\nWidth and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.\nWidth: any, 16 by default. Height: any, 16 by default.",
             "default": {
               "width": 16,
               "height": 16
@@ -12292,7 +12292,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Output image size in pixels (192–688; max per axis depends on aspect)\nWidth: 192-688 px, 256 by default. Height: 192-688 px, 256 by default.",
+            "description": "Output image size in pixels (192–688; max per axis depends on aspect)\nWidth: 192–688; max per axis depends on aspect — square 512, 16:9 688\nHeight: 192–688; max per axis depends on aspect — square 512, 9:16 688\nWidth: 192-688 px, 256 by default. Height: 192-688 px, 256 by default.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "pieces": {
@@ -14162,7 +14162,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Target image size. Prompt complexity scales with size.\nWidth: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
+            "description": "Target image size. Prompt complexity scales with size.\nWidth: min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32\nHeight: min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32\nWidth: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "outline": {
@@ -14433,7 +14433,7 @@
             "$ref": "#/components/schemas/Generate8RotationsV2RequestMethod"
           },
           "image_size": {
-            "description": "Size of the output images\nWidth: 32-168 px. Height: 32-168 px.",
+            "description": "Size of the output images\nWidth and height: 32-168 pixels, matches reference_to_8_rotations\nWidth: 32-168 px. Height: 32-168 px.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "reference_image": {
@@ -14712,7 +14712,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Size of the output image\nWidth: 16-792 px. Height: 16-688 px.",
+            "description": "Size of the output image\nWidth and height: 16 to aspect-ratio max\nWidth: 16-792 px. Height: 16-688 px.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "seed": {
@@ -14855,7 +14855,7 @@
             "maxLength": 2000
           },
           "image_size": {
-            "description": "Output image size (16 to aspect-ratio max, e.g. 512x512 square)\nWidth: 16-792 px, 256 by default. Height: 16-688 px, 256 by default.",
+            "description": "Output image size (16 to aspect-ratio max, e.g. 512x512 square)\nWidth and height: 16 to aspect-ratio max\nWidth: 16-792 px, 256 by default. Height: 16-688 px, 256 by default.",
             "$ref": "#/components/schemas/ImageSize"
           },
           "seed": {
@@ -20904,7 +20904,7 @@
             "$ref": "#/components/schemas/SetTilesetImportRequestTilesetMode"
           },
           "tile_size": {
-            "description": "Square 16, 24, 32 or 64. Read from the sheet when omitted; give it when a size reads two ways (256x256 is a 64px 4x4 sheet or a 32px 8-wide one - omitted, the 4x4 reading wins). Must match the sheet.\nWidth: any, 16 by default. Height: any, 16 by default.",
+            "description": "Square 16, 24, 32 or 64. Read from the sheet when omitted; give it when a size reads two ways (256x256 is a 64px 4x4 sheet or a 32px 8-wide one - omitted, the 4x4 reading wins). Must match the sheet.\nWidth and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.\nWidth: any, 16 by default. Height: any, 16 by default.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ImageSize"

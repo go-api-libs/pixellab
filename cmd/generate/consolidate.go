@@ -185,6 +185,7 @@ type imageSize struct {
 	owner, field                             string
 	widthMin, widthMax, heightMin, heightMax int
 	widthStep, heightStep                    int // what each must be a multiple of, or 0
+	rule                                     sizeRule
 }
 
 // consolidateImageSizes merges every object of nothing but an integer width and height into one ImageSize, and tells
@@ -192,6 +193,7 @@ type imageSize struct {
 // constructors that check them.
 func consolidateImageSizes(doc *openapi.Document) ([]imageSize, error) {
 	refs := propertyRefs(doc)
+	unused := maps.Clone(sizeRules)
 
 	var (
 		members []string
@@ -210,13 +212,22 @@ func consolidateImageSizes(doc *openapi.Document) ([]imageSize, error) {
 			r.schema.Description = joinLines(r.schema.Description, sizeBounds(w, h))
 
 			if strings.HasSuffix(r.owner, "Request") {
+				key := r.owner + "." + r.property
+				delete(unused, key)
+
 				sizes = append(sizes, imageSize{
+					rule:  sizeRules[key],
 					owner: r.owner, field: strcase.ToGoPascal(r.property),
 					widthMin: intOf(w.Min), widthMax: intOf(w.Max), heightMin: intOf(h.Min), heightMax: intOf(h.Max),
 					widthStep: intOf(w.MultipleOf), heightStep: intOf(h.MultipleOf),
 				})
 			}
 		}
+	}
+
+	if len(unused) > 0 {
+		return nil, fmt.Errorf("sizeRules names image sizes of requests upstream no longer has: %s",
+			strings.Join(slices.Sorted(maps.Keys(unused)), ", "))
 	}
 
 	if len(members) == 0 {

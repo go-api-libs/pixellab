@@ -8,7 +8,9 @@ specification in five steps:
    Claude Code session (`CLAUDECODE`), the copies are used as they are.
 2. **Transform** (`transform.go`, `names.go`, `bodies.go`): put the version in
    every path, move the bounds upstream declares beside a reference, as an
-   image size's, into a copy of what it refers to, drop the JSON of no
+   image size's, into a copy of what it refers to, tell in each property of
+   an image size what its width and height say beyond their bounds, before
+   compress merges the sizes alike but for that, drop the JSON of no
    schema FastAPI declares beside a download's own media type, and the operations
    that are only aliases of another, let a 422's detail be a message as well as
    validation errors, and name every operation after its method
@@ -29,7 +31,9 @@ specification in five steps:
    upstream gives no schema, are named by their shape: `Image`,
    `DirectionalImages`, `Images` and `JobImages`, either of the two.
 5. **Generate**: write `api/openapi.json`, the library with `openapi-codegen`,
-   and `pkg/pixellab/image_size.go`, a checked constructor per request size.
+   and `pkg/pixellab/image_size.go`, a checked constructor per request size:
+   its bounds and step, and what `sizeRules` gives of upstream's words, as
+   Pixen's maximum area or the sides a tile may have.
    The library's tests replay `api/interactions.json` through the client, so a
    response the API sent that the library cannot read fails them.
 
