@@ -53,6 +53,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	declared, err := declareEnums(doc)
+	if err != nil {
+		return err
+	}
+
 	if err := nameModels(doc); err != nil {
 		return err
 	}
@@ -88,6 +93,10 @@ func run(ctx context.Context) error {
 	}
 
 	if err := consolidateEnums(doc); err != nil {
+		return err
+	}
+
+	if err := referDeclaredEnums(doc, declared); err != nil {
 		return err
 	}
 

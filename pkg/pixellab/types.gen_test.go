@@ -12,6 +12,16 @@ import (
 
 // TestEnums_Valid checks that every member of an enum is valid, and that a value of its type none is, is not.
 func TestEnums_Valid(t *testing.T) {
+	for _, v := range []AnimationTemplate{AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateRunning8Frames, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames} {
+		if !v.Valid() {
+			t.Errorf("AnimationTemplate %v: not valid", v)
+		}
+	}
+
+	if AnimationTemplate("not a member").Valid() {
+		t.Errorf("AnimationTemplate(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []BackgroundRemovalTask{BackgroundRemovalTaskRemoveSimpleBackground, BackgroundRemovalTaskRemoveComplexBackground} {
 		if !v.Valid() {
 			t.Errorf("BackgroundRemovalTask %v: not valid", v)
@@ -20,6 +30,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if BackgroundRemovalTask("not a member").Valid() {
 		t.Errorf("BackgroundRemovalTask(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []BodyTemplate{BodyTemplateMannequin, BodyTemplateBear, BodyTemplateCat, BodyTemplateDog, BodyTemplateHorse, BodyTemplateLion, BodyTemplateCustom} {
+		if !v.Valid() {
+			t.Errorf("BodyTemplate %v: not valid", v)
+		}
+	}
+
+	if BodyTemplate("not a member").Valid() {
+		t.Errorf("BodyTemplate(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []BuildingLayout{BuildingLayoutGrid, BuildingLayoutMaterials} {
@@ -60,16 +80,6 @@ func TestEnums_Valid(t *testing.T) {
 
 	if CreateCharacterAnimationRequestMode("not a member").Valid() {
 		t.Errorf("CreateCharacterAnimationRequestMode(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []CreateCharacterProFlashRequestTemplateID{CreateCharacterProFlashRequestTemplateIDMannequin, CreateCharacterProFlashRequestTemplateIDBear, CreateCharacterProFlashRequestTemplateIDCat, CreateCharacterProFlashRequestTemplateIDDog, CreateCharacterProFlashRequestTemplateIDHorse, CreateCharacterProFlashRequestTemplateIDLion, CreateCharacterProFlashRequestTemplateIDCustom} {
-		if !v.Valid() {
-			t.Errorf("CreateCharacterProFlashRequestTemplateID %v: not valid", v)
-		}
-	}
-
-	if CreateCharacterProFlashRequestTemplateID("not a member").Valid() {
-		t.Errorf("CreateCharacterProFlashRequestTemplateID(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []CreateCharacterProRequestMethod{CreateCharacterProRequestMethodCreateWithStyle, CreateCharacterProRequestMethodCreateFromConcept, CreateCharacterProRequestMethodRotateCharacter} {
@@ -432,6 +442,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("SourceDirection(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []SubscriptionStatus{SubscriptionStatusActive, SubscriptionStatusTrial, SubscriptionStatusExpired, SubscriptionStatusNone, SubscriptionStatusEnterprise} {
+		if !v.Valid() {
+			t.Errorf("SubscriptionStatus %v: not valid", v)
+		}
+	}
+
+	if SubscriptionStatus("not a member").Valid() {
+		t.Errorf("SubscriptionStatus(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []TemplateAction{TemplateActionWalking, TemplateActionRunning, TemplateActionFullSprinting, TemplateActionIdleBreathing, TemplateActionPunch, TemplateActionLeftPunch, TemplateActionHighKick, TemplateActionSwoopKick, TemplateActionTwoPunchCombo, TemplateActionUppercut} {
 		if !v.Valid() {
 			t.Errorf("TemplateAction %v: not valid", v)
@@ -440,16 +460,6 @@ func TestEnums_Valid(t *testing.T) {
 
 	if TemplateAction("not a member").Valid() {
 		t.Errorf("TemplateAction(%v): valid, though no member", "not a member")
-	}
-
-	for _, v := range []TemplateID{TemplateIDMannequin, TemplateIDBear, TemplateIDCat, TemplateIDDog, TemplateIDHorse, TemplateIDLion} {
-		if !v.Valid() {
-			t.Errorf("TemplateID %v: not valid", v)
-		}
-	}
-
-	if TemplateID("not a member").Valid() {
-		t.Errorf("TemplateID(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []TileCornersNe{TileCornersNeLower, TileCornersNeUpper, TileCornersNeTransition} {

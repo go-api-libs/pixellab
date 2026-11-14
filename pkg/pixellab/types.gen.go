@@ -64,7 +64,7 @@ type ListObjectsParams struct {
 // DeleteCharacterAnimationsParams holds the query parameters for DeleteCharacterAnimations.
 type DeleteCharacterAnimationsParams struct {
 	// Animation type shown by get_character (e.g. 'walk', 'idle').
-	AnimationType string
+	AnimationType AnimationTemplate
 	// Animation group UUID shown by get_character as [group: ...].
 	AnimationGroupID uuid.UUID
 	// Single direction to delete (e.g. 'south'). Omit for all.
@@ -252,7 +252,7 @@ type AnimateWithSkeletonV3Request struct {
 	// The motion: one skeleton per frame you get back, all 18 joints each. 3 to 15 frames.
 	Keypoints []Keypoint `json:"keypoints"`
 	// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
-	TemplateID TemplateID `json:"template_id,omitzero"`
+	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// 0 for a random seed.
 	Seed int `json:"seed,omitzero"`
 	// Return frames with a transparent background.
@@ -356,7 +356,7 @@ type AnimationDirection struct {
 // AnimationGroup defines a model
 type AnimationGroup struct {
 	// Template animation ID (e.g. 'walk', 'run')
-	AnimationType string `json:"animation_type"`
+	AnimationType AnimationTemplate `json:"animation_type"`
 	// Custom display name if set
 	DisplayName string `json:"display_name,omitzero"`
 	// ID of this animation. Every direction of it shares this id, and it is what the PixelLab website groups animations by. Use it to delete the animation ([DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id})) or add directions to it ([animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`).
@@ -375,6 +375,38 @@ type AnimationJobResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+}
+
+// AnimationTemplate defines a model
+type AnimationTemplate string
+
+const (
+	AnimationTemplateAngry                  AnimationTemplate = "angry"
+	AnimationTemplateAttack                 AnimationTemplate = "attack"
+	AnimationTemplateAttackBack             AnimationTemplate = "attack-back"
+	AnimationTemplateAttackLeft             AnimationTemplate = "attack-left"
+	AnimationTemplateAttackRight            AnimationTemplate = "attack-right"
+	AnimationTemplateBackflip               AnimationTemplate = "backflip"
+	AnimationTemplateBark                   AnimationTemplate = "bark"
+	AnimationTemplateBreathingIdle          AnimationTemplate = "breathing-idle"
+	AnimationTemplateCrossPunch             AnimationTemplate = "cross-punch"
+	AnimationTemplateCrouchedWalking        AnimationTemplate = "crouched-walking"
+	AnimationTemplateDrinking               AnimationTemplate = "drinking"
+	AnimationTemplateFightStanceIdle8Frames AnimationTemplate = "fight-stance-idle-8-frames"
+	AnimationTemplatePickingUp              AnimationTemplate = "picking-up"
+	AnimationTemplateRunning8Frames         AnimationTemplate = "running-8-frames"
+	AnimationTemplateSadWalk                AnimationTemplate = "sad-walk"
+	AnimationTemplateWalking8Frames         AnimationTemplate = "walking-8-frames"
+)
+
+// Valid indicates whether the value is a known member of the AnimationTemplate enum.
+func (e AnimationTemplate) Valid() bool {
+	switch e {
+	case AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateRunning8Frames, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames:
+		return true
+	default:
+		return false
+	}
 }
 
 // AssetNamesResponse defines a model
@@ -423,6 +455,29 @@ type BillingUsage struct {
 	Usd         *float64 `json:"usd,omitzero"`
 	Type        string   `json:"type"`
 	Generations float64  `json:"generations"`
+}
+
+// BodyTemplate defines a model
+type BodyTemplate string
+
+const (
+	BodyTemplateMannequin BodyTemplate = "mannequin"
+	BodyTemplateBear      BodyTemplate = "bear"
+	BodyTemplateCat       BodyTemplate = "cat"
+	BodyTemplateDog       BodyTemplate = "dog"
+	BodyTemplateHorse     BodyTemplate = "horse"
+	BodyTemplateLion      BodyTemplate = "lion"
+	BodyTemplateCustom    BodyTemplate = "custom"
+)
+
+// Valid indicates whether the value is a known member of the BodyTemplate enum.
+func (e BodyTemplate) Valid() bool {
+	switch e {
+	case BodyTemplateMannequin, BodyTemplateBear, BodyTemplateCat, BodyTemplateDog, BodyTemplateHorse, BodyTemplateLion, BodyTemplateCustom:
+		return true
+	default:
+		return false
+	}
 }
 
 // Bounding box to mark the editing area on the context image.
@@ -602,7 +657,7 @@ type CharacterSummary struct {
 	// Number of animations for this character
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
-	TemplateID string `json:"template_id"`
+	TemplateID BodyTemplate `json:"template_id"`
 	// The view the character was created with, in the values the create endpoints take: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down).
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
@@ -700,7 +755,7 @@ type CreateCharacterAnimationRequest struct {
 	// Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 	Mode CreateCharacterAnimationRequestMode `json:"mode,omitzero"`
 	// Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...
-	TemplateAnimationID string `json:"template_animation_id,omitzero"`
+	TemplateAnimationID AnimationTemplate `json:"template_animation_id,omitzero"`
 	// One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.
 	TemplateAction TemplateAction `json:"template_action,omitzero"`
 	// `mode='skeleton-v3'` with `template_animation_id` only: the website's motion sliders. Any left out stay at the template's own motion. A direction added to an existing `animation_group_id` reuses the group's sliders; different ones are refused, since every direction of one animation moves the same way.
@@ -803,32 +858,9 @@ type CreateCharacterProFlashRequest struct {
 	// Choose which visual traits to copy from the style image.
 	StyleOptions *ProFlashStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every direction (a first_frame or source_image_id you give stays as it is) is one of them; max_colors (2-64) caps the colours of every direction (a first_frame or source_image_id you give stays as it is).
-	TargetPalette *TargetPalette                           `json:"target_palette,omitzero"`
-	NDirections   int                                      `json:"n_directions,omitzero"`
-	TemplateID    CreateCharacterProFlashRequestTemplateID `json:"template_id,omitzero"`
-}
-
-// CreateCharacterProFlashRequestTemplateID defines a model
-type CreateCharacterProFlashRequestTemplateID string
-
-const (
-	CreateCharacterProFlashRequestTemplateIDMannequin CreateCharacterProFlashRequestTemplateID = "mannequin"
-	CreateCharacterProFlashRequestTemplateIDBear      CreateCharacterProFlashRequestTemplateID = "bear"
-	CreateCharacterProFlashRequestTemplateIDCat       CreateCharacterProFlashRequestTemplateID = "cat"
-	CreateCharacterProFlashRequestTemplateIDDog       CreateCharacterProFlashRequestTemplateID = "dog"
-	CreateCharacterProFlashRequestTemplateIDHorse     CreateCharacterProFlashRequestTemplateID = "horse"
-	CreateCharacterProFlashRequestTemplateIDLion      CreateCharacterProFlashRequestTemplateID = "lion"
-	CreateCharacterProFlashRequestTemplateIDCustom    CreateCharacterProFlashRequestTemplateID = "custom"
-)
-
-// Valid indicates whether the value is a known member of the CreateCharacterProFlashRequestTemplateID enum.
-func (e CreateCharacterProFlashRequestTemplateID) Valid() bool {
-	switch e {
-	case CreateCharacterProFlashRequestTemplateIDMannequin, CreateCharacterProFlashRequestTemplateIDBear, CreateCharacterProFlashRequestTemplateIDCat, CreateCharacterProFlashRequestTemplateIDDog, CreateCharacterProFlashRequestTemplateIDHorse, CreateCharacterProFlashRequestTemplateIDLion, CreateCharacterProFlashRequestTemplateIDCustom:
-		return true
-	default:
-		return false
-	}
+	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+	NDirections   int            `json:"n_directions,omitzero"`
+	TemplateID    BodyTemplate   `json:"template_id,omitzero"`
 }
 
 // CreateCharacterProFlashResponse defines a model
@@ -857,7 +889,7 @@ type CreateCharacterProRequest struct {
 	// One of: low top-down, high top-down, side. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Quadruped templates also append ", on all fours" to the description so generated frames match the chosen skeleton. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.
-	TemplateID string `json:"template_id,omitzero"`
+	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// Optional concept image (max 1024x1024). Used with `method=create_from_concept`.
 	ConceptImage BaseImage `json:"concept_image,omitzero"`
 	// Optional reference image (max 168x168). Used as style reference for `create_with_style` / `create_from_concept`, or as the character to rotate for `rotate_character`.
@@ -920,7 +952,7 @@ type CreateCharacterRequest struct {
 	// One of: low top-down, high top-down, side. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.
-	TemplateID string `json:"template_id,omitzero"`
+	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// Display name. Defaults to first 50 chars of `description`.
 	Name string `json:"name,omitzero"`
 	// Seed for reproducible generation.
@@ -998,7 +1030,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Character body proportions (preset or custom values). Only applies to humanoid characters.
 	Proportions CreateCharacterWithDirectionsProportions `json:"proportions,omitzero"`
 	// Template ID to use (e.g., 'mannequin' for humanoid, 'bear'/'cat'/'dog'/'horse'/'lion' for quadrupeds). Defaults to 'mannequin'.
-	TemplateID string `json:"template_id,omitzero"`
+	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 	// Optional reference images per direction. Allowed keys: 'south', 'east', 'north', 'west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'; oblique view requires all 4 cardinals.
@@ -1040,7 +1072,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Character body proportions (preset or custom values). Only applies to humanoid characters.
 	Proportions CreateCharacterWithDirectionsProportions `json:"proportions,omitzero"`
 	// Template ID to use. Must be one of: 'mannequin' (the only humanoid template), 'bear', 'cat', 'dog', 'horse', 'lion' (quadrupeds). Defaults to 'mannequin'. Note 'humanoid' is NOT a template id — it is only a value for the separate template_types filter, and passing it here fails with "Template not found".
-	TemplateID string `json:"template_id,omitzero"`
+	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 	// Optional reference images per direction. Allowed keys: 'south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west'. Missing directions are AI-generated; provided ones are used as-is. Each image's dimensions must match image_size. Bipedal templates require 'south' if any are provided; quadrupeds require both 'south' and 'east'.
@@ -2887,7 +2919,7 @@ type GetCharacterResponse struct {
 	// Number of animations for this character
 	AnimationCount int `json:"animation_count"`
 	// Template used for character creation
-	TemplateID string `json:"template_id"`
+	TemplateID BodyTemplate `json:"template_id"`
 	// The view the character was created with, in the values the create endpoints take: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down).
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
@@ -3624,7 +3656,7 @@ type LastResponse struct {
 	Status                string            `json:"status,omitzero"`
 	Progress              *float64          `json:"progress,omitzero"`
 	LimitType             *struct{}         `json:"limit_type,omitzero"`
-	TemplateID            string            `json:"template_id,omitzero"`
+	TemplateID            BodyTemplate      `json:"template_id,omitzero"`
 	CharacterID           uuid.UUID         `json:"character_id,omitzero"`
 	NDirections           *int              `json:"n_directions,omitzero"`
 	CharacterName         string            `json:"character_name,omitzero"`
@@ -3663,7 +3695,7 @@ type LastResponse struct {
 	TargetPalette         *struct{}         `json:"target_palette,omitzero"`
 	MotionAdjustments     MotionAdjustments `json:"motion_adjustments,omitzero"`
 	AnimationDescription  string            `json:"animation_description,omitzero"`
-	TemplateAnimationID   string            `json:"template_animation_id,omitzero"`
+	TemplateAnimationID   AnimationTemplate `json:"template_animation_id,omitzero"`
 }
 
 // LastResponseUsage defines a model
@@ -4942,13 +4974,34 @@ type StyleSettings struct {
 type Subscription struct {
 	Type string `json:"type,omitzero"`
 	// Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, or expired once their team's plan has ended.
-	Status string `json:"status"`
+	Status SubscriptionStatus `json:"status"`
 	// Subscription plan name
 	Plan string `json:"plan,omitzero"`
 	// Remaining generations this billing period
 	Generations float64 `json:"generations"`
 	// Total generations from subscription
 	Total float64 `json:"total"`
+}
+
+// SubscriptionStatus defines a model
+type SubscriptionStatus string
+
+const (
+	SubscriptionStatusActive     SubscriptionStatus = "active"
+	SubscriptionStatusTrial      SubscriptionStatus = "trial"
+	SubscriptionStatusExpired    SubscriptionStatus = "expired"
+	SubscriptionStatusNone       SubscriptionStatus = "none"
+	SubscriptionStatusEnterprise SubscriptionStatus = "enterprise"
+)
+
+// Valid indicates whether the value is a known member of the SubscriptionStatus enum.
+func (e SubscriptionStatus) Valid() bool {
+	switch e {
+	case SubscriptionStatusActive, SubscriptionStatusTrial, SubscriptionStatusExpired, SubscriptionStatusNone, SubscriptionStatusEnterprise:
+		return true
+	default:
+		return false
+	}
 }
 
 // TalkingGifRequest defines a model
@@ -5016,28 +5069,6 @@ const (
 func (e TemplateAction) Valid() bool {
 	switch e {
 	case TemplateActionWalking, TemplateActionRunning, TemplateActionFullSprinting, TemplateActionIdleBreathing, TemplateActionPunch, TemplateActionLeftPunch, TemplateActionHighKick, TemplateActionSwoopKick, TemplateActionTwoPunchCombo, TemplateActionUppercut:
-		return true
-	default:
-		return false
-	}
-}
-
-// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
-type TemplateID string
-
-const (
-	TemplateIDMannequin TemplateID = "mannequin"
-	TemplateIDBear      TemplateID = "bear"
-	TemplateIDCat       TemplateID = "cat"
-	TemplateIDDog       TemplateID = "dog"
-	TemplateIDHorse     TemplateID = "horse"
-	TemplateIDLion      TemplateID = "lion"
-)
-
-// Valid indicates whether the value is a known member of the TemplateID enum.
-func (e TemplateID) Valid() bool {
-	switch e {
-	case TemplateIDMannequin, TemplateIDBear, TemplateIDCat, TemplateIDDog, TemplateIDHorse, TemplateIDLion:
 		return true
 	default:
 		return false
