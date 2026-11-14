@@ -67,12 +67,6 @@ func consolidateEnums(doc *openapi.Document) error {
 		}
 	}
 
-	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
-		if len(declared[name]) == 0 {
-			return fmt.Errorf("declaredEnums: nothing refers to %s any more", name)
-		}
-	}
-
 	names := slices.Concat(slices.Collect(maps.Keys(enumFamilies)), slices.Collect(maps.Keys(declaredEnums)))
 	slices.Sort(names)
 
@@ -92,6 +86,10 @@ func consolidateEnums(doc *openapi.Document) error {
 			if members = sharingValues(doc, members); len(members) == 0 {
 				return fmt.Errorf("enumFamilies: no property %q refers to a string enum any more", props)
 			}
+		}
+
+		if len(members) == 0 { // a declared enum only the passes hold, which referDeclaredEnums makes
+			continue
 		}
 
 		slices.Sort(members)

@@ -67,3 +67,42 @@ func values(ss ...string) []jsontext.Value {
 
 	return vs
 }
+
+func TestIsJobStatus(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		property string
+		s        *openapi.Schema
+		want     bool
+	}{
+		{"status", &openapi.Schema{Type: openapi.TypeString, Default: jsontext.Value(`"processing"`)}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Job status: processing, failed, completed"}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Current job status (processing, completed, failed)"}, true},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Const: jsontext.Value(`"processing"`), Default: jsontext.Value(`"processing"`)}, false},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Generation status: 'completed', 'failed', or 'pending'."}, false},
+		{"state", &openapi.Schema{Type: openapi.TypeString, Default: jsontext.Value(`"processing"`)}, false},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Enum: values("queued", "rate_limited"), Default: jsontext.Value(`"processing"`)}, false},
+	} {
+		if got := isJobStatus(&openapi.Schema{}, tc.property, tc.s); got != tc.want {
+			t.Errorf("isJobStatus(%q, %+v) = %v, want %v", tc.property, tc.s, got, tc.want)
+		}
+	}
+}
+
+func TestMatchesPath(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		path string
+		want bool
+	}{
+		{"/background-jobs/0a54f3a8-4d32-415d-8d34-2a1a222bca19", true},
+		{"/background-jobs", false},
+		{"/characters/0a54f3a8-4d32-415d-8d34-2a1a222bca19", false},
+	} {
+		if got := matchesPath(tc.path, "/background-jobs/{job_id}"); got != tc.want {
+			t.Errorf("matchesPath(%q) = %v, want %v", tc.path, got, tc.want)
+		}
+	}
+}

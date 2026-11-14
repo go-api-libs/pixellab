@@ -6773,10 +6773,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (processing, completed, failed)",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -6896,6 +6894,15 @@
           "id",
           "name",
           "state_name"
+        ]
+      },
+      "AssetStatus": {
+        "title": "AssetStatus",
+        "type": "string",
+        "enum": [
+          "processing",
+          "completed",
+          "failed"
         ]
       },
       "BackgroundRemovalTask": {
@@ -7110,10 +7117,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -7226,6 +7231,15 @@
         ],
         "default": "default"
       },
+      "CharacterStatus": {
+        "title": "CharacterStatus",
+        "type": "string",
+        "enum": [
+          "completed",
+          "failed",
+          "pending"
+        ]
+      },
       "CharacterSummary": {
         "title": "CharacterSummary",
         "description": "Summary of a character for listing",
@@ -7299,10 +7313,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: 'completed', 'failed', or 'pending'. Only 'completed' characters have a preview_url.",
-            "type": "string",
-            "default": "completed"
+            "$ref": "#/components/schemas/CharacterStatus"
           },
           "preview_url": {
             "title": "Preview Url",
@@ -7516,9 +7528,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "n_frames": {
             "title": "N Frames",
@@ -8098,11 +8108,8 @@
             ]
           },
           "status": {
-            "title": "Status",
             "description": "Overall status (processing, completed, failed)",
-            "type": "string",
-            "default": "processing",
-            "example": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -8304,8 +8311,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "estimated_generations": {
             "title": "Estimated Generations",
@@ -8687,10 +8693,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -10824,8 +10828,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "estimated_generations": {
             "title": "Estimated Generations",
@@ -11360,10 +11363,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "sound_effect": {
             "description": "The clip, pending",
@@ -12259,10 +12260,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -12343,10 +12342,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "generations": {
             "title": "Generations",
@@ -12493,10 +12490,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "quoted_generations": {
             "title": "Quoted Generations",
@@ -12619,9 +12614,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "mood": {
             "title": "Mood",
@@ -14897,10 +14890,8 @@
             "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (processing, completed, failed)",
-            "type": "string",
-            "example": "failed"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "created_at": {
             "title": "Created At",
@@ -15047,11 +15038,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.",
-            "type": "string",
-            "default": "completed",
-            "example": "completed"
+            "$ref": "#/components/schemas/CharacterStatus"
           },
           "rotation_urls": {
             "description": "URLs for all rotation images (null unless status == 'completed')",
@@ -15451,9 +15439,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, stalled, finalizing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -15520,9 +15507,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "object_id": {
             "title": "Object Id",
@@ -15721,7 +15707,8 @@
             "description": "Object status (pending, processing, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Object status (pending, processing, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
+                "$ref": "#/components/schemas/ObjectStatus"
               },
               {
                 "type": "null"
@@ -15842,9 +15829,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, stalled, finalizing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -15923,7 +15909,7 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "$ref": "#/components/schemas/GetRoomResponseStatus"
+            "$ref": "#/components/schemas/AssetStatus"
           },
           "stage": {
             "title": "Stage",
@@ -16122,15 +16108,6 @@
           "updated_at"
         ]
       },
-      "GetRoomResponseStatus": {
-        "title": "Status",
-        "type": "string",
-        "enum": [
-          "processing",
-          "completed",
-          "failed"
-        ]
-      },
       "GetTilesProResponse": {
         "title": "GetTilesProResponse",
         "type": "object",
@@ -16272,9 +16249,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "processing, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -16569,8 +16545,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "output_count": {
             "title": "Output Count",
@@ -17472,9 +17447,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: completed, processing, or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -17519,10 +17493,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -17536,6 +17508,30 @@
             "usd": 0.0
           }
         }
+      },
+      "JobStage": {
+        "title": "JobStage",
+        "type": "string",
+        "enum": [
+          "initializing",
+          "generating_sprite",
+          "building_skeleton",
+          "completed"
+        ]
+      },
+      "JobStatus": {
+        "title": "JobStatus",
+        "type": "string",
+        "enum": [
+          "queued",
+          "processing",
+          "completed",
+          "failed",
+          "pending",
+          "running",
+          "stalled",
+          "finalizing"
+        ]
       },
       "Keypoint": {
         "title": "Keypoint",
@@ -17638,8 +17634,7 @@
             "$ref": "#/components/schemas/Detail"
           },
           "status": {
-            "type": "string",
-            "example": "initializing"
+            "$ref": "#/components/schemas/JobStage"
           },
           "progress": {
             "type": "number",
@@ -18842,10 +18837,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (pending, processing, running, completed, failed)",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -18857,6 +18850,19 @@
           "object_id": "456e7890-e89b-12d3-a456-426614174001",
           "status": "queued"
         }
+      },
+      "ObjectStatus": {
+        "title": "ObjectStatus",
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "review",
+          "failed",
+          "expanding",
+          "review-expansion"
+        ]
       },
       "ObjectSummary": {
         "title": "ObjectSummary",
@@ -18949,7 +18955,8 @@
             "description": "Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
+                "$ref": "#/components/schemas/ObjectStatus"
               },
               {
                 "type": "null"
@@ -19174,8 +19181,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "output_count": {
             "title": "Output Count",
@@ -19796,9 +19802,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -20926,8 +20930,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -21102,9 +21105,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "pending, running, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/SoundStatus"
           },
           "error": {
             "title": "Error",
@@ -21292,9 +21294,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "pending, running, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/SoundStatus"
           },
           "error": {
             "title": "Error",
@@ -21362,6 +21363,16 @@
           "created_at"
         ]
       },
+      "SoundStatus": {
+        "title": "SoundStatus",
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "completed",
+          "failed"
+        ]
+      },
       "SourceDirection": {
         "title": "Source Direction",
         "description": "Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.",
@@ -21400,10 +21411,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "songs": {
             "title": "Songs",
@@ -22257,8 +22266,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -22621,9 +22629,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: completed, processing, or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -22831,7 +22838,8 @@
             "description": "processing | completed | failed",
             "anyOf": [
               {
-                "type": "string"
+                "description": "processing | completed | failed",
+                "$ref": "#/components/schemas/AssetStatus"
               },
               {
                 "type": "null"
@@ -23068,7 +23076,8 @@
             "description": "processing | completed | failed",
             "anyOf": [
               {
-                "type": "string"
+                "description": "processing | completed | failed",
+                "$ref": "#/components/schemas/AssetStatus"
               },
               {
                 "type": "null"

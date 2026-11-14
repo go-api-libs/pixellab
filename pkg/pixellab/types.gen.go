@@ -370,7 +370,7 @@ type AnimationJobResponse struct {
 	// Background job ID for polling generation progress
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Current job status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -420,6 +420,25 @@ type AssetNamesResponse struct {
 	StateName string `json:"state_name"`
 	// Character description (characters only)
 	Prompt string `json:"prompt,omitzero"`
+}
+
+// AssetStatus defines a model
+type AssetStatus string
+
+const (
+	AssetStatusProcessing AssetStatus = "processing"
+	AssetStatusCompleted  AssetStatus = "completed"
+	AssetStatusFailed     AssetStatus = "failed"
+)
+
+// Valid indicates whether the value is a known member of the AssetStatus enum.
+func (e AssetStatus) Valid() bool {
+	switch e {
+	case AssetStatusProcessing, AssetStatusCompleted, AssetStatusFailed:
+		return true
+	default:
+		return false
+	}
 }
 
 // BackgroundRemovalTask defines a model
@@ -553,7 +572,7 @@ type CharacterJobResponse struct {
 	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // Character proportions with individual control.
@@ -635,6 +654,25 @@ func (e CharacterProportionsPresetName) Valid() bool {
 	}
 }
 
+// CharacterStatus defines a model
+type CharacterStatus string
+
+const (
+	CharacterStatusCompleted CharacterStatus = "completed"
+	CharacterStatusFailed    CharacterStatus = "failed"
+	CharacterStatusPending   CharacterStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the CharacterStatus enum.
+func (e CharacterStatus) Valid() bool {
+	switch e {
+	case CharacterStatusCompleted, CharacterStatusFailed, CharacterStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
 // Summary of a character for listing
 type CharacterSummary struct {
 	// Unique character identifier
@@ -662,7 +700,7 @@ type CharacterSummary struct {
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. Only 'completed' characters have a preview_url.
-	Status string `json:"status,omitzero"`
+	Status CharacterStatus `json:"status,omitzero"`
 	// Public URL to the south direction sprite (null unless status == 'completed')
 	PreviewURL string `json:"preview_url,omitzero"`
 	// User-defined tags for filtering
@@ -700,7 +738,7 @@ type Create1DirectionObjectResponse struct {
 	Usage           *Usage    `json:"usage,omitzero"`
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	ObjectID        uuid.UUID `json:"object_id"`
-	Status          string    `json:"status,omitzero"`
+	Status          JobStatus `json:"status,omitzero"`
 	// Number of candidate frames produced (derived from `size`).
 	NFrames int `json:"n_frames"`
 }
@@ -831,7 +869,7 @@ type CreateCharacterAnimationResponse struct {
 	// The group these directions belong to. Pass it back on a later call to add more directions to the same animation.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Overall status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -868,7 +906,7 @@ type CreateCharacterProFlashResponse struct {
 	Usage                   *Usage    `json:"usage,omitzero"`
 	BackgroundJobID         uuid.UUID `json:"background_job_id"`
 	CharacterID             uuid.UUID `json:"character_id"`
-	Status                  string    `json:"status"`
+	Status                  JobStatus `json:"status"`
 	EstimatedGenerations    int       `json:"estimated_generations"`
 	FirstDirectionGenerated bool      `json:"first_direction_generated"`
 }
@@ -975,7 +1013,7 @@ type CreateCharacterResponse struct {
 	// Character ID — available immediately, but rotations land asynchronously. Character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded prompt used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -1653,7 +1691,7 @@ type CreateObjectProFlashResponse struct {
 	Usage                   *Usage    `json:"usage,omitzero"`
 	BackgroundJobID         uuid.UUID `json:"background_job_id"`
 	ObjectID                uuid.UUID `json:"object_id"`
-	Status                  string    `json:"status"`
+	Status                  JobStatus `json:"status"`
 	EstimatedGenerations    int       `json:"estimated_generations"`
 	FirstDirectionGenerated bool      `json:"first_direction_generated"`
 }
@@ -1796,7 +1834,7 @@ type CreateSoundEffectResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The clip, pending
 	SoundEffect SoundEffect `json:"sound_effect"`
 	// What it costs, charged only when the clip is made
@@ -2083,7 +2121,7 @@ type CreateUIAssetResponse struct {
 	// UI asset ID (available immediately; poll until ready)
 	UIAssetID uuid.UUID `json:"ui_asset_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // CreateUIAssetStateRequest defines a model
@@ -2102,7 +2140,7 @@ type CreateUIAssetStateResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// What this costs in generations (credits users pay the same tier's price), charged when the states are saved
 	Generations int `json:"generations"`
 	// State images it makes (elements x states)
@@ -2137,7 +2175,7 @@ type CreateVfxResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// What this effect costs, charged only when it is delivered
 	QuotedGenerations int `json:"quoted_generations"`
 }
@@ -2183,7 +2221,7 @@ type CreateVocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Poll GET /v2/vocal-animation/{id}
 	BackgroundJobID uuid.UUID                  `json:"background_job_id"`
-	Status          string                     `json:"status,omitzero"`
+	Status          JobStatus                  `json:"status,omitzero"`
 	Mood            string                     `json:"mood"`
 	VisemeCount     int                        `json:"viseme_count"`
 	Engine          CreateVocalAnimationEngine `json:"engine"`
@@ -2882,7 +2920,7 @@ type GetBackgroundJobResponse struct {
 	// Background job ID
 	ID string `json:"id"`
 	// Current job status (processing, completed, failed)
-	Status string `json:"status"`
+	Status JobStatus `json:"status"`
 	// ISO timestamp when job was created
 	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
@@ -2924,7 +2962,7 @@ type GetCharacterResponse struct {
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
-	Status string `json:"status,omitzero"`
+	Status CharacterStatus `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
 	RotationURLs *RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
@@ -2994,7 +3032,7 @@ type GetCharacterResponseSkeletons3dKeypoints struct {
 type GetGenerateFontProJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status  string    `json:"status"`
+	Status  JobStatus `json:"status"`
 	JobID   uuid.UUID `json:"job_id"`
 	GlyphPx *int      `json:"glyph_px,omitzero"`
 	// No-auth URL for the glyph-atlas PNG. Only present when status=completed.
@@ -3007,7 +3045,7 @@ type GetGenerateFontProJobResponse struct {
 type GetMapObjectResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, failed, completed
-	Status      string     `json:"status"`
+	Status      JobStatus  `json:"status"`
 	ObjectID    uuid.UUID  `json:"object_id"`
 	Description string     `json:"description,omitzero"`
 	Width       *int       `json:"width,omitzero"`
@@ -3048,7 +3086,7 @@ type GetObjectResponse struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Object status (pending, processing, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)
-	Status string `json:"status,omitzero"`
+	Status ObjectStatus `json:"status,omitzero"`
 	// When status='review-expansion': the 8 directions waiting to be kept (POST /v2/objects/{id}/select-frames, no indices) or discarded (POST /v2/objects/{id}/dismiss-review). The object is unchanged until then.
 	ExpansionReview ObjectExpansionReview `json:"expansion_review,omitzero"`
 	// State group this object belongs to
@@ -3065,7 +3103,7 @@ type GetObjectResponse struct {
 type GetPortraitCharacterProJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status string    `json:"status"`
+	Status JobStatus `json:"status"`
 	JobID  uuid.UUID `json:"job_id"`
 	Width  *int      `json:"width,omitzero"`
 	Height *int      `json:"height,omitzero"`
@@ -3080,8 +3118,8 @@ type GetRoomResponse struct {
 	Name  string `json:"name"`
 	Theme string `json:"theme"`
 	// top-down, isometric or oblique
-	View   CameraView            `json:"view"`
-	Status GetRoomResponseStatus `json:"status"`
+	View   CameraView  `json:"view"`
+	Status AssetStatus `json:"status"`
 	// While processing (GET /rooms/{room_id} only)
 	Stage string `json:"stage,omitzero"`
 	// While processing (GET /rooms/{room_id} only)
@@ -3118,25 +3156,6 @@ type GetRoomResponse struct {
 	UpdatedAt      string `json:"updated_at"`
 }
 
-// GetRoomResponseStatus defines a model
-type GetRoomResponseStatus string
-
-const (
-	GetRoomResponseStatusProcessing GetRoomResponseStatus = "processing"
-	GetRoomResponseStatusCompleted  GetRoomResponseStatus = "completed"
-	GetRoomResponseStatusFailed     GetRoomResponseStatus = "failed"
-)
-
-// Valid indicates whether the value is a known member of the GetRoomResponseStatus enum.
-func (e GetRoomResponseStatus) Valid() bool {
-	switch e {
-	case GetRoomResponseStatusProcessing, GetRoomResponseStatusCompleted, GetRoomResponseStatusFailed:
-		return true
-	default:
-		return false
-	}
-}
-
 // GetTilesProResponse defines a model
 type GetTilesProResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3170,7 +3189,7 @@ type GetVfxEffectsResponse struct {
 type GetVocalAnimationJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// processing, completed or failed
-	Status      string    `json:"status"`
+	Status      JobStatus `json:"status"`
 	JobID       uuid.UUID `json:"job_id"`
 	Mood        string    `json:"mood"`
 	VisemeCount int       `json:"viseme_count"`
@@ -3303,7 +3322,7 @@ type ImageToPixelartProFlashResponse struct {
 	BackgroundJobID      uuid.UUID `json:"background_job_id"`
 	ImageID              string    `json:"image_id"`
 	SourceImageID        string    `json:"source_image_id"`
-	Status               string    `json:"status"`
+	Status               JobStatus `json:"status"`
 	OutputCount          *int      `json:"output_count,omitzero"`
 	EstimatedGenerations int       `json:"estimated_generations"`
 	PricingProvisional   *bool     `json:"pricing_provisional,omitzero"`
@@ -3545,7 +3564,7 @@ type IsometricTileSummary struct {
 	// ISO timestamp of tile creation
 	CreatedAt string `json:"created_at"`
 	// Generation status: completed, processing, or failed
-	Status string `json:"status"`
+	Status AssetStatus `json:"status"`
 }
 
 // JobImages defines a model
@@ -3622,7 +3641,51 @@ type JobResponse struct {
 	// Background job ID for polling status
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
+}
+
+// JobStage defines a model
+type JobStage string
+
+const (
+	JobStageInitializing     JobStage = "initializing"
+	JobStageGeneratingSprite JobStage = "generating_sprite"
+	JobStageBuildingSkeleton JobStage = "building_skeleton"
+	JobStageCompleted        JobStage = "completed"
+)
+
+// Valid indicates whether the value is a known member of the JobStage enum.
+func (e JobStage) Valid() bool {
+	switch e {
+	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted:
+		return true
+	default:
+		return false
+	}
+}
+
+// JobStatus defines a model
+type JobStatus string
+
+const (
+	JobStatusQueued     JobStatus = "queued"
+	JobStatusProcessing JobStatus = "processing"
+	JobStatusCompleted  JobStatus = "completed"
+	JobStatusFailed     JobStatus = "failed"
+	JobStatusPending    JobStatus = "pending"
+	JobStatusRunning    JobStatus = "running"
+	JobStatusStalled    JobStatus = "stalled"
+	JobStatusFinalizing JobStatus = "finalizing"
+)
+
+// Valid indicates whether the value is a known member of the JobStatus enum.
+func (e JobStatus) Valid() bool {
+	switch e {
+	case JobStatusQueued, JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing:
+		return true
+	default:
+		return false
+	}
 }
 
 // One joint of a skeleton.
@@ -3653,7 +3716,7 @@ type LastResponse struct {
 	View                  CameraView        `json:"view,omitzero"`
 	Trace                 *struct{}         `json:"trace,omitzero"`
 	Detail                Detail            `json:"detail,omitzero"`
-	Status                string            `json:"status,omitzero"`
+	Status                JobStage          `json:"status,omitzero"`
 	Progress              *float64          `json:"progress,omitzero"`
 	LimitType             *struct{}         `json:"limit_type,omitzero"`
 	TemplateID            BodyTemplate      `json:"template_id,omitzero"`
@@ -4042,7 +4105,30 @@ type ObjectJobResponse struct {
 	// Object ID that will be created (available immediately)
 	ObjectID uuid.UUID `json:"object_id"`
 	// Current job status (pending, processing, running, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
+}
+
+// ObjectStatus defines a model
+type ObjectStatus string
+
+const (
+	ObjectStatusPending         ObjectStatus = "pending"
+	ObjectStatusProcessing      ObjectStatus = "processing"
+	ObjectStatusCompleted       ObjectStatus = "completed"
+	ObjectStatusReview          ObjectStatus = "review"
+	ObjectStatusFailed          ObjectStatus = "failed"
+	ObjectStatusExpanding       ObjectStatus = "expanding"
+	ObjectStatusReviewExpansion ObjectStatus = "review-expansion"
+)
+
+// Valid indicates whether the value is a known member of the ObjectStatus enum.
+func (e ObjectStatus) Valid() bool {
+	switch e {
+	case ObjectStatusPending, ObjectStatusProcessing, ObjectStatusCompleted, ObjectStatusReview, ObjectStatusFailed, ObjectStatusExpanding, ObjectStatusReviewExpansion:
+		return true
+	default:
+		return false
+	}
 }
 
 // Summary of an object for listing
@@ -4069,7 +4155,7 @@ type ObjectSummary struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)
-	Status string `json:"status,omitzero"`
+	Status ObjectStatus `json:"status,omitzero"`
 }
 
 // Operation defines a model
@@ -4219,7 +4305,7 @@ type ProFlashImageResponse struct {
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	ImageID         string    `json:"image_id"`
 	SourceImageID   string    `json:"source_image_id"`
-	Status          string    `json:"status"`
+	Status          JobStatus `json:"status"`
 	OutputCount     *int      `json:"output_count,omitzero"`
 	// Width: any. Height: any.
 	ImageSize            ImageSize `json:"image_size"`
@@ -4438,7 +4524,7 @@ type RoomQueuedResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The room's id: poll GET /rooms/{room_id}
 	RoomID uuid.UUID `json:"room_id"`
-	Status string    `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // RoomStyleRoom defines a model
@@ -4761,13 +4847,13 @@ func (e ShapeStyle) Valid() bool {
 
 // SidescrollerTilesetSummary defines a model
 type SidescrollerTilesetSummary struct {
-	ID                    uuid.UUID `json:"id"`
-	Name                  string    `json:"name"`
-	LowerDescription      string    `json:"lower_description"`
-	TransitionDescription string    `json:"transition_description"`
-	TileSize              struct{}  `json:"tile_size"`
-	CreatedAt             string    `json:"created_at"`
-	Status                string    `json:"status"`
+	ID                    uuid.UUID   `json:"id"`
+	Name                  string      `json:"name"`
+	LowerDescription      string      `json:"lower_description"`
+	TransitionDescription string      `json:"transition_description"`
+	TileSize              struct{}    `json:"tile_size"`
+	CreatedAt             string      `json:"created_at"`
+	Status                AssetStatus `json:"status"`
 }
 
 // SkeletonKeypoints defines a model
@@ -4846,7 +4932,7 @@ type Song struct {
 	// The song's id
 	ID string `json:"id"`
 	// pending, running, completed or failed
-	Status string `json:"status"`
+	Status SoundStatus `json:"status"`
 	// Why it failed
 	Err  string `json:"error"`
 	Name string `json:"name"`
@@ -4885,7 +4971,7 @@ type SoundEffect struct {
 	// The sound effect's id
 	ID string `json:"id"`
 	// pending, running, completed or failed
-	Status string `json:"status"`
+	Status SoundStatus `json:"status"`
 	// Why it failed
 	Err  string `json:"error"`
 	Name string `json:"name"`
@@ -4897,6 +4983,26 @@ type SoundEffect struct {
 	// The length asked for
 	Seconds   float64 `json:"seconds"`
 	CreatedAt string  `json:"created_at"`
+}
+
+// SoundStatus defines a model
+type SoundStatus string
+
+const (
+	SoundStatusPending   SoundStatus = "pending"
+	SoundStatusRunning   SoundStatus = "running"
+	SoundStatusCompleted SoundStatus = "completed"
+	SoundStatusFailed    SoundStatus = "failed"
+)
+
+// Valid indicates whether the value is a known member of the SoundStatus enum.
+func (e SoundStatus) Valid() bool {
+	switch e {
+	case SoundStatusPending, SoundStatusRunning, SoundStatusCompleted, SoundStatusFailed:
+		return true
+	default:
+		return false
+	}
 }
 
 // Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
@@ -4927,7 +5033,7 @@ type StartedMusicResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The two takes, pending
 	Songs []Song `json:"songs"`
 	// What it costs, charged only when the takes are made
@@ -5246,15 +5352,15 @@ type TilesProStyleOptions struct {
 
 // TilesProSummary defines a model
 type TilesProSummary struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	TileType    string    `json:"tile_type"`
-	TileSize    int       `json:"tile_size"`
-	NTiles      int       `json:"n_tiles"`
-	TileView    string    `json:"tile_view"`
-	CreatedAt   string    `json:"created_at"`
-	Status      string    `json:"status"`
+	ID          uuid.UUID   `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	TileType    string      `json:"tile_type"`
+	TileSize    int         `json:"tile_size"`
+	NTiles      int         `json:"n_tiles"`
+	TileView    string      `json:"tile_view"`
+	CreatedAt   string      `json:"created_at"`
+	Status      AssetStatus `json:"status"`
 }
 
 // Tileset containing individual tiles
@@ -5345,7 +5451,7 @@ type TilesetSummary struct {
 	// ISO timestamp of tileset creation
 	CreatedAt string `json:"created_at"`
 	// Generation status: completed, processing, or failed
-	Status string `json:"status"`
+	Status AssetStatus `json:"status"`
 }
 
 // Request model for transfer-outfit-v2 endpoint
@@ -5381,7 +5487,7 @@ type UIAssetDetail struct {
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
-	Status string `json:"status,omitzero"`
+	Status AssetStatus `json:"status,omitzero"`
 	// ISO timestamp
 	CreatedAt string `json:"created_at"`
 	// Progress when processing (null when completed)
@@ -5439,7 +5545,7 @@ type UIAssetSummary struct {
 	// Public CDN URL of the panel (null while processing)
 	ImageURL string `json:"image_url,omitzero"`
 	// processing | completed | failed
-	Status string `json:"status,omitzero"`
+	Status AssetStatus `json:"status,omitzero"`
 	// ISO timestamp
 	CreatedAt string `json:"created_at"`
 }
