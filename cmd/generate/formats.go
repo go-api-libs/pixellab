@@ -30,6 +30,9 @@ var formats = map[string]openapi.Format{
 	"IsometricTileSummary.id":       openapi.FormatUUID,
 	"TilesProSummary.id":            openapi.FormatUUID,
 
+	// the group of states a character or object is in, which upstream's samples give as a UUID
+	"group_id": openapi.FormatUUID,
+
 	// "Public URLs for each frame in order"
 	"AnimationDirection.frames": openapi.FormatURI,
 }
@@ -42,7 +45,7 @@ var formats = map[string]openapi.Format{
 //     types character_id in one schema and leaves it bare in eleven.
 //
 // It runs before the passes, for formats, which names schemas of the original, and after them, when the recorded
-// interactions have given formats of their own, as to group_id. A recorded interaction can still take a format away,
+// interactions have given formats of their own. A recorded interaction can still take a format away,
 // where a value does not fit it.
 func typeStrings(doc *openapi.Document, final bool) error {
 	declared, err := declaredFormats(doc)

@@ -613,7 +613,7 @@ type CharacterSummary struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
-	GroupID string `json:"group_id,omitzero"`
+	GroupID uuid.UUID `json:"group_id,omitzero"`
 }
 
 // Request model for the pixel art correction endpoint
@@ -2205,7 +2205,7 @@ type DeleteCharacterResponse struct {
 	// Number of animations deleted
 	AnimationsDeleted *int `json:"animations_deleted,omitzero"`
 	// Group (character) the deleted state belonged to
-	GroupID string `json:"group_id,omitzero"`
+	GroupID uuid.UUID `json:"group_id,omitzero"`
 	// Most recently updated remaining state in the group. Null when the deleted state was the last one and the group was removed too.
 	NextStateID string `json:"next_state_id,omitzero"`
 	// Error message if deletion failed
@@ -2904,7 +2904,7 @@ type GetCharacterResponse struct {
 	// User-defined tags for filtering
 	Tags []string `json:"tags,omitzero"`
 	// Shared ID grouping sibling state characters (None if not part of a group)
-	GroupID string `json:"group_id,omitzero"`
+	GroupID uuid.UUID `json:"group_id,omitzero"`
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 	Skeletons *GetCharacterResponseSkeletons `json:"skeletons,omitzero"`
 	// All animations grouped by type and direction
@@ -3020,7 +3020,7 @@ type GetObjectResponse struct {
 	// When status='review-expansion': the 8 directions waiting to be kept (POST /v2/objects/{id}/select-frames, no indices) or discarded (POST /v2/objects/{id}/dismiss-review). The object is unchanged until then.
 	ExpansionReview ObjectExpansionReview `json:"expansion_review,omitzero"`
 	// State group this object belongs to
-	GroupID string `json:"group_id,omitzero"`
+	GroupID uuid.UUID `json:"group_id,omitzero"`
 	// Progress percentage when not yet completed (None when status='completed')
 	ProgressPercent *int `json:"progress_percent,omitzero"`
 	// Estimated seconds remaining when not yet completed
@@ -4610,7 +4610,7 @@ type SetObjectImportRequest struct {
 type SetObjectImportResponse struct {
 	Usage    *Usage    `json:"usage,omitzero"`
 	ObjectID uuid.UUID `json:"object_id"`
-	GroupID  string    `json:"group_id"`
+	GroupID  uuid.UUID `json:"group_id"`
 	Name     string    `json:"name"`
 	// Object sprite dimensions
 	// Width: any. Height: any.
@@ -4910,7 +4910,7 @@ type StateResponse struct {
 	// The state's id
 	ID string `json:"id"`
 	// The group (asset) the state is in
-	GroupID string `json:"group_id"`
+	GroupID uuid.UUID `json:"group_id"`
 	// That group's name, shared by its states
 	Name string `json:"name"`
 	// The state's own name

@@ -7296,7 +7296,8 @@
             "description": "Shared ID grouping sibling state characters (None if not part of a group)",
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -12844,7 +12845,8 @@
             "description": "Group (character) the deleted state belonged to",
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -15096,6 +15098,7 @@
             "anyOf": [
               {
                 "type": "string",
+                "format": "uuid",
                 "example": "ea5345ff-9c9d-4d3e-97ab-de2368dd77e9"
               },
               {
@@ -15725,7 +15728,8 @@
             "description": "State group this object belongs to",
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -20526,7 +20530,8 @@
           },
           "group_id": {
             "title": "Group Id",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
@@ -21438,7 +21443,8 @@
           "group_id": {
             "title": "Group Id",
             "description": "The group (asset) the state is in",
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "title": "Name",
