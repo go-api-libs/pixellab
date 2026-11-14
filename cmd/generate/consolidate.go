@@ -56,29 +56,50 @@ func propertyRefs(doc *openapi.Document) map[string][]propertyRef {
 	return refs
 }
 
-// consolidateEnums merges, for each of enumFamilies, the string enums that properties of its name refer to into one
-// enum of every value, and tells in each property's description which of them it accepts.
+// consolidateEnums merges, for each of enumFamilies, the string enums that properties of its name refer to, and for
+// each of declaredEnums, those declareEnums made, into one enum of every value, and tells in each property's
+// description which of them it accepts.
 func consolidateEnums(doc *openapi.Document) error {
-	for _, name := range slices.Sorted(maps.Keys(enumFamilies)) {
+	declared := map[string][]string{}
+	for target, s := range doc.Components.Schemas.ByIndex() {
+		if name := enumOf(s); name != "" {
+			declared[name] = append(declared[name], target)
+		}
+	}
+
+	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
+		if len(declared[name]) == 0 {
+			return fmt.Errorf("declaredEnums: nothing refers to %s any more", name)
+		}
+	}
+
+	names := slices.Concat(slices.Collect(maps.Keys(enumFamilies)), slices.Collect(maps.Keys(declaredEnums)))
+	slices.Sort(names)
+
+	for _, name := range slices.Compact(names) {
 		props, refs := enumFamilies[name], propertyRefs(doc)
 
-		var members []string
+		members := declared[name]
 
 		for target, rs := range refs {
 			s := doc.Components.Schemas[target]
-			if s.Type == openapi.TypeString && len(s.Enum) > 0 && slices.ContainsFunc(rs, func(r propertyRef) bool { return slices.Contains(props, r.property) }) {
+			if props != nil && s.Type == openapi.TypeString && len(s.Enum) > 0 && slices.ContainsFunc(rs, func(r propertyRef) bool { return slices.Contains(props, r.property) }) {
 				members = append(members, target)
 			}
 		}
 
-		members = sharingValues(doc, members)
-		if len(members) == 0 {
-			return fmt.Errorf("enumFamilies: no property %q refers to a string enum any more", props)
+		if props != nil {
+			if members = sharingValues(doc, members); len(members) == 0 {
+				return fmt.Errorf("enumFamilies: no property %q refers to a string enum any more", props)
+			}
 		}
 
 		slices.Sort(members)
 
 		merged := &openapi.Schema{Title: name, Type: openapi.TypeString}
+		for _, v := range declaredEnums[name].values {
+			merged.Enum = append(merged.Enum, jsontext.Value(`"`+v+`"`))
+		}
 
 		for _, m := range members {
 			s := doc.Components.Schemas[m]
@@ -88,10 +109,12 @@ func consolidateEnums(doc *openapi.Document) error {
 				}
 			}
 
-			if len(members) > 1 {
-				for _, r := range refs[m] {
-					// the merged enum says nothing of what each property is for, which its member, flattened from it, did
-					r.schema.Description = joinLines(cmp.Or(r.schema.Description, s.Description), enumValues(s, r.schema))
+			for _, r := range refs[m] {
+				// the merged enum says nothing of what each property is for, which its member, flattened from it, did
+				r.schema.Description = cmp.Or(r.schema.Description, s.Description)
+				// what a place of declaredEnums was documented or recorded with is not all it accepts
+				if len(members) > 1 && props != nil {
+					r.schema.Description = joinLines(r.schema.Description, enumValues(s, r))
 				}
 			}
 		}
@@ -164,16 +187,17 @@ func referPlainStrings(doc *openapi.Document, name string, props []string) {
 	}
 }
 
-// enumValues tells the values an enum accepts, and the one it defaults to: the property's default, which upstream
-// writes beside a reference that may be null, or else the enum's own.
-func enumValues(s, property *openapi.Schema) string {
+// enumValues tells the values an enum accepts, and, for a request, the one it defaults to: the property's default,
+// which upstream writes beside a reference that may be null, or else the enum's own. A response's value has none,
+// though compress may have merged its enum with a request's that has one.
+func enumValues(s *openapi.Schema, r propertyRef) string {
 	vals := make([]string, len(s.Enum))
 	for i, e := range s.Enum {
 		vals[i] = strings.Trim(string(e), `"`)
 	}
 
 	text := "One of: " + strings.Join(vals, ", ") + "."
-	if def := cmp.Or(string(property.Default), string(s.Default)); def != "" {
+	if def := cmp.Or(string(r.schema.Default), string(s.Default)); def != "" && strings.HasSuffix(r.owner, "Request") {
 		text += fmt.Sprintf(" Defaults to %s.", def)
 	}
 
