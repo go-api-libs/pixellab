@@ -72,6 +72,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("CharacterProportionsPresetName(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []CharacterStatus{CharacterStatusCompleted, CharacterStatusFailed, CharacterStatusPending} {
+		if !v.Valid() {
+			t.Errorf("CharacterStatus %v: not valid", v)
+		}
+	}
+
+	if CharacterStatus("not a member").Valid() {
+		t.Errorf("CharacterStatus(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []CreateCharacterAnimationRequestMode{CreateCharacterAnimationRequestModeTemplate, CreateCharacterAnimationRequestModeSkeletonV3, CreateCharacterAnimationRequestModeV3, CreateCharacterAnimationRequestModePixminimax, CreateCharacterAnimationRequestModePro} {
 		if !v.Valid() {
 			t.Errorf("CreateCharacterAnimationRequestMode %v: not valid", v)
@@ -250,6 +260,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if IsometricTileShape("not a member").Valid() {
 		t.Errorf("IsometricTileShape(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []JobStatus{JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing} {
+		if !v.Valid() {
+			t.Errorf("JobStatus %v: not valid", v)
+		}
+	}
+
+	if JobStatus("not a member").Valid() {
+		t.Errorf("JobStatus(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []Layout{LayoutTileset15, LayoutWang, LayoutGodot} {

@@ -6773,10 +6773,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (processing, completed, failed)",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -7110,10 +7108,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -7226,6 +7222,15 @@
         ],
         "default": "default"
       },
+      "CharacterStatus": {
+        "title": "CharacterStatus",
+        "type": "string",
+        "enum": [
+          "completed",
+          "failed",
+          "pending"
+        ]
+      },
       "CharacterSummary": {
         "title": "CharacterSummary",
         "description": "Summary of a character for listing",
@@ -7299,10 +7304,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: 'completed', 'failed', or 'pending'. Only 'completed' characters have a preview_url.",
-            "type": "string",
-            "default": "completed"
+            "$ref": "#/components/schemas/CharacterStatus"
           },
           "preview_url": {
             "title": "Preview Url",
@@ -8098,11 +8101,8 @@
             ]
           },
           "status": {
-            "title": "Status",
             "description": "Overall status (processing, completed, failed)",
-            "type": "string",
-            "default": "processing",
-            "example": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -8687,10 +8687,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status (processing, completed, failed).",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -8812,6 +8810,45 @@
           "character_id": "456e7890-e89b-12d3-a456-426614174001",
           "edit_description": "wearing red armor"
         }
+      },
+      "CreateCharacterStateResponse": {
+        "title": "CreateCharacterStateResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Usage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": {
+              "type": "usd",
+              "usd": 0.02
+            }
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "type": "string",
+            "format": "uuid"
+          },
+          "character_id": {
+            "title": "Character Id",
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string",
+            "default": "queued"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "character_id"
+        ]
       },
       "CreateCharacterWith4DirectionsRequest": {
         "title": "CreateCharacterWith4DirectionsRequest",
@@ -10900,6 +10937,45 @@
           "edit_description": "add moss and lichen"
         }
       },
+      "CreateObjectStateResponse": {
+        "title": "CreateObjectStateResponse",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Usage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": {
+              "type": "usd",
+              "usd": 0.02
+            }
+          },
+          "background_job_id": {
+            "title": "Background Job Id",
+            "type": "string",
+            "format": "uuid"
+          },
+          "object_id": {
+            "title": "Object Id",
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string",
+            "default": "queued"
+          }
+        },
+        "required": [
+          "background_job_id",
+          "object_id"
+        ]
+      },
       "CreatePortraitCharacterProRequest": {
         "title": "PortraitCharacterProRequest",
         "description": "Request model for portrait-character-pro endpoint.",
@@ -11360,10 +11436,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "sound_effect": {
             "description": "The clip, pending",
@@ -12259,10 +12333,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -12343,10 +12415,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "generations": {
             "title": "Generations",
@@ -12493,10 +12563,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "quoted_generations": {
             "title": "Quoted Generations",
@@ -12619,9 +12687,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "mood": {
             "title": "Mood",
@@ -14897,10 +14963,8 @@
             "example": "0a54f3a8-4d32-415d-8d34-2a1a222bca19"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (processing, completed, failed)",
-            "type": "string",
-            "example": "failed"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "created_at": {
             "title": "Created At",
@@ -15047,11 +15111,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.",
-            "type": "string",
-            "default": "completed",
-            "example": "completed"
+            "$ref": "#/components/schemas/CharacterStatus"
           },
           "rotation_urls": {
             "description": "URLs for all rotation images (null unless status == 'completed')",
@@ -15451,9 +15512,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, stalled, finalizing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -15520,9 +15580,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "object_id": {
             "title": "Object Id",
@@ -15842,9 +15901,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "Job status: processing, stalled, finalizing, failed, completed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -16272,9 +16330,8 @@
             }
           },
           "status": {
-            "title": "Status",
             "description": "processing, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "job_id": {
             "title": "Job Id",
@@ -17519,10 +17576,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -17536,6 +17591,19 @@
             "usd": 0.0
           }
         }
+      },
+      "JobStatus": {
+        "title": "JobStatus",
+        "type": "string",
+        "enum": [
+          "processing",
+          "completed",
+          "failed",
+          "pending",
+          "running",
+          "stalled",
+          "finalizing"
+        ]
       },
       "Keypoint": {
         "title": "Keypoint",
@@ -18813,6 +18881,7 @@
       },
       "ObjectJobResponse": {
         "title": "CreateMapObjectResponse",
+        "description": "Response model for map object creation (background job)",
         "type": "object",
         "properties": {
           "usage": {
@@ -18842,10 +18911,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Current job status (pending, processing, running, completed, failed)",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -19796,9 +19863,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           }
         },
         "required": [
@@ -21400,10 +21465,8 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
             "description": "Job status",
-            "type": "string",
-            "default": "processing"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "songs": {
             "title": "Songs",
@@ -24289,7 +24352,7 @@
           "application/json": {
             "schema": {
               "description": "Response model for 8-direction object creation.",
-              "$ref": "#/components/schemas/ObjectJobResponse"
+              "$ref": "#/components/schemas/CreateObjectStateResponse"
             }
           }
         }
@@ -24428,7 +24491,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CharacterJobResponse"
+              "$ref": "#/components/schemas/CreateCharacterStateResponse"
             }
           }
         }
@@ -24767,7 +24830,6 @@
         "content": {
           "application/json": {
             "schema": {
-              "description": "Response model for map object creation (background job)",
               "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
@@ -24949,7 +25011,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/ObjectJobResponse"
+              "$ref": "#/components/schemas/CreateObjectStateResponse"
             }
           }
         }

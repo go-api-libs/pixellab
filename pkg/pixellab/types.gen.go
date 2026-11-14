@@ -370,7 +370,7 @@ type AnimationJobResponse struct {
 	// Background job ID for polling generation progress
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Current job status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -553,7 +553,7 @@ type CharacterJobResponse struct {
 	// Character ID — available immediately, but rotations land asynchronously. The character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded to storage, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // Character proportions with individual control.
@@ -635,6 +635,25 @@ func (e CharacterProportionsPresetName) Valid() bool {
 	}
 }
 
+// CharacterStatus defines a model
+type CharacterStatus string
+
+const (
+	CharacterStatusCompleted CharacterStatus = "completed"
+	CharacterStatusFailed    CharacterStatus = "failed"
+	CharacterStatusPending   CharacterStatus = "pending"
+)
+
+// Valid indicates whether the value is a known member of the CharacterStatus enum.
+func (e CharacterStatus) Valid() bool {
+	switch e {
+	case CharacterStatusCompleted, CharacterStatusFailed, CharacterStatusPending:
+		return true
+	default:
+		return false
+	}
+}
+
 // Summary of a character for listing
 type CharacterSummary struct {
 	// Unique character identifier
@@ -662,7 +681,7 @@ type CharacterSummary struct {
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. Only 'completed' characters have a preview_url.
-	Status string `json:"status,omitzero"`
+	Status CharacterStatus `json:"status,omitzero"`
 	// Public URL to the south direction sprite (null unless status == 'completed')
 	PreviewURL string `json:"preview_url,omitzero"`
 	// User-defined tags for filtering
@@ -831,7 +850,7 @@ type CreateCharacterAnimationResponse struct {
 	// The group these directions belong to. Pass it back on a later call to add more directions to the same animation.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Overall status (processing, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true (mode='v3').
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -975,7 +994,7 @@ type CreateCharacterResponse struct {
 	// Character ID — available immediately, but rotations land asynchronously. Character row is created with status='pending' and transitions to 'completed' once frames are generated, uploaded, and the 3D skeleton is reconstructed.
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The expanded prompt used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -998,6 +1017,14 @@ type CreateCharacterStateRequest struct {
 	UseColorPaletteFromReference bool `json:"use_color_palette_from_reference,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every direction is one of them; max_colors (2-64) caps the colours of every direction.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// CreateCharacterStateResponse defines a model
+type CreateCharacterStateResponse struct {
+	Usage           *Usage    `json:"usage,omitzero"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	CharacterID     uuid.UUID `json:"character_id"`
+	Status          string    `json:"status,omitzero"`
 }
 
 // Request model for 4-directions character creation endpoint
@@ -1668,6 +1695,14 @@ type CreateObjectStateRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
+// CreateObjectStateResponse defines a model
+type CreateObjectStateResponse struct {
+	Usage           *Usage    `json:"usage,omitzero"`
+	BackgroundJobID uuid.UUID `json:"background_job_id"`
+	ObjectID        uuid.UUID `json:"object_id"`
+	Status          string    `json:"status,omitzero"`
+}
+
 // Request model for portrait-character-pro endpoint.
 type CreatePortraitCharacterProRequest struct {
 	// portrait_to_character: input is a bust portrait, output a full-body character sprite. character_to_portrait: input is a full-body character, output a bust portrait.
@@ -1796,7 +1831,7 @@ type CreateSoundEffectResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The clip, pending
 	SoundEffect SoundEffect `json:"sound_effect"`
 	// What it costs, charged only when the clip is made
@@ -2083,7 +2118,7 @@ type CreateUIAssetResponse struct {
 	// UI asset ID (available immediately; poll until ready)
 	UIAssetID uuid.UUID `json:"ui_asset_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // CreateUIAssetStateRequest defines a model
@@ -2102,7 +2137,7 @@ type CreateUIAssetStateResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// What this costs in generations (credits users pay the same tier's price), charged when the states are saved
 	Generations int `json:"generations"`
 	// State images it makes (elements x states)
@@ -2137,7 +2172,7 @@ type CreateVfxResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// What this effect costs, charged only when it is delivered
 	QuotedGenerations int `json:"quoted_generations"`
 }
@@ -2183,7 +2218,7 @@ type CreateVocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Poll GET /v2/vocal-animation/{id}
 	BackgroundJobID uuid.UUID                  `json:"background_job_id"`
-	Status          string                     `json:"status,omitzero"`
+	Status          JobStatus                  `json:"status,omitzero"`
 	Mood            string                     `json:"mood"`
 	VisemeCount     int                        `json:"viseme_count"`
 	Engine          CreateVocalAnimationEngine `json:"engine"`
@@ -2882,7 +2917,7 @@ type GetBackgroundJobResponse struct {
 	// Background job ID
 	ID string `json:"id"`
 	// Current job status (processing, completed, failed)
-	Status string `json:"status"`
+	Status JobStatus `json:"status"`
 	// ISO timestamp when job was created
 	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
@@ -2924,7 +2959,7 @@ type GetCharacterResponse struct {
 	// One of: low top-down, high top-down, side, oblique.
 	View CameraView `json:"view"`
 	// Generation status: 'completed', 'failed', or 'pending'. rotation_urls is null unless 'completed'.
-	Status string `json:"status,omitzero"`
+	Status CharacterStatus `json:"status,omitzero"`
 	// URLs for all rotation images (null unless status == 'completed')
 	RotationURLs *RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
@@ -2994,7 +3029,7 @@ type GetCharacterResponseSkeletons3dKeypoints struct {
 type GetGenerateFontProJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status  string    `json:"status"`
+	Status  JobStatus `json:"status"`
 	JobID   uuid.UUID `json:"job_id"`
 	GlyphPx *int      `json:"glyph_px,omitzero"`
 	// No-auth URL for the glyph-atlas PNG. Only present when status=completed.
@@ -3007,7 +3042,7 @@ type GetGenerateFontProJobResponse struct {
 type GetMapObjectResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, failed, completed
-	Status      string     `json:"status"`
+	Status      JobStatus  `json:"status"`
 	ObjectID    uuid.UUID  `json:"object_id"`
 	Description string     `json:"description,omitzero"`
 	Width       *int       `json:"width,omitzero"`
@@ -3065,7 +3100,7 @@ type GetObjectResponse struct {
 type GetPortraitCharacterProJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Job status: processing, stalled, finalizing, failed, completed
-	Status string    `json:"status"`
+	Status JobStatus `json:"status"`
 	JobID  uuid.UUID `json:"job_id"`
 	Width  *int      `json:"width,omitzero"`
 	Height *int      `json:"height,omitzero"`
@@ -3170,7 +3205,7 @@ type GetVfxEffectsResponse struct {
 type GetVocalAnimationJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// processing, completed or failed
-	Status      string    `json:"status"`
+	Status      JobStatus `json:"status"`
 	JobID       uuid.UUID `json:"job_id"`
 	Mood        string    `json:"mood"`
 	VisemeCount int       `json:"viseme_count"`
@@ -3622,7 +3657,30 @@ type JobResponse struct {
 	// Background job ID for polling status
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
+}
+
+// JobStatus defines a model
+type JobStatus string
+
+const (
+	JobStatusProcessing JobStatus = "processing"
+	JobStatusCompleted  JobStatus = "completed"
+	JobStatusFailed     JobStatus = "failed"
+	JobStatusPending    JobStatus = "pending"
+	JobStatusRunning    JobStatus = "running"
+	JobStatusStalled    JobStatus = "stalled"
+	JobStatusFinalizing JobStatus = "finalizing"
+)
+
+// Valid indicates whether the value is a known member of the JobStatus enum.
+func (e JobStatus) Valid() bool {
+	switch e {
+	case JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing:
+		return true
+	default:
+		return false
+	}
 }
 
 // One joint of a skeleton.
@@ -4034,7 +4092,7 @@ type ObjectExpansionReview struct {
 	Description string `json:"description,omitzero"`
 }
 
-// ObjectJobResponse defines a model
+// Response model for map object creation (background job)
 type ObjectJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Background job ID for tracking generation progress
@@ -4042,7 +4100,7 @@ type ObjectJobResponse struct {
 	// Object ID that will be created (available immediately)
 	ObjectID uuid.UUID `json:"object_id"`
 	// Current job status (pending, processing, running, completed, failed)
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // Summary of an object for listing
@@ -4438,7 +4496,7 @@ type RoomQueuedResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The room's id: poll GET /rooms/{room_id}
 	RoomID uuid.UUID `json:"room_id"`
-	Status string    `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 }
 
 // RoomStyleRoom defines a model
@@ -4927,7 +4985,7 @@ type StartedMusicResponse struct {
 	// Background job ID to poll
 	BackgroundJobID uuid.UUID `json:"background_job_id"`
 	// Job status
-	Status string `json:"status,omitzero"`
+	Status JobStatus `json:"status,omitzero"`
 	// The two takes, pending
 	Songs []Song `json:"songs"`
 	// What it costs, charged only when the takes are made

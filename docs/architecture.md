@@ -19,9 +19,10 @@ specification in five steps:
    upstream types anywhere is typed everywhere, and `formats` gives what
    upstream leaves bare, so the library has a `uuid.UUID` or `url.URL`, not a
    `string`. This runs again after the passes, for what the interactions show.
-   Make an enum of every string `declaredEnums` (`enums.go`) names, with the
-   values upstream documents, as a template animation or a subscription's
-   status: the interactions add the values they show.
+   Make an enum of every string `declaredEnums` (`enums.go`) names, or picks
+   by a rule, with the values upstream documents, as a template animation, a
+   job's status, by what upstream writes of it, or a subscription's status:
+   the interactions add the values they show.
 3. **Passes**: `openapi-enrich` with `api/interactions.json`, then
    `openapi-flatten`, `openapi-compress` and `openapi-flatten` again, as the
    commands of the same names would.

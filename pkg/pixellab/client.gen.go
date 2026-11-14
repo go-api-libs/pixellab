@@ -1338,7 +1338,7 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 // Queues a generation job that applies a text edit to an existing character's rotations and saves the result as a new character grouped with the source via group_id. The same edit is applied consistently across all 4 or 8 directions.
 //
 //	POST /create-character-state
-func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterStateRequest) (*CharacterJobResponse, error) {
+func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterStateRequest) (*CreateCharacterStateResponse, error) {
 	u := c.baseURL.JoinPath("create-character-state")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -1371,7 +1371,7 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 		// State queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out CharacterJobResponse
+			var out CreateCharacterStateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
 					return nil, err
@@ -2368,7 +2368,7 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
 //
 //	POST /create-8-direction-object
-func (c *Client) Create8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
+func (c *Client) Create8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*CreateObjectStateResponse, error) {
 	u := c.baseURL.JoinPath("create-8-direction-object")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2401,7 +2401,7 @@ func (c *Client) Create8DirectionObject(ctx context.Context, body Create8Directi
 		// Object generation queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out ObjectJobResponse
+			var out CreateObjectStateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
 					return nil, err
@@ -2593,7 +2593,7 @@ func (c *Client) DeleteObjectAnimations(ctx context.Context, objectID uuid.UUID,
 // Queues a generation job that applies a text edit to an existing object's image(s) and saves the result as a new object grouped with the source via group_id.
 //
 //	POST /objects/{object_id}/states
-func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*ObjectJobResponse, error) {
+func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body CreateObjectStateRequest) (*CreateObjectStateResponse, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "states")
 	pr, pw := io.Pipe()
 	req := (&http.Request{
@@ -2626,7 +2626,7 @@ func (c *Client) CreateObjectState(ctx context.Context, objectID uuid.UUID, body
 		// State queued
 		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
 		case "application/json":
-			var out ObjectJobResponse
+			var out CreateObjectStateResponse
 			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
 				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
 					return nil, err

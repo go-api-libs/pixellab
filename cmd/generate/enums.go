@@ -16,8 +16,8 @@ import (
 // declaredEnums are, by the name of the enum, the strings upstream holds to a set of values without declaring it, or
 // declares in pieces: the values it documents, and where it holds them to them, as "Schema.property" of the original,
 // "path?parameter", or "METHOD path property.property" of what an operation answers, where only a recorded interaction
-// shows it, as what a background job last answered. What a recorded interaction shows besides is added to them. An
-// entry that names nothing fails the run.
+// shows it, as what a background job last answered, or every property match picks of the original's schemas. What a
+// recorded interaction shows besides is added to them. An entry, or a match, that names nothing fails the run.
 var declaredEnums = map[string]declaredEnum{
 	// "Animation template ID. Required for template mode. Available: `angry`, ..., `crouched-walking`, ...", the rest
 	// cut off; a character's animations name the template they were made from, which their GET filters by
@@ -51,6 +51,20 @@ var declaredEnums = map[string]declaredEnum{
 		},
 	},
 
+	// "Generation status: 'completed', 'failed', or 'pending'."
+	"CharacterStatus": {
+		values: []string{"completed", "failed", "pending"},
+		at:     []string{"CharacterDetail.status", "CharacterSummary.status"},
+	},
+
+	// "Current job status (processing, completed, failed)", besides "pending" and "running" of some, and "stalled"
+	// and "finalizing" of a font's and a portrait's: what each response that starts a job, or reads one, says of it
+	"JobStatus": {
+		values: []string{"processing", "completed", "failed", "pending", "running", "stalled", "finalizing"},
+		at:     []string{"GetVocalAnimationResponse.status"}, // "processing, completed or failed"
+		match:  isJobStatus,
+	},
+
 	// "Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, ..."
 	"SubscriptionStatus": {
 		values: []string{"active", "trial", "expired", "none", "enterprise"},
@@ -58,8 +72,19 @@ var declaredEnums = map[string]declaredEnum{
 	},
 }
 
-// declaredEnum is the values an enum of declaredEnums documents, and where it holds strings to them.
-type declaredEnum struct{ values, at []string }
+// declaredEnum is the values an enum of declaredEnums documents, and where it holds strings to them: the places at
+// names, and the properties match picks, by their name and schema in the original.
+type declaredEnum struct {
+	values, at []string
+	match      func(property string, s *openapi.Schema) bool
+}
+
+// isJobStatus reports whether a property is a job's status, as upstream writes one: a status that starts out
+// "processing", or that it calls a job's. One it fixes with a const, as "Always 'processing'", stays as it is.
+func isJobStatus(property string, s *openapi.Schema) bool {
+	return property == "status" && len(s.Const) == 0 &&
+		(string(s.Default) == `"processing"` || strings.Contains(strings.ToLower(s.Description), "job status"))
+}
 
 // enumMark marks a string declareEnums made an enum of with the name of its enum, which consolidateEnums merges them
 // into, so that compress, which keeps schemas of different extensions apart, merges no other enum into one.
@@ -86,6 +111,30 @@ func declareEnums(doc *openapi.Document) (map[string]bool, error) {
 
 				declared[at] = true
 			}
+		}
+
+		if e.match == nil {
+			continue
+		}
+
+		matched := false
+
+		for schema, s := range doc.Components.Schemas.ByIndex() {
+			for prop, p := range s.Properties.ByIndex() {
+				if !e.match(prop, p) {
+					continue
+				}
+
+				if err := declareEnum(stringSchema(p), e.values, mark); err != nil {
+					return nil, fmt.Errorf("%s.%s: %w", schema, prop, err)
+				}
+
+				matched = true
+			}
+		}
+
+		if !matched {
+			return nil, fmt.Errorf("declaredEnums: %s matches no property any more", name)
 		}
 	}
 
