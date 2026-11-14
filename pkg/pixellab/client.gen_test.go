@@ -36373,4 +36373,10 @@ func TestClient_Interactions(t *testing.T) {
 	} else {
 		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
 	}
+
+	if out, err := c.GetBalance(ctx); err != nil {
+		t.Fatalf("GetBalance: %v", err)
+	} else {
+		apitest.DecodedAsSent(t, "GetBalance", out, last.Body, jsonOpts)
+	}
 }

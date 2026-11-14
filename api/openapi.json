@@ -12638,6 +12638,8 @@
             "title": "Usd",
             "description": "USD credit balance",
             "type": "number",
+            "format": "double",
+            "example": 0.0,
             "examples": [
               10.5
             ]
@@ -21558,6 +21560,7 @@
             "title": "Status",
             "description": "Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, or expired once their team's plan has ended.",
             "type": "string",
+            "example": "trial",
             "examples": [
               "active"
             ]
@@ -21581,6 +21584,8 @@
             "title": "Generations",
             "description": "Remaining generations this billing period",
             "type": "number",
+            "format": "double",
+            "example": 1.0,
             "examples": [
               450
             ]
@@ -21589,6 +21594,8 @@
             "title": "Total",
             "description": "Total generations from subscription",
             "type": "number",
+            "format": "double",
+            "example": 40.0,
             "examples": [
               2000
             ]
