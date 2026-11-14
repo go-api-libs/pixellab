@@ -252,33 +252,11 @@ type AnimateWithSkeletonV3Request struct {
 	// The motion: one skeleton per frame you get back, all 18 joints each. 3 to 15 frames.
 	Keypoints []Keypoint `json:"keypoints"`
 	// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
-	TemplateID AnimateWithSkeletonV3RequestTemplateID `json:"template_id,omitzero"`
+	TemplateID TemplateID `json:"template_id,omitzero"`
 	// 0 for a random seed.
 	Seed int `json:"seed,omitzero"`
 	// Return frames with a transparent background.
 	NoBackground *bool `json:"no_background,omitzero"`
-}
-
-// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
-type AnimateWithSkeletonV3RequestTemplateID string
-
-const (
-	AnimateWithSkeletonV3RequestTemplateIDMannequin AnimateWithSkeletonV3RequestTemplateID = "mannequin"
-	AnimateWithSkeletonV3RequestTemplateIDBear      AnimateWithSkeletonV3RequestTemplateID = "bear"
-	AnimateWithSkeletonV3RequestTemplateIDCat       AnimateWithSkeletonV3RequestTemplateID = "cat"
-	AnimateWithSkeletonV3RequestTemplateIDDog       AnimateWithSkeletonV3RequestTemplateID = "dog"
-	AnimateWithSkeletonV3RequestTemplateIDHorse     AnimateWithSkeletonV3RequestTemplateID = "horse"
-	AnimateWithSkeletonV3RequestTemplateIDLion      AnimateWithSkeletonV3RequestTemplateID = "lion"
-)
-
-// Valid indicates whether the value is a known member of the AnimateWithSkeletonV3RequestTemplateID enum.
-func (e AnimateWithSkeletonV3RequestTemplateID) Valid() bool {
-	switch e {
-	case AnimateWithSkeletonV3RequestTemplateIDMannequin, AnimateWithSkeletonV3RequestTemplateIDBear, AnimateWithSkeletonV3RequestTemplateIDCat, AnimateWithSkeletonV3RequestTemplateIDDog, AnimateWithSkeletonV3RequestTemplateIDHorse, AnimateWithSkeletonV3RequestTemplateIDLion:
-		return true
-	default:
-		return false
-	}
 }
 
 // Request model for animation using text endpoint
@@ -412,6 +390,24 @@ type AssetNamesResponse struct {
 	Prompt string `json:"prompt,omitzero"`
 }
 
+// BackgroundRemovalTask defines a model
+type BackgroundRemovalTask string
+
+const (
+	BackgroundRemovalTaskRemoveSimpleBackground  BackgroundRemovalTask = "remove_simple_background"
+	BackgroundRemovalTaskRemoveComplexBackground BackgroundRemovalTask = "remove_complex_background"
+)
+
+// Valid indicates whether the value is a known member of the BackgroundRemovalTask enum.
+func (e BackgroundRemovalTask) Valid() bool {
+	switch e {
+	case BackgroundRemovalTaskRemoveSimpleBackground, BackgroundRemovalTaskRemoveComplexBackground:
+		return true
+	default:
+		return false
+	}
+}
+
 // BaseImage defines a model
 type BaseImage struct {
 	// Image data type
@@ -420,6 +416,13 @@ type BaseImage struct {
 	Base64 string `json:"base64"`
 	// Image format
 	Format string `json:"format,omitzero"`
+}
+
+// BillingUsage defines a model
+type BillingUsage struct {
+	Usd         *float64 `json:"usd,omitzero"`
+	Type        string   `json:"type"`
+	Generations float64  `json:"generations"`
 }
 
 // Bounding box to mark the editing area on the context image.
@@ -432,6 +435,24 @@ type BoundingBox struct {
 	Width int `json:"width"`
 	// Height of the bounding box
 	Height int `json:"height"`
+}
+
+// Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).
+type BuildingLayout string
+
+const (
+	BuildingLayoutGrid      BuildingLayout = "grid"
+	BuildingLayoutMaterials BuildingLayout = "materials"
+)
+
+// Valid indicates whether the value is a known member of the BuildingLayout enum.
+func (e BuildingLayout) Valid() bool {
+	switch e {
+	case BuildingLayoutGrid, BuildingLayoutMaterials:
+		return true
+	default:
+		return false
+	}
 }
 
 // CameraView defines a model
@@ -559,43 +580,6 @@ func (e CharacterProportionsPresetName) Valid() bool {
 	}
 }
 
-// CharacterSkeletonsdReference defines a model
-type CharacterSkeletonsdReference struct {
-	View      CameraView                            `json:"view"`
-	Format    string                                `json:"format"`
-	Source    string                                `json:"source"`
-	Direction Direction                             `json:"direction"`
-	Keypoints CharacterSkeletonsdReferenceKeypoints `json:"keypoints"`
-}
-
-// CharacterSkeletonsdReferenceKeypoints defines a model
-type CharacterSkeletonsdReferenceKeypoints struct {
-	Neck          CharacterSkeletonsdReferenceKeypointsNeck `json:"NECK"`
-	Nose          CharacterSkeletonsdReferenceKeypointsNeck `json:"NOSE"`
-	LeftArm       CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT ARM"`
-	LeftEar       CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT EAR"`
-	LeftEye       CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT EYE"`
-	LeftHip       CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT HIP"`
-	LeftLeg       CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT LEG"`
-	LeftKnee      CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT KNEE"`
-	RightArm      CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT ARM"`
-	RightEar      CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT EAR"`
-	RightEye      CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT EYE"`
-	RightHip      CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT HIP"`
-	RightLeg      CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT LEG"`
-	LeftElbow     CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT ELBOW"`
-	RightKnee     CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT KNEE"`
-	RightElbow    CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT ELBOW"`
-	LeftShoulder  CharacterSkeletonsdReferenceKeypointsNeck `json:"LEFT SHOULDER"`
-	RightShoulder CharacterSkeletonsdReferenceKeypointsNeck `json:"RIGHT SHOULDER"`
-}
-
-// CharacterSkeletonsdReferenceKeypointsNeck defines a model
-type CharacterSkeletonsdReferenceKeypointsNeck struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
 // Summary of a character for listing
 type CharacterSummary struct {
 	// Unique character identifier
@@ -718,7 +702,7 @@ type CreateCharacterAnimationRequest struct {
 	// Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...
 	TemplateAnimationID string `json:"template_animation_id,omitzero"`
 	// One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.
-	TemplateAction CreateCharacterAnimationRequestTemplateAction `json:"template_action,omitzero"`
+	TemplateAction TemplateAction `json:"template_action,omitzero"`
 	// `mode='skeleton-v3'` with `template_animation_id` only: the website's motion sliders. Any left out stay at the template's own motion. A direction added to an existing `animation_group_id` reuses the group's sliders; different ones are refused, since every direction of one animation moves the same way.
 	MotionAdjustments *MotionSliders `json:"motion_adjustments,omitzero"`
 	// `mode='v3'` or `mode='pixminimax'` custom animations: a prompt for each of the eight directions (south, south-west, west, north-west, north, north-east, east, south-east — all eight), the same motion described as seen from each side. Each direction is generated from its own prompt; `action_description` still names the animation. Kept with the animation, so directions added later with `animation_group_id` reuse the set when it is left out. Not with `enhance_prompt`.
@@ -777,32 +761,6 @@ const (
 func (e CreateCharacterAnimationRequestMode) Valid() bool {
 	switch e {
 	case CreateCharacterAnimationRequestModeTemplate, CreateCharacterAnimationRequestModeSkeletonV3, CreateCharacterAnimationRequestModeV3, CreateCharacterAnimationRequestModePixminimax, CreateCharacterAnimationRequestModePro:
-		return true
-	default:
-		return false
-	}
-}
-
-// One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.
-type CreateCharacterAnimationRequestTemplateAction string
-
-const (
-	CreateCharacterAnimationRequestTemplateActionWalking       CreateCharacterAnimationRequestTemplateAction = "walking"
-	CreateCharacterAnimationRequestTemplateActionRunning       CreateCharacterAnimationRequestTemplateAction = "running"
-	CreateCharacterAnimationRequestTemplateActionFullSprinting CreateCharacterAnimationRequestTemplateAction = "full sprinting"
-	CreateCharacterAnimationRequestTemplateActionIdleBreathing CreateCharacterAnimationRequestTemplateAction = "idle breathing"
-	CreateCharacterAnimationRequestTemplateActionPunch         CreateCharacterAnimationRequestTemplateAction = "punch"
-	CreateCharacterAnimationRequestTemplateActionLeftPunch     CreateCharacterAnimationRequestTemplateAction = "left punch"
-	CreateCharacterAnimationRequestTemplateActionHighKick      CreateCharacterAnimationRequestTemplateAction = "high kick"
-	CreateCharacterAnimationRequestTemplateActionSwoopKick     CreateCharacterAnimationRequestTemplateAction = "swoop kick"
-	CreateCharacterAnimationRequestTemplateActionTwoPunchCombo CreateCharacterAnimationRequestTemplateAction = "two punch combo"
-	CreateCharacterAnimationRequestTemplateActionUppercut      CreateCharacterAnimationRequestTemplateAction = "uppercut"
-)
-
-// Valid indicates whether the value is a known member of the CreateCharacterAnimationRequestTemplateAction enum.
-func (e CreateCharacterAnimationRequestTemplateAction) Valid() bool {
-	switch e {
-	case CreateCharacterAnimationRequestTemplateActionWalking, CreateCharacterAnimationRequestTemplateActionRunning, CreateCharacterAnimationRequestTemplateActionFullSprinting, CreateCharacterAnimationRequestTemplateActionIdleBreathing, CreateCharacterAnimationRequestTemplateActionPunch, CreateCharacterAnimationRequestTemplateActionLeftPunch, CreateCharacterAnimationRequestTemplateActionHighKick, CreateCharacterAnimationRequestTemplateActionSwoopKick, CreateCharacterAnimationRequestTemplateActionTwoPunchCombo, CreateCharacterAnimationRequestTemplateActionUppercut:
 		return true
 	default:
 		return false
@@ -975,29 +933,6 @@ type CreateCharacterRequest struct {
 	Detail Detail `json:"detail,omitzero"`
 	// If true, automatically expand `description` into a richer prompt before generating — equivalent to calling /v2/enhance-character-v3-prompt first. Only valid in from-scratch mode (omit `reference_image`); passing both returns 422. Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
-}
-
-// CreateCharacterRequestDirectionImagesKey defines a model
-type CreateCharacterRequestDirectionImagesKey string
-
-const (
-	CreateCharacterRequestDirectionImagesKeySouthEast CreateCharacterRequestDirectionImagesKey = "south-east"
-	CreateCharacterRequestDirectionImagesKeyEast      CreateCharacterRequestDirectionImagesKey = "east"
-	CreateCharacterRequestDirectionImagesKeyNorthEast CreateCharacterRequestDirectionImagesKey = "north-east"
-	CreateCharacterRequestDirectionImagesKeyNorth     CreateCharacterRequestDirectionImagesKey = "north"
-	CreateCharacterRequestDirectionImagesKeyNorthWest CreateCharacterRequestDirectionImagesKey = "north-west"
-	CreateCharacterRequestDirectionImagesKeyWest      CreateCharacterRequestDirectionImagesKey = "west"
-	CreateCharacterRequestDirectionImagesKeySouthWest CreateCharacterRequestDirectionImagesKey = "south-west"
-)
-
-// Valid indicates whether the value is a known member of the CreateCharacterRequestDirectionImagesKey enum.
-func (e CreateCharacterRequestDirectionImagesKey) Valid() bool {
-	switch e {
-	case CreateCharacterRequestDirectionImagesKeySouthEast, CreateCharacterRequestDirectionImagesKeyEast, CreateCharacterRequestDirectionImagesKeyNorthEast, CreateCharacterRequestDirectionImagesKeyNorth, CreateCharacterRequestDirectionImagesKeyNorthWest, CreateCharacterRequestDirectionImagesKeyWest, CreateCharacterRequestDirectionImagesKeySouthWest:
-		return true
-	default:
-		return false
-	}
 }
 
 // Response — async; poll `/v2/background-jobs/{id}` for results.
@@ -1247,24 +1182,6 @@ type CreateImageBitforgeRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
-// CreateImagePixenBackgroundRemovalTask defines a model
-type CreateImagePixenBackgroundRemovalTask string
-
-const (
-	CreateImagePixenBackgroundRemovalTaskRemoveSimpleBackground  CreateImagePixenBackgroundRemovalTask = "remove_simple_background"
-	CreateImagePixenBackgroundRemovalTaskRemoveComplexBackground CreateImagePixenBackgroundRemovalTask = "remove_complex_background"
-)
-
-// Valid indicates whether the value is a known member of the CreateImagePixenBackgroundRemovalTask enum.
-func (e CreateImagePixenBackgroundRemovalTask) Valid() bool {
-	switch e {
-	case CreateImagePixenBackgroundRemovalTaskRemoveSimpleBackground, CreateImagePixenBackgroundRemovalTaskRemoveComplexBackground:
-		return true
-	default:
-		return false
-	}
-}
-
 // Request model for Pixen image generation endpoint
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
@@ -1288,7 +1205,7 @@ type CreateImagePixenRequest struct {
 	// Generate with transparent background. Up to 65,536 px of area (e.g. 256x256 or 512x128); larger canvases are refused with it on.
 	NoBackground bool `json:"no_background,omitzero"`
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
-	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask `json:"background_removal_task,omitzero"`
+	BackgroundRemovalTask BackgroundRemovalTask `json:"background_removal_task,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
 	// If true, automatically expand your description into a richer, more detailed prompt before generating — equivalent to calling /v2/enhance-pixen-prompt first and passing the result here. Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
@@ -1341,7 +1258,7 @@ type CreateImagePixfluxRequest struct {
 	// Remove the background. Up to 200x200 of AREA (40,000px; 128x256 and 192x192 also fit) it comes back transparent. Above that area it comes back a flat single colour, not transparent, charged the same: key it out client-side by flood-filling the corner colour to alpha.
 	NoBackground bool `json:"no_background,omitzero"`
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
-	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask `json:"background_removal_task,omitzero"`
+	BackgroundRemovalTask BackgroundRemovalTask `json:"background_removal_task,omitzero"`
 	// Initial image to start from
 	InitImage BaseImage `json:"init_image,omitzero"`
 	// Strength of the initial image influence
@@ -1395,30 +1312,11 @@ type CreateIsometricTileRequest struct {
 	// Size of the isometric tile. Recommended sizes: 16, 32. Can be omitted for default.
 	IsometricTileSize int `json:"isometric_tile_size,omitzero"`
 	// Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
-	IsometricTileShape CreateIsometricTileRequestIsometricTileShape `json:"isometric_tile_shape,omitzero"`
+	IsometricTileShape IsometricTileShape `json:"isometric_tile_shape,omitzero"`
 	// Forced color palette, image containing colors used for palette
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
-}
-
-// Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
-type CreateIsometricTileRequestIsometricTileShape string
-
-const (
-	CreateIsometricTileRequestIsometricTileShapeThickTile CreateIsometricTileRequestIsometricTileShape = "thick tile"
-	CreateIsometricTileRequestIsometricTileShapeThinTile  CreateIsometricTileRequestIsometricTileShape = "thin tile"
-	CreateIsometricTileRequestIsometricTileShapeBlock     CreateIsometricTileRequestIsometricTileShape = "block"
-)
-
-// Valid indicates whether the value is a known member of the CreateIsometricTileRequestIsometricTileShape enum.
-func (e CreateIsometricTileRequestIsometricTileShape) Valid() bool {
-	switch e {
-	case CreateIsometricTileRequestIsometricTileShapeThickTile, CreateIsometricTileRequestIsometricTileShapeThinTile, CreateIsometricTileRequestIsometricTileShapeBlock:
-		return true
-	default:
-		return false
-	}
 }
 
 // Request for creating a map object with transparent background
@@ -1580,30 +1478,6 @@ type CreateMusicRequest struct {
 	RestyleSongID uuid.UUID `json:"restyle_song_id,omitzero"`
 }
 
-// CreateObjectAnimationDirectionsItem defines a model
-type CreateObjectAnimationDirectionsItem string
-
-const (
-	CreateObjectAnimationDirectionsItemSouth     CreateObjectAnimationDirectionsItem = "south"
-	CreateObjectAnimationDirectionsItemSouthWest CreateObjectAnimationDirectionsItem = "south-west"
-	CreateObjectAnimationDirectionsItemWest      CreateObjectAnimationDirectionsItem = "west"
-	CreateObjectAnimationDirectionsItemNorthWest CreateObjectAnimationDirectionsItem = "north-west"
-	CreateObjectAnimationDirectionsItemNorth     CreateObjectAnimationDirectionsItem = "north"
-	CreateObjectAnimationDirectionsItemNorthEast CreateObjectAnimationDirectionsItem = "north-east"
-	CreateObjectAnimationDirectionsItemEast      CreateObjectAnimationDirectionsItem = "east"
-	CreateObjectAnimationDirectionsItemSouthEast CreateObjectAnimationDirectionsItem = "south-east"
-)
-
-// Valid indicates whether the value is a known member of the CreateObjectAnimationDirectionsItem enum.
-func (e CreateObjectAnimationDirectionsItem) Valid() bool {
-	switch e {
-	case CreateObjectAnimationDirectionsItemSouth, CreateObjectAnimationDirectionsItemSouthWest, CreateObjectAnimationDirectionsItemWest, CreateObjectAnimationDirectionsItemNorthWest, CreateObjectAnimationDirectionsItemNorth, CreateObjectAnimationDirectionsItemNorthEast, CreateObjectAnimationDirectionsItemEast, CreateObjectAnimationDirectionsItemSouthEast:
-		return true
-	default:
-		return false
-	}
-}
-
 // CreateObjectAnimationMode defines a model
 type CreateObjectAnimationMode string
 
@@ -1693,7 +1567,7 @@ type CreateObjectAnimationRequest struct {
 //   - **New animation**: omit `directions` to animate all 8 cardinals.
 //   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 //   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
-type CreateObjectAnimationRequestDirections []CreateObjectAnimationDirectionsItem
+type CreateObjectAnimationRequestDirections []DirectionPromptsKey
 
 // CreateObjectAnimationResponse defines a model
 type CreateObjectAnimationResponse struct {
@@ -1904,13 +1778,13 @@ type CreateTilesProRequest struct {
 	// Text description of the tiles. For best control, number each tile variation: '1). grass tile 2). stone tile 3). lava tile'.
 	Description string `json:"description"`
 	// Shape of the tiles. hex: flat-top hexagonal, hex_pointy: pointy-top hexagonal, isometric: diamond/rhombus, oblique: true square top with the depth extruded diagonally down-right at 45 degrees (tileset/building only), octagon: 8-sided polygon, square_topdown: square at angle.
-	TileType CreateTilesProTileType `json:"tile_type,omitzero"`
+	TileType TileType `json:"tile_type,omitzero"`
 	// Tile size in pixels (16-128). 32px is recommended for most use cases. Connectable sets (tile_feature) have tighter per-shape ranges; square top-down roads are exactly 32.
 	TileSize int `json:"tile_size,omitzero"`
 	// Tile height in pixels for non-square tiles (e.g., 128 for 64x128 tiles). When omitted, height is computed from tile_type geometry and view angle.
 	TileHeight int `json:"tile_height,omitzero"`
 	// View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.
-	TileView CreateTilesProTileView `json:"tile_view,omitzero"`
+	TileView TileView `json:"tile_view,omitzero"`
 	// Continuous view angle in degrees (0-90). Overrides tile_view when provided. 0=side, 90=top-down. Isometric 30 is 2:1 isometric; 26 and 27 are drawn and saved as 30.
 	TileViewAngle *float64 `json:"tile_view_angle,omitzero"`
 	// Tile depth/thickness ratio (0.0-1.0). Controls how much vertical depth the tile has. Overrides the default computed from tile_view.
@@ -1918,13 +1792,13 @@ type CreateTilesProRequest struct {
 	// Isometric top/bottom cap width: 2px classic or 4px modern. Only used when tile_type='isometric'.
 	TileFlatTopPx int `json:"tile_flat_top_px,omitzero"`
 	// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
-	OutlineMode CreateTilesProRequestOutlineMode `json:"outline_mode,omitzero"`
+	OutlineMode OutlineMode `json:"outline_mode,omitzero"`
 	// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
-	TileFeature CreateTilesProRequestTileFeature `json:"tile_feature,omitzero"`
+	TileFeature TileFeature `json:"tile_feature,omitzero"`
 	// Building kits: wall height in tiles (1-3). Defaults to 2.
 	BuildingWallTiles int `json:"building_wall_tiles,omitzero"`
 	// Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).
-	BuildingLayout CreateTilesProRequestBuildingLayout `json:"building_layout,omitzero"`
+	BuildingLayout BuildingLayout `json:"building_layout,omitzero"`
 	// Building kits: wall material, e.g. 'stone brick walls'. More reliable than relying on the description being split.
 	BuildingWallDescription string `json:"building_wall_description,omitzero"`
 	// Building kits: floor material, e.g. 'wooden plank floor'.
@@ -1934,7 +1808,7 @@ type CreateTilesProRequest struct {
 	// Building kits, square_topdown only: wall storey height as its own camera angle, decoupled from the ground pitch.
 	BuildingWallAngle float64 `json:"building_wall_angle,omitzero"`
 	// Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
-	RoofProfile CreateTilesProRequestRoofProfile `json:"roof_profile,omitzero"`
+	RoofProfile RoofProfile `json:"roof_profile,omitzero"`
 	// Oblique tilesets and building walls: horizontal shear per pixel of height. 0.5 is classic cabinet (~27 degrees), 1.0 is a full 45 degree diagonal (default for oblique).
 	ObliqueLean *float64 `json:"oblique_lean,omitzero"`
 	// tile_feature='tileset' only (square_topdown, isometric, oblique, hex, hex_pointy). Uneven boundary: how far the terrain border meanders instead of a straight edge, 0 = straight (default) to 0.3. Tiles still connect seamlessly.
@@ -1953,121 +1827,6 @@ type CreateTilesProRequest struct {
 	StyleOptions *TilesProStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every tile is one of them; max_colors (2-64) caps the colours of every tile.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
-}
-
-// Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).
-type CreateTilesProRequestBuildingLayout string
-
-const (
-	CreateTilesProRequestBuildingLayoutGrid      CreateTilesProRequestBuildingLayout = "grid"
-	CreateTilesProRequestBuildingLayoutMaterials CreateTilesProRequestBuildingLayout = "materials"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProRequestBuildingLayout enum.
-func (e CreateTilesProRequestBuildingLayout) Valid() bool {
-	switch e {
-	case CreateTilesProRequestBuildingLayoutGrid, CreateTilesProRequestBuildingLayoutMaterials:
-		return true
-	default:
-		return false
-	}
-}
-
-// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
-type CreateTilesProRequestOutlineMode string
-
-const (
-	CreateTilesProRequestOutlineModeOutline      CreateTilesProRequestOutlineMode = "outline"
-	CreateTilesProRequestOutlineModeSegmentation CreateTilesProRequestOutlineMode = "segmentation"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProRequestOutlineMode enum.
-func (e CreateTilesProRequestOutlineMode) Valid() bool {
-	switch e {
-	case CreateTilesProRequestOutlineModeOutline, CreateTilesProRequestOutlineModeSegmentation:
-		return true
-	default:
-		return false
-	}
-}
-
-// Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
-type CreateTilesProRequestRoofProfile string
-
-const (
-	CreateTilesProRequestRoofProfileGable CreateTilesProRequestRoofProfile = "gable"
-	CreateTilesProRequestRoofProfileRound CreateTilesProRequestRoofProfile = "round"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProRequestRoofProfile enum.
-func (e CreateTilesProRequestRoofProfile) Valid() bool {
-	switch e {
-	case CreateTilesProRequestRoofProfileGable, CreateTilesProRequestRoofProfileRound:
-		return true
-	default:
-		return false
-	}
-}
-
-// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
-type CreateTilesProRequestTileFeature string
-
-const (
-	CreateTilesProRequestTileFeatureRoads    CreateTilesProRequestTileFeature = "roads"
-	CreateTilesProRequestTileFeatureTileset  CreateTilesProRequestTileFeature = "tileset"
-	CreateTilesProRequestTileFeatureBuilding CreateTilesProRequestTileFeature = "building"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProRequestTileFeature enum.
-func (e CreateTilesProRequestTileFeature) Valid() bool {
-	switch e {
-	case CreateTilesProRequestTileFeatureRoads, CreateTilesProRequestTileFeatureTileset, CreateTilesProRequestTileFeatureBuilding:
-		return true
-	default:
-		return false
-	}
-}
-
-// CreateTilesProTileType defines a model
-type CreateTilesProTileType string
-
-const (
-	CreateTilesProTileTypeHex           CreateTilesProTileType = "hex"
-	CreateTilesProTileTypeHexPointy     CreateTilesProTileType = "hex_pointy"
-	CreateTilesProTileTypeIsometric     CreateTilesProTileType = "isometric"
-	CreateTilesProTileTypeOblique       CreateTilesProTileType = "oblique"
-	CreateTilesProTileTypeOctagon       CreateTilesProTileType = "octagon"
-	CreateTilesProTileTypeSquareTopdown CreateTilesProTileType = "square_topdown"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProTileType enum.
-func (e CreateTilesProTileType) Valid() bool {
-	switch e {
-	case CreateTilesProTileTypeHex, CreateTilesProTileTypeHexPointy, CreateTilesProTileTypeIsometric, CreateTilesProTileTypeOblique, CreateTilesProTileTypeOctagon, CreateTilesProTileTypeSquareTopdown:
-		return true
-	default:
-		return false
-	}
-}
-
-// CreateTilesProTileView defines a model
-type CreateTilesProTileView string
-
-const (
-	CreateTilesProTileViewTopDown     CreateTilesProTileView = "top-down"
-	CreateTilesProTileViewHighTopDown CreateTilesProTileView = "high top-down"
-	CreateTilesProTileViewLowTopDown  CreateTilesProTileView = "low top-down"
-	CreateTilesProTileViewSide        CreateTilesProTileView = "side"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesProTileView enum.
-func (e CreateTilesProTileView) Valid() bool {
-	switch e {
-	case CreateTilesProTileViewTopDown, CreateTilesProTileViewHighTopDown, CreateTilesProTileViewLowTopDown, CreateTilesProTileViewSide:
-		return true
-	default:
-		return false
-	}
 }
 
 // CreateTilesetMode defines a model
@@ -2107,7 +1866,7 @@ type CreateTilesetRequest struct {
 	// Pro needs a Tier 1+ plan (not a trial). Generation pipeline. "standard": the website's standard tileset (pixen, 16, 24 or 32px tiles, round borders unless shape_style='square'; raggedness, shape_seed and the side_wall_* dials shape it), cheap and fast. "pro": the richest tiles - painted texture, raised banks - 16/32/64px; use it when the look matters. raggedness, roundness, boundary_amplitude and step_slope shape its border (not shape_style - mode='pro' with shape_style is rejected). lower_reference_image/upper_reference_image make the shared terrain match an existing tileset's tile exactly.
 	Mode CreateTilesetMode `json:"mode,omitzero"`
 	// Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.
-	ShapeStyle CreateTilesetRequestShapeStyle `json:"shape_style,omitzero"`
+	ShapeStyle ShapeStyle `json:"shape_style,omitzero"`
 	// Standard tilesets only (on by default; pro ignores it). AI-enhances the terrain descriptions at the chosen detail/shading levels and picks matching base colours before generation. The stored tileset keeps the enhanced text (so chained tilesets reuse the prompt that made the pixels); your original prompts are kept in its metadata.
 	Enhance *bool `json:"enhance,omitzero"`
 	// No effect - the Pro pipeline no longer uses it; kept so existing calls work.
@@ -2170,24 +1929,6 @@ type CreateTilesetRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
-}
-
-// Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.
-type CreateTilesetRequestShapeStyle string
-
-const (
-	CreateTilesetRequestShapeStyleSquare CreateTilesetRequestShapeStyle = "square"
-	CreateTilesetRequestShapeStyleRound  CreateTilesetRequestShapeStyle = "round"
-)
-
-// Valid indicates whether the value is a known member of the CreateTilesetRequestShapeStyle enum.
-func (e CreateTilesetRequestShapeStyle) Valid() bool {
-	switch e {
-	case CreateTilesetRequestShapeStyleSquare, CreateTilesetRequestShapeStyleRound:
-		return true
-	default:
-		return false
-	}
 }
 
 // Request for POST /v2/ui-assets (shape-based UI panel generation).
@@ -2571,6 +2312,53 @@ const (
 func (e Direction) Valid() bool {
 	switch e {
 	case DirectionSouth, DirectionNorth, DirectionEast, DirectionWest, DirectionSouthEast, DirectionSouthWest, DirectionNorthEast, DirectionNorthWest, DirectionNone:
+		return true
+	default:
+		return false
+	}
+}
+
+// DirectionImagesKey defines a model
+type DirectionImagesKey string
+
+const (
+	DirectionImagesKeySouthEast DirectionImagesKey = "south-east"
+	DirectionImagesKeyEast      DirectionImagesKey = "east"
+	DirectionImagesKeyNorthEast DirectionImagesKey = "north-east"
+	DirectionImagesKeyNorth     DirectionImagesKey = "north"
+	DirectionImagesKeyNorthWest DirectionImagesKey = "north-west"
+	DirectionImagesKeyWest      DirectionImagesKey = "west"
+	DirectionImagesKeySouthWest DirectionImagesKey = "south-west"
+)
+
+// Valid indicates whether the value is a known member of the DirectionImagesKey enum.
+func (e DirectionImagesKey) Valid() bool {
+	switch e {
+	case DirectionImagesKeySouthEast, DirectionImagesKeyEast, DirectionImagesKeyNorthEast, DirectionImagesKeyNorth, DirectionImagesKeyNorthWest, DirectionImagesKeyWest, DirectionImagesKeySouthWest:
+		return true
+	default:
+		return false
+	}
+}
+
+// DirectionPromptsKey defines a model
+type DirectionPromptsKey string
+
+const (
+	DirectionPromptsKeySouth     DirectionPromptsKey = "south"
+	DirectionPromptsKeySouthWest DirectionPromptsKey = "south-west"
+	DirectionPromptsKeyWest      DirectionPromptsKey = "west"
+	DirectionPromptsKeyNorthWest DirectionPromptsKey = "north-west"
+	DirectionPromptsKeyNorth     DirectionPromptsKey = "north"
+	DirectionPromptsKeyNorthEast DirectionPromptsKey = "north-east"
+	DirectionPromptsKeyEast      DirectionPromptsKey = "east"
+	DirectionPromptsKeySouthEast DirectionPromptsKey = "south-east"
+)
+
+// Valid indicates whether the value is a known member of the DirectionPromptsKey enum.
+func (e DirectionPromptsKey) Valid() bool {
+	switch e {
+	case DirectionPromptsKeySouth, DirectionPromptsKeySouthWest, DirectionPromptsKeyWest, DirectionPromptsKeyNorthWest, DirectionPromptsKeyNorth, DirectionPromptsKeyNorthEast, DirectionPromptsKeyEast, DirectionPromptsKeySouthEast:
 		return true
 	default:
 		return false
@@ -3066,92 +2854,7 @@ type GetBackgroundJobResponse struct {
 	// ISO timestamp when job was created
 	CreatedAt string `json:"created_at"`
 	// Latest response data from the job
-	LastResponse *GetBackgroundJobResponseLastResponse `json:"last_response,omitzero"`
-}
-
-// Latest response data from the job
-type GetBackgroundJobResponseLastResponse struct {
-	Code                  *int                                                  `json:"code,omitzero"`
-	Type                  string                                                `json:"type,omitzero"`
-	View                  CameraView                                            `json:"view,omitzero"`
-	Trace                 *struct{}                                             `json:"trace,omitzero"`
-	Detail                Detail                                                `json:"detail,omitzero"`
-	Status                string                                                `json:"status,omitzero"`
-	Progress              *float64                                              `json:"progress,omitzero"`
-	LimitType             *struct{}                                             `json:"limit_type,omitzero"`
-	TemplateID            string                                                `json:"template_id,omitzero"`
-	CharacterID           uuid.UUID                                             `json:"character_id,omitzero"`
-	NDirections           *int                                                  `json:"n_directions,omitzero"`
-	CharacterName         string                                                `json:"character_name,omitzero"`
-	DirectionsType        string                                                `json:"directions_type,omitzero"`
-	NumberOfFrames        *int                                                  `json:"number_of_frames,omitzero"`
-	CharacterDescription  string                                                `json:"character_description,omitzero"`
-	GenerationStartedAt   time.Time                                             `json:"generation_started_at,omitzero"`
-	QueuePosition         *int                                                  `json:"queue_position,omitzero"`
-	EstimatedWaitSeconds  *int                                                  `json:"estimated_wait_seconds,omitzero"`
-	GenerationID          uuid.UUID                                             `json:"generation_id,omitzero"`
-	Seed                  *int                                                  `json:"seed,omitzero"`
-	Usage                 GetBackgroundJobResponseLastResponseUsage             `json:"usage,omitzero"`
-	Images                JobImages                                             `json:"images,omitzero"`
-	ImageWidth            *int                                                  `json:"image_width,omitzero"`
-	ImageHeight           *int                                                  `json:"image_height,omitzero"`
-	StorageURLs           *GetBackgroundJobResponseLastResponseStorageURLs      `json:"storage_urls,omitzero"`
-	BillingUsage          GetBackgroundJobResponseLastResponseBillingUsage      `json:"billing_usage,omitzero"`
-	BillingCharged        *bool                                                 `json:"billing_charged,omitzero"`
-	DirectionsCount       *int                                                  `json:"directions_count,omitzero"`
-	QuantizedImages       DirectionalImages                                     `json:"quantized_images,omitzero"`
-	SavedToStorage        *bool                                                 `json:"saved_to_storage,omitzero"`
-	UploadedDirections    []string                                              `json:"uploaded_directions,omitzero"`
-	OriginalImageNColors  *int                                                  `json:"original_image_n_colors,omitzero"`
-	QuantizedImageNColors *int                                                  `json:"quantized_image_n_colors,omitzero"`
-	Err                   string                                                `json:"error,omitzero"`
-	GenerationMode        string                                                `json:"generation_mode,omitzero"`
-	SkeletonFramesDone    *int                                                  `json:"skeleton_frames_done,omitzero"`
-	SkeletonFramesTotal   *int                                                  `json:"skeleton_frames_total,omitzero"`
-	Action                string                                                `json:"action,omitzero"`
-	Direction             Direction                                             `json:"direction,omitzero"`
-	FrameCount            *int                                                  `json:"frame_count,omitzero"`
-	AnimationName         string                                                `json:"animation_name,omitzero"`
-	GenerationModel       string                                                `json:"generation_model,omitzero"`
-	AnimationGroupID      uuid.UUID                                             `json:"animation_group_id,omitzero"`
-	AnimationID           uuid.UUID                                             `json:"animation_id,omitzero"`
-	TargetPalette         *struct{}                                             `json:"target_palette,omitzero"`
-	MotionAdjustments     GetBackgroundJobResponseLastResponseMotionAdjustments `json:"motion_adjustments,omitzero"`
-	AnimationDescription  string                                                `json:"animation_description,omitzero"`
-	TemplateAnimationID   string                                                `json:"template_animation_id,omitzero"`
-}
-
-// GetBackgroundJobResponseLastResponseBillingUsage defines a model
-type GetBackgroundJobResponseLastResponseBillingUsage struct {
-	Usd         *float64 `json:"usd,omitzero"`
-	Type        string   `json:"type"`
-	Generations float64  `json:"generations"`
-}
-
-// GetBackgroundJobResponseLastResponseMotionAdjustments defines a model
-type GetBackgroundJobResponseLastResponseMotionAdjustments struct {
-	Stride       float64 `json:"stride"`
-	Posture      float64 `json:"posture"`
-	ArmSwing     float64 `json:"arm_swing"`
-	LegExtension float64 `json:"leg_extension"`
-}
-
-// GetBackgroundJobResponseLastResponseStorageURLs defines a model
-type GetBackgroundJobResponseLastResponseStorageURLs struct {
-	East      url.URL   `json:"east,omitzero"`
-	West      url.URL   `json:"west,omitzero"`
-	North     url.URL   `json:"north,omitzero"`
-	South     url.URL   `json:"south,omitzero"`
-	Frames    []url.URL `json:"frames,omitzero"`
-	NorthEast url.URL   `json:"north-east,omitzero"`
-	NorthWest url.URL   `json:"north-west,omitzero"`
-	SouthEast url.URL   `json:"south-east,omitzero"`
-	SouthWest url.URL   `json:"south-west,omitzero"`
-}
-
-// GetBackgroundJobResponseLastResponseUsage defines a model
-type GetBackgroundJobResponseLastResponseUsage struct {
-	Seconds float64 `json:"seconds"`
+	LastResponse *LastResponse `json:"last_response,omitzero"`
 }
 
 // Response model for balance endpoint
@@ -3193,7 +2896,7 @@ type GetCharacterResponse struct {
 	// URLs for all rotation images (null unless status == 'completed')
 	RotationURLs *RotationURLs `json:"rotation_urls,omitzero"`
 	// Style settings used during generation
-	StyleSettings *GetCharacterResponseStyleSettings `json:"style_settings,omitzero"`
+	StyleSettings *StyleSettings `json:"style_settings,omitzero"`
 	// Text guidance scale used
 	Guidance *float64 `json:"guidance,omitzero"`
 	// AI freedom parameter used
@@ -3211,20 +2914,20 @@ type GetCharacterResponse struct {
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type GetCharacterResponseSkeletons struct {
 	ThreeD         GetCharacterResponseSkeletons3d           `json:"3d,omitzero"`
-	TwoDReference  CharacterSkeletonsdReference              `json:"2d_reference,omitzero"`
+	TwoDReference  SkeletonReference                         `json:"2d_reference,omitzero"`
 	TwoDReferences GetCharacterResponseSkeletons2dReferences `json:"2d_references,omitzero"`
 }
 
 // GetCharacterResponseSkeletons2dReferences defines a model
 type GetCharacterResponseSkeletons2dReferences struct {
-	East      CharacterSkeletonsdReference `json:"east"`
-	West      CharacterSkeletonsdReference `json:"west"`
-	North     CharacterSkeletonsdReference `json:"north"`
-	South     CharacterSkeletonsdReference `json:"south"`
-	NorthEast CharacterSkeletonsdReference `json:"north-east"`
-	NorthWest CharacterSkeletonsdReference `json:"north-west"`
-	SouthEast CharacterSkeletonsdReference `json:"south-east"`
-	SouthWest CharacterSkeletonsdReference `json:"south-west"`
+	East      SkeletonReference `json:"east"`
+	West      SkeletonReference `json:"west"`
+	North     SkeletonReference `json:"north"`
+	South     SkeletonReference `json:"south"`
+	NorthEast SkeletonReference `json:"north-east"`
+	NorthWest SkeletonReference `json:"north-west"`
+	SouthEast SkeletonReference `json:"south-east"`
+	SouthWest SkeletonReference `json:"south-west"`
 }
 
 // GetCharacterResponseSkeletons3d defines a model
@@ -3253,14 +2956,6 @@ type GetCharacterResponseSkeletons3dKeypoints struct {
 	RightElbow    []float64 `json:"RIGHT ELBOW"`
 	LeftShoulder  []float64 `json:"LEFT SHOULDER"`
 	RightShoulder []float64 `json:"RIGHT SHOULDER"`
-}
-
-// Style settings used during generation
-type GetCharacterResponseStyleSettings struct {
-	Detail         Detail  `json:"detail,omitzero"`
-	Outline        Outline `json:"outline,omitzero"`
-	Shading        Shading `json:"shading,omitzero"`
-	GenerationMode string  `json:"generation_mode,omitzero"`
 }
 
 // GetGenerateFontProJobResponse defines a model
@@ -3371,7 +3066,7 @@ type GetRoomResponse struct {
 	// The room's picture (PNG, the rock round its walls transparent), as last saved in the website's room editor, else as painted
 	ImageURL string `json:"image_url,omitzero"`
 	// Its furniture cut out as movable pieces: only when asked
-	PiecesStatus GetRoomResponsePiecesStatus `json:"pieces_status"`
+	PiecesStatus PiecesStatus `json:"pieces_status"`
 	// The pieces' names
 	Pieces      []string `json:"pieces,omitzero"`
 	PiecesError string   `json:"pieces_error,omitzero"`
@@ -3389,26 +3084,6 @@ type GetRoomResponse struct {
 	FiledProjectID string `json:"filed_project_id,omitzero"`
 	CreatedAt      string `json:"created_at"`
 	UpdatedAt      string `json:"updated_at"`
-}
-
-// Its furniture cut out as movable pieces: only when asked
-type GetRoomResponsePiecesStatus string
-
-const (
-	GetRoomResponsePiecesStatusNotCut     GetRoomResponsePiecesStatus = "not_cut"
-	GetRoomResponsePiecesStatusProcessing GetRoomResponsePiecesStatus = "processing"
-	GetRoomResponsePiecesStatusCompleted  GetRoomResponsePiecesStatus = "completed"
-	GetRoomResponsePiecesStatusFailed     GetRoomResponsePiecesStatus = "failed"
-)
-
-// Valid indicates whether the value is a known member of the GetRoomResponsePiecesStatus enum.
-func (e GetRoomResponsePiecesStatus) Valid() bool {
-	switch e {
-	case GetRoomResponsePiecesStatusNotCut, GetRoomResponsePiecesStatusProcessing, GetRoomResponsePiecesStatusCompleted, GetRoomResponsePiecesStatusFailed:
-		return true
-	default:
-		return false
-	}
 }
 
 // GetRoomResponseStatus defines a model
@@ -3709,32 +3384,13 @@ type InpaintImageProFlashRequest struct {
 	//     format (str): The image format (e.g., "png", "jpeg")
 	ContextImage BaseImage `json:"context_image,omitzero"`
 	// The native source rectangle within the additional context image.
-	BoundingBox           ProFlashBoundingBox                     `json:"bounding_box,omitzero"`
-	NoBackground          bool                                    `json:"no_background,omitzero"`
-	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask   `json:"background_removal_task,omitzero"`
-	OutputMethod          InpaintImageProFlashRequestOutputMethod `json:"output_method,omitzero"`
-	CropToMask            bool                                    `json:"crop_to_mask,omitzero"`
-	Seed                  int                                     `json:"seed,omitzero"`
-	ProjectID             uuid.UUID                               `json:"project_id,omitzero"`
-}
-
-// InpaintImageProFlashRequestOutputMethod defines a model
-type InpaintImageProFlashRequestOutputMethod string
-
-const (
-	InpaintImageProFlashRequestOutputMethodNewLayerWithChanges           InpaintImageProFlashRequestOutputMethod = "New layer with changes"
-	InpaintImageProFlashRequestOutputMethodModifyCurrentLayerOnlyChanges InpaintImageProFlashRequestOutputMethod = "Modify current layer, only changes"
-	InpaintImageProFlashRequestOutputMethodModifyCurrentLayer            InpaintImageProFlashRequestOutputMethod = "Modify current layer"
-)
-
-// Valid indicates whether the value is a known member of the InpaintImageProFlashRequestOutputMethod enum.
-func (e InpaintImageProFlashRequestOutputMethod) Valid() bool {
-	switch e {
-	case InpaintImageProFlashRequestOutputMethodNewLayerWithChanges, InpaintImageProFlashRequestOutputMethodModifyCurrentLayerOnlyChanges, InpaintImageProFlashRequestOutputMethodModifyCurrentLayer:
-		return true
-	default:
-		return false
-	}
+	BoundingBox           ProFlashBoundingBox   `json:"bounding_box,omitzero"`
+	NoBackground          bool                  `json:"no_background,omitzero"`
+	BackgroundRemovalTask BackgroundRemovalTask `json:"background_removal_task,omitzero"`
+	OutputMethod          OutputMethod          `json:"output_method,omitzero"`
+	CropToMask            bool                  `json:"crop_to_mask,omitzero"`
+	Seed                  int                   `json:"seed,omitzero"`
+	ProjectID             uuid.UUID             `json:"project_id,omitzero"`
 }
 
 // Request model for image generation endpoint
@@ -3821,6 +3477,25 @@ type InterpolationRequest struct {
 	NoBackground *bool `json:"no_background,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every frame (one choice for all frames) is one of them; max_colors (2-64) caps the colours of every frame (one choice for all frames).
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
+type IsometricTileShape string
+
+const (
+	IsometricTileShapeThickTile IsometricTileShape = "thick tile"
+	IsometricTileShapeThinTile  IsometricTileShape = "thin tile"
+	IsometricTileShapeBlock     IsometricTileShape = "block"
+)
+
+// Valid indicates whether the value is a known member of the IsometricTileShape enum.
+func (e IsometricTileShape) Valid() bool {
+	switch e {
+	case IsometricTileShapeThickTile, IsometricTileShapeThinTile, IsometricTileShapeBlock:
+		return true
+	default:
+		return false
+	}
 }
 
 // Summary of an isometric tile for listing
@@ -3937,6 +3612,63 @@ type KeypointOutput struct {
 	Y      float64 `json:"y"`
 	Label  string  `json:"label"`
 	ZIndex float64 `json:"z_index"`
+}
+
+// Latest response data from the job
+type LastResponse struct {
+	Code                  *int              `json:"code,omitzero"`
+	Type                  string            `json:"type,omitzero"`
+	View                  CameraView        `json:"view,omitzero"`
+	Trace                 *struct{}         `json:"trace,omitzero"`
+	Detail                Detail            `json:"detail,omitzero"`
+	Status                string            `json:"status,omitzero"`
+	Progress              *float64          `json:"progress,omitzero"`
+	LimitType             *struct{}         `json:"limit_type,omitzero"`
+	TemplateID            string            `json:"template_id,omitzero"`
+	CharacterID           uuid.UUID         `json:"character_id,omitzero"`
+	NDirections           *int              `json:"n_directions,omitzero"`
+	CharacterName         string            `json:"character_name,omitzero"`
+	DirectionsType        string            `json:"directions_type,omitzero"`
+	NumberOfFrames        *int              `json:"number_of_frames,omitzero"`
+	CharacterDescription  string            `json:"character_description,omitzero"`
+	GenerationStartedAt   time.Time         `json:"generation_started_at,omitzero"`
+	QueuePosition         *int              `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds  *int              `json:"estimated_wait_seconds,omitzero"`
+	GenerationID          uuid.UUID         `json:"generation_id,omitzero"`
+	Seed                  *int              `json:"seed,omitzero"`
+	Usage                 LastResponseUsage `json:"usage,omitzero"`
+	Images                JobImages         `json:"images,omitzero"`
+	ImageWidth            *int              `json:"image_width,omitzero"`
+	ImageHeight           *int              `json:"image_height,omitzero"`
+	StorageURLs           *StorageURLs      `json:"storage_urls,omitzero"`
+	BillingUsage          BillingUsage      `json:"billing_usage,omitzero"`
+	BillingCharged        *bool             `json:"billing_charged,omitzero"`
+	DirectionsCount       *int              `json:"directions_count,omitzero"`
+	QuantizedImages       DirectionalImages `json:"quantized_images,omitzero"`
+	SavedToStorage        *bool             `json:"saved_to_storage,omitzero"`
+	UploadedDirections    []string          `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int              `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int              `json:"quantized_image_n_colors,omitzero"`
+	Err                   string            `json:"error,omitzero"`
+	GenerationMode        string            `json:"generation_mode,omitzero"`
+	SkeletonFramesDone    *int              `json:"skeleton_frames_done,omitzero"`
+	SkeletonFramesTotal   *int              `json:"skeleton_frames_total,omitzero"`
+	Action                string            `json:"action,omitzero"`
+	Direction             Direction         `json:"direction,omitzero"`
+	FrameCount            *int              `json:"frame_count,omitzero"`
+	AnimationName         string            `json:"animation_name,omitzero"`
+	GenerationModel       string            `json:"generation_model,omitzero"`
+	AnimationGroupID      uuid.UUID         `json:"animation_group_id,omitzero"`
+	AnimationID           uuid.UUID         `json:"animation_id,omitzero"`
+	TargetPalette         *struct{}         `json:"target_palette,omitzero"`
+	MotionAdjustments     MotionAdjustments `json:"motion_adjustments,omitzero"`
+	AnimationDescription  string            `json:"animation_description,omitzero"`
+	TemplateAnimationID   string            `json:"template_animation_id,omitzero"`
+}
+
+// LastResponseUsage defines a model
+type LastResponseUsage struct {
+	Seconds float64 `json:"seconds"`
 }
 
 // Sheet layout, as the website's tileset download offers it: 'tileset15' (default) the canonical 15-tileset sheet (4x4 tiles, 4x8 on a tall set), 'wang' the 5-wide Wang arrangement, 'godot' Godot's 3x3 autotile sheet (24x8 tiles; Godot's 3x3 has no cell for the two diagonal tiles, so they are left out).
@@ -4124,6 +3856,14 @@ func (e Mood) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// MotionAdjustments defines a model
+type MotionAdjustments struct {
+	Stride       float64 `json:"stride"`
+	Posture      float64 `json:"posture"`
+	ArmSwing     float64 `json:"arm_swing"`
+	LegExtension float64 `json:"leg_extension"`
 }
 
 // The creator's motion sliders. Any left out stay at the template's own motion.
@@ -4349,6 +4089,43 @@ func (e Outline) Valid() bool {
 	}
 }
 
+// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
+type OutlineMode string
+
+const (
+	OutlineModeOutline      OutlineMode = "outline"
+	OutlineModeSegmentation OutlineMode = "segmentation"
+)
+
+// Valid indicates whether the value is a known member of the OutlineMode enum.
+func (e OutlineMode) Valid() bool {
+	switch e {
+	case OutlineModeOutline, OutlineModeSegmentation:
+		return true
+	default:
+		return false
+	}
+}
+
+// OutputMethod defines a model
+type OutputMethod string
+
+const (
+	OutputMethodNewLayerWithChanges           OutputMethod = "New layer with changes"
+	OutputMethodModifyCurrentLayerOnlyChanges OutputMethod = "Modify current layer, only changes"
+	OutputMethodModifyCurrentLayer            OutputMethod = "Modify current layer"
+)
+
+// Valid indicates whether the value is a known member of the OutputMethod enum.
+func (e OutputMethod) Valid() bool {
+	switch e {
+	case OutputMethodNewLayerWithChanges, OutputMethodModifyCurrentLayerOnlyChanges, OutputMethodModifyCurrentLayer:
+		return true
+	default:
+		return false
+	}
+}
+
 // Automatic oval/ellipse mask generation
 type OvalInpainting struct {
 	Type string `json:"type,omitzero"`
@@ -4366,6 +4143,26 @@ func (v *OvalInpainting) unmarshalJSONMember(dec *jsontext.Decoder, name string)
 	}
 
 	return false, nil
+}
+
+// Its furniture cut out as movable pieces: only when asked
+type PiecesStatus string
+
+const (
+	PiecesStatusNotCut     PiecesStatus = "not_cut"
+	PiecesStatusProcessing PiecesStatus = "processing"
+	PiecesStatusCompleted  PiecesStatus = "completed"
+	PiecesStatusFailed     PiecesStatus = "failed"
+)
+
+// Valid indicates whether the value is a known member of the PiecesStatus enum.
+func (e PiecesStatus) Valid() bool {
+	switch e {
+	case PiecesStatusNotCut, PiecesStatusProcessing, PiecesStatusCompleted, PiecesStatusFailed:
+		return true
+	default:
+		return false
+	}
 }
 
 // Point defines a model
@@ -4495,7 +4292,7 @@ type RemoveBackgroundRequest struct {
 	// Width: 1-400 px. Height: 1-400 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better
-	BackgroundRemovalTask CreateImagePixenBackgroundRemovalTask `json:"background_removal_task,omitzero"`
+	BackgroundRemovalTask BackgroundRemovalTask `json:"background_removal_task,omitzero"`
 	// Optional description of the foreground object to help with removal
 	Text string `json:"text,omitzero"`
 	// Seed for reproducible generation
@@ -4540,6 +4337,24 @@ type ResizeRequest struct {
 	InitImageStrength *float64 `json:"init_image_strength,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
+type RoofProfile string
+
+const (
+	RoofProfileGable RoofProfile = "gable"
+	RoofProfileRound RoofProfile = "round"
+)
+
+// Valid indicates whether the value is a known member of the RoofProfile enum.
+func (e RoofProfile) Valid() bool {
+	switch e {
+	case RoofProfileGable, RoofProfileRound:
+		return true
+	default:
+		return false
+	}
 }
 
 // RoomDoor defines a model
@@ -4754,29 +4569,7 @@ type SelectObjectFramesResponse struct {
 // SetAnimationMirrorRequest defines a model
 type SetAnimationMirrorRequest struct {
 	// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
-	SourceDirection SetAnimationMirrorRequestSourceDirection `json:"source_direction"`
-}
-
-// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
-type SetAnimationMirrorRequestSourceDirection string
-
-const (
-	SetAnimationMirrorRequestSourceDirectionEast      SetAnimationMirrorRequestSourceDirection = "east"
-	SetAnimationMirrorRequestSourceDirectionWest      SetAnimationMirrorRequestSourceDirection = "west"
-	SetAnimationMirrorRequestSourceDirectionSouthEast SetAnimationMirrorRequestSourceDirection = "south-east"
-	SetAnimationMirrorRequestSourceDirectionSouthWest SetAnimationMirrorRequestSourceDirection = "south-west"
-	SetAnimationMirrorRequestSourceDirectionNorthEast SetAnimationMirrorRequestSourceDirection = "north-east"
-	SetAnimationMirrorRequestSourceDirectionNorthWest SetAnimationMirrorRequestSourceDirection = "north-west"
-)
-
-// Valid indicates whether the value is a known member of the SetAnimationMirrorRequestSourceDirection enum.
-func (e SetAnimationMirrorRequestSourceDirection) Valid() bool {
-	switch e {
-	case SetAnimationMirrorRequestSourceDirectionEast, SetAnimationMirrorRequestSourceDirectionWest, SetAnimationMirrorRequestSourceDirectionSouthEast, SetAnimationMirrorRequestSourceDirectionSouthWest, SetAnimationMirrorRequestSourceDirectionNorthEast, SetAnimationMirrorRequestSourceDirectionNorthWest:
-		return true
-	default:
-		return false
-	}
+	SourceDirection SourceDirection `json:"source_direction"`
 }
 
 // SetAnimationMirrorResponse defines a model
@@ -4831,13 +4624,13 @@ type SetTilesProImportRequest struct {
 	// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
 	Frames []BaseImage `json:"frames"`
 	// Shape of the tiles (as in /create-tiles-pro).
-	TileType CreateTilesProTileType `json:"tile_type"`
+	TileType TileType `json:"tile_type"`
 	// Tile size in pixels (the frames' width).
 	TileSize int `json:"tile_size"`
 	// What the tiles are; the group's name is its first 50 characters.
 	Description string `json:"description,omitzero"`
 	// The view the tiles are drawn in, recorded for the map editor.
-	TileView CreateTilesProTileView `json:"tile_view,omitzero"`
+	TileView TileView `json:"tile_view,omitzero"`
 	// The view angle in degrees the tiles are drawn at (0 side, 90 top-down), if known.
 	TileViewAngle *float64 `json:"tile_view_angle,omitzero"`
 	// The tiles' depth/thickness ratio (0-1), if known.
@@ -4858,7 +4651,7 @@ type SetTilesetImportRequest struct {
 	// One tileset sheet as PNG, in PixelLab's layout: the 15-tileset sheet the tileset download gives (4x4 tiles, or 4x8 for a tall set) or the 8-wide native sheet (8x8, or 8x16).
 	Spritesheet BaseImage `json:"spritesheet"`
 	// A top-down Wang terrain tileset or a sidescroller platform tileset.
-	TilesetMode SetTilesetImportRequestTilesetMode `json:"tileset_mode,omitzero"`
+	TilesetMode TilesetMode `json:"tileset_mode,omitzero"`
 	// Square 16, 24, 32 or 64. Read from the sheet when omitted; give it when a size reads two ways (256x256 is a 64px 4x4 sheet or a 32px 8-wide one - omitted, the 4x4 reading wins). Must match the sheet.
 	// Width and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.
 	// Width: any, 16 by default. Height: any, 16 by default.
@@ -4871,24 +4664,6 @@ type SetTilesetImportRequest struct {
 	TransitionDescription string `json:"transition_description,omitzero"`
 	// Display name; cropped from the terrain descriptions when omitted.
 	Name string `json:"name,omitzero"`
-}
-
-// A top-down Wang terrain tileset or a sidescroller platform tileset.
-type SetTilesetImportRequestTilesetMode string
-
-const (
-	SetTilesetImportRequestTilesetModeTopdown      SetTilesetImportRequestTilesetMode = "topdown"
-	SetTilesetImportRequestTilesetModeSidescroller SetTilesetImportRequestTilesetMode = "sidescroller"
-)
-
-// Valid indicates whether the value is a known member of the SetTilesetImportRequestTilesetMode enum.
-func (e SetTilesetImportRequestTilesetMode) Valid() bool {
-	switch e {
-	case SetTilesetImportRequestTilesetModeTopdown, SetTilesetImportRequestTilesetModeSidescroller:
-		return true
-	default:
-		return false
-	}
 }
 
 // SetTilesetImportResponse defines a model
@@ -4934,6 +4709,24 @@ func (e Shading) Valid() bool {
 	}
 }
 
+// Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.
+type ShapeStyle string
+
+const (
+	ShapeStyleSquare ShapeStyle = "square"
+	ShapeStyleRound  ShapeStyle = "round"
+)
+
+// Valid indicates whether the value is a known member of the ShapeStyle enum.
+func (e ShapeStyle) Valid() bool {
+	switch e {
+	case ShapeStyleSquare, ShapeStyleRound:
+		return true
+	default:
+		return false
+	}
+}
+
 // SidescrollerTilesetSummary defines a model
 type SidescrollerTilesetSummary struct {
 	ID                    uuid.UUID `json:"id"`
@@ -4943,6 +4736,28 @@ type SidescrollerTilesetSummary struct {
 	TileSize              struct{}  `json:"tile_size"`
 	CreatedAt             string    `json:"created_at"`
 	Status                string    `json:"status"`
+}
+
+// SkeletonKeypoints defines a model
+type SkeletonKeypoints struct {
+	Neck          SkeletonPoint `json:"NECK"`
+	Nose          SkeletonPoint `json:"NOSE"`
+	LeftArm       SkeletonPoint `json:"LEFT ARM"`
+	LeftEar       SkeletonPoint `json:"LEFT EAR"`
+	LeftEye       SkeletonPoint `json:"LEFT EYE"`
+	LeftHip       SkeletonPoint `json:"LEFT HIP"`
+	LeftLeg       SkeletonPoint `json:"LEFT LEG"`
+	LeftKnee      SkeletonPoint `json:"LEFT KNEE"`
+	RightArm      SkeletonPoint `json:"RIGHT ARM"`
+	RightEar      SkeletonPoint `json:"RIGHT EAR"`
+	RightEye      SkeletonPoint `json:"RIGHT EYE"`
+	RightHip      SkeletonPoint `json:"RIGHT HIP"`
+	RightLeg      SkeletonPoint `json:"RIGHT LEG"`
+	LeftElbow     SkeletonPoint `json:"LEFT ELBOW"`
+	RightKnee     SkeletonPoint `json:"RIGHT KNEE"`
+	RightElbow    SkeletonPoint `json:"RIGHT ELBOW"`
+	LeftShoulder  SkeletonPoint `json:"LEFT SHOULDER"`
+	RightShoulder SkeletonPoint `json:"RIGHT SHOULDER"`
 }
 
 // SkeletonLabel defines a model
@@ -4977,6 +4792,21 @@ func (e SkeletonLabel) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// SkeletonPoint defines a model
+type SkeletonPoint struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
+// SkeletonReference defines a model
+type SkeletonReference struct {
+	View      CameraView        `json:"view"`
+	Format    string            `json:"format"`
+	Source    string            `json:"source"`
+	Direction Direction         `json:"direction"`
+	Keypoints SkeletonKeypoints `json:"keypoints"`
 }
 
 // A song or loop take.
@@ -5037,6 +4867,28 @@ type SoundEffect struct {
 	CreatedAt string  `json:"created_at"`
 }
 
+// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
+type SourceDirection string
+
+const (
+	SourceDirectionEast      SourceDirection = "east"
+	SourceDirectionWest      SourceDirection = "west"
+	SourceDirectionSouthEast SourceDirection = "south-east"
+	SourceDirectionSouthWest SourceDirection = "south-west"
+	SourceDirectionNorthEast SourceDirection = "north-east"
+	SourceDirectionNorthWest SourceDirection = "north-west"
+)
+
+// Valid indicates whether the value is a known member of the SourceDirection enum.
+func (e SourceDirection) Valid() bool {
+	switch e {
+	case SourceDirectionEast, SourceDirectionWest, SourceDirectionSouthEast, SourceDirectionSouthWest, SourceDirectionNorthEast, SourceDirectionNorthWest:
+		return true
+	default:
+		return false
+	}
+}
+
 // StartedMusicResponse defines a model
 type StartedMusicResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -5063,6 +4915,27 @@ type StateResponse struct {
 	Name string `json:"name"`
 	// The state's own name
 	StateName string `json:"state_name"`
+}
+
+// StorageURLs defines a model
+type StorageURLs struct {
+	East      url.URL   `json:"east,omitzero"`
+	West      url.URL   `json:"west,omitzero"`
+	North     url.URL   `json:"north,omitzero"`
+	South     url.URL   `json:"south,omitzero"`
+	Frames    []url.URL `json:"frames,omitzero"`
+	NorthEast url.URL   `json:"north-east,omitzero"`
+	NorthWest url.URL   `json:"north-west,omitzero"`
+	SouthEast url.URL   `json:"south-east,omitzero"`
+	SouthWest url.URL   `json:"south-west,omitzero"`
+}
+
+// Style settings used during generation
+type StyleSettings struct {
+	Detail         Detail  `json:"detail,omitzero"`
+	Outline        Outline `json:"outline,omitzero"`
+	Shading        Shading `json:"shading,omitzero"`
+	GenerationMode string  `json:"generation_mode,omitzero"`
 }
 
 // Subscription generation balance
@@ -5121,6 +4994,54 @@ type TargetPalette struct {
 	MaxColors int `json:"max_colors,omitzero"`
 	// Beta, single images only: put each object on the palette as a whole (a face stays skin-coloured, wood stays brown) instead of giving every pixel its nearest colour. Needs colors; adds about 15-60 s.
 	Smart bool `json:"smart,omitzero"`
+}
+
+// One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.
+type TemplateAction string
+
+const (
+	TemplateActionWalking       TemplateAction = "walking"
+	TemplateActionRunning       TemplateAction = "running"
+	TemplateActionFullSprinting TemplateAction = "full sprinting"
+	TemplateActionIdleBreathing TemplateAction = "idle breathing"
+	TemplateActionPunch         TemplateAction = "punch"
+	TemplateActionLeftPunch     TemplateAction = "left punch"
+	TemplateActionHighKick      TemplateAction = "high kick"
+	TemplateActionSwoopKick     TemplateAction = "swoop kick"
+	TemplateActionTwoPunchCombo TemplateAction = "two punch combo"
+	TemplateActionUppercut      TemplateAction = "uppercut"
+)
+
+// Valid indicates whether the value is a known member of the TemplateAction enum.
+func (e TemplateAction) Valid() bool {
+	switch e {
+	case TemplateActionWalking, TemplateActionRunning, TemplateActionFullSprinting, TemplateActionIdleBreathing, TemplateActionPunch, TemplateActionLeftPunch, TemplateActionHighKick, TemplateActionSwoopKick, TemplateActionTwoPunchCombo, TemplateActionUppercut:
+		return true
+	default:
+		return false
+	}
+}
+
+// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
+type TemplateID string
+
+const (
+	TemplateIDMannequin TemplateID = "mannequin"
+	TemplateIDBear      TemplateID = "bear"
+	TemplateIDCat       TemplateID = "cat"
+	TemplateIDDog       TemplateID = "dog"
+	TemplateIDHorse     TemplateID = "horse"
+	TemplateIDLion      TemplateID = "lion"
+)
+
+// Valid indicates whether the value is a known member of the TemplateID enum.
+func (e TemplateID) Valid() bool {
+	switch e {
+	case TemplateIDMannequin, TemplateIDBear, TemplateIDCat, TemplateIDDog, TemplateIDHorse, TemplateIDLion:
+		return true
+	default:
+		return false
+	}
 }
 
 // Individual tile with metadata
@@ -5186,6 +5107,25 @@ func (e TileCornersNe) Valid() bool {
 	}
 }
 
+// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
+type TileFeature string
+
+const (
+	TileFeatureRoads    TileFeature = "roads"
+	TileFeatureTileset  TileFeature = "tileset"
+	TileFeatureBuilding TileFeature = "building"
+)
+
+// Valid indicates whether the value is a known member of the TileFeature enum.
+func (e TileFeature) Valid() bool {
+	switch e {
+	case TileFeatureRoads, TileFeatureTileset, TileFeatureBuilding:
+		return true
+	default:
+		return false
+	}
+}
+
 // TileJobResponse defines a model
 type TileJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -5207,6 +5147,48 @@ type TilePattern4x4 struct {
 	Row2 []int `json:"row_2"`
 	// Bottom row with wildcards
 	Row3 []int `json:"row_3"`
+}
+
+// TileType defines a model
+type TileType string
+
+const (
+	TileTypeHex           TileType = "hex"
+	TileTypeHexPointy     TileType = "hex_pointy"
+	TileTypeIsometric     TileType = "isometric"
+	TileTypeOblique       TileType = "oblique"
+	TileTypeOctagon       TileType = "octagon"
+	TileTypeSquareTopdown TileType = "square_topdown"
+)
+
+// Valid indicates whether the value is a known member of the TileType enum.
+func (e TileType) Valid() bool {
+	switch e {
+	case TileTypeHex, TileTypeHexPointy, TileTypeIsometric, TileTypeOblique, TileTypeOctagon, TileTypeSquareTopdown:
+		return true
+	default:
+		return false
+	}
+}
+
+// TileView defines a model
+type TileView string
+
+const (
+	TileViewTopDown     TileView = "top-down"
+	TileViewHighTopDown TileView = "high top-down"
+	TileViewLowTopDown  TileView = "low top-down"
+	TileViewSide        TileView = "side"
+)
+
+// Valid indicates whether the value is a known member of the TileView enum.
+func (e TileView) Valid() bool {
+	switch e {
+	case TileViewTopDown, TileViewHighTopDown, TileViewLowTopDown, TileViewSide:
+		return true
+	default:
+		return false
+	}
 }
 
 // A style reference image with its dimensions.
@@ -5283,6 +5265,24 @@ type TilesetMetadata struct {
 	GenerationParameters struct{} `json:"generation_parameters"`
 	// ISO timestamp when tileset was created
 	CreatedAt string `json:"created_at"`
+}
+
+// A top-down Wang terrain tileset or a sidescroller platform tileset.
+type TilesetMode string
+
+const (
+	TilesetModeTopdown      TilesetMode = "topdown"
+	TilesetModeSidescroller TilesetMode = "sidescroller"
+)
+
+// Valid indicates whether the value is a known member of the TilesetMode enum.
+func (e TilesetMode) Valid() bool {
+	switch e {
+	case TilesetModeTopdown, TilesetModeSidescroller:
+		return true
+	default:
+		return false
+	}
 }
 
 // The whole tileset as one PNG, in the layout asked for with ?layout=.

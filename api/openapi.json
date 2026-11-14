@@ -6205,7 +6205,7 @@
             }
           },
           "template_id": {
-            "$ref": "#/components/schemas/AnimateWithSkeletonV3RequestTemplateID"
+            "$ref": "#/components/schemas/TemplateID"
           },
           "seed": {
             "title": "Seed",
@@ -6257,20 +6257,6 @@
           ],
           "view": "low top-down"
         }
-      },
-      "AnimateWithSkeletonV3RequestTemplateID": {
-        "title": "Template Id",
-        "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
-        "type": "string",
-        "enum": [
-          "mannequin",
-          "bear",
-          "cat",
-          "dog",
-          "horse",
-          "lion"
-        ],
-        "default": "mannequin"
       },
       "AnimateWithTextRequest": {
         "title": "AnimateWithTextRequest",
@@ -6886,6 +6872,15 @@
           "state_name"
         ]
       },
+      "BackgroundRemovalTask": {
+        "title": "Background Removal Task",
+        "type": "string",
+        "enum": [
+          "remove_simple_background",
+          "remove_complex_background"
+        ],
+        "default": "remove_simple_background"
+      },
       "BaseImage": {
         "title": "Base64Image",
         "type": "object",
@@ -6913,6 +6908,29 @@
           "base64"
         ],
         "additionalProperties": false
+      },
+      "BillingUsage": {
+        "type": "object",
+        "properties": {
+          "usd": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          },
+          "type": {
+            "type": "string",
+            "example": "generations"
+          },
+          "generations": {
+            "type": "number",
+            "format": "double",
+            "example": 3.0
+          }
+        },
+        "required": [
+          "type",
+          "generations"
+        ]
       },
       "BoundingBox": {
         "title": "BoundingBox",
@@ -6957,6 +6975,14 @@
           "x": 10,
           "y": 10
         }
+      },
+      "BuildingLayout": {
+        "description": "Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).",
+        "type": "string",
+        "enum": [
+          "grid",
+          "materials"
+        ]
       },
       "CameraView": {
         "title": "CameraView",
@@ -7160,133 +7186,6 @@
           "heroic"
         ],
         "default": "default"
-      },
-      "CharacterSkeletonsdReference": {
-        "type": "object",
-        "properties": {
-          "view": {
-            "$ref": "#/components/schemas/CameraView"
-          },
-          "format": {
-            "type": "string",
-            "example": "2d"
-          },
-          "source": {
-            "type": "string",
-            "example": "estimated"
-          },
-          "direction": {
-            "$ref": "#/components/schemas/Direction"
-          },
-          "keypoints": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypoints"
-          }
-        },
-        "required": [
-          "view",
-          "format",
-          "source",
-          "direction",
-          "keypoints"
-        ]
-      },
-      "CharacterSkeletonsdReferenceKeypoints": {
-        "type": "object",
-        "properties": {
-          "NECK": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "NOSE": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT ARM": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT EAR": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT EYE": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT HIP": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT LEG": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT KNEE": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT ARM": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT EAR": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT EYE": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT HIP": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT LEG": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT ELBOW": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT KNEE": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT ELBOW": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "LEFT SHOULDER": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          },
-          "RIGHT SHOULDER": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReferenceKeypointsNeck"
-          }
-        },
-        "required": [
-          "NECK",
-          "NOSE",
-          "LEFT ARM",
-          "LEFT EAR",
-          "LEFT EYE",
-          "LEFT HIP",
-          "LEFT LEG",
-          "LEFT KNEE",
-          "RIGHT ARM",
-          "RIGHT EAR",
-          "RIGHT EYE",
-          "RIGHT HIP",
-          "RIGHT LEG",
-          "LEFT ELBOW",
-          "RIGHT KNEE",
-          "RIGHT ELBOW",
-          "LEFT SHOULDER",
-          "RIGHT SHOULDER"
-        ]
-      },
-      "CharacterSkeletonsdReferenceKeypointsNeck": {
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "number",
-            "format": "double",
-            "example": 0.4868011474609375
-          },
-          "y": {
-            "type": "number",
-            "format": "double",
-            "example": 0.31441497802734375
-          }
-        },
-        "required": [
-          "x",
-          "y"
-        ]
       },
       "CharacterSummary": {
         "title": "CharacterSummary",
@@ -7845,7 +7744,7 @@
             "description": "One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CreateCharacterAnimationRequestTemplateAction"
+                "$ref": "#/components/schemas/TemplateAction"
               },
               {
                 "type": "null"
@@ -7875,7 +7774,7 @@
                   "maxLength": 1000
                 },
                 "propertyNames": {
-                  "$ref": "#/components/schemas/CreateObjectAnimationDirectionsItem"
+                  "$ref": "#/components/schemas/DirectionPromptsKey"
                 }
               },
               {
@@ -8120,22 +8019,6 @@
           "pro"
         ],
         "example": "v3"
-      },
-      "CreateCharacterAnimationRequestTemplateAction": {
-        "description": "One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.",
-        "type": "string",
-        "enum": [
-          "walking",
-          "running",
-          "full sprinting",
-          "idle breathing",
-          "punch",
-          "left punch",
-          "high kick",
-          "swoop kick",
-          "two punch combo",
-          "uppercut"
-        ]
       },
       "CreateCharacterAnimationResponse": {
         "title": "CreateCharacterAnimationResponse",
@@ -8593,7 +8476,7 @@
                   "$ref": "#/components/schemas/BaseImage"
                 },
                 "propertyNames": {
-                  "$ref": "#/components/schemas/CreateCharacterRequestDirectionImagesKey"
+                  "$ref": "#/components/schemas/DirectionImagesKey"
                 }
               },
               {
@@ -8748,18 +8631,6 @@
               "view": "low top-down"
             }
           }
-        ]
-      },
-      "CreateCharacterRequestDirectionImagesKey": {
-        "type": "string",
-        "enum": [
-          "south-east",
-          "east",
-          "north-east",
-          "north",
-          "north-west",
-          "west",
-          "south-west"
         ]
       },
       "CreateCharacterResponse": {
@@ -9635,15 +9506,6 @@
           "text_guidance_scale": 3.0
         }
       },
-      "CreateImagePixenBackgroundRemovalTask": {
-        "title": "Background Removal Task",
-        "type": "string",
-        "enum": [
-          "remove_simple_background",
-          "remove_complex_background"
-        ],
-        "default": "remove_simple_background"
-      },
       "CreateImagePixenRequest": {
         "title": "CreateImagePixenRequest",
         "description": "Request model for Pixen image generation endpoint",
@@ -9711,7 +9573,7 @@
           },
           "background_removal_task": {
             "description": "Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better",
-            "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
+            "$ref": "#/components/schemas/BackgroundRemovalTask"
           },
           "seed": {
             "title": "Seed",
@@ -9894,7 +9756,7 @@
           },
           "background_removal_task": {
             "description": "Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better",
-            "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
+            "$ref": "#/components/schemas/BackgroundRemovalTask"
           },
           "init_image": {
             "description": "Initial image to start from",
@@ -10128,7 +9990,7 @@
             "default": 16
           },
           "isometric_tile_shape": {
-            "$ref": "#/components/schemas/CreateIsometricTileRequestIsometricTileShape"
+            "$ref": "#/components/schemas/IsometricTileShape"
           },
           "color_image": {
             "description": "Forced color palette, image containing colors used for palette",
@@ -10167,17 +10029,6 @@
             "width": 32
           }
         }
-      },
-      "CreateIsometricTileRequestIsometricTileShape": {
-        "title": "Isometric Tile Shape",
-        "description": "Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height",
-        "type": "string",
-        "enum": [
-          "thick tile",
-          "thin tile",
-          "block"
-        ],
-        "default": "block"
       },
       "CreateMapObjectRequest": {
         "title": "CreateMapObjectRequest",
@@ -10523,19 +10374,6 @@
           "style": "Upbeat 8-bit dungeon theme: a fast square-wave lead, a pulsing triangle bass and crisp noise drums, ending on a sting."
         }
       },
-      "CreateObjectAnimationDirectionsItem": {
-        "type": "string",
-        "enum": [
-          "south",
-          "south-west",
-          "west",
-          "north-west",
-          "north",
-          "north-east",
-          "east",
-          "south-east"
-        ]
-      },
       "CreateObjectAnimationMode": {
         "title": "Mode",
         "type": "string",
@@ -10672,7 +10510,7 @@
                   "maxLength": 1000
                 },
                 "propertyNames": {
-                  "$ref": "#/components/schemas/CreateObjectAnimationDirectionsItem"
+                  "$ref": "#/components/schemas/DirectionPromptsKey"
                 }
               },
               {
@@ -10709,7 +10547,7 @@
         "description": "Which directions to animate.\n\n- **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.\n- For 8-direction objects:\n  - **New animation**: omit `directions` to animate all 8 cardinals.\n  - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.\n  - If you do pass it explicitly, values must be a subset of the 8 cardinals.",
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/CreateObjectAnimationDirectionsItem"
+          "$ref": "#/components/schemas/DirectionPromptsKey"
         }
       },
       "CreateObjectAnimationResponse": {
@@ -11537,7 +11375,7 @@
           },
           "tile_type": {
             "description": "Shape of the tiles. hex: flat-top hexagonal, hex_pointy: pointy-top hexagonal, isometric: diamond/rhombus, oblique: true square top with the depth extruded diagonally down-right at 45 degrees (tileset/building only), octagon: 8-sided polygon, square_topdown: square at angle.",
-            "$ref": "#/components/schemas/CreateTilesProTileType"
+            "$ref": "#/components/schemas/TileType"
           },
           "tile_size": {
             "title": "Tile Size",
@@ -11563,7 +11401,7 @@
           },
           "tile_view": {
             "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.",
-            "$ref": "#/components/schemas/CreateTilesProTileView"
+            "$ref": "#/components/schemas/TileView"
           },
           "tile_view_angle": {
             "title": "Tile View Angle",
@@ -11608,14 +11446,14 @@
             ]
           },
           "outline_mode": {
-            "$ref": "#/components/schemas/CreateTilesProRequestOutlineMode"
+            "$ref": "#/components/schemas/OutlineMode"
           },
           "tile_feature": {
             "title": "Tile Feature",
             "description": "Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition (\"grass to water\"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CreateTilesProRequestTileFeature"
+                "$ref": "#/components/schemas/TileFeature"
               },
               {
                 "type": "null"
@@ -11641,7 +11479,7 @@
             "description": "Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CreateTilesProRequestBuildingLayout"
+                "$ref": "#/components/schemas/BuildingLayout"
               },
               {
                 "type": "null"
@@ -11706,7 +11544,7 @@
             "description": "Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CreateTilesProRequestRoofProfile"
+                "$ref": "#/components/schemas/RoofProfile"
               },
               {
                 "type": "null"
@@ -11820,65 +11658,6 @@
           "tile_view": "low top-down"
         }
       },
-      "CreateTilesProRequestBuildingLayout": {
-        "description": "Building kits: grid paints each shaped piece individually (richer, isometric default); materials paints flat swatches and renders pieces from them (more consistent, default for square_topdown/oblique).",
-        "type": "string",
-        "enum": [
-          "grid",
-          "materials"
-        ]
-      },
-      "CreateTilesProRequestOutlineMode": {
-        "title": "Outline Mode",
-        "description": "Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.",
-        "type": "string",
-        "enum": [
-          "outline",
-          "segmentation"
-        ],
-        "default": "outline"
-      },
-      "CreateTilesProRequestRoofProfile": {
-        "description": "Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.",
-        "type": "string",
-        "enum": [
-          "gable",
-          "round"
-        ]
-      },
-      "CreateTilesProRequestTileFeature": {
-        "description": "Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition (\"grass to water\"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.",
-        "type": "string",
-        "enum": [
-          "roads",
-          "tileset",
-          "building"
-        ]
-      },
-      "CreateTilesProTileType": {
-        "title": "Tile Type",
-        "type": "string",
-        "enum": [
-          "hex",
-          "hex_pointy",
-          "isometric",
-          "oblique",
-          "octagon",
-          "square_topdown"
-        ],
-        "default": "isometric"
-      },
-      "CreateTilesProTileView": {
-        "title": "Tile View",
-        "type": "string",
-        "enum": [
-          "top-down",
-          "high top-down",
-          "low top-down",
-          "side"
-        ],
-        "default": "low top-down"
-      },
       "CreateTilesetMode": {
         "title": "Mode",
         "type": "string",
@@ -11957,7 +11736,7 @@
             "description": "Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CreateTilesetRequestShapeStyle"
+                "$ref": "#/components/schemas/ShapeStyle"
               },
               {
                 "type": "null"
@@ -12270,14 +12049,6 @@
           "upper_description": "golden sandy beach",
           "view": "high top-down"
         }
-      },
-      "CreateTilesetRequestShapeStyle": {
-        "description": "Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.",
-        "type": "string",
-        "enum": [
-          "square",
-          "round"
-        ]
       },
       "CreateUIAssetRequest": {
         "title": "CreateUIAssetRequest",
@@ -13402,6 +13173,31 @@
           "north-east",
           "north-west",
           "none"
+        ]
+      },
+      "DirectionImagesKey": {
+        "type": "string",
+        "enum": [
+          "south-east",
+          "east",
+          "north-east",
+          "north",
+          "north-west",
+          "west",
+          "south-west"
+        ]
+      },
+      "DirectionPromptsKey": {
+        "type": "string",
+        "enum": [
+          "south",
+          "south-west",
+          "west",
+          "north-west",
+          "north",
+          "north-east",
+          "east",
+          "south-east"
         ]
       },
       "DirectionSubmission": {
@@ -15090,7 +14886,7 @@
             "description": "Latest response data from the job",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponse"
+                "$ref": "#/components/schemas/LastResponse"
               },
               {
                 "type": "null"
@@ -15126,323 +14922,6 @@
             "usd": 0.0
           }
         }
-      },
-      "GetBackgroundJobResponseLastResponse": {
-        "description": "Latest response data from the job",
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "example": 3007
-          },
-          "type": {
-            "type": "string",
-            "example": "error"
-          },
-          "view": {
-            "$ref": "#/components/schemas/CameraView"
-          },
-          "trace": {
-            "type": "null"
-          },
-          "detail": {
-            "$ref": "#/components/schemas/Detail"
-          },
-          "status": {
-            "type": "string",
-            "example": "initializing"
-          },
-          "progress": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          },
-          "limit_type": {
-            "type": "null"
-          },
-          "template_id": {
-            "type": "string",
-            "example": "mannequin"
-          },
-          "character_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "87e5c90e-ae41-4d57-9d85-1a4f307f8869"
-          },
-          "n_directions": {
-            "type": "integer",
-            "example": 4
-          },
-          "character_name": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
-          },
-          "directions_type": {
-            "type": "string",
-            "example": "4-directions"
-          },
-          "number_of_frames": {
-            "type": "integer",
-            "example": 1
-          },
-          "character_description": {
-            "type": "string",
-            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
-          },
-          "generation_started_at": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-10-03T18:33:53.605664+00:00"
-          },
-          "queue_position": {
-            "type": "integer",
-            "example": 0
-          },
-          "estimated_wait_seconds": {
-            "type": "integer",
-            "example": 0
-          },
-          "generation_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "726ce2d1-821a-4b39-b264-3dc8ba79bb43"
-          },
-          "seed": {
-            "type": "integer",
-            "example": 290733758
-          },
-          "usage": {
-            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseUsage"
-          },
-          "images": {
-            "$ref": "#/components/schemas/JobImages"
-          },
-          "image_width": {
-            "type": "integer",
-            "example": 68
-          },
-          "image_height": {
-            "type": "integer",
-            "example": 68
-          },
-          "storage_urls": {
-            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseStorageURLs"
-          },
-          "billing_usage": {
-            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseBillingUsage"
-          },
-          "billing_charged": {
-            "type": "boolean"
-          },
-          "directions_count": {
-            "type": "integer",
-            "example": 4
-          },
-          "quantized_images": {
-            "$ref": "#/components/schemas/DirectionalImages"
-          },
-          "saved_to_storage": {
-            "type": "boolean"
-          },
-          "uploaded_directions": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": "south"
-            }
-          },
-          "original_image_n_colors": {
-            "type": "integer",
-            "example": 110
-          },
-          "quantized_image_n_colors": {
-            "type": "integer",
-            "example": 21
-          },
-          "error": {
-            "type": "string",
-            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
-          },
-          "generation_mode": {
-            "type": "string",
-            "example": "pixen_v3"
-          },
-          "skeleton_frames_done": {
-            "type": "integer",
-            "example": 1
-          },
-          "skeleton_frames_total": {
-            "type": "integer",
-            "example": 8
-          },
-          "action": {
-            "type": "string",
-            "example": "walking"
-          },
-          "direction": {
-            "$ref": "#/components/schemas/Direction"
-          },
-          "frame_count": {
-            "type": "integer",
-            "example": 8
-          },
-          "animation_name": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "custom-walking"
-          },
-          "generation_model": {
-            "type": "string",
-            "example": "v3"
-          },
-          "animation_group_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "a9efa34c-78d9-4236-918f-d9b5132bb007"
-          },
-          "animation_id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "880ba3bc-08db-4647-b4aa-a3775b3f0cad"
-          },
-          "target_palette": {
-            "type": "null"
-          },
-          "motion_adjustments": {
-            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseMotionAdjustments"
-          },
-          "animation_description": {
-            "type": "string",
-            "example": "walking"
-          },
-          "template_animation_id": {
-            "type": "string",
-            "example": "walking-8-frames"
-          }
-        },
-        "additionalProperties": true
-      },
-      "GetBackgroundJobResponseLastResponseBillingUsage": {
-        "type": "object",
-        "properties": {
-          "usd": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          },
-          "type": {
-            "type": "string",
-            "example": "generations"
-          },
-          "generations": {
-            "type": "number",
-            "format": "double",
-            "example": 3.0
-          }
-        },
-        "required": [
-          "type",
-          "generations"
-        ]
-      },
-      "GetBackgroundJobResponseLastResponseMotionAdjustments": {
-        "type": "object",
-        "properties": {
-          "stride": {
-            "type": "number",
-            "format": "double",
-            "example": 1.0
-          },
-          "posture": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          },
-          "arm_swing": {
-            "type": "number",
-            "format": "double",
-            "example": 1.0
-          },
-          "leg_extension": {
-            "type": "number",
-            "format": "double",
-            "example": 0.0
-          }
-        },
-        "required": [
-          "stride",
-          "posture",
-          "arm_swing",
-          "leg_extension"
-        ]
-      },
-      "GetBackgroundJobResponseLastResponseStorageURLs": {
-        "type": "object",
-        "properties": {
-          "east": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/east.png"
-          },
-          "west": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/west.png"
-          },
-          "north": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/north.png"
-          },
-          "south": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/south.png"
-          },
-          "frames": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uri",
-              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
-            }
-          },
-          "north-east": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-east.png"
-          },
-          "north-west": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-west.png"
-          },
-          "south-east": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-east.png"
-          },
-          "south-west": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-west.png"
-          }
-        }
-      },
-      "GetBackgroundJobResponseLastResponseUsage": {
-        "type": "object",
-        "properties": {
-          "seconds": {
-            "type": "number",
-            "format": "double",
-            "example": 33.30775260925293
-          }
-        },
-        "required": [
-          "seconds"
-        ]
       },
       "GetBalanceResponse": {
         "title": "BalanceResponse",
@@ -15565,7 +15044,7 @@
             "description": "Style settings used during generation",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/GetCharacterResponseStyleSettings"
+                "$ref": "#/components/schemas/StyleSettings"
               },
               {
                 "type": "null"
@@ -15695,7 +15174,7 @@
             "$ref": "#/components/schemas/GetCharacterResponseSkeletons3d"
           },
           "2d_reference": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "2d_references": {
             "$ref": "#/components/schemas/GetCharacterResponseSkeletons2dReferences"
@@ -15707,28 +15186,28 @@
         "type": "object",
         "properties": {
           "east": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "west": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north-east": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "north-west": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south-east": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           },
           "south-west": {
-            "$ref": "#/components/schemas/CharacterSkeletonsdReference"
+            "$ref": "#/components/schemas/SkeletonReference"
           }
         },
         "required": [
@@ -15926,26 +15405,6 @@
           "LEFT SHOULDER",
           "RIGHT SHOULDER"
         ]
-      },
-      "GetCharacterResponseStyleSettings": {
-        "description": "Style settings used during generation",
-        "type": "object",
-        "properties": {
-          "detail": {
-            "$ref": "#/components/schemas/Detail"
-          },
-          "outline": {
-            "$ref": "#/components/schemas/Outline"
-          },
-          "shading": {
-            "$ref": "#/components/schemas/Shading"
-          },
-          "generation_mode": {
-            "type": "string",
-            "example": "pixen_v3"
-          }
-        },
-        "additionalProperties": true
       },
       "GetGenerateFontProJobResponse": {
         "title": "GetFontResponse",
@@ -16532,7 +15991,7 @@
             ]
           },
           "pieces_status": {
-            "$ref": "#/components/schemas/GetRoomResponsePiecesStatus"
+            "$ref": "#/components/schemas/PiecesStatus"
           },
           "pieces": {
             "title": "Pieces",
@@ -16634,17 +16093,6 @@
           "project_ids",
           "created_at",
           "updated_at"
-        ]
-      },
-      "GetRoomResponsePiecesStatus": {
-        "title": "Pieces Status",
-        "description": "Its furniture cut out as movable pieces: only when asked",
-        "type": "string",
-        "enum": [
-          "not_cut",
-          "processing",
-          "completed",
-          "failed"
         ]
       },
       "GetRoomResponseStatus": {
@@ -17501,10 +16949,10 @@
             "default": false
           },
           "background_removal_task": {
-            "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
+            "$ref": "#/components/schemas/BackgroundRemovalTask"
           },
           "output_method": {
-            "$ref": "#/components/schemas/InpaintImageProFlashRequestOutputMethod"
+            "$ref": "#/components/schemas/OutputMethod"
           },
           "crop_to_mask": {
             "title": "Crop To Mask",
@@ -17537,16 +16985,6 @@
           "description"
         ],
         "additionalProperties": false
-      },
-      "InpaintImageProFlashRequestOutputMethod": {
-        "title": "Output Method",
-        "type": "string",
-        "enum": [
-          "New layer with changes",
-          "Modify current layer, only changes",
-          "Modify current layer"
-        ],
-        "default": "Modify current layer"
       },
       "InpaintRequest": {
         "title": "InpaintRequest",
@@ -17938,6 +17376,17 @@
           }
         }
       },
+      "IsometricTileShape": {
+        "title": "Isometric Tile Shape",
+        "description": "Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height",
+        "type": "string",
+        "enum": [
+          "thick tile",
+          "thin tile",
+          "block"
+        ],
+        "default": "block"
+      },
       "IsometricTileSummary": {
         "title": "IsometricTileSummary",
         "description": "Summary of an isometric tile for listing",
@@ -18139,6 +17588,216 @@
           "z_index"
         ],
         "additionalProperties": false
+      },
+      "LastResponse": {
+        "description": "Latest response data from the job",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 3007
+          },
+          "type": {
+            "type": "string",
+            "example": "error"
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView"
+          },
+          "trace": {
+            "type": "null"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/Detail"
+          },
+          "status": {
+            "type": "string",
+            "example": "initializing"
+          },
+          "progress": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          },
+          "limit_type": {
+            "type": "null"
+          },
+          "template_id": {
+            "type": "string",
+            "example": "mannequin"
+          },
+          "character_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "87e5c90e-ae41-4d57-9d85-1a4f307f8869"
+          },
+          "n_directions": {
+            "type": "integer",
+            "example": 4
+          },
+          "character_name": {
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+          },
+          "directions_type": {
+            "type": "string",
+            "example": "4-directions"
+          },
+          "number_of_frames": {
+            "type": "integer",
+            "example": 1
+          },
+          "character_description": {
+            "type": "string",
+            "example": "chief engineer (a worker). Tall angular mining technician. Lean sharp-boned frame, long limbs, gaunt face, permanent scowl, furrowed brow, short dusty hair. Skin, hair and clothes coated in fine clinging orange-red iron dust. Faded grey-green work jumpsuit, stained and creased. Custom-modified heavy tool belt slung low, packed with wrenches, testers, spare clamps, jury-rigged extra pouches. Heavy industrial magnetic boots, thick soles, visible electromagnet housings. Faded mining-corp patch on left shoulder. Neutral industrial interior."
+          },
+          "generation_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-03T18:33:53.605664+00:00"
+          },
+          "queue_position": {
+            "type": "integer",
+            "example": 0
+          },
+          "estimated_wait_seconds": {
+            "type": "integer",
+            "example": 0
+          },
+          "generation_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "726ce2d1-821a-4b39-b264-3dc8ba79bb43"
+          },
+          "seed": {
+            "type": "integer",
+            "example": 290733758
+          },
+          "usage": {
+            "$ref": "#/components/schemas/LastResponseUsage"
+          },
+          "images": {
+            "$ref": "#/components/schemas/JobImages"
+          },
+          "image_width": {
+            "type": "integer",
+            "example": 68
+          },
+          "image_height": {
+            "type": "integer",
+            "example": 68
+          },
+          "storage_urls": {
+            "$ref": "#/components/schemas/StorageURLs"
+          },
+          "billing_usage": {
+            "$ref": "#/components/schemas/BillingUsage"
+          },
+          "billing_charged": {
+            "type": "boolean"
+          },
+          "directions_count": {
+            "type": "integer",
+            "example": 4
+          },
+          "quantized_images": {
+            "$ref": "#/components/schemas/DirectionalImages"
+          },
+          "saved_to_storage": {
+            "type": "boolean"
+          },
+          "uploaded_directions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "south"
+            }
+          },
+          "original_image_n_colors": {
+            "type": "integer",
+            "example": 110
+          },
+          "quantized_image_n_colors": {
+            "type": "integer",
+            "example": 21
+          },
+          "error": {
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
+          },
+          "generation_mode": {
+            "type": "string",
+            "example": "pixen_v3"
+          },
+          "skeleton_frames_done": {
+            "type": "integer",
+            "example": 1
+          },
+          "skeleton_frames_total": {
+            "type": "integer",
+            "example": 8
+          },
+          "action": {
+            "type": "string",
+            "example": "walking"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "frame_count": {
+            "type": "integer",
+            "example": 8
+          },
+          "animation_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "custom-walking"
+          },
+          "generation_model": {
+            "type": "string",
+            "example": "v3"
+          },
+          "animation_group_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "a9efa34c-78d9-4236-918f-d9b5132bb007"
+          },
+          "animation_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "880ba3bc-08db-4647-b4aa-a3775b3f0cad"
+          },
+          "target_palette": {
+            "type": "null"
+          },
+          "motion_adjustments": {
+            "$ref": "#/components/schemas/MotionAdjustments"
+          },
+          "animation_description": {
+            "type": "string",
+            "example": "walking"
+          },
+          "template_animation_id": {
+            "type": "string",
+            "example": "walking-8-frames"
+          }
+        },
+        "additionalProperties": true
+      },
+      "LastResponseUsage": {
+        "type": "object",
+        "properties": {
+          "seconds": {
+            "type": "number",
+            "format": "double",
+            "example": 33.30775260925293
+          }
+        },
+        "required": [
+          "seconds"
+        ]
       },
       "Layout": {
         "description": "Sheet layout, as the website's tileset download offers it: 'tileset15' (default) the canonical 15-tileset sheet (4x4 tiles, 4x8 on a tall set), 'wang' the 5-wide Wang arrangement, 'godot' Godot's 3x3 autotile sheet (24x8 tiles; Godot's 3x3 has no cell for the two diagonal tiles, so they are left out).",
@@ -18784,6 +18443,37 @@
           "surprised"
         ]
       },
+      "MotionAdjustments": {
+        "type": "object",
+        "properties": {
+          "stride": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "posture": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          },
+          "arm_swing": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "leg_extension": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          }
+        },
+        "required": [
+          "stride",
+          "posture",
+          "arm_swing",
+          "leg_extension"
+        ]
+      },
       "MotionSliders": {
         "title": "MotionSliders",
         "description": "The creator's motion sliders. Any left out stay at the template's own motion.",
@@ -19311,6 +19001,26 @@
           "single color black outline"
         ]
       },
+      "OutlineMode": {
+        "title": "Outline Mode",
+        "description": "Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.",
+        "type": "string",
+        "enum": [
+          "outline",
+          "segmentation"
+        ],
+        "default": "outline"
+      },
+      "OutputMethod": {
+        "title": "Output Method",
+        "type": "string",
+        "enum": [
+          "New layer with changes",
+          "Modify current layer, only changes",
+          "Modify current layer"
+        ],
+        "default": "Modify current layer"
+      },
       "OvalInpainting": {
         "title": "OvalInpainting",
         "description": "Automatic oval/ellipse mask generation",
@@ -19332,6 +19042,17 @@
           }
         },
         "additionalProperties": false
+      },
+      "PiecesStatus": {
+        "title": "Pieces Status",
+        "description": "Its furniture cut out as movable pieces: only when asked",
+        "type": "string",
+        "enum": [
+          "not_cut",
+          "processing",
+          "completed",
+          "failed"
+        ]
       },
       "Point": {
         "title": "Point",
@@ -19686,7 +19407,7 @@
           },
           "background_removal_task": {
             "description": "Background removal complexity. 'remove_simple_background' is faster, 'remove_complex_background' handles complex edges better",
-            "$ref": "#/components/schemas/CreateImagePixenBackgroundRemovalTask"
+            "$ref": "#/components/schemas/BackgroundRemovalTask"
           },
           "text": {
             "title": "Text",
@@ -19907,6 +19628,14 @@
             "width": 64
           }
         }
+      },
+      "RoofProfile": {
+        "description": "Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.",
+        "type": "string",
+        "enum": [
+          "gable",
+          "round"
+        ]
       },
       "RoomDoor": {
         "title": "RoomDoor",
@@ -20632,26 +20361,13 @@
         "type": "object",
         "properties": {
           "source_direction": {
-            "$ref": "#/components/schemas/SetAnimationMirrorRequestSourceDirection"
+            "$ref": "#/components/schemas/SourceDirection"
           }
         },
         "required": [
           "source_direction"
         ],
         "additionalProperties": false
-      },
-      "SetAnimationMirrorRequestSourceDirection": {
-        "title": "Source Direction",
-        "description": "Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.",
-        "type": "string",
-        "enum": [
-          "east",
-          "west",
-          "south-east",
-          "south-west",
-          "north-east",
-          "north-west"
-        ]
       },
       "SetAnimationMirrorResponse": {
         "title": "MirrorAnimationResponse",
@@ -20852,7 +20568,7 @@
           },
           "tile_type": {
             "description": "Shape of the tiles (as in /create-tiles-pro).",
-            "$ref": "#/components/schemas/CreateTilesProTileType"
+            "$ref": "#/components/schemas/TileType"
           },
           "tile_size": {
             "title": "Tile Size",
@@ -20871,7 +20587,7 @@
           },
           "tile_view": {
             "description": "The view the tiles are drawn in, recorded for the map editor.",
-            "$ref": "#/components/schemas/CreateTilesProTileView"
+            "$ref": "#/components/schemas/TileView"
           },
           "tile_view_angle": {
             "title": "Tile View Angle",
@@ -20955,7 +20671,7 @@
             "$ref": "#/components/schemas/BaseImage"
           },
           "tileset_mode": {
-            "$ref": "#/components/schemas/SetTilesetImportRequestTilesetMode"
+            "$ref": "#/components/schemas/TilesetMode"
           },
           "tile_size": {
             "description": "Square 16, 24, 32 or 64. Read from the sheet when omitted; give it when a size reads two ways (256x256 is a 64px 4x4 sheet or a 32px 8-wide one - omitted, the 4x4 reading wins). Must match the sheet.\nWidth and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.\nWidth: any, 16 by default. Height: any, 16 by default.",
@@ -21022,16 +20738,6 @@
           "spritesheet"
         ],
         "additionalProperties": false
-      },
-      "SetTilesetImportRequestTilesetMode": {
-        "title": "Tileset Mode",
-        "description": "A top-down Wang terrain tileset or a sidescroller platform tileset.",
-        "type": "string",
-        "enum": [
-          "topdown",
-          "sidescroller"
-        ],
-        "default": "topdown"
       },
       "SetTilesetImportResponse": {
         "title": "ImportTilesetResponse",
@@ -21134,6 +20840,14 @@
           "highly detailed shading"
         ]
       },
+      "ShapeStyle": {
+        "description": "Procedural boundary geometry for mode='standard'; 'round' when omitted, as on the website. mode='standard' ONLY — passing it with mode='pro' is rejected (pro's own shape controls are raggedness, roundness, boundary_amplitude and step_slope). Set 'square' or 'round' to generate with that exact tileset layout. Supports square 16, 24 or 32px tiles.",
+        "type": "string",
+        "enum": [
+          "square",
+          "round"
+        ]
+      },
       "SidescrollerTilesetSummary": {
         "title": "SidescrollerTilesetSummary",
         "type": "object",
@@ -21200,6 +20914,85 @@
           "status"
         ]
       },
+      "SkeletonKeypoints": {
+        "type": "object",
+        "properties": {
+          "NECK": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "NOSE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT ARM": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT EAR": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT EYE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT HIP": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT LEG": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT KNEE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT ARM": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT EAR": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT EYE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT HIP": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT LEG": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT ELBOW": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT KNEE": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT ELBOW": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "LEFT SHOULDER": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          },
+          "RIGHT SHOULDER": {
+            "$ref": "#/components/schemas/SkeletonPoint"
+          }
+        },
+        "required": [
+          "NECK",
+          "NOSE",
+          "LEFT ARM",
+          "LEFT EAR",
+          "LEFT EYE",
+          "LEFT HIP",
+          "LEFT LEG",
+          "LEFT KNEE",
+          "RIGHT ARM",
+          "RIGHT EAR",
+          "RIGHT EYE",
+          "RIGHT HIP",
+          "RIGHT LEG",
+          "LEFT ELBOW",
+          "RIGHT KNEE",
+          "RIGHT ELBOW",
+          "LEFT SHOULDER",
+          "RIGHT SHOULDER"
+        ]
+      },
       "SkeletonLabel": {
         "title": "SkeletonLabel",
         "type": "string",
@@ -21222,6 +21015,54 @@
           "LEFT EYE",
           "RIGHT EAR",
           "LEFT EAR"
+        ]
+      },
+      "SkeletonPoint": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double",
+            "example": 0.466813120059669
+          },
+          "y": {
+            "type": "number",
+            "format": "double",
+            "example": 0.28875414530436194
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "SkeletonReference": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "$ref": "#/components/schemas/CameraView"
+          },
+          "format": {
+            "type": "string",
+            "example": "2d"
+          },
+          "source": {
+            "type": "string",
+            "example": "estimated"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "keypoints": {
+            "$ref": "#/components/schemas/SkeletonKeypoints"
+          }
+        },
+        "required": [
+          "view",
+          "format",
+          "source",
+          "direction",
+          "keypoints"
         ]
       },
       "Song": {
@@ -21495,6 +21336,19 @@
           "created_at"
         ]
       },
+      "SourceDirection": {
+        "title": "Source Direction",
+        "description": "Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.",
+        "type": "string",
+        "enum": [
+          "east",
+          "west",
+          "south-east",
+          "south-west",
+          "north-east",
+          "north-west"
+        ]
+      },
       "StartedMusicResponse": {
         "title": "StartedMusicResponse",
         "type": "object",
@@ -21610,6 +21464,79 @@
           "name",
           "state_name"
         ]
+      },
+      "StorageURLs": {
+        "type": "object",
+        "properties": {
+          "east": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/east.png"
+          },
+          "west": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/west.png"
+          },
+          "north": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/north.png"
+          },
+          "south": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/5ab77257-0b21-439e-8c02-bfe1d7c9ad7c/rotations/south.png"
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/65ddaf25-4731-46d9-a7ae-fb1f56e4b3a4/8901396f-5807-4f57-90da-8443d1f6a517/animations/880ba3bc-08db-4647-b4aa-a3775b3f0cad/south/0.png"
+            }
+          },
+          "north-east": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-east.png"
+          },
+          "north-west": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/north-west.png"
+          },
+          "south-east": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-east.png"
+          },
+          "south-west": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-west.png"
+          }
+        }
+      },
+      "StyleSettings": {
+        "description": "Style settings used during generation",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/Detail"
+          },
+          "outline": {
+            "$ref": "#/components/schemas/Outline"
+          },
+          "shading": {
+            "$ref": "#/components/schemas/Shading"
+          },
+          "generation_mode": {
+            "type": "string",
+            "example": "pixen_v3"
+          }
+        },
+        "additionalProperties": true
       },
       "Subscription": {
         "title": "Subscription",
@@ -21875,6 +21802,36 @@
         },
         "additionalProperties": false
       },
+      "TemplateAction": {
+        "description": "One of the website's template animations that run on `mode='pixminimax'` (the default here) or `mode='v3'`: the motion is written for each direction from the action, so leave `action_description` out. Every action with its frame count and engines: `walking` (Walking, 8 frames, v3 or pixminimax); `running` (Running, 8 frames, v3 or pixminimax); `full sprinting` (Full Sprint, 8 frames, v3 or pixminimax); `idle breathing` (Idle, 8 frames, pixminimax only); `punch` (Right Punch, 8 frames, pixminimax only); `left punch` (Left Punch, 8 frames, pixminimax only); `high kick` (High Kick, 8 frames, pixminimax only); `swoop kick` (Swoop Kick, 8 frames, pixminimax only); `two punch combo` (Two Punch Combo, 16 frames, pixminimax only); `uppercut` (Uppercut, 8 frames, pixminimax only). The frame count is the action's own (leave `frame_count` out). One job per direction (south by default), priced like a custom animation of that frame count on the character's canvas. Works on every character, four-legged ones included.",
+        "type": "string",
+        "enum": [
+          "walking",
+          "running",
+          "full sprinting",
+          "idle breathing",
+          "punch",
+          "left punch",
+          "high kick",
+          "swoop kick",
+          "two punch combo",
+          "uppercut"
+        ]
+      },
+      "TemplateID": {
+        "title": "Template Id",
+        "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
+        "type": "string",
+        "enum": [
+          "mannequin",
+          "bear",
+          "cat",
+          "dog",
+          "horse",
+          "lion"
+        ],
+        "default": "mannequin"
+      },
       "Tile": {
         "title": "Tile",
         "description": "Individual tile with metadata",
@@ -22022,6 +21979,15 @@
           "transition"
         ]
       },
+      "TileFeature": {
+        "description": "Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition (\"grass to water\"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.",
+        "type": "string",
+        "enum": [
+          "roads",
+          "tileset",
+          "building"
+        ]
+      },
       "TileJobResponse": {
         "title": "CreateTilesProBackgroundResponse",
         "type": "object",
@@ -22109,6 +22075,30 @@
           "row_2",
           "row_3"
         ]
+      },
+      "TileType": {
+        "title": "Tile Type",
+        "type": "string",
+        "enum": [
+          "hex",
+          "hex_pointy",
+          "isometric",
+          "oblique",
+          "octagon",
+          "square_topdown"
+        ],
+        "default": "isometric"
+      },
+      "TileView": {
+        "title": "Tile View",
+        "type": "string",
+        "enum": [
+          "top-down",
+          "high top-down",
+          "low top-down",
+          "side"
+        ],
+        "default": "low top-down"
       },
       "TilesProStyleImage": {
         "title": "TilesProStyleImage",
@@ -22500,6 +22490,16 @@
           "generation_parameters",
           "created_at"
         ]
+      },
+      "TilesetMode": {
+        "title": "Tileset Mode",
+        "description": "A top-down Wang terrain tileset or a sidescroller platform tileset.",
+        "type": "string",
+        "enum": [
+          "topdown",
+          "sidescroller"
+        ],
+        "default": "topdown"
       },
       "TilesetSheet": {
         "title": "TilesetSheet",
