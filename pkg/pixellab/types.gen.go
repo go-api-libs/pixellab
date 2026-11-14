@@ -3071,50 +3071,54 @@ type GetBackgroundJobResponse struct {
 
 // Latest response data from the job
 type GetBackgroundJobResponseLastResponse struct {
-	Code                  *int                                             `json:"code,omitzero"`
-	Type                  string                                           `json:"type,omitzero"`
-	View                  CameraView                                       `json:"view,omitzero"`
-	Trace                 *struct{}                                        `json:"trace,omitzero"`
-	Detail                Detail                                           `json:"detail,omitzero"`
-	Status                string                                           `json:"status,omitzero"`
-	Progress              *float64                                         `json:"progress,omitzero"`
-	LimitType             *struct{}                                        `json:"limit_type,omitzero"`
-	TemplateID            string                                           `json:"template_id,omitzero"`
-	CharacterID           uuid.UUID                                        `json:"character_id,omitzero"`
-	NDirections           *int                                             `json:"n_directions,omitzero"`
-	CharacterName         string                                           `json:"character_name,omitzero"`
-	DirectionsType        string                                           `json:"directions_type,omitzero"`
-	NumberOfFrames        *int                                             `json:"number_of_frames,omitzero"`
-	CharacterDescription  string                                           `json:"character_description,omitzero"`
-	GenerationStartedAt   time.Time                                        `json:"generation_started_at,omitzero"`
-	QueuePosition         *int                                             `json:"queue_position,omitzero"`
-	EstimatedWaitSeconds  *int                                             `json:"estimated_wait_seconds,omitzero"`
-	GenerationID          uuid.UUID                                        `json:"generation_id,omitzero"`
-	Seed                  *int                                             `json:"seed,omitzero"`
-	Usage                 GetBackgroundJobResponseLastResponseUsage        `json:"usage,omitzero"`
-	Images                JobImages                                        `json:"images,omitzero"`
-	ImageWidth            *int                                             `json:"image_width,omitzero"`
-	ImageHeight           *int                                             `json:"image_height,omitzero"`
-	StorageURLs           *GetBackgroundJobResponseLastResponseStorageURLs `json:"storage_urls,omitzero"`
-	BillingUsage          GetBackgroundJobResponseLastResponseBillingUsage `json:"billing_usage,omitzero"`
-	BillingCharged        *bool                                            `json:"billing_charged,omitzero"`
-	DirectionsCount       *int                                             `json:"directions_count,omitzero"`
-	QuantizedImages       DirectionalImages                                `json:"quantized_images,omitzero"`
-	SavedToStorage        *bool                                            `json:"saved_to_storage,omitzero"`
-	UploadedDirections    []string                                         `json:"uploaded_directions,omitzero"`
-	OriginalImageNColors  *int                                             `json:"original_image_n_colors,omitzero"`
-	QuantizedImageNColors *int                                             `json:"quantized_image_n_colors,omitzero"`
-	Err                   string                                           `json:"error,omitzero"`
-	GenerationMode        string                                           `json:"generation_mode,omitzero"`
-	SkeletonFramesDone    *int                                             `json:"skeleton_frames_done,omitzero"`
-	SkeletonFramesTotal   *int                                             `json:"skeleton_frames_total,omitzero"`
-	Action                string                                           `json:"action,omitzero"`
-	Direction             Direction                                        `json:"direction,omitzero"`
-	FrameCount            *int                                             `json:"frame_count,omitzero"`
-	AnimationName         string                                           `json:"animation_name,omitzero"`
-	GenerationModel       string                                           `json:"generation_model,omitzero"`
-	AnimationGroupID      uuid.UUID                                        `json:"animation_group_id,omitzero"`
-	AnimationID           uuid.UUID                                        `json:"animation_id,omitzero"`
+	Code                  *int                                                  `json:"code,omitzero"`
+	Type                  string                                                `json:"type,omitzero"`
+	View                  CameraView                                            `json:"view,omitzero"`
+	Trace                 *struct{}                                             `json:"trace,omitzero"`
+	Detail                Detail                                                `json:"detail,omitzero"`
+	Status                string                                                `json:"status,omitzero"`
+	Progress              *float64                                              `json:"progress,omitzero"`
+	LimitType             *struct{}                                             `json:"limit_type,omitzero"`
+	TemplateID            string                                                `json:"template_id,omitzero"`
+	CharacterID           uuid.UUID                                             `json:"character_id,omitzero"`
+	NDirections           *int                                                  `json:"n_directions,omitzero"`
+	CharacterName         string                                                `json:"character_name,omitzero"`
+	DirectionsType        string                                                `json:"directions_type,omitzero"`
+	NumberOfFrames        *int                                                  `json:"number_of_frames,omitzero"`
+	CharacterDescription  string                                                `json:"character_description,omitzero"`
+	GenerationStartedAt   time.Time                                             `json:"generation_started_at,omitzero"`
+	QueuePosition         *int                                                  `json:"queue_position,omitzero"`
+	EstimatedWaitSeconds  *int                                                  `json:"estimated_wait_seconds,omitzero"`
+	GenerationID          uuid.UUID                                             `json:"generation_id,omitzero"`
+	Seed                  *int                                                  `json:"seed,omitzero"`
+	Usage                 GetBackgroundJobResponseLastResponseUsage             `json:"usage,omitzero"`
+	Images                JobImages                                             `json:"images,omitzero"`
+	ImageWidth            *int                                                  `json:"image_width,omitzero"`
+	ImageHeight           *int                                                  `json:"image_height,omitzero"`
+	StorageURLs           *GetBackgroundJobResponseLastResponseStorageURLs      `json:"storage_urls,omitzero"`
+	BillingUsage          GetBackgroundJobResponseLastResponseBillingUsage      `json:"billing_usage,omitzero"`
+	BillingCharged        *bool                                                 `json:"billing_charged,omitzero"`
+	DirectionsCount       *int                                                  `json:"directions_count,omitzero"`
+	QuantizedImages       DirectionalImages                                     `json:"quantized_images,omitzero"`
+	SavedToStorage        *bool                                                 `json:"saved_to_storage,omitzero"`
+	UploadedDirections    []string                                              `json:"uploaded_directions,omitzero"`
+	OriginalImageNColors  *int                                                  `json:"original_image_n_colors,omitzero"`
+	QuantizedImageNColors *int                                                  `json:"quantized_image_n_colors,omitzero"`
+	Err                   string                                                `json:"error,omitzero"`
+	GenerationMode        string                                                `json:"generation_mode,omitzero"`
+	SkeletonFramesDone    *int                                                  `json:"skeleton_frames_done,omitzero"`
+	SkeletonFramesTotal   *int                                                  `json:"skeleton_frames_total,omitzero"`
+	Action                string                                                `json:"action,omitzero"`
+	Direction             Direction                                             `json:"direction,omitzero"`
+	FrameCount            *int                                                  `json:"frame_count,omitzero"`
+	AnimationName         string                                                `json:"animation_name,omitzero"`
+	GenerationModel       string                                                `json:"generation_model,omitzero"`
+	AnimationGroupID      uuid.UUID                                             `json:"animation_group_id,omitzero"`
+	AnimationID           uuid.UUID                                             `json:"animation_id,omitzero"`
+	TargetPalette         *struct{}                                             `json:"target_palette,omitzero"`
+	MotionAdjustments     GetBackgroundJobResponseLastResponseMotionAdjustments `json:"motion_adjustments,omitzero"`
+	AnimationDescription  string                                                `json:"animation_description,omitzero"`
+	TemplateAnimationID   string                                                `json:"template_animation_id,omitzero"`
 }
 
 // GetBackgroundJobResponseLastResponseBillingUsage defines a model
@@ -3122,6 +3126,14 @@ type GetBackgroundJobResponseLastResponseBillingUsage struct {
 	Usd         *float64 `json:"usd,omitzero"`
 	Type        string   `json:"type"`
 	Generations float64  `json:"generations"`
+}
+
+// GetBackgroundJobResponseLastResponseMotionAdjustments defines a model
+type GetBackgroundJobResponseLastResponseMotionAdjustments struct {
+	Stride       float64 `json:"stride"`
+	Posture      float64 `json:"posture"`
+	ArmSwing     float64 `json:"arm_swing"`
+	LegExtension float64 `json:"leg_extension"`
 }
 
 // GetBackgroundJobResponseLastResponseStorageURLs defines a model

@@ -15287,7 +15287,10 @@
             "example": 8
           },
           "animation_name": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "example": "custom-walking"
           },
           "generation_model": {
@@ -15303,6 +15306,20 @@
             "type": "string",
             "format": "uuid",
             "example": "880ba3bc-08db-4647-b4aa-a3775b3f0cad"
+          },
+          "target_palette": {
+            "type": "null"
+          },
+          "motion_adjustments": {
+            "$ref": "#/components/schemas/GetBackgroundJobResponseLastResponseMotionAdjustments"
+          },
+          "animation_description": {
+            "type": "string",
+            "example": "walking"
+          },
+          "template_animation_id": {
+            "type": "string",
+            "example": "walking-8-frames"
           }
         },
         "additionalProperties": true
@@ -15328,6 +15345,37 @@
         "required": [
           "type",
           "generations"
+        ]
+      },
+      "GetBackgroundJobResponseLastResponseMotionAdjustments": {
+        "type": "object",
+        "properties": {
+          "stride": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "posture": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          },
+          "arm_swing": {
+            "type": "number",
+            "format": "double",
+            "example": 1.0
+          },
+          "leg_extension": {
+            "type": "number",
+            "format": "double",
+            "example": 0.0
+          }
+        },
+        "required": [
+          "stride",
+          "posture",
+          "arm_swing",
+          "leg_extension"
         ]
       },
       "GetBackgroundJobResponseLastResponseStorageURLs": {

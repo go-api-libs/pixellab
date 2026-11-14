@@ -1882,5 +1882,50 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/b8c785ca-9986-473b-beb1-be61e45b3fb4",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "548",
+				"Content-Type": "application/json",
+				"Date": "Thu, 12 Nov 2026 00:20:08 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "b8c785ca-9986-473b-beb1-be61e45b3fb4",
+				"status": "processing",
+				"created_at": "2026-11-12T00:20:07.717701+00:00",
+				"last_response": {
+					"direction": "west",
+					"character_id": "18036593-b14a-4fda-9e5b-b9d882501173",
+					"animation_name": null,
+					"target_palette": null,
+					"generation_model": "skeleton-v3_template",
+					"animation_group_id": "3928b1c6-afcc-479f-87b2-9d2be959fb82",
+					"motion_adjustments": {
+						"stride": 1.0,
+						"posture": 0.0,
+						"arm_swing": 1.0,
+						"leg_extension": 0.0
+					},
+					"animation_description": "walking",
+					"template_animation_id": "walking-8-frames"
+				}
+			}
+		}
 	}
 ]
