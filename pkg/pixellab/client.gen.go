@@ -12987,10 +12987,13 @@ func (c *Client) UploadWithTicket(ctx context.Context, ticket string, body Uploa
 // ## Usage
 //
 // You can reference this documentation in AI prompts:
-// - `@api.pixellab.ai/v2/llms.txt` in Claude
-// - Direct URL access for other tools
 //
-//	GET /llms.txt
+//   - `@www.pixellab.ai/llms.txt` in Claude (the canonical address; this route
+//     is its source)
+//
+//   - Direct URL access for other tools
+//
+//     GET /llms.txt
 func (c *Client) GetAPIDocs(ctx context.Context) ([]byte, error) {
 	u := c.baseURL.JoinPath("llms.txt")
 	req := (&http.Request{

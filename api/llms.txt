@@ -1,19 +1,28 @@
-# Pixel Lab API
+# PixelLab
 
-> REST API for generating game-ready pixel art: characters with 4 or 8 directional rotations, animations, tilesets, isometric tiles, map objects, and image editing (inpaint, rotate, resize, style transfer). Outputs are made for direct import into game engines.
+> PixelLab generates game-ready pixel art with AI: characters with 4 or 8 directions, animations, tilesets, isometric tiles, maps and map objects, UI, portraits, fonts, music and sound effects, plus pixel-exact editing. Agents reach it through a hosted MCP server or the REST API below.
 
-Base URL: `https://api.pixellab.ai/v2`. Authenticate every request with a Bearer token from your account page: `Authorization: Bearer YOUR_API_TOKEN`. Most generation endpoints are asynchronous — they return a job id you poll until the result is ready. The full parameters, enum values, and request/response shapes for every endpoint are in the OpenAPI spec and interactive docs linked below.
+This file is generated from the live API on every deploy, so the endpoint list is current. Its one address is https://www.pixellab.ai/llms.txt.
+
+**How agents should use PixelLab:**
+
+- **In a coding agent** (Claude Code, Cursor, Codex, Windsurf): connect the MCP server at `https://api.pixellab.ai/mcp`. It is hosted, so there is nothing to install. It authenticates with the same API token, and its tools are made for agents. The [setup page](https://www.pixellab.ai/mcp) has the steps for each client, and the [MCP tool guide](https://api.pixellab.ai/mcp/docs) documents every tool and parameter.
+- **In code you are writing** (an app, a script, a game backend): call the REST API at `https://api.pixellab.ai/v2`. Send `Authorization: Bearer YOUR_API_TOKEN` on every request. Some endpoints answer with the result; others are asynchronous and return a job id that you poll until the result is ready. Each endpoint's response schema says which.
+- Take parameters and enum values from the [OpenAPI spec](https://api.pixellab.ai/v2/openapi.json) rather than guessing them. Each endpoint below links its own reference.
+- Generations spend the account's generations or credits. Ask the user before running a large batch.
 
 ## API reference
 
 - [OpenAPI spec](https://api.pixellab.ai/v2/openapi.json): machine-readable schema of every endpoint, parameter, enum value, and request/response shape.
 - [Interactive API docs](https://api.pixellab.ai/v2/docs): browsable reference for all endpoints.
+- [API token](https://www.pixellab.ai/account): create an account and copy the token.
 
-## SDKs and tools
+## MCP and SDKs
 
+- [MCP server setup](https://www.pixellab.ai/mcp): connect `https://api.pixellab.ai/mcp` to Claude, Cursor, Codex, Windsurf and others.
+- [MCP tool guide](https://api.pixellab.ai/mcp/docs): every MCP tool, its parameters and costs, generated from the server.
 - [Python SDK](https://github.com/pixellab-code/pixellab-python): official Python client (`pip install pixellab`).
 - [JavaScript SDK](https://github.com/pixellab-code/pixellab-js): official JavaScript/TypeScript client.
-- [MCP server](https://www.pixellab.ai/mcp): the same generation tools for AI coding assistants (Claude, Cursor, Windsurf), hosted at `https://api.pixellab.ai/mcp` with nothing to install; the page has the setup for each client. [Tool guide](https://api.pixellab.ai/mcp/docs).
 
 ## Endpoints
 
@@ -290,12 +299,13 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 
 ## Guides
 
-- [Getting started](https://www.pixellab.ai/docs/getting-started): first steps with the API.
+- [Ways to use PixelLab](https://www.pixellab.ai/docs/ways-to-use-pixellab): the web tools, editor plugins, MCP and API side by side.
+- [Getting started](https://www.pixellab.ai/docs/getting-started): first steps.
 - [Rotating a character](https://www.pixellab.ai/docs/guides/rotating-a-character): generating 4- and 8-directional rotations.
 - [Map tiles](https://www.pixellab.ai/docs/guides/map-tiles): creating Wang tilesets for top-down games.
 
 ## Optional
 
-- [Account and API token](https://pixellab.ai/account): create an account and get your token.
+- [Website docs](https://www.pixellab.ai/docs): the web tools and editor plugins, for people rather than agents.
 - [Discord](https://discord.gg/pBeyTBF8T7): community and support.
 - [Email support](mailto:support@pixellab.ai): contact the team.
