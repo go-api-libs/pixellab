@@ -3370,7 +3370,7 @@ func (c *Client) DeleteCharacterAnimations(ctx context.Context, characterID uuid
 		q := make(url.Values, 3)
 
 		if params.AnimationType != "" {
-			q["animation_type"] = []string{params.AnimationType}
+			q["animation_type"] = []string{string(params.AnimationType)}
 		}
 
 		if params.AnimationGroupID != uuid.Nil() {

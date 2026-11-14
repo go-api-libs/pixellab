@@ -19,15 +19,20 @@ specification in five steps:
    upstream types anywhere is typed everywhere, and `formats` gives what
    upstream leaves bare, so the library has a `uuid.UUID` or `url.URL`, not a
    `string`. This runs again after the passes, for what the interactions show.
+   Make an enum of every string `declaredEnums` (`enums.go`) names, with the
+   values upstream documents, as a template animation or a subscription's
+   status: the interactions add the values they show.
 3. **Passes**: `openapi-enrich` with `api/interactions.json`, then
    `openapi-flatten`, `openapi-compress` and `openapi-flatten` again, as the
    commands of the same names would.
 4. **Consolidate** (`consolidate.go`): name the bodies compress merged, and merge
-   what upstream repeats per endpoint: the enums of `enumFamilies`, every
-   width-and-height object into `ImageSize`, and every object of one URL per
-   direction into `RotationURLs`. An enum joins its family only where it
-   shares a value with another, and a plain string of a family's property, as
-   a response's `direction`, refers to the merged enum. A job's images, which
+   what upstream repeats per endpoint: the enums of `enumFamilies` and of
+   `declaredEnums`, every width-and-height object into `ImageSize`, and every
+   object of one URL per direction into `RotationURLs`. An enum joins its
+   family only where it shares a value with another, and a plain string of a
+   family's property, as a response's `direction`, refers to the merged enum,
+   as does what `declaredEnums` names that only an interaction shows, as a
+   job's `last_response.template_id`. A job's images, which
    upstream gives no schema, are named by their shape: `Image`,
    `DirectionalImages`, `Images` and `JobImages`, either of the two.
 5. **Generate**: write `api/openapi.json`, the library with `openapi-codegen`,

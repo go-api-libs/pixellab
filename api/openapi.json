@@ -6205,7 +6205,8 @@
             }
           },
           "template_id": {
-            "$ref": "#/components/schemas/TemplateID"
+            "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "seed": {
             "title": "Seed",
@@ -6703,10 +6704,8 @@
         "type": "object",
         "properties": {
           "animation_type": {
-            "title": "Animation Type",
             "description": "Template animation ID (e.g. 'walk', 'run')",
-            "type": "string",
-            "example": "breathing-idle"
+            "$ref": "#/components/schemas/AnimationTemplate"
           },
           "display_name": {
             "title": "Display Name",
@@ -6810,6 +6809,28 @@
           "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
           "status": "processing"
         }
+      },
+      "AnimationTemplate": {
+        "title": "AnimationTemplate",
+        "type": "string",
+        "enum": [
+          "angry",
+          "attack",
+          "attack-back",
+          "attack-left",
+          "attack-right",
+          "backflip",
+          "bark",
+          "breathing-idle",
+          "cross-punch",
+          "crouched-walking",
+          "drinking",
+          "fight-stance-idle-8-frames",
+          "picking-up",
+          "running-8-frames",
+          "sad-walk",
+          "walking-8-frames"
+        ]
       },
       "AssetNamesResponse": {
         "title": "AssetNamesResponse",
@@ -6935,6 +6956,19 @@
         "required": [
           "type",
           "generations"
+        ]
+      },
+      "BodyTemplate": {
+        "title": "BodyTemplate",
+        "type": "string",
+        "enum": [
+          "mannequin",
+          "bear",
+          "cat",
+          "dog",
+          "horse",
+          "lion",
+          "custom"
         ]
       },
       "BoundingBox": {
@@ -7257,9 +7291,8 @@
             "type": "integer"
           },
           "template_id": {
-            "title": "Template Id",
             "description": "Template used for character creation",
-            "type": "string"
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "view": {
             "description": "The view the character was created with, in the values the create endpoints take: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down).\nOne of: low top-down, high top-down, side, oblique.",
@@ -7738,7 +7771,8 @@
             "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Animation template ID. Required for template mode. Available: `angry`, `attack`, `attack-back`, `attack-left`, `attack-right`, `backflip`, `bark`, `breathing-idle`, `cross-punch`, `crouched-walking`, ...",
+                "$ref": "#/components/schemas/AnimationTemplate"
               },
               {
                 "type": "null"
@@ -8233,27 +8267,13 @@
             "default": 8
           },
           "template_id": {
-            "$ref": "#/components/schemas/CreateCharacterProFlashRequestTemplateID"
+            "$ref": "#/components/schemas/BodyTemplate"
           }
         },
         "required": [
           "description"
         ],
         "additionalProperties": false
-      },
-      "CreateCharacterProFlashRequestTemplateID": {
-        "title": "Template Id",
-        "type": "string",
-        "enum": [
-          "mannequin",
-          "bear",
-          "cat",
-          "dog",
-          "horse",
-          "lion",
-          "custom"
-        ],
-        "default": "mannequin"
       },
       "CreateCharacterProFlashResponse": {
         "title": "CreateCharacterProFlashResponse",
@@ -8328,10 +8348,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "template_id": {
-            "title": "Template Id",
             "description": "Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Quadruped templates also append \", on all fours\" to the description so generated frames match the chosen skeleton. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.",
-            "type": "string",
-            "default": "mannequin"
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "concept_image": {
             "description": "Optional concept image (max 1024x1024). Used with `method=create_from_concept`.",
@@ -8517,10 +8535,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "template_id": {
-            "title": "Template Id",
             "description": "Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.",
-            "type": "string",
-            "default": "mannequin"
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "name": {
             "title": "Name",
@@ -8940,7 +8956,8 @@
             "description": "Template ID to use (e.g., 'mannequin' for humanoid, 'bear'/'cat'/'dog'/'horse'/'lion' for quadrupeds). Defaults to 'mannequin'.",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Template ID to use (e.g., 'mannequin' for humanoid, 'bear'/'cat'/'dog'/'horse'/'lion' for quadrupeds). Defaults to 'mannequin'.",
+                "$ref": "#/components/schemas/BodyTemplate"
               },
               {
                 "type": "null"
@@ -9164,7 +9181,8 @@
             "description": "Template ID to use. Must be one of: 'mannequin' (the only humanoid template), 'bear', 'cat', 'dog', 'horse', 'lion' (quadrupeds). Defaults to 'mannequin'. Note 'humanoid' is NOT a template id — it is only a value for the separate template_types filter, and passing it here fails with \"Template not found\".",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Template ID to use. Must be one of: 'mannequin' (the only humanoid template), 'bear', 'cat', 'dog', 'horse', 'lion' (quadrupeds). Defaults to 'mannequin'. Note 'humanoid' is NOT a template id — it is only a value for the separate template_types filter, and passing it here fails with \"Template not found\".",
+                "$ref": "#/components/schemas/BodyTemplate"
               },
               {
                 "type": "null"
@@ -15021,10 +15039,8 @@
             "example": 0
           },
           "template_id": {
-            "title": "Template Id",
             "description": "Template used for character creation",
-            "type": "string",
-            "example": "mannequin"
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "view": {
             "description": "The view the character was created with, in the values the create endpoints take: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down).\nOne of: low top-down, high top-down, side, oblique.",
@@ -17634,8 +17650,7 @@
             "type": "null"
           },
           "template_id": {
-            "type": "string",
-            "example": "mannequin"
+            "$ref": "#/components/schemas/BodyTemplate"
           },
           "character_id": {
             "type": "string",
@@ -17791,8 +17806,7 @@
             "example": "walking"
           },
           "template_animation_id": {
-            "type": "string",
-            "example": "walking-8-frames"
+            "$ref": "#/components/schemas/AnimationTemplate"
           }
         },
         "additionalProperties": true
@@ -21563,13 +21577,8 @@
             "default": "generations"
           },
           "status": {
-            "title": "Status",
             "description": "Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, or expired once their team's plan has ended.",
-            "type": "string",
-            "example": "trial",
-            "examples": [
-              "active"
-            ]
+            "$ref": "#/components/schemas/SubscriptionStatus"
           },
           "plan": {
             "title": "Plan",
@@ -21611,6 +21620,17 @@
           "status",
           "generations",
           "total"
+        ]
+      },
+      "SubscriptionStatus": {
+        "title": "SubscriptionStatus",
+        "type": "string",
+        "enum": [
+          "active",
+          "trial",
+          "expired",
+          "none",
+          "enterprise"
         ]
       },
       "TalkingGifRequest": {
@@ -21835,20 +21855,6 @@
           "two punch combo",
           "uppercut"
         ]
-      },
-      "TemplateID": {
-        "title": "Template Id",
-        "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
-        "type": "string",
-        "enum": [
-          "mannequin",
-          "bear",
-          "cat",
-          "dog",
-          "horse",
-          "lion"
-        ],
-        "default": "mannequin"
       },
       "Tile": {
         "title": "Tile",
@@ -28780,7 +28786,8 @@
           "description": "Animation type shown by get_character (e.g. 'walk', 'idle').",
           "anyOf": [
             {
-              "type": "string"
+              "description": "Animation type shown by get_character (e.g. 'walk', 'idle').",
+              "$ref": "#/components/schemas/AnimationTemplate"
             },
             {
               "type": "null"

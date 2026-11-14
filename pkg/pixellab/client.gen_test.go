@@ -35760,7 +35760,7 @@ func TestClient_Params(t *testing.T) {
 		}
 
 		_, _ = c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), &DeleteCharacterAnimationsParams{
-			AnimationType: "animation_type",
+			AnimationType: AnimationTemplateWalking8Frames,
 			Direction:     DirectionNone,
 		})
 
@@ -35768,8 +35768,8 @@ func TestClient_Params(t *testing.T) {
 			t.Fatal("no request was sent")
 		}
 
-		if v := got.URL.Query().Get("animation_type"); v != "animation_type" {
-			t.Errorf("query %s: got %q, want %q", "animation_type", v, "animation_type")
+		if v := got.URL.Query().Get("animation_type"); v != "walking-8-frames" {
+			t.Errorf("query %s: got %q, want %q", "animation_type", v, "walking-8-frames")
 		}
 		if v := got.URL.Query().Get("direction"); v != "none" {
 			t.Errorf("query %s: got %q, want %q", "direction", v, "none")
