@@ -33,7 +33,8 @@ specification in five steps:
    family only where it shares a value with another, and a plain string of a
    family's property, as a response's `direction`, refers to the merged enum,
    as does what `declaredEnums` names that only an interaction shows, as a
-   job's `last_response.template_id`. A job's images, which
+   job's `last_response.status`, whose enum takes every value recorded there.
+   A job's images, which
    upstream gives no schema, are named by their shape: `Image`,
    `DirectionalImages`, `Images` and `JobImages`, either of the two.
 5. **Generate**: write `api/openapi.json`, the library with `openapi-codegen`,

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/MarkRosemaker/cassette"
 	"github.com/MarkRosemaker/openapi"
 	edit "github.com/MarkRosemaker/openapi-edit"
 )
@@ -57,12 +58,43 @@ var declaredEnums = map[string]declaredEnum{
 		at:     []string{"CharacterDetail.status", "CharacterSummary.status"},
 	},
 
-	// "Current job status (processing, completed, failed)", besides "pending" and "running" of some, and "stalled"
-	// and "finalizing" of a font's and a portrait's: what each response that starts a job, or reads one, says of it
+	// "Current job status (processing, completed, failed)", besides "pending" and "running" of some, "stalled" and
+	// "finalizing" of a font's and a portrait's, and the "queued" a state or an object starts out as: what each response
+	// that starts a job, or reads one, says of it
 	"JobStatus": {
-		values: []string{"processing", "completed", "failed", "pending", "running", "stalled", "finalizing"},
+		values: []string{"queued", "processing", "completed", "failed", "pending", "running", "stalled", "finalizing"},
 		at:     []string{"GetVocalAnimationResponse.status"}, // "processing, completed or failed"
 		match:  isJobStatus,
+	},
+
+	// what a job is doing, as its last answer says: upstream writes nothing of it, so the recorded interactions give
+	// every value
+	"JobStage": {
+		at: []string{"GET /background-jobs/{job_id} last_response.status"},
+	},
+
+	// "Object status (pending, processing, completed, review, failed; expanding / review-expansion while an
+	// 8-direction expansion runs or awaits review)"
+	"ObjectStatus": {
+		values: []string{"pending", "processing", "completed", "review", "failed", "expanding", "review-expansion"},
+		at:     []string{"ObjectDetail.status", "ObjectSummary.status"},
+	},
+
+	// "Generation status: completed, processing, or failed" of a tile or tileset, "processing | completed | failed" of
+	// a UI asset, and the enum of a room; the tiles pro and sidescroller summaries, which say nothing of theirs, are
+	// listed beside the others
+	"AssetStatus": {
+		values: []string{"processing", "completed", "failed"},
+		at: []string{
+			"IsometricTileSummary.status", "SidescrollerTilesetSummary.status", "TilesetSummary.status",
+			"TilesProSummary.status", "UIAssetDetail.status", "UIAssetSummary.status", "Room.status",
+		},
+	},
+
+	// "pending, running, completed or failed" of a song and a sound effect
+	"SoundStatus": {
+		values: []string{"pending", "running", "completed", "failed"},
+		at:     []string{"Song.status", "SoundEffect.status"},
 	},
 
 	// "Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, ..."
@@ -73,17 +105,18 @@ var declaredEnums = map[string]declaredEnum{
 }
 
 // declaredEnum is the values an enum of declaredEnums documents, and where it holds strings to them: the places at
-// names, and the properties match picks, by their name and schema in the original.
+// names, and the properties match picks, by the schema that holds them, their name and their schema in the original.
 type declaredEnum struct {
 	values, at []string
-	match      func(property string, s *openapi.Schema) bool
+	match      func(owner *openapi.Schema, property string, s *openapi.Schema) bool
 }
 
-// isJobStatus reports whether a property is a job's status, as upstream writes one: a status that starts out
-// "processing", or that it calls a job's. One it fixes with a const, as "Always 'processing'", stays as it is.
-func isJobStatus(property string, s *openapi.Schema) bool {
-	return property == "status" && len(s.Const) == 0 &&
-		(string(s.Default) == `"processing"` || strings.Contains(strings.ToLower(s.Description), "job status"))
+// isJobStatus reports whether a property is a job's status: a status beside the job's background_job_id, or one that
+// starts out "processing" or that upstream calls a job's. One it fixes with a const, as "Always 'processing'", or
+// gives an enum of its own, as a direction's submission's "queued" or "rate_limited", stays as it is.
+func isJobStatus(owner *openapi.Schema, property string, s *openapi.Schema) bool {
+	return property == "status" && len(s.Const) == 0 && len(s.Enum) == 0 && (owner.Properties["background_job_id"] != nil ||
+		string(s.Default) == `"processing"` || strings.Contains(strings.ToLower(s.Description), "job status"))
 }
 
 // enumMark marks a string declareEnums made an enum of with the name of its enum, which consolidateEnums merges them
@@ -121,7 +154,7 @@ func declareEnums(doc *openapi.Document) (map[string]bool, error) {
 
 		for schema, s := range doc.Components.Schemas.ByIndex() {
 			for prop, p := range s.Properties.ByIndex() {
-				if !e.match(prop, p) {
+				if !e.match(s, prop, p) {
 					continue
 				}
 
@@ -142,12 +175,18 @@ func declareEnums(doc *openapi.Document) (map[string]bool, error) {
 }
 
 // referDeclaredEnums makes the places of declaredEnums that declareEnums did not find, which the passes made, refer to
-// their enum, which takes the value each was recorded with.
-func referDeclaredEnums(doc *openapi.Document, declared map[string]bool) error {
+// their enum, which takes every value an interaction recorded there, and is made where nothing else holds it.
+func referDeclaredEnums(doc *openapi.Document, declared map[string]bool, ias cassette.Interactions) error {
 	var unused []string
 
 	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
 		enum := doc.Components.Schemas[name]
+		if enum == nil {
+			enum = &openapi.Schema{Title: name, Type: openapi.TypeString}
+			for _, v := range declaredEnums[name].values {
+				enum.Enum = append(enum.Enum, jsontext.Value(`"`+v+`"`))
+			}
+		}
 
 		for _, at := range declaredEnums[name].at {
 			if declared[at] {
@@ -165,9 +204,13 @@ func referDeclaredEnums(doc *openapi.Document, declared map[string]bool) error {
 					return fmt.Errorf("%s: not a plain string", at)
 				}
 
-				if s.Example != nil && !slices.ContainsFunc(enum.Enum, func(e jsontext.Value) bool { return string(e) == string(s.Example) }) {
-					enum.Enum = append(enum.Enum, s.Example)
+				for _, v := range append(recordedValues(ias, at), s.Example) {
+					if v != nil && !slices.ContainsFunc(enum.Enum, func(e jsontext.Value) bool { return string(e) == string(v) }) {
+						enum.Enum = append(enum.Enum, v)
+					}
 				}
+
+				doc.Components.Schemas.Set(name, enum)
 
 				ref := edit.SchemaRef(doc, name)
 				ref.Description = s.Description
@@ -310,4 +353,55 @@ func resolved(s *openapi.Schema) *openapi.Schema {
 	}
 
 	return s
+}
+
+// recordedValues is every string an interaction recorded at the place at, as "METHOD path property.property" of what
+// an operation answers, in the order recorded.
+func recordedValues(ias cassette.Interactions, at string) []jsontext.Value {
+	f := strings.Fields(at)
+	if len(f) != 3 {
+		return nil
+	}
+
+	var vals []jsontext.Value
+
+	for _, ia := range ias {
+		if ia.Request.Method != f[0] || !matchesPath(strings.TrimPrefix(ia.Request.URL.Path, pathPrefix), f[1]) {
+			continue
+		}
+
+		var v any
+		if json.Unmarshal(ia.Response.Body, &v) != nil {
+			continue
+		}
+
+		for prop := range strings.SplitSeq(f[2], ".") {
+			m, _ := v.(map[string]any)
+			v = m[prop]
+		}
+
+		if str, ok := v.(string); ok {
+			if val, err := json.Marshal(str); err == nil && !slices.ContainsFunc(vals, func(e jsontext.Value) bool { return string(e) == string(val) }) {
+				vals = append(vals, val)
+			}
+		}
+	}
+
+	return vals
+}
+
+// matchesPath reports whether path is one of template's, as /background-jobs/{job_id}.
+func matchesPath(path, template string) bool {
+	got, want := strings.Split(path, "/"), strings.Split(template, "/")
+	if len(got) != len(want) {
+		return false
+	}
+
+	for i, w := range want {
+		if !strings.HasPrefix(w, "{") && got[i] != w {
+			return false
+		}
+	}
+
+	return true
 }

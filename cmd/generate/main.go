@@ -96,7 +96,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	if err := referDeclaredEnums(doc, declared); err != nil {
+	if err := referDeclaredEnums(doc, declared, ias); err != nil {
 		return err
 	}
 

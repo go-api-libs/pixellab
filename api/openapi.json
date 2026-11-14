@@ -6896,6 +6896,15 @@
           "state_name"
         ]
       },
+      "AssetStatus": {
+        "title": "AssetStatus",
+        "type": "string",
+        "enum": [
+          "processing",
+          "completed",
+          "failed"
+        ]
+      },
       "BackgroundRemovalTask": {
         "title": "Background Removal Task",
         "type": "string",
@@ -7519,9 +7528,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "n_frames": {
             "title": "N Frames",
@@ -8304,8 +8311,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "estimated_generations": {
             "title": "Estimated Generations",
@@ -8810,45 +8816,6 @@
           "character_id": "456e7890-e89b-12d3-a456-426614174001",
           "edit_description": "wearing red armor"
         }
-      },
-      "CreateCharacterStateResponse": {
-        "title": "CreateCharacterStateResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Usage"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "example": {
-              "type": "usd",
-              "usd": 0.02
-            }
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string",
-            "format": "uuid"
-          },
-          "character_id": {
-            "title": "Character Id",
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "character_id"
-        ]
       },
       "CreateCharacterWith4DirectionsRequest": {
         "title": "CreateCharacterWith4DirectionsRequest",
@@ -10861,8 +10828,7 @@
             "format": "uuid"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "estimated_generations": {
             "title": "Estimated Generations",
@@ -10936,45 +10902,6 @@
         "example": {
           "edit_description": "add moss and lichen"
         }
-      },
-      "CreateObjectStateResponse": {
-        "title": "CreateObjectStateResponse",
-        "type": "object",
-        "properties": {
-          "usage": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Usage"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "example": {
-              "type": "usd",
-              "usd": 0.02
-            }
-          },
-          "background_job_id": {
-            "title": "Background Job Id",
-            "type": "string",
-            "format": "uuid"
-          },
-          "object_id": {
-            "title": "Object Id",
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string",
-            "default": "queued"
-          }
-        },
-        "required": [
-          "background_job_id",
-          "object_id"
-        ]
       },
       "CreatePortraitCharacterProRequest": {
         "title": "PortraitCharacterProRequest",
@@ -15780,7 +15707,8 @@
             "description": "Object status (pending, processing, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Object status (pending, processing, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
+                "$ref": "#/components/schemas/ObjectStatus"
               },
               {
                 "type": "null"
@@ -15981,7 +15909,7 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "status": {
-            "$ref": "#/components/schemas/GetRoomResponseStatus"
+            "$ref": "#/components/schemas/AssetStatus"
           },
           "stage": {
             "title": "Stage",
@@ -16178,15 +16106,6 @@
           "project_ids",
           "created_at",
           "updated_at"
-        ]
-      },
-      "GetRoomResponseStatus": {
-        "title": "Status",
-        "type": "string",
-        "enum": [
-          "processing",
-          "completed",
-          "failed"
         ]
       },
       "GetTilesProResponse": {
@@ -16626,8 +16545,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "output_count": {
             "title": "Output Count",
@@ -17529,9 +17447,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: completed, processing, or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -17592,10 +17509,21 @@
           }
         }
       },
+      "JobStage": {
+        "title": "JobStage",
+        "type": "string",
+        "enum": [
+          "initializing",
+          "generating_sprite",
+          "building_skeleton",
+          "completed"
+        ]
+      },
       "JobStatus": {
         "title": "JobStatus",
         "type": "string",
         "enum": [
+          "queued",
           "processing",
           "completed",
           "failed",
@@ -17706,8 +17634,7 @@
             "$ref": "#/components/schemas/Detail"
           },
           "status": {
-            "type": "string",
-            "example": "initializing"
+            "$ref": "#/components/schemas/JobStage"
           },
           "progress": {
             "type": "number",
@@ -18881,7 +18808,6 @@
       },
       "ObjectJobResponse": {
         "title": "CreateMapObjectResponse",
-        "description": "Response model for map object creation (background job)",
         "type": "object",
         "properties": {
           "usage": {
@@ -18924,6 +18850,19 @@
           "object_id": "456e7890-e89b-12d3-a456-426614174001",
           "status": "queued"
         }
+      },
+      "ObjectStatus": {
+        "title": "ObjectStatus",
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "review",
+          "failed",
+          "expanding",
+          "review-expansion"
+        ]
       },
       "ObjectSummary": {
         "title": "ObjectSummary",
@@ -19016,7 +18955,8 @@
             "description": "Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)",
+                "$ref": "#/components/schemas/ObjectStatus"
               },
               {
                 "type": "null"
@@ -19241,8 +19181,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/JobStatus"
           },
           "output_count": {
             "title": "Output Count",
@@ -20991,8 +20930,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -21167,9 +21105,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "pending, running, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/SoundStatus"
           },
           "error": {
             "title": "Error",
@@ -21357,9 +21294,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "pending, running, completed or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/SoundStatus"
           },
           "error": {
             "title": "Error",
@@ -21425,6 +21361,16 @@
           "prompt",
           "seconds",
           "created_at"
+        ]
+      },
+      "SoundStatus": {
+        "title": "SoundStatus",
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "completed",
+          "failed"
         ]
       },
       "SourceDirection": {
@@ -22320,8 +22266,7 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -22684,9 +22629,8 @@
             "type": "string"
           },
           "status": {
-            "title": "Status",
             "description": "Generation status: completed, processing, or failed",
-            "type": "string"
+            "$ref": "#/components/schemas/AssetStatus"
           }
         },
         "required": [
@@ -22894,7 +22838,8 @@
             "description": "processing | completed | failed",
             "anyOf": [
               {
-                "type": "string"
+                "description": "processing | completed | failed",
+                "$ref": "#/components/schemas/AssetStatus"
               },
               {
                 "type": "null"
@@ -23131,7 +23076,8 @@
             "description": "processing | completed | failed",
             "anyOf": [
               {
-                "type": "string"
+                "description": "processing | completed | failed",
+                "$ref": "#/components/schemas/AssetStatus"
               },
               {
                 "type": "null"
@@ -24352,7 +24298,7 @@
           "application/json": {
             "schema": {
               "description": "Response model for 8-direction object creation.",
-              "$ref": "#/components/schemas/CreateObjectStateResponse"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }
@@ -24491,7 +24437,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateCharacterStateResponse"
+              "$ref": "#/components/schemas/CharacterJobResponse"
             }
           }
         }
@@ -24830,6 +24776,7 @@
         "content": {
           "application/json": {
             "schema": {
+              "description": "Response model for map object creation (background job)",
               "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
@@ -25011,7 +24958,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/CreateObjectStateResponse"
+              "$ref": "#/components/schemas/ObjectJobResponse"
             }
           }
         }

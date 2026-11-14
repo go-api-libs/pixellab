@@ -22,6 +22,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("AnimationTemplate(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []AssetStatus{AssetStatusProcessing, AssetStatusCompleted, AssetStatusFailed} {
+		if !v.Valid() {
+			t.Errorf("AssetStatus %v: not valid", v)
+		}
+	}
+
+	if AssetStatus("not a member").Valid() {
+		t.Errorf("AssetStatus(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []BackgroundRemovalTask{BackgroundRemovalTaskRemoveSimpleBackground, BackgroundRemovalTaskRemoveComplexBackground} {
 		if !v.Valid() {
 			t.Errorf("BackgroundRemovalTask %v: not valid", v)
@@ -242,16 +252,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("GenerateFontProRequestWeight(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []GetRoomResponseStatus{GetRoomResponseStatusProcessing, GetRoomResponseStatusCompleted, GetRoomResponseStatusFailed} {
-		if !v.Valid() {
-			t.Errorf("GetRoomResponseStatus %v: not valid", v)
-		}
-	}
-
-	if GetRoomResponseStatus("not a member").Valid() {
-		t.Errorf("GetRoomResponseStatus(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []IsometricTileShape{IsometricTileShapeThickTile, IsometricTileShapeThinTile, IsometricTileShapeBlock} {
 		if !v.Valid() {
 			t.Errorf("IsometricTileShape %v: not valid", v)
@@ -262,7 +262,17 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("IsometricTileShape(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []JobStatus{JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing} {
+	for _, v := range []JobStage{JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted} {
+		if !v.Valid() {
+			t.Errorf("JobStage %v: not valid", v)
+		}
+	}
+
+	if JobStage("not a member").Valid() {
+		t.Errorf("JobStage(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []JobStatus{JobStatusQueued, JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing} {
 		if !v.Valid() {
 			t.Errorf("JobStatus %v: not valid", v)
 		}
@@ -320,6 +330,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if NormalMapRequestKind("not a member").Valid() {
 		t.Errorf("NormalMapRequestKind(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []ObjectStatus{ObjectStatusPending, ObjectStatusProcessing, ObjectStatusCompleted, ObjectStatusReview, ObjectStatusFailed, ObjectStatusExpanding, ObjectStatusReviewExpansion} {
+		if !v.Valid() {
+			t.Errorf("ObjectStatus %v: not valid", v)
+		}
+	}
+
+	if ObjectStatus("not a member").Valid() {
+		t.Errorf("ObjectStatus(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []Operation{OperationCreate, OperationEdit, OperationInpaint, OperationCharacter, OperationObject} {
@@ -450,6 +470,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if SkeletonLabel("not a member").Valid() {
 		t.Errorf("SkeletonLabel(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []SoundStatus{SoundStatusPending, SoundStatusRunning, SoundStatusCompleted, SoundStatusFailed} {
+		if !v.Valid() {
+			t.Errorf("SoundStatus %v: not valid", v)
+		}
+	}
+
+	if SoundStatus("not a member").Valid() {
+		t.Errorf("SoundStatus(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []SourceDirection{SourceDirectionEast, SourceDirectionWest, SourceDirectionSouthEast, SourceDirectionSouthWest, SourceDirectionNorthEast, SourceDirectionNorthWest} {
