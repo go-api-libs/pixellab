@@ -175,6 +175,8 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 //
 // ```
 //
+// Returns: Response model for generate-image-v2 endpoint (background job)
+//
 //	POST /generate-image-v2
 func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("generate-image-v2")
@@ -363,6 +365,8 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 // # Output size is deduced from the style images (64x64 here)
 // ```
 //
+// Returns: Response model for generate-with-style-v2 endpoint (background job)
+//
 //	POST /generate-with-style-v2
 func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("generate-with-style-v2")
@@ -518,6 +522,8 @@ func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixflux
 // 1. POST to this endpoint (returns `background_job_id`)
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
 // 3. When `status` is `completed`, the image is in `last_response.image.base64`
+//
+// Returns: Response model for the background pixflux endpoint
 //
 //	POST /create-image-pixflux-background
 func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateImagePixfluxRequest) (*JobResponse, error) {
@@ -693,6 +699,8 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 // result.image.pil_image().save("pixelart.png")
 // ```
 //
+// Returns: Response for completed image to pixel art conversion
+//
 //	POST /image-to-pixelart
 func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartRequest) (*ImageResponse, error) {
 	u := c.baseURL.JoinPath("image-to-pixelart")
@@ -784,6 +792,8 @@ func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartReques
 //
 // )
 // ```
+//
+// Returns: Response model for image to pixel art (pro) endpoint (background job)
 //
 //	POST /image-to-pixelart-pro
 func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartProRequest) (*JobResponse, error) {
@@ -1075,6 +1085,8 @@ func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterReques
 //
 // )
 // ```
+//
+// Returns: Response — async; poll `/v2/background-jobs/{id}` for results.
 //
 //	POST /create-character-pro
 func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterProRequest) (*CharacterJobResponse, error) {
@@ -1480,6 +1492,8 @@ func (c *Client) CreateCharacterState(ctx context.Context, body CreateCharacterS
 // )
 // ```
 //
+// Returns: Response model for 4-directions character creation (background job)
+//
 //	POST /create-character-with-4-directions
 func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body CreateCharacterWith4DirectionsRequest) (*CharacterJobResponse, error) {
 	u := c.baseURL.JoinPath("create-character-with-4-directions")
@@ -1620,6 +1634,8 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 // south_facing = response.images["south"]
 // east_facing = response.images["east"]
 // ```
+//
+// Returns: Response model for 8-directions character creation (background job)
 //
 //	POST /create-character-with-8-directions
 func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body CreateCharacterWith8DirectionsRequest) (*CharacterJobResponse, error) {
@@ -2223,6 +2239,8 @@ func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.U
 // **Authentication:**
 // Requires a valid API token. You can only update tags for characters you created.
 //
+// Body: Request to update character tags
+//
 //	PATCH /characters/{character_id}/tags
 func (c *Client) UpdateCharacterTags(ctx context.Context, characterID uuid.UUID, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
 	u := c.baseURL.JoinPath("characters", characterID.String(), "tags")
@@ -2366,6 +2384,8 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 // Produces an object rendered from 8 angles in one shot.
 //
 // For a static single-direction object, use [POST /v2/create-1-direction-object](#api-1/tag/objects/POST/create-1-direction-object). To create a state/variant of an existing object, use [POST /v2/objects/{object_id}/states](#api-1/tag/objects/POST/objects/{object_id}/states). To create an object placed in a specific map, use [POST /v2/map-objects](#api-1/tag/map-objects/POST/map-objects).
+//
+// Returns: Response model for 8-direction object creation.
 //
 //	POST /create-8-direction-object
 func (c *Client) Create8DirectionObject(ctx context.Context, body Create8DirectionObjectRequest) (*ObjectJobResponse, error) {
@@ -3200,6 +3220,8 @@ func (c *Client) UpdateObject(ctx context.Context, objectID uuid.UUID, body Upda
 // **Authentication:**
 // Requires a valid API token. You can only update tags for objects you created.
 //
+// Body: Request to update object tags
+//
 //	PATCH /objects/{object_id}/tags
 func (c *Client) UpdateObjectTags(ctx context.Context, objectID uuid.UUID, body UpdateTagsRequest) (*UpdateTagsResponse, error) {
 	u := c.baseURL.JoinPath("objects", objectID.String(), "tags")
@@ -3905,6 +3927,8 @@ func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRe
 //
 // ```
 //
+// Returns: Response model for interpolation-v2 endpoint (background job)
+//
 //	POST /interpolation-v2
 func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("interpolation-v2")
@@ -4021,6 +4045,8 @@ func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (
 //
 // ```
 //
+// Returns: Response model for edit-animation-v2 endpoint (background job)
+//
 //	POST /edit-animation-v2
 func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("edit-animation-v2")
@@ -4134,6 +4160,8 @@ func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (
 //	image.pil_image().save(f"frame_{i}.png")
 //
 // ```
+//
+// Returns: Response model for transfer-outfit-v2 endpoint (background job)
 //
 //	POST /transfer-outfit-v2
 func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest) (*JobResponse, error) {
@@ -4260,6 +4288,8 @@ func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest)
 //	frame.pil_image().save(f"frame_{i}.png")
 //
 // ```
+//
+// Returns: Response model for text-to-animation endpoint (background job)
 //
 //	POST /animate-with-text-v2
 func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Request) (*JobResponse, error) {
@@ -4513,6 +4543,8 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 // is nearly free, so prefer one long clip to several short ones.
 //
 // Typical generation time: 2-3 minutes.
+//
+// Returns: Background job response. Poll GET /v2/background-jobs/{id} for results.
 //
 //	POST /animate-with-skeleton-v3
 func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkeletonV3Request) (*JobResponse, error) {
@@ -5856,6 +5888,8 @@ func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID,
 //
 // ```
 //
+// Returns: Background job response. Poll GET /v2/background-jobs/{id} for results.
+//
 //	POST /generate-8-rotations-v3
 func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8RotationsV3Request) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("generate-8-rotations-v3")
@@ -5963,6 +5997,8 @@ func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8Rotatio
 //
 // )
 // ```
+//
+// Returns: Response model for generate-8-rotations-v2 endpoint (background job)
 //
 //	POST /generate-8-rotations-v2
 func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8RotationsV2Request) (*JobResponse, error) {
@@ -6163,6 +6199,8 @@ func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse
 // )
 // ```
 //
+// Returns: Response model for edit-images endpoint (background job)
+//
 //	POST /edit-images-v2
 func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("edit-images-v2")
@@ -6246,6 +6284,8 @@ func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobRe
 // 1. POST to this endpoint (returns `background_job_id`)
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
 // 3. When `status` is `completed`, the edited image is in `last_response`
+//
+// Returns: Response model for the Pixen image edit endpoint (background job)
 //
 //	POST /edit-image-pixen
 func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest) (*JobResponse, error) {
@@ -6396,6 +6436,8 @@ func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*Sav
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds
 // 3. When `status` is `completed`, edited image is in `last_response`
 //
+// Returns: Response model for image editing endpoint (background job)
+//
 //	POST /edit-image
 func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("edit-image")
@@ -6497,6 +6539,8 @@ func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResp
 //
 // response.images[0].pil_image().save("edited.png")
 // ```
+//
+// Returns: Response model for inpaint-v3 endpoint (background job)
 //
 //	POST /inpaint-v3
 func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResponse, error) {
@@ -6987,6 +7031,8 @@ func (c *Client) GetTileset(ctx context.Context, tilesetID uuid.UUID, params *Ge
 
 // Permanently delete a top-down tileset you own, plus any lingering background_jobs rows for it. Cannot be undone.
 //
+// Returns: Response for tileset deletion.
+//
 //	DELETE /tilesets/{tileset_id}
 func (c *Client) DeleteTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
 	u := c.baseURL.JoinPath("tilesets", tilesetID.String())
@@ -7442,6 +7488,8 @@ func (c *Client) GetSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID
 
 // Permanently delete a sidescroller tileset you own, plus any lingering background_jobs rows scoped to the sidescroller model. Cannot be undone.
 //
+// Returns: Response for sidescroller tileset deletion.
+//
 //	DELETE /tilesets-sidescroller/{tileset_id}
 func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.UUID) (*DeleteTilesetResponse, error) {
 	u := c.baseURL.JoinPath("tilesets-sidescroller", tilesetID.String())
@@ -7576,6 +7624,8 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 //
 // )
 // ```
+//
+// Returns: Response for background tiles pro generation (async-only)
 //
 //	POST /create-tiles-pro
 func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest) (*TileJobResponse, error) {
@@ -7724,6 +7774,8 @@ func (c *Client) GetTilesPro(ctx context.Context, tileID uuid.UUID) (*GetTilesPr
 }
 
 // Permanently delete a tiles-pro tile you own. Blocked while the tile is still generating (status=pending, created <15 min ago) — wait for completion via GET /v2/tiles-pro/{tile_id} first. Once the job passes the stuck threshold, deletion is allowed.
+//
+// Returns: Response for tiles-pro deletion.
 //
 //	DELETE /tiles-pro/{tile_id}
 func (c *Client) DeleteTilesPro(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
@@ -7947,6 +7999,8 @@ func (c *Client) ListTilesPro(ctx context.Context, params *ListTilesProParams) (
 // response.image.pil_image()
 // ```
 //
+// Returns: Response for background isometric tile generation (async-only)
+//
 //	POST /create-isometric-tile
 func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTileRequest) (*TileJobResponse, error) {
 	u := c.baseURL.JoinPath("create-isometric-tile")
@@ -8109,6 +8163,8 @@ func (c *Client) GetIsometricTile(ctx context.Context, tileID uuid.UUID) (*Image
 
 // Permanently delete an isometric tile you own. Cannot be undone.
 //
+// Returns: Response for isometric tile deletion.
+//
 //	DELETE /isometric-tiles/{tile_id}
 func (c *Client) DeleteIsometricTile(ctx context.Context, tileID uuid.UUID) (*DeleteTileResponse, error) {
 	u := c.baseURL.JoinPath("isometric-tiles", tileID.String())
@@ -8259,6 +8315,8 @@ func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTi
 //
 // )
 // ```
+//
+// Returns: Response model for map object creation (background job)
 //
 //	POST /map-objects
 func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectRequest) (*ObjectJobResponse, error) {
@@ -9988,6 +10046,8 @@ func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (
 // response.images[0].pil_image().save("button.png")
 // ```
 //
+// Returns: Response model for generate-ui-v2 endpoint (background job)
+//
 //	POST /generate-ui-v2
 func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("generate-ui-v2")
@@ -10562,6 +10622,8 @@ func (c *Client) GetUIAssetZip(ctx context.Context, uiAssetID uuid.UUID) (io.Rea
 // )
 // response.images[0].pil_image().save("character.png")
 // ```
+//
+// Returns: Response model for portrait-character-pro endpoint (background job).
 //
 //	POST /portrait-character-pro
 func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePortraitCharacterProRequest) (*JobResponse, error) {
@@ -11185,6 +11247,8 @@ func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResp
 // )
 // ```
 //
+// Returns: Response model for the generate-font-pro endpoint (background job).
+//
 //	POST /generate-font-pro
 func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProRequest) (*JobResponse, error) {
 	u := c.baseURL.JoinPath("generate-font-pro")
@@ -11414,6 +11478,8 @@ func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomRespons
 //
 // ```
 //
+// Returns: Response for a completed correction
+//
 //	POST /correct-pixelart
 func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartRequest) (*ImagesResponse, error) {
 	u := c.baseURL.JoinPath("correct-pixelart")
@@ -11581,6 +11647,8 @@ func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*R
 // )
 // result.image.pil_image().save("character_no_bg.png")
 // ```
+//
+// Returns: Response for completed background removal
 //
 //	POST /remove-background
 func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequest) (*ImageResponse, error) {
@@ -11766,6 +11834,8 @@ func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResp
 // )
 // result.image.pil_image().save("character_64x64.png")
 // ```
+//
+// Returns: Response for completed resize
 //
 //	POST /resize
 func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse, error) {

@@ -191,7 +191,7 @@ type AnimatePixminimaxRequest struct {
 	// One of: south, north, east, west, south-east, south-west, north-east, north-west.
 	Direction Direction `json:"direction,omitzero"`
 	// Camera view of the sprite, the model's view caption field. Omit to have it read from the image.
-	// One of: low top-down, high top-down, side. Defaults to "low top-down".
+	// One of: low top-down, high top-down, side.
 	View CameraView `json:"view,omitzero"`
 	// What first_frame shows, one noun phrase (e.g. 'a knight in silver plate armour'), the model's subject caption field. Omit to have it read from the image.
 	SubjectDescription string `json:"subject_description,omitzero"`
@@ -1057,7 +1057,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view: "low top-down", "high top-down", "side", or "oblique" (oblique projection, drawn from high top-down; max 128x128).
-	// One of: low top-down, high top-down, side, oblique.
+	// One of: low top-down, high top-down, side, oblique. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -1099,7 +1099,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Detail level hint (soft guidance — the model may not follow exactly). Options: low detail, medium detail, high detail
 	Detail Detail `json:"detail,omitzero"`
 	// Camera view: "low top-down", "high top-down" or "side". "oblique" is 4 directions only (create-character-with-4-directions).
-	// One of: low top-down, high top-down, side, oblique.
+	// One of: low top-down, high top-down, side, oblique. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
@@ -1397,7 +1397,7 @@ type CreateMapObjectRequest struct {
 	// Width: 32-400 px. Height: 32-400 px.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Camera angle
-	// One of: low top-down, high top-down, side. Defaults to "low top-down".
+	// One of: low top-down, high top-down, side. Defaults to "high top-down".
 	View CameraView `json:"view,omitzero"`
 	// Outline style
 	// One of: single color outline, selective outline, lineless. Defaults to "single color outline".

@@ -5944,7 +5944,7 @@
           },
           "view": {
             "title": "View",
-            "description": "Camera view of the sprite, the model's view caption field. Omit to have it read from the image.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "description": "Camera view of the sprite, the model's view caption field. Omit to have it read from the image.\nOne of: low top-down, high top-down, side.",
             "anyOf": [
               {
                 "description": "Camera view of the sprite, the model's view caption field. Omit to have it read from the image.",
@@ -6206,6 +6206,7 @@
           },
           "template_id": {
             "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
+            "default": "mannequin",
             "$ref": "#/components/schemas/BodyTemplate"
           },
           "seed": {
@@ -6774,6 +6775,7 @@
           },
           "status": {
             "description": "Current job status (processing, completed, failed)",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
@@ -7118,6 +7120,7 @@
           },
           "status": {
             "description": "Job status (processing, completed, failed).",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           }
         },
@@ -7528,6 +7531,7 @@
             "format": "uuid"
           },
           "status": {
+            "default": "queued",
             "$ref": "#/components/schemas/JobStatus"
           },
           "n_frames": {
@@ -7569,6 +7573,7 @@
           },
           "view": {
             "description": "Camera angle.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "reference_image": {
@@ -8109,6 +8114,7 @@
           },
           "status": {
             "description": "Overall status (processing, completed, failed)",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
@@ -8209,6 +8215,7 @@
           },
           "view": {
             "description": "One of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "first_frame_direction": {
@@ -8351,10 +8358,12 @@
           },
           "view": {
             "description": "Camera view angle.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "template_id": {
             "description": "Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Quadruped templates also append \", on all fours\" to the description so generated frames match the chosen skeleton. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.",
+            "default": "mannequin",
             "$ref": "#/components/schemas/BodyTemplate"
           },
           "concept_image": {
@@ -8538,10 +8547,12 @@
           },
           "view": {
             "description": "Camera view angle. Used by both generation and skeleton reconstruction.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "template_id": {
             "description": "Body type for skeleton reconstruction. Picks the 3D template the skeleton estimator fits to the generated frames so the character can be animated. Use `mannequin` for bipedal subjects or one of `bear`/`cat`/`dog`/`horse`/`lion` for quadrupeds. Must match the body type in `reference_image`. `custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based animations.",
+            "default": "mannequin",
             "$ref": "#/components/schemas/BodyTemplate"
           },
           "name": {
@@ -8694,6 +8705,7 @@
           },
           "status": {
             "description": "Job status (processing, completed, failed).",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "enhanced_prompt": {
@@ -8902,7 +8914,8 @@
             "default": "medium detail"
           },
           "view": {
-            "description": "Camera view: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down; max 128x128).\nOne of: low top-down, high top-down, side, oblique.",
+            "description": "Camera view: \"low top-down\", \"high top-down\", \"side\", or \"oblique\" (oblique projection, drawn from high top-down; max 128x128).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "isometric": {
@@ -9127,7 +9140,8 @@
             "default": "medium detail"
           },
           "view": {
-            "description": "Camera view: \"low top-down\", \"high top-down\" or \"side\". \"oblique\" is 4 directions only (create-character-with-4-directions).\nOne of: low top-down, high top-down, side, oblique.",
+            "description": "Camera view: \"low top-down\", \"high top-down\" or \"side\". \"oblique\" is 4 directions only (create-character-with-4-directions).\nOne of: low top-down, high top-down, side, oblique. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "isometric": {
@@ -10079,7 +10093,8 @@
             "$ref": "#/components/schemas/ImageSize"
           },
           "view": {
-            "description": "Camera angle\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "description": "Camera angle\nOne of: low top-down, high top-down, side. Defaults to \"high top-down\".",
+            "default": "high top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "outline": {
@@ -10409,8 +10424,7 @@
           "pro",
           "v3",
           "pixminimax"
-        ],
-        "default": "v3"
+        ]
       },
       "CreateObjectAnimationRequest": {
         "title": "AnimateObjectRequest",
@@ -10419,6 +10433,7 @@
         "properties": {
           "mode": {
             "description": "Which animation mode to use. Prefer `'v3'` (default) — it usually produces higher quality results than `'pro'`, and is cheaper. Use `'pro'` only when its different stylistic output is specifically needed.\n\n`'pixminimax'` (beta, every tier): animates on PixMiniMax — longer clips, any multiple of 4 frames from 4 to 40, at any canvas up to 256x256. Priced by canvas and frames per direction (64x64 at 4/8/16/40 frames = 1/1/2/6 generations), ~1-7 min per direction. Takes the same custom start/end frames, `keep_first_frame`, `direction_prompts` and `enhance_prompt` as `'v3'`.\n\nAn animation stays on the engine it was made with: to add directions to a `'v3'` or `'pixminimax'` animation (`animation_group_id`), pass the same mode.\n\n**Cost warning**: when generating on a subscription, `'pro'` mode costs 10-25 generations per direction (80-200 for a full 8-direction animation).",
+            "default": "v3",
             "$ref": "#/components/schemas/CreateObjectAnimationMode"
           },
           "animation_description": {
@@ -10726,6 +10741,7 @@
           },
           "view": {
             "description": "One of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "first_frame_direction": {
@@ -10917,6 +10933,7 @@
           },
           "view": {
             "description": "Camera angle of the character.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "result_size": {
@@ -11114,6 +11131,7 @@
           },
           "mode": {
             "description": "Pro needs a Tier 1+ plan (not a trial). \"standard\" (default): the website's standard sidescroller tileset (pixen, side view), 1 generation, ~30 s. \"pro\": the richest platforms - painted texture, a cleaner cap - 15 generations for 16/32 px tiles, a few minutes. Before 2026-11 this endpoint ran an older sidescroller model (2-3 generations) for every request; that model is no longer offered.",
+            "default": "standard",
             "$ref": "#/components/schemas/CreateTilesetMode"
           },
           "enhance": {
@@ -11364,6 +11382,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "sound_effect": {
@@ -11400,6 +11419,7 @@
           },
           "tile_type": {
             "description": "Shape of the tiles. hex: flat-top hexagonal, hex_pointy: pointy-top hexagonal, isometric: diamond/rhombus, oblique: true square top with the depth extruded diagonally down-right at 45 degrees (tileset/building only), octagon: 8-sided polygon, square_topdown: square at angle.",
+            "default": "isometric",
             "$ref": "#/components/schemas/TileType"
           },
           "tile_size": {
@@ -11689,8 +11709,7 @@
         "enum": [
           "standard",
           "pro"
-        ],
-        "default": "standard"
+        ]
       },
       "CreateTilesetRequest": {
         "title": "CreateTilesetRequest",
@@ -11754,6 +11773,7 @@
           },
           "mode": {
             "description": "Pro needs a Tier 1+ plan (not a trial). Generation pipeline. \"standard\": the website's standard tileset (pixen, 16, 24 or 32px tiles, round borders unless shape_style='square'; raggedness, shape_seed and the side_wall_* dials shape it), cheap and fast. \"pro\": the richest tiles - painted texture, raised banks - 16/32/64px; use it when the look matters. raggedness, roundness, boundary_amplitude and step_slope shape its border (not shape_style - mode='pro' with shape_style is rejected). lower_reference_image/upper_reference_image make the shared terrain match an existing tileset's tile exactly.",
+            "default": "standard",
             "$ref": "#/components/schemas/CreateTilesetMode"
           },
           "shape_style": {
@@ -12261,6 +12281,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           }
         },
@@ -12343,6 +12364,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "generations": {
@@ -12491,6 +12513,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "quoted_generations": {
@@ -12510,8 +12533,7 @@
         "enum": [
           "v3",
           "pixminimax"
-        ],
-        "default": "v3"
+        ]
       },
       "CreateVocalAnimationRequest": {
         "title": "VocalAnimationRequest",
@@ -12544,6 +12566,7 @@
           },
           "mood": {
             "description": "Expression held on the face throughout. The mouth positions are the same across moods; call once per expression you want.",
+            "default": "neutral",
             "$ref": "#/components/schemas/Mood"
           },
           "viseme_count": {
@@ -12579,6 +12602,7 @@
           },
           "engine": {
             "description": "Which generator draws the mouth positions. `v3` (default) is the original one. `pixminimax` (PixMiniMax, beta) keeps the eyes, brows and head still while only the mouth moves, and is priced by generation time instead of by pixels, so it costs the same at any size up to 256x256: 3 generations for 7 positions, where v3 costs 3 at 64x64, 6 at 128x128 and 24 at 256x256.",
+            "default": "v3",
             "$ref": "#/components/schemas/CreateVocalAnimationEngine"
           }
         },
@@ -12614,6 +12638,7 @@
             "format": "uuid"
           },
           "status": {
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "mood": {
@@ -13925,6 +13950,7 @@
           },
           "view": {
             "description": "Camera view / tilt.\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "outline": {
@@ -14303,6 +14329,7 @@
           },
           "view": {
             "description": "Camera perspective angle\nOne of: low top-down, high top-down, side. Defaults to \"low top-down\".",
+            "default": "low top-down",
             "$ref": "#/components/schemas/CameraView"
           },
           "seed": {
@@ -17494,6 +17521,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           }
         },
@@ -18838,6 +18866,7 @@
           },
           "status": {
             "description": "Current job status (pending, processing, running, completed, failed)",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           }
         },
@@ -19802,6 +19831,7 @@
             "format": "uuid"
           },
           "status": {
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           }
         },
@@ -21412,6 +21442,7 @@
           },
           "status": {
             "description": "Job status",
+            "default": "processing",
             "$ref": "#/components/schemas/JobStatus"
           },
           "songs": {
@@ -22119,8 +22150,7 @@
           "oblique",
           "octagon",
           "square_topdown"
-        ],
-        "default": "isometric"
+        ]
       },
       "TileView": {
         "title": "Tile View",
