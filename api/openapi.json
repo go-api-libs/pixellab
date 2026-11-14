@@ -6678,7 +6678,8 @@
           },
           "frame_count": {
             "title": "Frame Count",
-            "type": "integer"
+            "type": "integer",
+            "example": 4
           },
           "frames": {
             "title": "Frames",
@@ -6686,7 +6687,8 @@
             "type": "array",
             "items": {
               "type": "string",
-              "format": "uri"
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/animations/0e10eec8-8653-450e-9cb0-a43383872d3b/south/0.png?t=1794511740"
             }
           }
         },
@@ -6703,14 +6705,16 @@
           "animation_type": {
             "title": "Animation Type",
             "description": "Template animation ID (e.g. 'walk', 'run')",
-            "type": "string"
+            "type": "string",
+            "example": "breathing-idle"
           },
           "display_name": {
             "title": "Display Name",
             "description": "Custom display name if set",
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "example": "Walking (8 frames)"
               },
               {
                 "type": "null"
@@ -6723,7 +6727,8 @@
             "anyOf": [
               {
                 "type": "string",
-                "format": "uuid"
+                "format": "uuid",
+                "example": "b58e480a-d68d-42c6-9caf-3f0eef59a2dc"
               },
               {
                 "type": "null"
