@@ -33,6 +33,8 @@ func transform(doc *openapi.Document) error {
 		return err
 	}
 
+	describeSizes(doc)
+
 	dropEmptyJSON(doc)
 
 	return detailEitherWay(doc)

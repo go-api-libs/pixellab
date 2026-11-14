@@ -4,10 +4,105 @@ import (
 	"fmt"
 	"go/format"
 	"os"
+	"regexp"
 	"strings"
+
+	"github.com/MarkRosemaker/openapi"
 )
 
 const imageSizePath = "pkg/pixellab/image_size.go"
+
+// sizeRules are what upstream says of a request's image size in words alone, by "Request.property", which its
+// constructor checks besides the bounds. An entry that names no image size of a request fails the run.
+var sizeRules = map[string]sizeRule{
+	// "min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32"
+	"CreateImagePixenRequest.image_size":   {areaSide: 512, squareBelow: 32},
+	"EnhancePixenPromptRequest.image_size": {areaSide: 512, squareBelow: 32},
+
+	// "16 or 32"
+	"CreateSidescrollerTilesetRequest.tile_size": {sides: []int{16, 32}},
+
+	// "16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'", which mode decides between
+	"CreateTilesetRequest.tile_size":    {sides: []int{16, 24, 32, 64}},
+	"SetTilesetImportRequest.tile_size": {sides: []int{16, 24, 32, 64}},
+}
+
+// sizeRule is what an image size must be besides its bounds: each side one of sides, no more pixels than a square
+// of areaSide a side, and square where either side is below squareBelow. A zero value checks nothing.
+type sizeRule struct {
+	sides                 []int
+	areaSide, squareBelow int
+}
+
+var (
+	// reSizeAxis matches how a width's or height's description names it, as "Image width in pixels".
+	reSizeAxis = regexp.MustCompile(`(?i)^((output|reference|requested|individual|frame|image|canvas|tile)\s+)*(width|height)(\s+in\s+pixels)?`)
+	// reSizeBounds matches what says no more than the bounds, as "(32-256)".
+	reSizeBounds = regexp.MustCompile(`^(\(\d+\s*[-–]\s*\d+(\s*pixels)?\))?\.?$`)
+)
+
+// describeSizes adds to each property of an image size what upstream says of its width and height beyond their
+// bounds, as Pixen's maximum area, before compress merges the sizes that are alike but for what they say.
+func describeSizes(doc *openapi.Document) {
+	for _, s := range doc.Components.Schemas.ByIndex() {
+		for _, p := range s.Properties.ByIndex() {
+			ref := nonNull(p).Ref
+			if ref == nil || ref.Value == nil || !isSize(ref.Value) {
+				continue
+			}
+
+			p.Description = joinLines(p.Description, sizeNotes(ref.Value))
+		}
+	}
+}
+
+// sizeNotes is what the image size's width and height say beyond their bounds, without the words that only name
+// them, as "Sizes above 24px often give better results." of "Image width in pixels. Sizes above 24px often give
+// better results.": once where both say the same.
+func sizeNotes(s *openapi.Schema) string {
+	w, wNamed := sizeNote(s.Properties["width"].Description)
+	h, hNamed := sizeNote(s.Properties["height"].Description)
+
+	switch {
+	case w == "" && h == "":
+		return ""
+	case w == h && !wNamed && !hNamed:
+		return w // a description of the size, as "Character size in pixels. ..."
+	case w == h:
+		return "Width and height: " + w
+	}
+
+	return joinLines(prefixed("Width: ", w), prefixed("Height: ", h))
+}
+
+// sizeNote is what a width's or height's description says beyond its bounds, and whether it named the axis first.
+func sizeNote(d string) (string, bool) {
+	d = strings.TrimSpace(d)
+
+	rest := reSizeAxis.ReplaceAllString(d, "")
+	if rest == d {
+		return d, false
+	}
+
+	if rest = strings.TrimSpace(rest); reSizeBounds.MatchString(rest) {
+		return "", true
+	}
+
+	rest = strings.TrimSpace(strings.TrimLeft(rest, ".,;:"))
+	if strings.HasPrefix(rest, "(") && strings.HasSuffix(rest, ")") {
+		rest = rest[1 : len(rest)-1]
+	}
+
+	return rest, true
+}
+
+func prefixed(prefix, s string) string {
+	if s == "" {
+		return ""
+	}
+
+	return prefix + s
+}
 
 // writeImageSizes writes, for each request property of an image size, a constructor that checks the bounds the
 // request accepts, or a variable where they allow one size only.
@@ -19,7 +114,11 @@ func writeImageSizes(sizes []imageSize) error {
 	for _, s := range sizes {
 		name := s.field + "For" + strings.TrimSuffix(s.owner, "Request")
 
-		if s.widthMin == s.widthMax && s.heightMin == s.heightMax {
+		if s.rule.sides == nil && s.widthMin == 0 && s.widthMax == 0 && s.heightMin == 0 && s.heightMax == 0 {
+			continue // nothing to check
+		}
+
+		if s.rule.sides == nil && s.widthMin == s.widthMax && s.heightMin == s.heightMax {
 			fmt.Fprintf(&b, "\n// %s is the size %s.%s requires.\n", name, s.owner, s.field)
 			fmt.Fprintf(&b, "var %s = ImageSize{Width: %d, Height: %d}\n", name, s.widthMin, s.heightMin)
 
@@ -30,6 +129,7 @@ func writeImageSizes(sizes []imageSize) error {
 		fmt.Fprintf(&b, "func New%s(width, height int) (ImageSize, error) {\n", name)
 		writeCheck(&b, "width", s.widthMin, s.widthMax, s.widthStep)
 		writeCheck(&b, "height", s.heightMin, s.heightMax, s.heightStep)
+		writeRule(&b, s.rule)
 		b.WriteString("\treturn ImageSize{Width: width, Height: height}, nil\n}\n")
 	}
 
@@ -43,6 +143,7 @@ func writeImageSizes(sizes []imageSize) error {
 
 func writeCheck(b *strings.Builder, axis string, lo, hi, step int) {
 	switch {
+	case lo == 0 && hi == 0:
 	case lo == hi:
 		fmt.Fprintf(b, "\tif %s != %d {\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be %d pixels, got %%d\", %s)\n\t}\n",
 			axis, lo, axis, lo, axis)
@@ -58,4 +159,38 @@ func writeCheck(b *strings.Builder, axis string, lo, hi, step int) {
 		fmt.Fprintf(b, "\tif %s%%%d != 0 {\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be a multiple of %d pixels, got %%d\", %s)\n\t}\n",
 			axis, step, axis, step, axis)
 	}
+}
+
+func writeRule(b *strings.Builder, r sizeRule) {
+	if len(r.sides) > 0 {
+		cases := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(r.sides)), ", "), "[]")
+		for _, axis := range []string{"width", "height"} {
+			fmt.Fprintf(b, "\tswitch %s {\n\tcase %s:\n\tdefault:\n\t\treturn ImageSize{}, fmt.Errorf(\"%s must be %s pixels, got %%d\", %s)\n\t}\n",
+				axis, cases, axis, orList(r.sides), axis)
+		}
+	}
+
+	if r.areaSide > 0 {
+		fmt.Fprintf(b, "\tif width*height > %d*%d {\n\t\treturn ImageSize{}, fmt.Errorf(\"width times height must be at most %dx%d pixels, got %%dx%%d\", width, height)\n\t}\n",
+			r.areaSide, r.areaSide, r.areaSide, r.areaSide)
+	}
+
+	if r.squareBelow > 0 {
+		fmt.Fprintf(b, "\tif (width < %d || height < %d) && width != height {\n\t\treturn ImageSize{}, fmt.Errorf(\"width and height must be equal when either is below %d pixels, got %%dx%%d\", width, height)\n\t}\n",
+			r.squareBelow, r.squareBelow, r.squareBelow)
+	}
+}
+
+// orList writes the sides as "16, 24, 32 or 64".
+func orList(sides []int) string {
+	s := make([]string, len(sides))
+	for i, n := range sides {
+		s[i] = fmt.Sprint(n)
+	}
+
+	if len(s) == 1 {
+		return s[0]
+	}
+
+	return strings.Join(s[:len(s)-1], ", ") + " or " + s[len(s)-1]
 }

@@ -154,6 +154,12 @@ func NewImageSizeForCreateImagePixen(width, height int) (ImageSize, error) {
 	if height%4 != 0 {
 		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
 	}
+	if width*height > 512*512 {
+		return ImageSize{}, fmt.Errorf("width times height must be at most 512x512 pixels, got %dx%d", width, height)
+	}
+	if (width < 32 || height < 32) && width != height {
+		return ImageSize{}, fmt.Errorf("width and height must be equal when either is below 32 pixels, got %dx%d", width, height)
+	}
 	return ImageSize{Width: width, Height: height}, nil
 }
 
@@ -241,11 +247,35 @@ func NewImageSizeForCreateObjectProFlash(width, height int) (ImageSize, error) {
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// TileSizeForCreateSidescrollerTileset is the size CreateSidescrollerTilesetRequest.TileSize requires.
-var TileSizeForCreateSidescrollerTileset = ImageSize{Width: 0, Height: 0}
+// NewTileSizeForCreateSidescrollerTileset returns the size for CreateSidescrollerTilesetRequest.TileSize, if it is one the request accepts.
+func NewTileSizeForCreateSidescrollerTileset(width, height int) (ImageSize, error) {
+	switch width {
+	case 16, 32:
+	default:
+		return ImageSize{}, fmt.Errorf("width must be 16 or 32 pixels, got %d", width)
+	}
+	switch height {
+	case 16, 32:
+	default:
+		return ImageSize{}, fmt.Errorf("height must be 16 or 32 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
-// TileSizeForCreateTileset is the size CreateTilesetRequest.TileSize requires.
-var TileSizeForCreateTileset = ImageSize{Width: 0, Height: 0}
+// NewTileSizeForCreateTileset returns the size for CreateTilesetRequest.TileSize, if it is one the request accepts.
+func NewTileSizeForCreateTileset(width, height int) (ImageSize, error) {
+	switch width {
+	case 16, 24, 32, 64:
+	default:
+		return ImageSize{}, fmt.Errorf("width must be 16, 24, 32 or 64 pixels, got %d", width)
+	}
+	switch height {
+	case 16, 24, 32, 64:
+	default:
+		return ImageSize{}, fmt.Errorf("height must be 16, 24, 32 or 64 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
 // NewImageSizeForCreateUIAsset returns the size for CreateUIAssetRequest.ImageSize, if it is one the request accepts.
 func NewImageSizeForCreateUIAsset(width, height int) (ImageSize, error) {
@@ -315,6 +345,12 @@ func NewImageSizeForEnhancePixenPrompt(width, height int) (ImageSize, error) {
 	}
 	if height%4 != 0 {
 		return ImageSize{}, fmt.Errorf("height must be a multiple of 4 pixels, got %d", height)
+	}
+	if width*height > 512*512 {
+		return ImageSize{}, fmt.Errorf("width times height must be at most 512x512 pixels, got %dx%d", width, height)
+	}
+	if (width < 32 || height < 32) && width != height {
+		return ImageSize{}, fmt.Errorf("width and height must be equal when either is below 32 pixels, got %dx%d", width, height)
 	}
 	return ImageSize{Width: width, Height: height}, nil
 }
@@ -440,8 +476,20 @@ func NewImageSizeForRotate(width, height int) (ImageSize, error) {
 	return ImageSize{Width: width, Height: height}, nil
 }
 
-// TileSizeForSetTilesetImport is the size SetTilesetImportRequest.TileSize requires.
-var TileSizeForSetTilesetImport = ImageSize{Width: 0, Height: 0}
+// NewTileSizeForSetTilesetImport returns the size for SetTilesetImportRequest.TileSize, if it is one the request accepts.
+func NewTileSizeForSetTilesetImport(width, height int) (ImageSize, error) {
+	switch width {
+	case 16, 24, 32, 64:
+	default:
+		return ImageSize{}, fmt.Errorf("width must be 16, 24, 32 or 64 pixels, got %d", width)
+	}
+	switch height {
+	case 16, 24, 32, 64:
+	default:
+		return ImageSize{}, fmt.Errorf("height must be 16, 24, 32 or 64 pixels, got %d", height)
+	}
+	return ImageSize{Width: width, Height: height}, nil
+}
 
 // NewImageSizeForTransferOutfit returns the size for TransferOutfitRequest.ImageSize, if it is one the request accepts.
 func NewImageSizeForTransferOutfit(width, height int) (ImageSize, error) {

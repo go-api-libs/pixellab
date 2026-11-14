@@ -1038,6 +1038,7 @@ type CreateCharacterWith4DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description"`
 	// Size of each rotation image
+	// Character size in pixels. Canvas will be ~40% larger to make room for animations.
 	// Width: 16-128 px. Height: 16-128 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Process asynchronously (always true for character creation)
@@ -1077,6 +1078,7 @@ type CreateCharacterWith8DirectionsRequest struct {
 	// Description of the character or object to generate
 	Description string `json:"description"`
 	// Size of each rotation image
+	// Requested character size in pixels. Standard mode expands the generation canvas; Pro mode stores rotations on a shared square canvas at least max(width, height).
 	// Width: 16-128 px. Height: 16-128 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Generation mode. "standard" uses template-based skeleton generation (1 generation). "pro" uses AI reference-based generation for higher quality (costs 10-25 generations depending on size). Pro mode ignores outline, shading, detail, proportions, and text_guidance_scale.
@@ -1267,6 +1269,8 @@ func (e CreateImagePixenBackgroundRemovalTask) Valid() bool {
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description"`
+	// Width: min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32
+	// Height: min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32
 	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style
@@ -1370,6 +1374,7 @@ type CreateImageProFlashRequest struct {
 type CreateIsometricTileRequest struct {
 	// Text description of the image to generate
 	Description string `json:"description"`
+	// Width and height: Sizes above 24px often give better results.
 	// Width: 16-64 px. Height: 16-64 px.
 	ImageSize ImageSize `json:"image_size"`
 	// How closely to follow the text description
@@ -1837,6 +1842,7 @@ type CreateSidescrollerTilesetRequest struct {
 	// mode='pro' only. A base tile id of an earlier sidescroller tileset (its terrain_ids / the lower tile's id from GET /tilesets/{tileset_id}): the platform body is reused, so describe the same body in lower_description and the new top in transition_description.
 	LowerBaseTileID string `json:"lower_base_tile_id,omitzero"`
 	// Size of individual tiles within the tileset (square: width = height)
+	// Width and height: 16 or 32
 	// Width: any, 16 by default. Height: any, 16 by default.
 	TileSize ImageSize `json:"tile_size,omitzero"`
 	// No effect: standard runs on pixen and pro ignores it; kept so existing calls work.
@@ -2095,6 +2101,7 @@ type CreateTilesetRequest struct {
 	// Optional ID to identify the upper base tile in metadata
 	UpperBaseTileID string `json:"upper_base_tile_id,omitzero"`
 	// Size of individual tiles within the tileset
+	// Width and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.
 	// Width: any, 16 by default. Height: any, 16 by default.
 	TileSize ImageSize `json:"tile_size,omitzero"`
 	// Pro needs a Tier 1+ plan (not a trial). Generation pipeline. "standard": the website's standard tileset (pixen, 16, 24 or 32px tiles, round borders unless shape_style='square'; raggedness, shape_seed and the side_wall_* dials shape it), cheap and fast. "pro": the richest tiles - painted texture, raised banks - 16/32/64px; use it when the look matters. raggedness, roundness, boundary_amplitude and step_slope shape its border (not shape_style - mode='pro' with shape_style is rejected). lower_reference_image/upper_reference_image make the shared terrain match an existing tileset's tile exactly.
@@ -2188,6 +2195,8 @@ type CreateUIAssetRequest struct {
 	// Style description for the UI panel (e.g. 'wooden RPG panel with gold trim')
 	Description string `json:"description"`
 	// Output image size in pixels (192–688; max per axis depends on aspect)
+	// Width: 192–688; max per axis depends on aspect — square 512, 16:9 688
+	// Height: 192–688; max per axis depends on aspect — square 512, 9:16 688
 	// Width: 192-688 px, 256 by default. Height: 192-688 px, 256 by default.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used.
@@ -2808,6 +2817,8 @@ type EnhancePixenPromptRequest struct {
 	// User's image description to enhance.
 	Description string `json:"description"`
 	// Target image size. Prompt complexity scales with size.
+	// Width: min 16, max area 512x512, must be divisible by 4; must equal height when either side is below 32
+	// Height: min 16, max area 512x512, must be divisible by 4; must equal width when either side is below 32
 	// Width: 16-768 px, a multiple of 4. Height: 16-768 px, a multiple of 4.
 	ImageSize ImageSize `json:"image_size"`
 	// Outline style hint.
@@ -2882,6 +2893,7 @@ type Generate8RotationsV2Request struct {
 	// Generation method: 'rotate_character' rotates an existing character, 'create_with_style' creates new character matching style, 'create_from_concept' creates from concept art
 	Method Generate8RotationsV2RequestMethod `json:"method,omitzero"`
 	// Size of the output images
+	// Width and height: 32-168 pixels, matches reference_to_8_rotations
 	// Width: 32-168 px. Height: 32-168 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Image to rotate (rotate_character) or style reference
@@ -2974,6 +2986,7 @@ type GenerateImageRequest struct {
 	// Description of the image to generate
 	Description string `json:"description"`
 	// Size of the output image
+	// Width and height: 16 to aspect-ratio max
 	// Width: 16-792 px. Height: 16-688 px.
 	ImageSize ImageSize `json:"image_size"`
 	// Seed for reproducible generation
@@ -3009,6 +3022,7 @@ type GenerateUIRequest struct {
 	// Description of the UI element to generate (e.g., 'medieval stone button', 'sci-fi health bar')
 	Description string `json:"description"`
 	// Output image size (16 to aspect-ratio max, e.g. 512x512 square)
+	// Width and height: 16 to aspect-ratio max
 	// Width: 16-792 px, 256 by default. Height: 16-688 px, 256 by default.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Seed for reproducible generation
@@ -4828,6 +4842,7 @@ type SetTilesetImportRequest struct {
 	// A top-down Wang terrain tileset or a sidescroller platform tileset.
 	TilesetMode SetTilesetImportRequestTilesetMode `json:"tileset_mode,omitzero"`
 	// Square 16, 24, 32 or 64. Read from the sheet when omitted; give it when a size reads two ways (256x256 is a 64px 4x4 sheet or a 32px 8-wide one - omitted, the 4x4 reading wins). Must match the sheet.
+	// Width and height: 16, 24 or 32 for standard; 16, 32 or 64 for mode='pro'.
 	// Width: any, 16 by default. Height: any, 16 by default.
 	TileSize ImageSize `json:"tile_size,omitzero"`
 	// The lower terrain (sidescroller: the platform). 'Lower' when omitted.
