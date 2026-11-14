@@ -14,7 +14,7 @@ require (
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261114134758-283d23089a18
 	github.com/MarkRosemaker/openapi v0.0.0-20261114134905-7ab2d5f6532c
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261114212202-fc2c6cd749c8
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20261114212142-1907d4fa74d2
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20261114230256-181235402941
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261114135009-67d93f3a1aef
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261114135147-10a8ae951294
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261114170301-47338bc4c722
