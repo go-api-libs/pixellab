@@ -36367,4 +36367,16 @@ func TestClient_Interactions(t *testing.T) {
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
+
+	if out, err := c.GetCharacter(ctx, uuid.MustParse("18036593-b14a-4fda-9e5b-b9d882501173")); err != nil {
+		t.Fatalf("GetCharacter: %v", err)
+	} else {
+		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
+	}
+
+	if out, err := c.GetBalance(ctx); err != nil {
+		t.Fatalf("GetBalance: %v", err)
+	} else {
+		apitest.DecodedAsSent(t, "GetBalance", out, last.Body, jsonOpts)
+	}
 }
