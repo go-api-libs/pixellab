@@ -2505,8 +2505,9 @@ type DeleteResponse struct {
 
 // DeleteRoomResponse defines a model
 type DeleteRoomResponse struct {
-	Usage   *Usage `json:"usage,omitzero"`
-	Success bool   `json:"success"`
+	Usage *Usage `json:"usage,omitzero"`
+	// Whether the asset was deleted
+	Success bool `json:"success"`
 }
 
 // DeleteTileResponse defines a model
@@ -4401,10 +4402,14 @@ type ProFlashReferenceImage struct {
 
 // ProFlashStyleOptions defines a model
 type ProFlashStyleOptions struct {
+	// Copy color palette from style image
 	ColorPalette *bool `json:"color_palette,omitzero"`
-	Outline      *bool `json:"outline,omitzero"`
-	Detail       *bool `json:"detail,omitzero"`
-	Shading      *bool `json:"shading,omitzero"`
+	// Copy outline style
+	Outline *bool `json:"outline,omitzero"`
+	// Copy detail level
+	Detail *bool `json:"detail,omitzero"`
+	// Copy shading style
+	Shading *bool `json:"shading,omitzero"`
 }
 
 // Automatic rectangular mask generation
@@ -4487,6 +4492,7 @@ type RemoveBackgroundRequest struct {
 
 // RenameRequest defines a model
 type RenameRequest struct {
+	// New tileset name. Display only; the terrain descriptions stay.
 	Name string `json:"name"`
 }
 

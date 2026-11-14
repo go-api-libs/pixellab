@@ -13265,6 +13265,7 @@
           },
           "success": {
             "title": "Success",
+            "description": "Whether the asset was deleted",
             "type": "boolean"
           }
         },
@@ -19447,21 +19448,25 @@
         "properties": {
           "color_palette": {
             "title": "Color Palette",
+            "description": "Copy color palette from style image",
             "type": "boolean",
             "default": true
           },
           "outline": {
             "title": "Outline",
+            "description": "Copy outline style",
             "type": "boolean",
             "default": true
           },
           "detail": {
             "title": "Detail",
+            "description": "Copy detail level",
             "type": "boolean",
             "default": true
           },
           "shading": {
             "title": "Shading",
+            "description": "Copy shading style",
             "type": "boolean",
             "default": true
           }
@@ -19684,6 +19689,7 @@
         "properties": {
           "name": {
             "title": "Name",
+            "description": "New tileset name. Display only; the terrain descriptions stay.",
             "type": "string",
             "minLength": 1,
             "maxLength": 120
