@@ -17545,7 +17545,8 @@
           "generating_sprite",
           "building_skeleton",
           "completed",
-          "sending_request"
+          "sending_request",
+          "processing"
         ]
       },
       "JobStatus": {

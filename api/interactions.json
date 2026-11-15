@@ -3090,5 +3090,46 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/d37d4295-c918-4600-95b1-71d702aaaedd",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "639",
+				"Content-Type": "application/json",
+				"Date": "Sun, 15 Nov 2026 13:40:51 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "d37d4295-c918-4600-95b1-71d702aaaedd",
+				"status": "processing",
+				"created_at": "2026-11-15T13:39:55.940391+00:00",
+				"last_response": {
+					"status": "processing",
+					"progress": 0.42,
+					"character_id": "2ebc1c2d-0f9b-4634-b2e3-4b1db4eb4bbc",
+					"n_directions": 8,
+					"character_name": "An adult, average, female human baker. Brown hair ",
+					"queue_position": 0,
+					"directions_type": "8-directions",
+					"generation_mode": "pixen_v3",
+					"character_description": "An adult, average, female human baker. Brown hair tied back under a kerchief. Wearing a flour-dusted apron over a russet dress.",
+					"generation_started_at": "2026-11-15T13:39:55.970993+00:00"
+				}
+			}
+		}
 	}
 ]
