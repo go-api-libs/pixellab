@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"time"
 	"uuid"
 
@@ -199,6 +200,13 @@ type AnimatePixminimaxRequest struct {
 	InitialPose string `json:"initial_pose,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimatePixminimaxRequest) unknownEnum() bool {
+	return v.Direction != "" && !v.Direction.Valid() ||
+		v.View != "" && !v.View.Valid()
+}
+
 // Request model for animation using skeleton endpoint
 type AnimateWithSkeletonRequest struct {
 	// Width: 16-256 px. Height: 16-256 px.
@@ -233,6 +241,14 @@ type AnimateWithSkeletonRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimateWithSkeletonRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid() ||
+		slices.ContainsFunc(v.SkeletonKeypoints, func(x Point) bool { return x.unknownEnum() })
+}
+
 // AnimateWithSkeletonV3Request defines a model
 type AnimateWithSkeletonV3Request struct {
 	// What the character LOOKS like, as a noun phrase: 'blonde vampire with a red cape'. Colours, clothing, held items. Not the pose, motion, style or background -- those belong in `action` or in the skeletons.
@@ -257,6 +273,16 @@ type AnimateWithSkeletonV3Request struct {
 	Seed int `json:"seed,omitzero"`
 	// Return frames with a transparent background.
 	NoBackground *bool `json:"no_background,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimateWithSkeletonV3Request) unknownEnum() bool {
+	return !v.Direction.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		slices.ContainsFunc(v.FirstFrameKeypoints, func(x Keypoint) bool { return x.unknownEnum() }) ||
+		slices.ContainsFunc(v.Keypoints, func(x Keypoint) bool { return x.unknownEnum() }) ||
+		v.TemplateID != "" && !v.TemplateID.Valid()
 }
 
 // Request model for animation using text endpoint
@@ -299,6 +325,13 @@ type AnimateWithTextRequest struct {
 	Seed int `json:"seed,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimateWithTextRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
+}
+
 // Request model for text-to-animation endpoint
 type AnimateWithTextV2Request struct {
 	// Reference image (character/object to animate) as base64 PNG/JPEG
@@ -323,6 +356,13 @@ type AnimateWithTextV2Request struct {
 	Direction Direction `json:"direction,omitzero"`
 	// Colours the frames must use and/or a colour cap, shared by all frames: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. The reference image is put on the palette first. `smart` is for single images and is refused here.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimateWithTextV2Request) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
 }
 
 // Request model for animate with text v3 endpoint
@@ -353,6 +393,12 @@ type AnimationDirection struct {
 	Frames []url.URL `json:"frames"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimationDirection) unknownEnum() bool {
+	return !v.Direction.Valid()
+}
+
 // AnimationGroup defines a model
 type AnimationGroup struct {
 	// Template animation ID (e.g. 'walk', 'run')
@@ -362,6 +408,13 @@ type AnimationGroup struct {
 	// ID of this animation. Every direction of it shares this id, and it is what the PixelLab website groups animations by. Use it to delete the animation ([DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id})) or add directions to it ([animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`).
 	AnimationGroupID uuid.UUID            `json:"animation_group_id,omitzero"`
 	Directions       []AnimationDirection `json:"directions"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimationGroup) unknownEnum() bool {
+	return !v.AnimationType.Valid() ||
+		slices.ContainsFunc(v.Directions, func(x AnimationDirection) bool { return x.unknownEnum() })
 }
 
 // Background job response. Poll GET /v2/background-jobs/{id} for results.
@@ -375,6 +428,14 @@ type AnimationJobResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AnimationJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
 // AnimationTemplate defines a model
@@ -420,6 +481,12 @@ type AssetNamesResponse struct {
 	StateName string `json:"state_name"`
 	// Character description (characters only)
 	Prompt string `json:"prompt,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *AssetNamesResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // AssetStatus defines a model
@@ -564,6 +631,12 @@ type CancelBackgroundJobResponse struct {
 	Message string `json:"message"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CancelBackgroundJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // CharacterJobResponse defines a model
 type CharacterJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -573,6 +646,13 @@ type CharacterJobResponse struct {
 	CharacterID uuid.UUID `json:"character_id"`
 	// Job status (processing, completed, failed).
 	Status JobStatus `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CharacterJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // Character proportions with individual control.
@@ -629,6 +709,12 @@ func (v *CharacterProportionsPreset) unmarshalJSONMember(dec *jsontext.Decoder, 
 	}
 
 	return false, nil
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CharacterProportionsPreset) unknownEnum() bool {
+	return v.Name != "" && !v.Name.Valid()
 }
 
 // Pre-defined character proportions
@@ -709,6 +795,14 @@ type CharacterSummary struct {
 	GroupID uuid.UUID `json:"group_id,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CharacterSummary) unknownEnum() bool {
+	return !v.TemplateID.Valid() ||
+		!v.View.Valid() ||
+		v.Status != "" && !v.Status.Valid()
+}
+
 // Request model for the pixel art correction endpoint
 type CorrectPixelartRequest struct {
 	// Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.
@@ -733,6 +827,12 @@ type Create1DirectionObjectRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Create1DirectionObjectRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid()
+}
+
 // Response model for 1-direction object creation.
 type Create1DirectionObjectResponse struct {
 	Usage           *Usage    `json:"usage,omitzero"`
@@ -741,6 +841,13 @@ type Create1DirectionObjectResponse struct {
 	Status          JobStatus `json:"status,omitzero"`
 	// Number of candidate frames produced (derived from `size`).
 	NFrames int `json:"n_frames"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Create1DirectionObjectResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // Request to create an 8-direction object.
@@ -761,6 +868,12 @@ type Create8DirectionObjectRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Create8DirectionObjectRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid()
+}
+
 // CreateCanvaResponse defines a model
 type CreateCanvaResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -774,6 +887,12 @@ type CreateCanvaResponse struct {
 	RotationsMoved int       `json:"rotations_moved"`
 	// Objects only: map placements moved to the new canvas
 	PlacementsMoved *int `json:"placements_moved,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCanvaResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Request model for character animation endpoint
@@ -836,8 +955,26 @@ type CreateCharacterAnimationRequest struct {
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterAnimationRequest) unknownEnum() bool {
+	return v.Mode != "" && !v.Mode.Valid() ||
+		v.TemplateAnimationID != "" && !v.TemplateAnimationID.Valid() ||
+		v.TemplateAction != "" && !v.TemplateAction.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.Directions.unknownEnum()
+}
+
 // List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
 type CreateCharacterAnimationRequestDirections []Direction
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v CreateCharacterAnimationRequestDirections) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x Direction) bool { return !x.Valid() })
+}
 
 // Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 type CreateCharacterAnimationRequestMode string
@@ -876,6 +1013,14 @@ type CreateCharacterAnimationResponse struct {
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterAnimationResponse) unknownEnum() bool {
+	return slices.ContainsFunc(v.Directions, func(x Direction) bool { return !x.Valid() }) ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
+}
+
 // Generate an eight-direction character, optionally reusing its first image.
 type CreateCharacterProFlashRequest struct {
 	// Optional owned south-facing image ID. Reuses its pixels without another image charge.
@@ -901,6 +1046,13 @@ type CreateCharacterProFlashRequest struct {
 	TemplateID    BodyTemplate   `json:"template_id,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterProFlashRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.TemplateID != "" && !v.TemplateID.Valid()
+}
+
 // CreateCharacterProFlashResponse defines a model
 type CreateCharacterProFlashResponse struct {
 	Usage                   *Usage    `json:"usage,omitzero"`
@@ -909,6 +1061,13 @@ type CreateCharacterProFlashResponse struct {
 	Status                  JobStatus `json:"status"`
 	EstimatedGenerations    int       `json:"estimated_generations"`
 	FirstDirectionGenerated bool      `json:"first_direction_generated"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterProFlashResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // Request model for /v2/create-character-pro.
@@ -942,6 +1101,14 @@ type CreateCharacterProRequest struct {
 	NoBackground *bool `json:"no_background,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of all 8 directions is one of them; max_colors (2-64) caps the colours of all 8 directions.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterProRequest) unknownEnum() bool {
+	return v.Method != "" && !v.Method.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.TemplateID != "" && !v.TemplateID.Valid()
 }
 
 // How the reference inputs are used:
@@ -1005,6 +1172,15 @@ type CreateCharacterRequest struct {
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.TemplateID != "" && !v.TemplateID.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Detail != "" && !v.Detail.Valid()
+}
+
 // Response — async; poll `/v2/background-jobs/{id}` for results.
 type CreateCharacterResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -1018,6 +1194,14 @@ type CreateCharacterResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
 // Request to produce a state (variant) of an existing character.
@@ -1078,6 +1262,17 @@ type CreateCharacterWith4DirectionsRequest struct {
 	OutputType string `json:"output_type,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterWith4DirectionsRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Proportions.unknownEnum() ||
+		v.TemplateID != "" && !v.TemplateID.Valid()
+}
+
 // Request model for 8-directions character creation endpoint
 type CreateCharacterWith8DirectionsRequest struct {
 	// Description of the character or object to generate
@@ -1120,6 +1315,18 @@ type CreateCharacterWith8DirectionsRequest struct {
 	OutputType string `json:"output_type,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of all 8 directions (mode='pro' only) is one of them; max_colors (2-64) caps the colours of all 8 directions (mode='pro' only).
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterWith8DirectionsRequest) unknownEnum() bool {
+	return v.Mode != "" && !v.Mode.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Proportions.unknownEnum() ||
+		v.TemplateID != "" && !v.TemplateID.Valid()
 }
 
 // Character body proportions (preset or custom values). Only applies to humanoid characters.
@@ -1195,6 +1402,12 @@ func (v *CreateCharacterWithDirectionsProportions) MarshalJSONTo(enc *jsontext.E
 	return enc.WriteValue(out)
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateCharacterWithDirectionsProportions) unknownEnum() bool {
+	return v.CharacterProportionsPreset != nil && v.CharacterProportionsPreset.unknownEnum()
+}
+
 // Request model for image generation endpoint
 type CreateImageBitforgeRequest struct {
 	// Text description of the image to generate
@@ -1252,6 +1465,17 @@ type CreateImageBitforgeRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateImageBitforgeRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid() ||
+		slices.ContainsFunc(v.SkeletonKeypoints, func(x Point) bool { return x.unknownEnum() })
+}
+
 // Request model for Pixen image generation endpoint
 type CreateImagePixenRequest struct {
 	// Text description of the image to generate
@@ -1282,6 +1506,16 @@ type CreateImagePixenRequest struct {
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateImagePixenRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid() ||
+		v.BackgroundRemovalTask != "" && !v.BackgroundRemovalTask.Valid()
+}
+
 // CreateImagePixenResponse defines a model
 type CreateImagePixenResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -1296,6 +1530,13 @@ type CreateImagePixenResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateImagePixenResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
 // Request model for pixflux image generation endpoint
@@ -1337,6 +1578,17 @@ type CreateImagePixfluxRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateImagePixfluxRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid() ||
+		v.BackgroundRemovalTask != "" && !v.BackgroundRemovalTask.Valid()
 }
 
 // Create exactly one image; style art must fit without rescaling.
@@ -1389,6 +1641,15 @@ type CreateIsometricTileRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateIsometricTileRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.IsometricTileShape != "" && !v.IsometricTileShape.Valid()
+}
+
 // Request for creating a map object with transparent background
 type CreateMapObjectRequest struct {
 	// Object description (e.g., 'wooden barrel', 'stone fountain')
@@ -1422,6 +1683,15 @@ type CreateMapObjectRequest struct {
 	Inpainting CreateMapObjectRequestInpainting `json:"inpainting,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateMapObjectRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid()
 }
 
 // Inpainting configuration for style matching. Options: mask (custom), oval (auto-generated), rectangle (auto-generated)
@@ -1518,6 +1788,12 @@ type CreateMusicLyricResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Two versions, with [Verse]/[Chorus] section tags
 	Lyrics []string `json:"lyrics"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateMusicLyricResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // CreateMusicRequest defines a model
@@ -1630,6 +1906,13 @@ type CreateObjectAnimationRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateObjectAnimationRequest) unknownEnum() bool {
+	return v.Mode != "" && !v.Mode.Valid() ||
+		v.Directions.unknownEnum()
+}
+
 // Which directions to animate.
 //
 // - **Do not pass `directions` for 1-direction objects.** They always animate the single internal direction; passing this returns 400.
@@ -1638,6 +1921,12 @@ type CreateObjectAnimationRequest struct {
 //   - **Extending an existing animation** (via `animation_group_id`): omit `directions` to fill in only the cardinals not yet generated. You usually don't need to compute the missing set yourself — pass `animation_group_id` alone and the server figures it out.
 //   - If you do pass it explicitly, values must be a subset of the 8 cardinals.
 type CreateObjectAnimationRequestDirections []DirectionPromptsKey
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v CreateObjectAnimationRequestDirections) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x DirectionPromptsKey) bool { return !x.Valid() })
+}
 
 // CreateObjectAnimationResponse defines a model
 type CreateObjectAnimationResponse struct {
@@ -1653,6 +1942,15 @@ type CreateObjectAnimationResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateObjectAnimationResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Mode.Valid() ||
+		slices.ContainsFunc(v.Submissions, func(x DirectionSubmission) bool { return x.unknownEnum() }) ||
+		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
 // CreateObjectCanva defines a model
@@ -1686,6 +1984,12 @@ type CreateObjectProFlashRequest struct {
 	NDirections   int            `json:"n_directions,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateObjectProFlashRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid()
+}
+
 // CreateObjectProFlashResponse defines a model
 type CreateObjectProFlashResponse struct {
 	Usage                   *Usage    `json:"usage,omitzero"`
@@ -1694,6 +1998,13 @@ type CreateObjectProFlashResponse struct {
 	Status                  JobStatus `json:"status"`
 	EstimatedGenerations    int       `json:"estimated_generations"`
 	FirstDirectionGenerated bool      `json:"first_direction_generated"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateObjectProFlashResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // Request to produce a state (variant) of an existing object.
@@ -1721,6 +2032,13 @@ type CreatePortraitCharacterProRequest struct {
 	Seed *int `json:"seed,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of the sprite is one of them; max_colors (2-64) caps the colours of the sprite.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreatePortraitCharacterProRequest) unknownEnum() bool {
+	return v.Direction != "" && !v.Direction.Valid() ||
+		v.View != "" && !v.View.Valid()
 }
 
 // portrait_to_character: input is a bust portrait, output a full-body character sprite. character_to_portrait: input is a full-body character, output a bust portrait.
@@ -1764,6 +2082,13 @@ type CreateRoomRequest struct {
 	ProjectID uuid.UUID `json:"project_id,omitzero"`
 	// Top-down rooms only: the tile size of the tileset its building kit comes as. 32 is the room's own; 16, 24, 48 or 64 also paints the kit at that size, so GET /rooms/{room_id}/kit.zip holds a tileset-15 sheet and its metadata at that size too. The room's picture stays 32 px cells. 48 or 64 costs 25 generations instead of 20
 	TileSize int `json:"tile_size,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateRoomRequest) unknownEnum() bool {
+	return slices.ContainsFunc(v.Doors, func(x RoomDoorInput) bool { return x.unknownEnum() }) ||
+		v.View != "" && !v.View.Valid()
 }
 
 // Request model for sidescroller tileset generation endpoint.
@@ -1818,6 +2143,15 @@ type CreateSidescrollerTilesetRequest struct {
 	Seed *int `json:"seed,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateSidescrollerTilesetRequest) unknownEnum() bool {
+	return v.Mode != "" && !v.Mode.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid()
+}
+
 // CreateSoundEffectRequest defines a model
 type CreateSoundEffectRequest struct {
 	// The sound in plain words: 'a heavy sword slash hitting metal armor', 'steady rain on a roof with distant thunder'.
@@ -1841,6 +2175,14 @@ type CreateSoundEffectResponse struct {
 	QuotedGenerations int `json:"quoted_generations"`
 	// The price in credits, when you pay with credits
 	QuotedCreditsUsd float64 `json:"quoted_credits_usd"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateSoundEffectResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.SoundEffect.unknownEnum()
 }
 
 // Request model for tiles pro generation endpoint
@@ -1897,6 +2239,17 @@ type CreateTilesProRequest struct {
 	StyleOptions *TilesProStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every tile is one of them; max_colors (2-64) caps the colours of every tile.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateTilesProRequest) unknownEnum() bool {
+	return v.TileType != "" && !v.TileType.Valid() ||
+		v.TileView != "" && !v.TileView.Valid() ||
+		v.OutlineMode != "" && !v.OutlineMode.Valid() ||
+		v.TileFeature != "" && !v.TileFeature.Valid() ||
+		v.BuildingLayout != "" && !v.BuildingLayout.Valid() ||
+		v.RoofProfile != "" && !v.RoofProfile.Valid()
 }
 
 // CreateTilesetMode defines a model
@@ -1999,6 +2352,17 @@ type CreateTilesetRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateTilesetRequest) unknownEnum() bool {
+	return v.Mode != "" && !v.Mode.Valid() ||
+		v.ShapeStyle != "" && !v.ShapeStyle.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid()
 }
 
 // Request for POST /v2/ui-assets (shape-based UI panel generation).
@@ -2124,6 +2488,13 @@ type CreateUIAssetResponse struct {
 	Status JobStatus `json:"status,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateUIAssetResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
+}
+
 // CreateUIAssetStateRequest defines a model
 type CreateUIAssetStateRequest struct {
 	// Elements to make the states for (ids from a split template's `elements`). All of them in one generation: the states match across them.
@@ -2145,6 +2516,13 @@ type CreateUIAssetStateResponse struct {
 	Generations int `json:"generations"`
 	// State images it makes (elements x states)
 	Count int `json:"count"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateUIAssetStateResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // CreateVfxRequest defines a model
@@ -2169,6 +2547,12 @@ type CreateVfxRequest struct {
 	GamePack bool `json:"game_pack,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateVfxRequest) unknownEnum() bool {
+	return v.Artist != "" && !v.Artist.Valid()
+}
+
 // CreateVfxResponse defines a model
 type CreateVfxResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2178,6 +2562,13 @@ type CreateVfxResponse struct {
 	Status JobStatus `json:"status,omitzero"`
 	// What this effect costs, charged only when it is delivered
 	QuotedGenerations int `json:"quoted_generations"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateVfxResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // CreateVocalAnimationEngine defines a model
@@ -2216,6 +2607,13 @@ type CreateVocalAnimationRequest struct {
 	Engine CreateVocalAnimationEngine `json:"engine,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateVocalAnimationRequest) unknownEnum() bool {
+	return v.Mood != "" && !v.Mood.Valid() ||
+		v.Engine != "" && !v.Engine.Valid()
+}
+
 // CreateVocalAnimationResponse defines a model
 type CreateVocalAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2225,6 +2623,14 @@ type CreateVocalAnimationResponse struct {
 	Mood            string                     `json:"mood"`
 	VisemeCount     int                        `json:"viseme_count"`
 	Engine          CreateVocalAnimationEngine `json:"engine"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *CreateVocalAnimationResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid() ||
+		!v.Engine.Valid()
 }
 
 // USD credit balance
@@ -2246,6 +2652,12 @@ type DeleteAnimationsResponse struct {
 	Err   string `json:"error,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteAnimationsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // DeleteCharacterAnimationResponse defines a model
 type DeleteCharacterAnimationResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2257,10 +2669,23 @@ type DeleteCharacterAnimationResponse struct {
 	Label string `json:"label"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteCharacterAnimationResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.DeletedDirections, func(x Direction) bool { return !x.Valid() })
+}
+
 // DeleteCharacterPortraitResponse defines a model
 type DeleteCharacterPortraitResponse struct {
 	Usage       *Usage    `json:"usage,omitzero"`
 	CharacterID uuid.UUID `json:"character_id"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteCharacterPortraitResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Response for v2 API character deletion
@@ -2282,6 +2707,12 @@ type DeleteCharacterResponse struct {
 	Err string `json:"error,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteCharacterResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // DeleteCharacterVocalAnimationResponse defines a model
 type DeleteCharacterVocalAnimationResponse struct {
 	Usage       *Usage    `json:"usage,omitzero"`
@@ -2296,6 +2727,12 @@ type DeleteCharacterVocalAnimationResponse struct {
 	VisemeOrder []string `json:"viseme_order,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteCharacterVocalAnimationResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Response for object deletion
 type DeleteObjectResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2305,6 +2742,12 @@ type DeleteObjectResponse struct {
 	ObjectID uuid.UUID `json:"object_id,omitzero"`
 	// Error message if deletion failed
 	Err string `json:"error,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteObjectResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // DeleteResponse defines a model
@@ -2321,6 +2764,12 @@ type DeleteRoomResponse struct {
 	Success bool `json:"success"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteRoomResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // DeleteTileResponse defines a model
 type DeleteTileResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2332,6 +2781,12 @@ type DeleteTileResponse struct {
 	Err string `json:"error,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteTileResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // DeleteTilesetResponse defines a model
 type DeleteTilesetResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2341,6 +2796,12 @@ type DeleteTilesetResponse struct {
 	TilesetID uuid.UUID `json:"tileset_id,omitzero"`
 	// Error message if deletion failed
 	Err string `json:"error,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DeleteTilesetResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Detail defines a model
@@ -2443,6 +2904,13 @@ type DirectionSubmission struct {
 	AnimationID     uuid.UUID                 `json:"animation_id,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DirectionSubmission) unknownEnum() bool {
+	return !v.Direction.Valid() ||
+		!v.Status.Valid()
+}
+
 // DirectionSubmissionStatus defines a model
 type DirectionSubmissionStatus string
 
@@ -2472,6 +2940,12 @@ type DirectionalImages struct {
 // DismissObjectReviewResponse defines a model
 type DismissObjectReviewResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *DismissObjectReviewResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Request model for edit-animation-v2 endpoint
@@ -2541,6 +3015,12 @@ type EditImageProFlashRequest struct {
 	ProjectID                 uuid.UUID `json:"project_id,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EditImageProFlashRequest) unknownEnum() bool {
+	return v.Method != "" && !v.Method.Valid()
+}
+
 // EditImageProFlashRequestMethod defines a model
 type EditImageProFlashRequestMethod string
 
@@ -2601,6 +3081,12 @@ type EditImagesRequest struct {
 	NoBackground bool `json:"no_background,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EditImagesRequest) unknownEnum() bool {
+	return v.Method != "" && !v.Method.Valid()
+}
+
 // Edit method: 'edit_with_text' or 'edit_with_reference'
 type EditImagesRequestMethod string
 
@@ -2634,6 +3120,13 @@ type EnhanceAnimationV3PromptRequest struct {
 	Direction Direction `json:"direction,omitzero"`
 	// Frames the animation will have. Used by pixminimax prompts to judge how many motion beats fit.
 	FrameCount int `json:"frame_count,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EnhanceAnimationV3PromptRequest) unknownEnum() bool {
+	return v.Engine != "" && !v.Engine.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
 }
 
 // Which animation model the prompt is written for: 'v3' (animate-with-text-v3, default), 'pixminimax' (animate-pixminimax) or 'skeleton-v3' (animate-with-skeleton-v3). PixMiniMax gets its action caption only: the motion in playback order, nothing about appearance, pose, view or facing. Skeleton prompts name the action in a few words instead of describing motion, because the skeletons already carry it.
@@ -2671,6 +3164,14 @@ type EnhanceCharacterV3PromptRequest struct {
 	Detail Detail `json:"detail,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EnhanceCharacterV3PromptRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Detail != "" && !v.Detail.Valid()
+}
+
 // EnhancePixenPromptRequest defines a model
 type EnhancePixenPromptRequest struct {
 	// User's image description to enhance.
@@ -2696,11 +3197,26 @@ type EnhancePixenPromptRequest struct {
 	NoBackground bool `json:"no_background,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EnhancePixenPromptRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
+}
+
 // EnhancedPromptResponse defines a model
 type EnhancedPromptResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Enhanced image description.
 	EnhancedPrompt string `json:"enhanced_prompt"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EnhancedPromptResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Request model for estimate skeleton endpoint
@@ -2715,6 +3231,12 @@ type EstimateSkeletonResponse struct {
 	Keypoints []KeypointOutput `json:"keypoints"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *EstimateSkeletonResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // ExpandObjectRotationsRequest defines a model
 type ExpandObjectRotationsRequest struct {
 	// Which way the object's current image faces. That image becomes this direction of the 8, unchanged, and the other 7 are drawn to match it.
@@ -2722,6 +3244,12 @@ type ExpandObjectRotationsRequest struct {
 	ExistingDirection Direction `json:"existing_direction"`
 	// What the object is, to guide the new angles. Defaults to the object's own description.
 	Description string `json:"description,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ExpandObjectRotationsRequest) unknownEnum() bool {
+	return !v.ExistingDirection.Valid()
 }
 
 // ExpandObjectRotationsResponse defines a model
@@ -2735,6 +3263,12 @@ type ExpandObjectRotationsResponse struct {
 	MinGenerations int `json:"min_generations"`
 	// Most the expansion can cost on a subscription
 	MaxGenerations int `json:"max_generations"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ExpandObjectRotationsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Reference image with dimensions.
@@ -2772,6 +3306,13 @@ type Generate8RotationsV2Request struct {
 	NoBackground *bool `json:"no_background,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of all 8 directions is one of them; max_colors (2-64) caps the colours of all 8 directions.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Generate8RotationsV2Request) unknownEnum() bool {
+	return v.Method != "" && !v.Method.Valid() ||
+		v.View != "" && !v.View.Valid()
 }
 
 // Generation method: 'rotate_character' rotates an existing character, 'create_with_style' creates new character matching style, 'create_from_concept' creates from concept art
@@ -2820,6 +3361,12 @@ type GenerateFontProRequest struct {
 	Seed *int `json:"seed,omitzero"`
 	// Explicit font family name; defaults to '{description} {weight}'.
 	FontName string `json:"font_name,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GenerateFontProRequest) unknownEnum() bool {
+	return !v.Weight.Valid()
 }
 
 // Stroke weight. Guides glyph thickness.
@@ -2927,12 +3474,26 @@ type GetBackgroundJobResponse struct {
 	LastResponse *LastResponse `json:"last_response,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetBackgroundJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid() ||
+		v.LastResponse != nil && v.LastResponse.unknownEnum()
+}
+
 // Response model for balance endpoint
 type GetBalanceResponse struct {
 	// USD credit balance
 	Credits Credits `json:"credits"`
 	// Subscription generation balance
 	Subscription Subscription `json:"subscription"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetBalanceResponse) unknownEnum() bool {
+	return v.Subscription.unknownEnum()
 }
 
 // Detailed character information including rotation URLs
@@ -2981,11 +3542,29 @@ type GetCharacterResponse struct {
 	Animations []AnimationGroup `json:"animations,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetCharacterResponse) unknownEnum() bool {
+	return !v.TemplateID.Valid() ||
+		!v.View.Valid() ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.StyleSettings != nil && v.StyleSettings.unknownEnum() ||
+		v.Skeletons != nil && v.Skeletons.unknownEnum() ||
+		slices.ContainsFunc(v.Animations, func(x AnimationGroup) bool { return x.unknownEnum() })
+}
+
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 type GetCharacterResponseSkeletons struct {
 	ThreeD         GetCharacterResponseSkeletons3d           `json:"3d,omitzero"`
 	TwoDReference  SkeletonReference                         `json:"2d_reference,omitzero"`
 	TwoDReferences GetCharacterResponseSkeletons2dReferences `json:"2d_references,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetCharacterResponseSkeletons) unknownEnum() bool {
+	return v.TwoDReference.unknownEnum() ||
+		v.TwoDReferences.unknownEnum()
 }
 
 // GetCharacterResponseSkeletons2dReferences defines a model
@@ -2998,6 +3577,19 @@ type GetCharacterResponseSkeletons2dReferences struct {
 	NorthWest SkeletonReference `json:"north-west"`
 	SouthEast SkeletonReference `json:"south-east"`
 	SouthWest SkeletonReference `json:"south-west"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetCharacterResponseSkeletons2dReferences) unknownEnum() bool {
+	return v.East.unknownEnum() ||
+		v.West.unknownEnum() ||
+		v.North.unknownEnum() ||
+		v.South.unknownEnum() ||
+		v.NorthEast.unknownEnum() ||
+		v.NorthWest.unknownEnum() ||
+		v.SouthEast.unknownEnum() ||
+		v.SouthWest.unknownEnum()
 }
 
 // GetCharacterResponseSkeletons3d defines a model
@@ -3041,6 +3633,13 @@ type GetGenerateFontProJobResponse struct {
 	DownloadTtfURL string `json:"download_ttf_url,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetGenerateFontProJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
+}
+
 // GetMapObjectResponse defines a model
 type GetMapObjectResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3054,6 +3653,14 @@ type GetMapObjectResponse struct {
 	CreatedAt   string     `json:"created_at,omitzero"`
 	// No-auth download URL for the PNG. Only present when status=completed. Warning: map objects auto-delete after 8 hours.
 	DownloadURL string `json:"download_url,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetMapObjectResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid() ||
+		v.View != "" && !v.View.Valid()
 }
 
 // Detailed object information including rotation URLs
@@ -3099,6 +3706,14 @@ type GetObjectResponse struct {
 	Animations []ObjectAnimationGroup `json:"animations,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetObjectResponse) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Status != "" && !v.Status.Valid() ||
+		slices.ContainsFunc(v.Animations, func(x ObjectAnimationGroup) bool { return x.unknownEnum() })
+}
+
 // GetPortraitCharacterProJobResponse defines a model
 type GetPortraitCharacterProJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3110,6 +3725,13 @@ type GetPortraitCharacterProJobResponse struct {
 	Seed   *int      `json:"seed,omitzero"`
 	// No-auth download URL for the sprite PNG. Only present when status=completed.
 	DownloadURL string `json:"download_url,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetPortraitCharacterProJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // GetRoomResponse defines a model
@@ -3156,6 +3778,14 @@ type GetRoomResponse struct {
 	UpdatedAt      string `json:"updated_at"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetRoomResponse) unknownEnum() bool {
+	return !v.View.Valid() ||
+		!v.Status.Valid() ||
+		!v.PiecesStatus.Valid()
+}
+
 // GetTilesProResponse defines a model
 type GetTilesProResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3165,6 +3795,12 @@ type GetTilesProResponse struct {
 	Kind string `json:"kind,omitzero"`
 	// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
 	TileRules *struct{} `json:"tile_rules,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetTilesProResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // GetTilesetResponse defines a model
@@ -3178,11 +3814,26 @@ type GetTilesetResponse struct {
 	Sheet TilesetSheet `json:"sheet,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetTilesetResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Tileset.unknownEnum() ||
+		v.Metadata.unknownEnum() ||
+		v.Sheet.unknownEnum()
+}
+
 // GetVfxEffectsResponse defines a model
 type GetVfxEffectsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Newest-saved first; fewer than `limit` = the last page
 	Effects []VfxEffectSummary `json:"effects"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetVfxEffectsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // GetVocalAnimationJobResponse defines a model
@@ -3204,6 +3855,13 @@ type GetVocalAnimationJobResponse struct {
 	GridURL string `json:"grid_url,omitzero"`
 	// Column order of the spritesheet at `grid_url`.
 	VisemeOrder []string `json:"viseme_order,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *GetVocalAnimationJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // HTTPValidationError defines a model
@@ -3295,6 +3953,12 @@ type ImageResponse struct {
 	Image BaseImage `json:"image"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ImageResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Pixel dimensions of an image. Which sizes a request accepts is told where it is used; the New*ImageSize constructors check them.
 type ImageSize struct {
 	// Width in pixels.
@@ -3326,6 +3990,13 @@ type ImageToPixelartProFlashResponse struct {
 	OutputCount          *int      `json:"output_count,omitzero"`
 	EstimatedGenerations int       `json:"estimated_generations"`
 	PricingProvisional   *bool     `json:"pricing_provisional,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ImageToPixelartProFlashResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // Request model for image to pixel art (pro) endpoint
@@ -3375,6 +4046,12 @@ type ImageToTextResponse struct {
 	Text string `json:"text"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ImageToTextResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Images defines a model
 type Images []Image
 
@@ -3382,6 +4059,12 @@ type Images []Image
 type ImagesResponse struct {
 	Usage  *Usage      `json:"usage,omitzero"`
 	Images []BaseImage `json:"images"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ImagesResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // ImproveMusicStyleRequest defines a model
@@ -3399,6 +4082,12 @@ type ImproveMusicStyleResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The idea written out as a full style
 	Style string `json:"style"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ImproveMusicStyleResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // InpaintImage defines a model
@@ -3442,6 +4131,13 @@ type InpaintImageProFlashRequest struct {
 	CropToMask            bool                  `json:"crop_to_mask,omitzero"`
 	Seed                  int                   `json:"seed,omitzero"`
 	ProjectID             uuid.UUID             `json:"project_id,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *InpaintImageProFlashRequest) unknownEnum() bool {
+	return v.BackgroundRemovalTask != "" && !v.BackgroundRemovalTask.Valid() ||
+		v.OutputMethod != "" && !v.OutputMethod.Valid()
 }
 
 // Request model for image generation endpoint
@@ -3489,6 +4185,16 @@ type InpaintRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *InpaintRequest) unknownEnum() bool {
+	return v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
 }
 
 // Request model for inpaint-v3 endpoint
@@ -3565,6 +4271,12 @@ type IsometricTileSummary struct {
 	CreatedAt string `json:"created_at"`
 	// Generation status: completed, processing, or failed
 	Status AssetStatus `json:"status"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *IsometricTileSummary) unknownEnum() bool {
+	return !v.Status.Valid()
 }
 
 // JobImages defines a model
@@ -3644,6 +4356,13 @@ type JobResponse struct {
 	Status JobStatus `json:"status,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *JobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
+}
+
 // JobStage defines a model
 type JobStage string
 
@@ -3707,6 +4426,12 @@ type Keypoint struct {
 	ZIndex int `json:"z_index,omitzero"`
 	// How near the camera this joint is, 0-255 (about 128 at the body's centre, higher is nearer). Optional: leave it out and it is taken from the standing pose of `template_id` for this direction, which is usually what you want unless you have real 3D positions.
 	Depth *float64 `json:"depth,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Keypoint) unknownEnum() bool {
+	return !v.Label.Valid()
 }
 
 // KeypointOutput defines a model
@@ -3777,6 +4502,17 @@ type LastResponse struct {
 	StyleReferencePath string    `json:"style_reference_path,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *LastResponse) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Detail != "" && !v.Detail.Valid() ||
+		v.Status != "" && !v.Status.Valid() ||
+		v.TemplateID != "" && !v.TemplateID.Valid() ||
+		v.Direction != "" && !v.Direction.Valid() ||
+		v.TemplateAnimationID != "" && !v.TemplateAnimationID.Valid()
+}
+
 // LastResponseUsage defines a model
 type LastResponseUsage struct {
 	Seconds float64 `json:"seconds"`
@@ -3829,6 +4565,12 @@ type LipSyncRequest struct {
 	HoldMs *int `json:"hold_ms,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *LipSyncRequest) unknownEnum() bool {
+	return v.Mood != "" && !v.Mood.Valid()
+}
+
 // LipSyncResponse defines a model
 type LipSyncResponse struct {
 	Usage   *Usage `json:"usage,omitzero"`
@@ -3846,6 +4588,12 @@ type LipSyncResponse struct {
 	Rows *int `json:"rows,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *LipSyncResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Response for character listing
 type ListCharactersResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3853,6 +4601,13 @@ type ListCharactersResponse struct {
 	Characters []CharacterSummary `json:"characters"`
 	// Total number of characters (for pagination)
 	Total int `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListCharactersResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Characters, func(x CharacterSummary) bool { return x.unknownEnum() })
 }
 
 // Response for isometric tile listing
@@ -3864,11 +4619,24 @@ type ListIsometricTilesResponse struct {
 	Total int `json:"total"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListIsometricTilesResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Tiles, func(x IsometricTileSummary) bool { return x.unknownEnum() })
+}
+
 // ListMusicResponse defines a model
 type ListMusicResponse struct {
 	Songs []Song `json:"songs"`
 	// All your songs
 	Total int `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListMusicResponse) unknownEnum() bool {
+	return slices.ContainsFunc(v.Songs, func(x Song) bool { return x.unknownEnum() })
 }
 
 // Response for object listing
@@ -3880,12 +4648,26 @@ type ListObjectsResponse struct {
 	Total int `json:"total"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListObjectsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Objects, func(x ObjectSummary) bool { return x.unknownEnum() })
+}
+
 // ListRoomsResponse defines a model
 type ListRoomsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Your rooms, newest first
 	Rooms []GetRoomResponse `json:"rooms"`
 	Total int               `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListRoomsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Rooms, func(x GetRoomResponse) bool { return x.unknownEnum() })
 }
 
 // ListSidescrollerTilesetsResponse defines a model
@@ -3896,11 +4678,24 @@ type ListSidescrollerTilesetsResponse struct {
 	Total int `json:"total"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListSidescrollerTilesetsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Tilesets, func(x SidescrollerTilesetSummary) bool { return x.unknownEnum() })
+}
+
 // ListSoundEffectsResponse defines a model
 type ListSoundEffectsResponse struct {
 	SoundEffects []SoundEffect `json:"sound_effects"`
 	// All your sound effects
 	Total int `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListSoundEffectsResponse) unknownEnum() bool {
+	return slices.ContainsFunc(v.SoundEffects, func(x SoundEffect) bool { return x.unknownEnum() })
 }
 
 // ListTilesProResponse defines a model
@@ -3909,6 +4704,13 @@ type ListTilesProResponse struct {
 	Tiles []TilesProSummary `json:"tiles"`
 	// Total number of tiles the user owns (unpaginated)
 	Total int `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListTilesProResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Tiles, func(x TilesProSummary) bool { return x.unknownEnum() })
 }
 
 // Response for tileset listing
@@ -3920,6 +4722,13 @@ type ListTilesetsResponse struct {
 	Total int `json:"total"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListTilesetsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Tilesets, func(x TilesetSummary) bool { return x.unknownEnum() })
+}
+
 // ListUIAssetsResponse defines a model
 type ListUIAssetsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -3927,6 +4736,13 @@ type ListUIAssetsResponse struct {
 	UIAssets []UIAssetSummary `json:"ui_assets"`
 	// Total template assets (for pagination)
 	Total int `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ListUIAssetsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.UIAssets, func(x UIAssetSummary) bool { return x.unknownEnum() })
 }
 
 // Manual mask image for precise control
@@ -4031,6 +4847,14 @@ type NormalMapRequest struct {
 	DetailSoftness float64 `json:"detail_softness,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *NormalMapRequest) unknownEnum() bool {
+	return v.Convention != "" && !v.Convention.Valid() ||
+		v.Mode != "" && !v.Mode.Valid() ||
+		v.Kind != "" && !v.Kind.Valid()
+}
+
 // opengl: green = up (Godot, Unity, Phaser); directx: green = down (Unreal).
 type NormalMapRequestConvention string
 
@@ -4081,6 +4905,12 @@ type ObjectAnimationDirection struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ObjectAnimationDirection) unknownEnum() bool {
+	return !v.Direction.Valid()
+}
+
 // An animation grouped across one or more directions, keyed by animation_group_id.
 //
 // Legacy rows that share an animation_name but lack a group_id are bucketed
@@ -4097,6 +4927,12 @@ type ObjectAnimationGroup struct {
 	FrameCount int `json:"frame_count"`
 	// One entry per distinct direction (deduped by MAX(created_at))
 	Directions []ObjectAnimationDirection `json:"directions"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ObjectAnimationGroup) unknownEnum() bool {
+	return slices.ContainsFunc(v.Directions, func(x ObjectAnimationDirection) bool { return x.unknownEnum() })
 }
 
 // An expansion waiting to be kept or discarded.
@@ -4122,6 +4958,13 @@ type ObjectJobResponse struct {
 	ObjectID uuid.UUID `json:"object_id"`
 	// Current job status (pending, processing, running, completed, failed)
 	Status JobStatus `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ObjectJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // ObjectStatus defines a model
@@ -4172,6 +5015,13 @@ type ObjectSummary struct {
 	Tags []string `json:"tags,omitzero"`
 	// Object status (pending, completed, review, failed; expanding / review-expansion while an 8-direction expansion runs or awaits review)
 	Status ObjectStatus `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ObjectSummary) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // Operation defines a model
@@ -4307,6 +5157,12 @@ type Point struct {
 	ZIndex int           `json:"z_index,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Point) unknownEnum() bool {
+	return !v.Label.Valid()
+}
+
 // The native source rectangle within the additional context image.
 type ProFlashBoundingBox struct {
 	X      int `json:"x"`
@@ -4327,6 +5183,13 @@ type ProFlashImageResponse struct {
 	ImageSize            ImageSize `json:"image_size"`
 	EstimatedGenerations int       `json:"estimated_generations"`
 	PricingProvisional   *bool     `json:"pricing_provisional,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ProFlashImageResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Status.Valid()
 }
 
 // Encoded image with native dimensions and its subject/style instructions.
@@ -4388,6 +5251,12 @@ type ReduceColorsRequest struct {
 	DitheringStrength *float64 `json:"dithering_strength,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ReduceColorsRequest) unknownEnum() bool {
+	return v.Dithering != "" && !v.Dithering.Valid()
+}
+
 // Ordered dithering matrix size. Larger matrices give smoother gradients at the cost of a busier look.
 type ReduceColorsRequestDithering string
 
@@ -4418,6 +5287,12 @@ type ReduceColorsResponse struct {
 	NColors int `json:"n_colors"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ReduceColorsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Request model for remove-background endpoint
 type RemoveBackgroundRequest struct {
 	// The image to remove the background from (PNG or JPEG base64)
@@ -4431,6 +5306,12 @@ type RemoveBackgroundRequest struct {
 	Text string `json:"text,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *RemoveBackgroundRequest) unknownEnum() bool {
+	return v.BackgroundRemovalTask != "" && !v.BackgroundRemovalTask.Valid()
 }
 
 // RenameRequest defines a model
@@ -4471,6 +5352,13 @@ type ResizeRequest struct {
 	InitImageStrength *float64 `json:"init_image_strength,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ResizeRequest) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		v.Direction != "" && !v.Direction.Valid()
 }
 
 // Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
@@ -4515,6 +5403,12 @@ type RoomDoorInput struct {
 	Row int `json:"row"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *RoomDoorInput) unknownEnum() bool {
+	return !v.Side.Valid()
+}
+
 // n = a door in a back wall (the wall above a floor cell), e/w = an open doorway in the right/left wall beside a cell (two cells tall: `row` is the upper one), s = an open doorway in the bottom wall below a cell
 type RoomDoorInputSide string
 
@@ -4541,6 +5435,13 @@ type RoomQueuedResponse struct {
 	// The room's id: poll GET /rooms/{room_id}
 	RoomID uuid.UUID `json:"room_id"`
 	Status JobStatus `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *RoomQueuedResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // RoomStyleRoom defines a model
@@ -4587,6 +5488,15 @@ type RotateRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *RotateRequest) unknownEnum() bool {
+	return v.FromView != "" && !v.FromView.Valid() ||
+		v.ToView != "" && !v.ToView.Valid() ||
+		v.FromDirection != "" && !v.FromDirection.Valid() ||
+		v.ToDirection != "" && !v.ToDirection.Valid()
 }
 
 // One image URL per direction; the diagonals only for 8 directions.
@@ -4642,6 +5552,14 @@ type SaveToAssetResponse struct {
 	Note string `json:"note,omitzero"`
 	// For an object rotation placed on maps: which placements now show it.
 	Maps string `json:"maps,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SaveToAssetResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		!v.Action.Valid() ||
+		!v.Kind.Valid()
 }
 
 // saved: pixels replaced. added: a new gallery image. unchanged: no pixel differed, nothing written.
@@ -4700,10 +5618,22 @@ type SelectObjectFramesResponse struct {
 	Directions *int `json:"directions,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SelectObjectFramesResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // SetAnimationMirrorRequest defines a model
 type SetAnimationMirrorRequest struct {
 	// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
 	SourceDirection SourceDirection `json:"source_direction"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetAnimationMirrorRequest) unknownEnum() bool {
+	return !v.SourceDirection.Valid()
 }
 
 // SetAnimationMirrorResponse defines a model
@@ -4714,6 +5644,12 @@ type SetAnimationMirrorResponse struct {
 	// The direction that was created
 	TargetDirection string `json:"target_direction"`
 	FramesCreated   int    `json:"frames_created"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetAnimationMirrorResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // SetCharacterPortraitRequest defines a model
@@ -4730,6 +5666,12 @@ type SetCharacterPortraitResponse struct {
 	Size int `json:"size"`
 	// URL of the stored portrait image.
 	URL string `json:"url"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetCharacterPortraitResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // SetObjectImportRequest defines a model
@@ -4753,6 +5695,12 @@ type SetObjectImportResponse struct {
 	ImageURL string `json:"image_url"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetObjectImportResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // Your own tile images as one completed tile group (the website's Import tiles).
 type SetTilesProImportRequest struct {
 	// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
@@ -4771,6 +5719,13 @@ type SetTilesProImportRequest struct {
 	TileDepthRatio *float64 `json:"tile_depth_ratio,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetTilesProImportRequest) unknownEnum() bool {
+	return !v.TileType.Valid() ||
+		v.TileView != "" && !v.TileView.Valid()
+}
+
 // SetTilesProImportResponse defines a model
 type SetTilesProImportResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -4778,6 +5733,12 @@ type SetTilesProImportResponse struct {
 	TileID uuid.UUID `json:"tile_id"`
 	// Imports finish at once
 	Status string `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetTilesProImportResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Your own Wang spritesheet as one completed tileset (the website's Import).
@@ -4800,6 +5761,12 @@ type SetTilesetImportRequest struct {
 	Name string `json:"name,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetTilesetImportRequest) unknownEnum() bool {
+	return v.TilesetMode != "" && !v.TilesetMode.Valid()
+}
+
 // SetTilesetImportResponse defines a model
 type SetTilesetImportResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -4807,6 +5774,12 @@ type SetTilesetImportResponse struct {
 	TilesetID uuid.UUID `json:"tileset_id"`
 	// Imports finish at once
 	Status string `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetTilesetImportResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // SetUIAssetSplitRequest defines a model
@@ -4820,6 +5793,12 @@ type SetUIAssetSplitResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The new elements
 	Elements []UIAssetPart `json:"elements"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SetUIAssetSplitResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Shading defines a model
@@ -4870,6 +5849,12 @@ type SidescrollerTilesetSummary struct {
 	TileSize              struct{}    `json:"tile_size"`
 	CreatedAt             string      `json:"created_at"`
 	Status                AssetStatus `json:"status"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SidescrollerTilesetSummary) unknownEnum() bool {
+	return !v.Status.Valid()
 }
 
 // SkeletonKeypoints defines a model
@@ -4943,6 +5928,13 @@ type SkeletonReference struct {
 	Keypoints SkeletonKeypoints `json:"keypoints"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SkeletonReference) unknownEnum() bool {
+	return !v.View.Valid() ||
+		!v.Direction.Valid()
+}
+
 // A song or loop take.
 type Song struct {
 	// The song's id
@@ -4982,6 +5974,12 @@ type Song struct {
 	CreatedAt string  `json:"created_at"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Song) unknownEnum() bool {
+	return !v.Status.Valid()
+}
+
 // SoundEffect defines a model
 type SoundEffect struct {
 	// The sound effect's id
@@ -4999,6 +5997,12 @@ type SoundEffect struct {
 	// The length asked for
 	Seconds   float64 `json:"seconds"`
 	CreatedAt string  `json:"created_at"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *SoundEffect) unknownEnum() bool {
+	return !v.Status.Valid()
 }
 
 // SoundStatus defines a model
@@ -5058,6 +6062,14 @@ type StartedMusicResponse struct {
 	QuotedCreditsUsd float64 `json:"quoted_credits_usd"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *StartedMusicResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Status != "" && !v.Status.Valid() ||
+		slices.ContainsFunc(v.Songs, func(x Song) bool { return x.unknownEnum() })
+}
+
 // StateResponse defines a model
 type StateResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -5069,6 +6081,12 @@ type StateResponse struct {
 	Name string `json:"name"`
 	// The state's own name
 	StateName string `json:"state_name"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *StateResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // StorageURLs defines a model
@@ -5092,6 +6110,14 @@ type StyleSettings struct {
 	GenerationMode string  `json:"generation_mode,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *StyleSettings) unknownEnum() bool {
+	return v.Detail != "" && !v.Detail.Valid() ||
+		v.Outline != "" && !v.Outline.Valid() ||
+		v.Shading != "" && !v.Shading.Valid()
+}
+
 // Subscription generation balance
 type Subscription struct {
 	Type string `json:"type,omitzero"`
@@ -5103,6 +6129,12 @@ type Subscription struct {
 	Generations float64 `json:"generations"`
 	// Total generations from subscription
 	Total float64 `json:"total"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Subscription) unknownEnum() bool {
+	return !v.Status.Valid()
 }
 
 // SubscriptionStatus defines a model
@@ -5142,6 +6174,12 @@ type TalkingGifRequest struct {
 	HoldMs *int `json:"hold_ms,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TalkingGifRequest) unknownEnum() bool {
+	return v.Mood != "" && !v.Mood.Valid()
+}
+
 // TalkingGifResponse defines a model
 type TalkingGifResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -5157,6 +6195,12 @@ type TalkingGifResponse struct {
 	Width  int    `json:"width"`
 	Height int    `json:"height"`
 	Mood   string `json:"mood,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TalkingGifResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Colours the result must use (colors) and/or at most max_colors per image.
@@ -5217,6 +6261,12 @@ type Tile struct {
 	Connections TileConnections `json:"connections,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Tile) unknownEnum() bool {
+	return v.Corners.unknownEnum()
+}
+
 // Deprecated. Valid tile connections in each cardinal direction.
 type TileConnections struct {
 	// IDs of tiles that can be placed above this tile
@@ -5239,6 +6289,15 @@ type TileCorners struct {
 	Sw TileCornersNe `json:"SW"`
 	// Southeast corner terrain type
 	Se TileCornersNe `json:"SE"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TileCorners) unknownEnum() bool {
+	return !v.Nw.Valid() ||
+		!v.Ne.Valid() ||
+		!v.Sw.Valid() ||
+		!v.Se.Valid()
 }
 
 // TileCornersNe defines a model
@@ -5288,6 +6347,12 @@ type TileJobResponse struct {
 	TileID uuid.UUID `json:"tile_id"`
 	// Always 'processing' - check status with tile ID
 	Status string `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TileJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // 4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)
@@ -5379,6 +6444,12 @@ type TilesProSummary struct {
 	Status      AssetStatus `json:"status"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesProSummary) unknownEnum() bool {
+	return !v.Status.Valid()
+}
+
 // Tileset containing individual tiles
 type TilesetData struct {
 	// Total number of tiles in the tileset (16 for standard, 25 for transition_size=1.0)
@@ -5391,6 +6462,12 @@ type TilesetData struct {
 	Tiles []Tile `json:"tiles"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesetData) unknownEnum() bool {
+	return slices.ContainsFunc(v.Tiles, func(x Tile) bool { return x.unknownEnum() })
+}
+
 // Response for background tileset generation (async-only)
 type TilesetJobResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -5400,6 +6477,12 @@ type TilesetJobResponse struct {
 	TilesetID uuid.UUID `json:"tileset_id"`
 	// Always 'processing' - check status with background job ID
 	Status string `json:"status,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesetJobResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // Metadata about the tileset generation
@@ -5418,6 +6501,12 @@ type TilesetMetadata struct {
 	GenerationParameters struct{} `json:"generation_parameters"`
 	// ISO timestamp when tileset was created
 	CreatedAt string `json:"created_at"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesetMetadata) unknownEnum() bool {
+	return !v.View.Valid()
 }
 
 // A top-down Wang terrain tileset or a sidescroller platform tileset.
@@ -5450,6 +6539,12 @@ type TilesetSheet struct {
 	Height int `json:"height"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesetSheet) unknownEnum() bool {
+	return !v.Layout.Valid()
+}
+
 // Summary of a tileset for listing
 type TilesetSummary struct {
 	// Unique tileset identifier
@@ -5468,6 +6563,13 @@ type TilesetSummary struct {
 	CreatedAt string `json:"created_at"`
 	// Generation status: completed, processing, or failed
 	Status AssetStatus `json:"status"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TilesetSummary) unknownEnum() bool {
+	return v.View != "" && !v.View.Valid() ||
+		!v.Status.Valid()
 }
 
 // Request model for transfer-outfit-v2 endpoint
@@ -5526,6 +6628,12 @@ type UIAssetDetail struct {
 	SplitPreview []UISplitBox `json:"split_preview,omitzero"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UIAssetDetail) unknownEnum() bool {
+	return v.Status != "" && !v.Status.Valid()
+}
+
 // A template's element, or an element's state.
 type UIAssetPart struct {
 	// UI asset UUID
@@ -5564,6 +6672,12 @@ type UIAssetSummary struct {
 	Status AssetStatus `json:"status,omitzero"`
 	// ISO timestamp
 	CreatedAt string `json:"created_at"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UIAssetSummary) unknownEnum() bool {
+	return v.Status != "" && !v.Status.Valid()
 }
 
 // 9-slice insets in the asset's own pixels: the borders that stay crisp when
@@ -5732,6 +6846,12 @@ type UnzoomResponse struct {
 	ZoomFactorDetected float64 `json:"zoom_factor_detected"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UnzoomResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // UpdateAnimationRequest defines a model
 type UpdateAnimationRequest struct {
 	// New animation name, applied to every direction of it.
@@ -5745,6 +6865,12 @@ type UpdateAnimationResponse struct {
 	DisplayName      string    `json:"display_name"`
 	// Animation rows renamed, one each
 	DirectionsRenamed int `json:"directions_renamed"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UpdateAnimationResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // UpdateCharacterRequest defines a model
@@ -5778,12 +6904,24 @@ type UpdateTagsResponse struct {
 	Tags []string `json:"tags"`
 }
 
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UpdateTagsResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
 // UpdateTilesetResponse defines a model
 type UpdateTilesetResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	ID    string `json:"id"`
 	// The stored name (long names are cut at a word)
 	Name string `json:"name"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UpdateTilesetResponse) unknownEnum() bool {
+	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
 // UpdateUIAssetRequest defines a model
@@ -5821,6 +6959,12 @@ type Usage struct {
 	Usd  *float64  `json:"usd,omitzero"`
 	// Number of subscription generations charged (only set when type is 'generations')
 	Generations *float64 `json:"generations,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *Usage) unknownEnum() bool {
+	return v.Type != "" && !v.Type.Valid()
 }
 
 // UsageType defines a model
