@@ -3658,12 +3658,13 @@ const (
 	JobStageRotating           JobStage = "rotating"
 	JobStageCorrectingFrames   JobStage = "correcting_frames"
 	JobStageQueuedForSprite    JobStage = "queued_for_sprite"
+	JobStageGenerating         JobStage = "generating"
 )
 
 // Valid indicates whether the value is a known member of the JobStage enum.
 func (e JobStage) Valid() bool {
 	switch e {
-	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating, JobStageCorrectingFrames, JobStageQueuedForSprite:
+	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating, JobStageCorrectingFrames, JobStageQueuedForSprite, JobStageGenerating:
 		return true
 	default:
 		return false
@@ -3765,6 +3766,10 @@ type LastResponse struct {
 	MotionAdjustments     MotionAdjustments `json:"motion_adjustments,omitzero"`
 	AnimationDescription  string            `json:"animation_description,omitzero"`
 	TemplateAnimationID   AnimationTemplate `json:"template_animation_id,omitzero"`
+	// Width: any. Height: any.
+	Size        ImageSize `json:"size,omitzero"`
+	ObjectID    uuid.UUID `json:"object_id,omitzero"`
+	Description string    `json:"description,omitzero"`
 }
 
 // LastResponseUsage defines a model

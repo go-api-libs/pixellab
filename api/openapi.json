@@ -17550,7 +17550,8 @@
           "uploading_rotations",
           "rotating",
           "correcting_frames",
-          "queued_for_sprite"
+          "queued_for_sprite",
+          "generating"
         ]
       },
       "JobStatus": {
@@ -17836,6 +17837,19 @@
           },
           "template_animation_id": {
             "$ref": "#/components/schemas/AnimationTemplate"
+          },
+          "size": {
+            "description": "Width: any. Height: any.",
+            "$ref": "#/components/schemas/ImageSize"
+          },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "6ad6f408-1280-4d8b-a92d-477224374b52"
+          },
+          "description": {
+            "type": "string",
+            "example": "A weathered well of grey fieldstone, round. A crank and a bucket on a rope under a small shingle roof."
           }
         },
         "additionalProperties": true

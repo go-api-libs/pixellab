@@ -3328,5 +3328,47 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/87ac5cab-753f-4ac9-9f46-c6c79511a74a",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "517",
+				"Content-Type": "application/json",
+				"Date": "Sun, 15 Nov 2026 14:08:11 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"id": "87ac5cab-753f-4ac9-9f46-c6c79511a74a",
+				"status": "processing",
+				"created_at": "2026-11-15T14:08:11.231620+00:00",
+				"last_response": {
+					"size": {
+						"width": 128,
+						"height": 128
+					},
+					"type": "object_8_rotations",
+					"view": "low top-down",
+					"status": "generating",
+					"progress": 0.02,
+					"object_id": "6ad6f408-1280-4d8b-a92d-477224374b52",
+					"description": "A weathered well of grey fieldstone, round. A crank and a bucket on a rope under a small shingle roof.",
+					"generation_started_at": "2026-11-15T14:08:11.292365+00:00"
+				}
+			}
+		}
 	}
 ]
