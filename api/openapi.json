@@ -17547,7 +17547,8 @@
           "completed",
           "sending_request",
           "processing",
-          "uploading_rotations"
+          "uploading_rotations",
+          "rotating"
         ]
       },
       "JobStatus": {
