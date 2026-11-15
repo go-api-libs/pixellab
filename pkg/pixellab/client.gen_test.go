@@ -36232,54 +36232,90 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("17207ad5-f864-4b77-b1c1-e53e5fb8b931")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6c9cbd82-af86-498f-9de5-949afbd21510")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("f7d8a526-b9a8-4929-a71c-4c8299e62829")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1366c538-ff5f-488c-bb86-4a7e621b5c58")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("e8a1949a-ff83-489e-8ed7-1f5c7e2257bc")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("14174150-f681-422e-9d5e-79418a0f3fb8")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("5e2e53f1-2e1f-47da-a007-6b3c46ac8802")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetCharacter(ctx, uuid.MustParse("11480c99-c7dc-4f63-aa67-7d1a09435cea")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetCharacter: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if _, err := c.GetCharacterZip(ctx, uuid.MustParse("46118899-1915-450d-be72-df0a89bc6363"), &GetCharacterZipParams{}); err != nil {
@@ -36294,24 +36330,40 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("c998ad4b-fe2f-4e7d-87ad-c6ae9208bdd3")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetCharacter(ctx, uuid.MustParse("a34046fa-fd42-43d5-828c-fa4a6d062f70")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetCharacter: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("6344e926-01ed-4659-81e8-ea3174a9c351")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
@@ -36327,18 +36379,30 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "CreateCharacterAnimation", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("CreateCharacterAnimation: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b7e52fb9-f38f-425e-bf85-9eca72d35cc4")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("1a52171a-6755-4544-8856-8d7661ce000f")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if _, err := c.CreateCharacterAnimation(ctx, CreateCharacterAnimationRequest{
@@ -36360,83 +36424,139 @@ func TestClient_Interactions(t *testing.T) {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("b8c785ca-9986-473b-beb1-be61e45b3fb4")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetCharacter(ctx, uuid.MustParse("18036593-b14a-4fda-9e5b-b9d882501173")); err != nil {
 		t.Fatalf("GetCharacter: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetCharacter", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetCharacter: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBalance(ctx); err != nil {
 		t.Fatalf("GetBalance: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBalance", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBalance: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("2e0d9514-352a-4a91-ada7-c201600a2686")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("d37d4295-c918-4600-95b1-71d702aaaedd")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("d37d4295-c918-4600-95b1-71d702aaaedd")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("2e0d9514-352a-4a91-ada7-c201600a2686")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("2e0d9514-352a-4a91-ada7-c201600a2686")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("5823446d-c2f2-4914-88d2-3dfcebec0687")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBalance(ctx); err != nil {
 		t.Fatalf("GetBalance: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBalance", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBalance: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("87ac5cab-753f-4ac9-9f46-c6c79511a74a")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("87ac5cab-753f-4ac9-9f46-c6c79511a74a")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 
 	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("87ac5cab-753f-4ac9-9f46-c6c79511a74a")); err != nil {
 		t.Fatalf("GetBackgroundJob: %v", err)
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
+		}
 	}
 }

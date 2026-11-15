@@ -34,6 +34,8 @@ specification in five steps:
    family's property, as a response's `direction`, refers to the merged enum,
    as does what `declaredEnums` names that only an interaction shows, as a
    job's `last_response.status`, whose enum takes every value recorded there.
+   A plain string whose recorded example is no value of the enum stays a
+   string, as a failed job's `detail`, a message.
    A job's images, which
    upstream gives no schema, are named by their shape: `Image`,
    `DirectionalImages`, `Images` and `JobImages`, either of the two.

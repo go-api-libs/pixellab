@@ -646,3 +646,14 @@ func TestUnions_RoundTrip(t *testing.T) {
 		apitest.RoundTrip(t, ValidationErrorLocItem{Int: &v}, func(u ValidationErrorLocItem) bool { return u.Int != nil }, jsonOpts)
 	})
 }
+
+// TestUnions_Null checks that each union holding no alternative encodes as null, and that null decodes as one holding
+// none, as for a member an API sends as null.
+func TestUnions_Null(t *testing.T) {
+	apitest.Null[CreateCharacterWithDirectionsProportions](t, jsonOpts)
+	apitest.Null[CreateMapObjectRequestInpainting](t, jsonOpts)
+	apitest.Null[CreateUIAssetRequestPiecesItem](t, jsonOpts)
+	apitest.Null[HTTPValidationErrorDetail](t, jsonOpts)
+	apitest.Null[JobImages](t, jsonOpts)
+	apitest.Null[ValidationErrorLocItem](t, jsonOpts)
+}
