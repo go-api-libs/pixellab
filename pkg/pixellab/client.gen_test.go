@@ -36427,4 +36427,10 @@ func TestClient_Interactions(t *testing.T) {
 	} else {
 		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
 	}
+
+	if out, err := c.GetBackgroundJob(ctx, uuid.MustParse("87ac5cab-753f-4ac9-9f46-c6c79511a74a")); err != nil {
+		t.Fatalf("GetBackgroundJob: %v", err)
+	} else {
+		apitest.DecodedAsSent(t, "GetBackgroundJob", out, last.Body, jsonOpts)
+	}
 }

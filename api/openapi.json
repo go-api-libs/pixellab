@@ -17551,7 +17551,8 @@
           "rotating",
           "correcting_frames",
           "queued_for_sprite",
-          "generating"
+          "generating",
+          "uploading"
         ]
       },
       "JobStatus": {
