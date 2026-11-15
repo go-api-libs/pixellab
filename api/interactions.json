@@ -3295,5 +3295,38 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/balance",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Length": "162",
+				"Content-Type": "application/json",
+				"Date": "Sun, 15 Nov 2026 13:50:44 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"credits": {
+					"type": "usd",
+					"usd": 0.0
+				},
+				"subscription": {
+					"type": "generations",
+					"status": "active",
+					"plan": "Tier 1: Pixel Apprentice",
+					"generations": 1988.0,
+					"total": 2000.0
+				}
+			}
+		}
 	}
 ]

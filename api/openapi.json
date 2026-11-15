@@ -21631,7 +21631,8 @@
             "description": "Subscription plan name",
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "example": "Tier 1: Pixel Apprentice"
               },
               {
                 "type": "null"
