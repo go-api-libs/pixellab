@@ -3656,12 +3656,13 @@ const (
 	JobStageProcessing         JobStage = "processing"
 	JobStageUploadingRotations JobStage = "uploading_rotations"
 	JobStageRotating           JobStage = "rotating"
+	JobStageCorrectingFrames   JobStage = "correcting_frames"
 )
 
 // Valid indicates whether the value is a known member of the JobStage enum.
 func (e JobStage) Valid() bool {
 	switch e {
-	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating:
+	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating, JobStageCorrectingFrames:
 		return true
 	default:
 		return false
