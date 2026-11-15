@@ -32,9 +32,10 @@ specification in five steps:
    object of one URL per direction into `RotationURLs`. An enum joins its
    family only where it shares a value with another, and a plain string of a
    family's property, as a response's `direction`, refers to the merged enum,
-   unless its recorded example is no value of it, as a failed job's `detail`, a
-   message, as does what `declaredEnums` names that only an interaction shows, as a
+   as does what `declaredEnums` names that only an interaction shows, as a
    job's `last_response.status`, whose enum takes every value recorded there.
+   A plain string whose recorded example is no value of the enum stays a
+   string, as a failed job's `detail`, a message.
    A job's images, which
    upstream gives no schema, are named by their shape: `Image`,
    `DirectionalImages`, `Images` and `JobImages`, either of the two.
