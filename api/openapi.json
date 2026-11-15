@@ -17546,7 +17546,8 @@
           "building_skeleton",
           "completed",
           "sending_request",
-          "processing"
+          "processing",
+          "uploading_rotations"
         ]
       },
       "JobStatus": {

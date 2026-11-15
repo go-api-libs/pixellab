@@ -3648,18 +3648,19 @@ type JobResponse struct {
 type JobStage string
 
 const (
-	JobStageInitializing     JobStage = "initializing"
-	JobStageGeneratingSprite JobStage = "generating_sprite"
-	JobStageBuildingSkeleton JobStage = "building_skeleton"
-	JobStageCompleted        JobStage = "completed"
-	JobStageSendingRequest   JobStage = "sending_request"
-	JobStageProcessing       JobStage = "processing"
+	JobStageInitializing       JobStage = "initializing"
+	JobStageGeneratingSprite   JobStage = "generating_sprite"
+	JobStageBuildingSkeleton   JobStage = "building_skeleton"
+	JobStageCompleted          JobStage = "completed"
+	JobStageSendingRequest     JobStage = "sending_request"
+	JobStageProcessing         JobStage = "processing"
+	JobStageUploadingRotations JobStage = "uploading_rotations"
 )
 
 // Valid indicates whether the value is a known member of the JobStage enum.
 func (e JobStage) Valid() bool {
 	switch e {
-	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing:
+	case JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations:
 		return true
 	default:
 		return false
