@@ -262,7 +262,7 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("IsometricTileShape(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []JobStage{JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating, JobStageCorrectingFrames} {
+	for _, v := range []JobStage{JobStageInitializing, JobStageGeneratingSprite, JobStageBuildingSkeleton, JobStageCompleted, JobStageSendingRequest, JobStageProcessing, JobStageUploadingRotations, JobStageRotating, JobStageCorrectingFrames, JobStageQueuedForSprite} {
 		if !v.Valid() {
 			t.Errorf("JobStage %v: not valid", v)
 		}
