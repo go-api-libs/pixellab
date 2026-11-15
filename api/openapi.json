@@ -17851,6 +17851,21 @@
           "description": {
             "type": "string",
             "example": "A weathered well of grey fieldstone, round. A crank and a bucket on a rope under a small shingle roof."
+          },
+          "style_reference": {
+            "type": "string",
+            "example": "built-in character placeholders"
+          },
+          "style_selection": {
+            "type": "null"
+          },
+          "actual_frame_size": {
+            "type": "integer",
+            "example": 136
+          },
+          "style_reference_path": {
+            "type": "string",
+            "example": "rotations/128x128/low-top_down/south.png"
           }
         },
         "additionalProperties": true

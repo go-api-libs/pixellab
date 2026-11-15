@@ -3412,5 +3412,56 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/background-jobs/87ac5cab-753f-4ac9-9f46-c6c79511a74a",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json",
+				"Date": "Sun, 15 Nov 2026 14:11:48 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "generations",
+					"generations": 25.0
+				},
+				"id": "87ac5cab-753f-4ac9-9f46-c6c79511a74a",
+				"status": "completed",
+				"created_at": "2026-11-15T14:08:11.231620+00:00",
+				"last_response": {
+					"object_id": "6ad6f408-1280-4d8b-a92d-477224374b52",
+					"storage_urls": {
+						"east": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/east.png",
+						"west": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/west.png",
+						"north": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/north.png",
+						"south": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/south.png",
+						"north-east": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/north-east.png",
+						"north-west": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/north-west.png",
+						"south-east": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/south-east.png",
+						"south-west": "https://backblaze.pixellab.ai/file/pixellab-characters/objects/e237178e-765b-4e05-9a89-d0236204161d/6ad6f408-1280-4d8b-a92d-477224374b52/rotations/south-west.png"
+					},
+					"billing_usage": {
+						"usd": 0.0,
+						"type": "generations",
+						"generations": 25
+					},
+					"style_reference": "built-in character placeholders",
+					"style_selection": null,
+					"directions_count": 8,
+					"actual_frame_size": 136,
+					"style_reference_path": "rotations/128x128/low-top_down/south.png"
+				}
+			}
+		}
 	}
 ]

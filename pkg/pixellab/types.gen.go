@@ -3768,9 +3768,13 @@ type LastResponse struct {
 	AnimationDescription  string            `json:"animation_description,omitzero"`
 	TemplateAnimationID   AnimationTemplate `json:"template_animation_id,omitzero"`
 	// Width: any. Height: any.
-	Size        ImageSize `json:"size,omitzero"`
-	ObjectID    uuid.UUID `json:"object_id,omitzero"`
-	Description string    `json:"description,omitzero"`
+	Size               ImageSize `json:"size,omitzero"`
+	ObjectID           uuid.UUID `json:"object_id,omitzero"`
+	Description        string    `json:"description,omitzero"`
+	StyleReference     string    `json:"style_reference,omitzero"`
+	StyleSelection     *struct{} `json:"style_selection,omitzero"`
+	ActualFrameSize    *int      `json:"actual_frame_size,omitzero"`
+	StyleReferencePath string    `json:"style_reference_path,omitzero"`
 }
 
 // LastResponseUsage defines a model
