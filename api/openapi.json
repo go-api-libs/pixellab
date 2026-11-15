@@ -17667,7 +17667,8 @@
             "type": "null"
           },
           "detail": {
-            "$ref": "#/components/schemas/Detail"
+            "type": "string",
+            "example": "Sorry, we are experiencing high demand and need to temporarily limit free tier."
           },
           "status": {
             "$ref": "#/components/schemas/JobStage"

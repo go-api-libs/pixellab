@@ -13,13 +13,13 @@ require (
 	github.com/MarkRosemaker/cassette v0.0.0-20261115155508-a6d233bba59a
 	github.com/MarkRosemaker/jsonutil v0.0.0-20261115155443-1ff2055c9f09
 	github.com/MarkRosemaker/openapi v0.0.0-20261115155538-1da4aad14fec
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261115163234-2d9e93dec5d1
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261115172559-7c778c5f4a68
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261115155752-393dd0fdc46c
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261115155612-0d71475c9712
 	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261115155716-3081313172bd
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261115155612-0c3e32687df2
 	github.com/ettle/strcase v0.2.0
-	github.com/go-api-libs/api v0.0.0-20261115155546-20ff98863ae1
+	github.com/go-api-libs/api v0.0.0-20261115172114-130f6fc73195
 	golang.org/x/sync v0.25.0
 )
 

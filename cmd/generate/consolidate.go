@@ -148,10 +148,17 @@ func sharingValues(doc *openapi.Document, members []string) []string {
 }
 
 // referPlainStrings makes the plain strings of the properties and parameters, or of their arrays, as a response's
-// direction, refer to the enum: what upstream writes as a string there is a value of it.
+// direction, refer to the enum: what upstream writes as a string there is a value of it. A string whose recorded
+// example is no value of the enum is something else of the same name, as a failed job's detail, a message.
 func referPlainStrings(doc *openapi.Document, name string, props []string) {
+	values := doc.Components.Schemas[name].Enum
+
 	refer := func(p *openapi.Schema) {
 		p = stringSchema(p)
+
+		if len(p.Example) > 0 && !slices.ContainsFunc(values, func(v jsontext.Value) bool { return string(v) == string(p.Example) }) {
+			return
+		}
 
 		if p.Type == openapi.TypeString && p.Ref == nil && p.Format == "" && len(p.Enum) == 0 && len(p.Const) == 0 {
 			ref := edit.SchemaRef(doc, name)
