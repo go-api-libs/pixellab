@@ -138,6 +138,7 @@ Grouped exactly as the [interactive docs](https://api.pixellab.ai/v2/docs) group
 #### Skeleton Animation
 
 - [`POST /estimate-skeleton`](https://api.pixellab.ai/v2/redoc#operation/estimate_skeleton_estimate_skeleton_post): Estimate skeleton
+- [`POST /estimate-custom-skeleton`](https://api.pixellab.ai/v2/redoc#operation/estimate_custom_skeleton_estimate_custom_skeleton_post): Estimate custom skeleton
 - [`POST /animate-with-skeleton-v3`](https://api.pixellab.ai/v2/redoc#operation/animate_with_skeleton_v3_animate_with_skeleton_v3_post): Animate with skeleton v3
 - [`POST /animate-with-skeleton`](https://api.pixellab.ai/v2/redoc#operation/animate_with_skeleton_animate_with_skeleton_post): Animate with skeleton
 

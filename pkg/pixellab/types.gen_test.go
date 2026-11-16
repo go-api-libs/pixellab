@@ -402,6 +402,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("ReduceColorsRequestDithering(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []RigJointSide{RigJointSideNear, RigJointSideMid, RigJointSideFar} {
+		if !v.Valid() {
+			t.Errorf("RigJointSide %v: not valid", v)
+		}
+	}
+
+	if RigJointSide("not a member").Valid() {
+		t.Errorf("RigJointSide(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []RoofProfile{RoofProfileGable, RoofProfileRound} {
 		if !v.Valid() {
 			t.Errorf("RoofProfile %v: not valid", v)

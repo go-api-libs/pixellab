@@ -248,11 +248,15 @@ type AnimateWithSkeletonV3Request struct {
 	View CameraView `json:"view,omitzero"`
 	// The sprite to animate, PNG base64, up to 256x256. Frames come back at this size.
 	FirstFrame BaseImage `json:"first_frame"`
-	// The skeleton of the pose `first_frame` is IN, all 18 joints. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.
+	// The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.
 	FirstFrameKeypoints []Keypoint `json:"first_frame_keypoints"`
-	// The motion: one skeleton per frame you get back, all 18 joints each. 3 to 15 frames.
-	Keypoints []Keypoint `json:"keypoints"`
-	// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.
+	// The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`.
+	Keypoints []Keypoint `json:"keypoints,omitzero"`
+	// Instead of `keypoints`: have the motion written for you from `action`, this many frames (3-15), starting from `first_frame_keypoints`. The finished job also returns the skeletons it drew (`last_response.keypoints`), to edit and send back as `keypoints`.
+	WriteMotionFrames int `json:"write_motion_frames,omitzero"`
+	// A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here.
+	Rig []RigJoint `json:"rig,omitzero"`
+	// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat. With a custom `rig`: dog for a four-legged body (the estimate's `kind`), else mannequin.
 	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// 0 for a random seed.
 	Seed int `json:"seed,omitzero"`
@@ -2385,6 +2389,14 @@ type Credits struct {
 	Usd float64 `json:"usd"`
 }
 
+// A frame your `rig` is already placed on, and where its joints are.
+type CustomSkeletonReference struct {
+	// The frame, PNG base64.
+	Image BaseImage `json:"image"`
+	// Every joint of `rig` on that frame, x/y as fractions 0-1 of the image: one of a previous estimate's `frames` works as it is.
+	Keypoints []Keypoint `json:"keypoints"`
+}
+
 // DeleteAnimationsResponse defines a model
 type DeleteAnimationsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2926,6 +2938,26 @@ type EnhancedPromptResponse struct {
 // records.
 func (v *EnhancedPromptResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum()
+}
+
+// EstimateCustomSkeletonRequest defines a model
+type EstimateCustomSkeletonRequest struct {
+	// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
+	Images []BaseImage `json:"images"`
+	// What the sprite is, as a short phrase: 'red dragon with bat wings'. Optional; it helps the rig cover the right parts.
+	Description string `json:"description,omitzero"`
+	// What it will be animated doing: 'flap', 'tail swipe'. Optional; the parts that move get joints.
+	Action string `json:"action,omitzero"`
+	// The direction the sprite faces.
+	// One of: north, north-east, east, south-east, south, south-west, west, north-west.
+	Direction Direction `json:"direction"`
+	// Camera angle.
+	// One of: side, low top-down, high top-down. Defaults to "low top-down".
+	View CameraView `json:"view,omitzero"`
+	// A rig you already have (a previous estimate's, edited or not), to place on `images` instead of building a new one. Send `reference` with it.
+	Rig []RigJoint `json:"rig,omitzero"`
+	// With `rig`: the frame it is already placed on. It is carried from there to every image.
+	Reference CustomSkeletonReference `json:"reference,omitzero"`
 }
 
 // Request model for estimate skeleton endpoint
@@ -4095,8 +4127,9 @@ type Keypoint struct {
 	// Horizontal position, 0-1 across the image
 	X float64 `json:"x"`
 	// Vertical position, 0-1 down the image
-	Y     float64       `json:"y"`
-	Label SkeletonLabel `json:"label"`
+	Y float64 `json:"y"`
+	// Which joint: one of the 18 humanoid joints (NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR), or with a custom `rig`, one of its joint names.
+	Label string `json:"label"`
 	// Draw order; higher draws on top
 	ZIndex int `json:"z_index,omitzero"`
 	// How near the camera this joint is, 0-255 (about 128 at the body's centre, higher is nearer). Optional: leave it out and it is taken from the standing pose of `template_id` for this direction, which is usually what you want unless you have real 3D positions.
@@ -4988,6 +5021,37 @@ type ResizeRequest struct {
 	InitImageStrength *float64 `json:"init_image_strength,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
+}
+
+// One joint of a custom rig.
+type RigJoint struct {
+	// The joint's name, unique in the rig ('left wing tip', 'tail 2'). Skeletons name their joints by it, as `label`.
+	Name string `json:"name"`
+	// The joint it hangs from, null for the rig's one root joint. List parents before their children.
+	Parent string `json:"parent"`
+	// Which side of the body it is on, seen from the camera: near, mid (the middle, e.g. a spine or tail) or far.
+	Side RigJointSide `json:"side"`
+	// The humanoid joint it stands for, if any: one of NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR. A linked joint takes its depth from `template_id`'s body; leave it null for wings, tails and props.
+	Estimate string `json:"estimate,omitzero"`
+}
+
+// Which side of the body it is on, seen from the camera: near, mid (the middle, e.g. a spine or tail) or far.
+type RigJointSide string
+
+const (
+	RigJointSideNear RigJointSide = "near"
+	RigJointSideMid  RigJointSide = "mid"
+	RigJointSideFar  RigJointSide = "far"
+)
+
+// Valid indicates whether the value is a known member of the RigJointSide enum.
+func (e RigJointSide) Valid() bool {
+	switch e {
+	case RigJointSideNear, RigJointSideMid, RigJointSideFar:
+		return true
+	default:
+		return false
+	}
 }
 
 // Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.

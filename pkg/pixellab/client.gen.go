@@ -4840,6 +4840,100 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 	}
 }
 
+// Beta. Builds a skeleton of any shape for your sprite (wings, tails, weapons, extra legs, a lid) and places it on 1 to 16 frames, for animating with `POST /v2/animate-with-skeleton-v3`.
+//
+// Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
+// every 5-10 seconds; most estimates finish in about a minute.
+//
+// **Without `rig`:** a rig is built on `images[0]`: a person or a four-legged body keeps
+// the humanoid estimate's joints where they fit, and gets its own joints for the rest.
+// Then it is placed on the other images.
+// **With `rig` and `reference`:** your rig, as you edited it, is carried from the frame
+// it is placed on to every image. Joints linked to a humanoid joint (`estimate`) follow
+// that joint, so a joint you moved off it keeps its offset.
+//
+// **Result** (`last_response` when `status` is `completed`):
+//   - `rig`: the joints, parents first: `name`, `parent`, `side` (near / mid / far, seen
+//     from the camera) and `estimate` (the humanoid joint it stands for, or null).
+//   - `kind`: `person`, `four-legged` or `other` for a new rig (null for yours). Animate
+//     a four-legged body with `template_id: "dog"`, anything else with `"mannequin"`.
+//   - `frames`: one skeleton per image, in order: `label`, `x`/`y` as fractions 0-1 of
+//     the image, `z_index` from the side.
+//
+// Pass `rig` to animate-with-skeleton-v3 as `rig`, a frame's skeleton as
+// `first_frame_keypoints` (the pose `first_frame` is in), and the rest, edited into the
+// motion you want, as `keypoints`, or send `write_motion_frames` to have the motion
+// written from `action`.
+//
+// **Cost:** 1 generation for every 8 frames started (1-8
+// frames = 1, 9-16 = 2). A fully transparent frame is
+// refused (422) before anything is charged.
+//
+// Returns: Background job response. Poll GET /v2/background-jobs/{id} for the skeleton.
+//
+//	POST /estimate-custom-skeleton
+func (c *Client) EstimateCustomSkeleton(ctx context.Context, body EstimateCustomSkeletonRequest) (*JobResponse, error) {
+	u := c.baseURL.JoinPath("estimate-custom-skeleton")
+	pr, pw := io.Pipe()
+	req := (&http.Request{
+		Header: http.Header{
+			"Authorization": []string{c.bearer},
+			"User-Agent":    []string{c.userAgent},
+			"Content-Type":  []string{"application/json"},
+		},
+		Host:          u.Host,
+		Method:        http.MethodPost,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		URL:           u,
+		Body:          pr,
+		ContentLength: -1,
+	}).WithContext(ctx)
+
+	go func() { pw.CloseWithError(json.MarshalWrite(pw, body, jsonOpts)) }()
+	defer pr.Close()
+
+	rsp, ia, err := c.do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+
+	switch rsp.StatusCode {
+	case http.StatusOK:
+		// Background job accepted
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out JobResponse
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			// a value of an enum the specification does not list decodes, but is news
+			if ia != nil && out.unknownEnum() {
+				if err := c.keep(ia); err != nil {
+					return nil, fmt.Errorf("recording the call: %w", err)
+				}
+			}
+
+			return &out, nil
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+		// Invalid API token
+		// Insufficient credits
+		// Validation error
+		// Too many concurrent background jobs
+		return nil, fmt.Errorf("EstimateCustomSkeleton: status %s", rsp.Status)
+	default:
+		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
+	}
+}
+
 // Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.
 //
 // Returns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`
@@ -4856,7 +4950,21 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 // will derive a skeleton from an image if you do not have one — it returns x/y on the same
 // 0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.
 //
-// **Limits:** 3-15 frames, canvas up to 256x256.
+// **Custom skeletons (wings, tails, weapons, extra legs):** send `rig`, its joints with
+// their parents, and name those joints in every skeleton instead of the 18.
+// `POST /v2/estimate-custom-skeleton` builds a rig for your sprite and places it on your
+// frames; its `rig` and `frames` drop straight into `rig`, `first_frame_keypoints` and
+// `keypoints`.
+//
+// **Written motion:** no skeletons for the motion yet? Send `write_motion_frames` instead
+// of `keypoints` and the motion is written from `action`, starting from
+// `first_frame_keypoints` (18 joints or a `rig`). The finished job also returns the
+// skeletons it drew in `last_response.keypoints` (x/y pinned into 0-1) and the motion's
+// name in `last_response.motion_label`: edit them and send them back as `keypoints` to
+// redraw.
+//
+// **Limits:** 3-15 frames (1-15 with a
+// `rig`, so a single frame can be redrawn), canvas up to 256x256.
 //
 // **Cost:** by generation time, which depends on frame count and not on canvas size:
 // 3 frames = 2 generations,

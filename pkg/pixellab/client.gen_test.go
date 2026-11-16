@@ -11026,6 +11026,207 @@ func TestClient_Error(t *testing.T) {
 		})
 	})
 
+	t.Run("EstimateCustomSkeleton", func(t *testing.T) {
+		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
+
+		t.Run("transport error", func(t *testing.T) {
+			c, err := NewClient(WithHTTPClient(&http.Client{Transport: apitest.RoundTripFunc(
+				func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			)}))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, io.EOF) {
+				t.Fatalf("want: %v, got: %v", io.EOF, err)
+			}
+		})
+
+		t.Run("unknown status code", func(t *testing.T) {
+			srv := apitest.NewServer(t, http.StatusTeapot)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if apiErr.Err != api.ErrUnknownStatusCode {
+				t.Fatalf("got: %v, want: %v", apiErr.Err, api.ErrUnknownStatusCode)
+			} else if apiErr.Response.StatusCode != http.StatusTeapot {
+				t.Fatalf("got: %v, want: %v", apiErr.Response.StatusCode, http.StatusTeapot)
+			}
+		})
+
+		t.Run("unknown content type", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "foo")
+				w.WriteHeader(http.StatusOK)
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("decoding error", func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("invalid json"))
+			}))
+			t.Cleanup(srv.Close)
+
+			baseURL, err := url.Parse(srv.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(baseURL))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if decErr, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*jsontext.SyntacticError](decErr.Err); !ok {
+				t.Fatalf("got: %T, want: *jsontext.SyntacticError", decErr.Err)
+			}
+		})
+
+		t.Run("debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", apitest.WithUnknownMember(t, JobResponse{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			for range 2 {
+				if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err != nil {
+					t.Fatalf("debug mode decodes leniently: %v", err)
+				}
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode, once", len(ias))
+			}
+		})
+
+		t.Run("debug mode keeps a body it cannot decode", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("debug mode reports a debug file it cannot write", func(t *testing.T) {
+			// a file where the debug file's directory would be
+			blocker := filepath.Join(t.TempDir(), "file")
+			if err := os.WriteFile(blocker, nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusOK, "application/json", []byte("invalid json"))), WithDebugFile(filepath.Join(blocker, "interactions.json")))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want the *api.DecodingError", err)
+			} else if _, ok := errors.AsType[*fs.PathError](err); !ok {
+				t.Fatalf("got: %v, want the failure to write the debug file beside it", err)
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateCustomSkeleton: status") {
+				t.Fatalf("got: %v, want an error naming the status", err)
+			}
+		})
+
+		t.Run("402 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateCustomSkeleton: status") {
+				t.Fatalf("got: %v, want an error naming the status", err)
+			}
+		})
+
+		t.Run("422 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateCustomSkeleton: status") {
+				t.Fatalf("got: %v, want an error naming the status", err)
+			}
+		})
+
+		t.Run("429 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusTooManyRequests, "", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateCustomSkeleton: status") {
+				t.Fatalf("got: %v, want an error naming the status", err)
+			}
+		})
+	})
+
 	t.Run("AnimateWithSkeletonV3", func(t *testing.T) {
 		t.Setenv("PIXEL_LAB_API_TOKEN", "**************************************************")
 

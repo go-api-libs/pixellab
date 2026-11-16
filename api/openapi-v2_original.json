@@ -3195,13 +3195,66 @@
         ]
       }
     },
+    "/estimate-custom-skeleton": {
+      "post": {
+        "tags": [
+          "Skeleton Animation"
+        ],
+        "summary": "Estimate custom skeleton",
+        "description": "Beta. Builds a skeleton of any shape for your sprite (wings, tails, weapons, extra legs, a lid) and places it on 1 to 16 frames, for animating with `POST /v2/animate-with-skeleton-v3`.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nevery 5-10 seconds; most estimates finish in about a minute.\n\n**Without `rig`:** a rig is built on `images[0]`: a person or a four-legged body keeps\nthe humanoid estimate's joints where they fit, and gets its own joints for the rest.\nThen it is placed on the other images.\n**With `rig` and `reference`:** your rig, as you edited it, is carried from the frame\nit is placed on to every image. Joints linked to a humanoid joint (`estimate`) follow\nthat joint, so a joint you moved off it keeps its offset.\n\n**Result** (`last_response` when `status` is `completed`):\n- `rig`: the joints, parents first: `name`, `parent`, `side` (near / mid / far, seen\n  from the camera) and `estimate` (the humanoid joint it stands for, or null).\n- `kind`: `person`, `four-legged` or `other` for a new rig (null for yours). Animate\n  a four-legged body with `template_id: \"dog\"`, anything else with `\"mannequin\"`.\n- `frames`: one skeleton per image, in order: `label`, `x`/`y` as fractions 0-1 of\n  the image, `z_index` from the side.\n\nPass `rig` to animate-with-skeleton-v3 as `rig`, a frame's skeleton as\n`first_frame_keypoints` (the pose `first_frame` is in), and the rest, edited into the\nmotion you want, as `keypoints`, or send `write_motion_frames` to have the motion\nwritten from `action`.\n\n**Cost:** 1 generation for every 8 frames started (1-8\nframes = 1, 9-16 = 2). A fully transparent frame is\nrefused (422) before anything is charged.",
+        "operationId": "estimate_custom_skeleton_estimate_custom_skeleton_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateCustomSkeletonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Background job accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateCustomSkeletonResponse"
+                },
+                "example": {
+                  "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+                  "status": "processing"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API token"
+          },
+          "402": {
+            "description": "Insufficient credits"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "429": {
+            "description": "Too many concurrent background jobs"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/animate-with-skeleton-v3": {
       "post": {
         "tags": [
           "Skeleton Animation"
         ],
         "summary": "Animate with skeleton v3",
-        "description": "Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.\n3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.\n\n**Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is\noptional -- leave it out and it is taken from the standing pose of `template_id` for\nyour direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`\nwill derive a skeleton from an image if you do not have one — it returns x/y on the same\n0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.\n\n**Limits:** 3-15 frames, canvas up to 256x256.\n\n**Cost:** by generation time, which depends on frame count and not on canvas size:\n3 frames = 2 generations,\n8 frames = 3,\n15 frames = 4. A longer clip\nis nearly free, so prefer one long clip to several short ones.\n\nTypical generation time: 2-3 minutes.",
+        "description": "Beta. Animate a sprite by posing it: one skeleton per frame, drawn from a single reference image.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Send the sprite, the skeleton of the pose it is already in (`first_frame_keypoints`), and one skeleton per frame you want (`keypoints`).\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 5-10 seconds.\n3. When `status` is `completed`, `last_response.images` holds exactly `len(keypoints)` frames, each the size of `first_frame`. The reference frame is not returned.\n\n**Skeletons:** 18 humanoid joints, `x`/`y` as fractions 0-1 of the image. `depth` is\noptional -- leave it out and it is taken from the standing pose of `template_id` for\nyour direction, which is what an editor without 3D data should do. `POST /v2/estimate-skeleton`\nwill derive a skeleton from an image if you do not have one — it returns x/y on the same\n0-1 scale as this endpoint expects, so the result drops straight into `keypoints`.\n\n**Custom skeletons (wings, tails, weapons, extra legs):** send `rig`, its joints with\ntheir parents, and name those joints in every skeleton instead of the 18.\n`POST /v2/estimate-custom-skeleton` builds a rig for your sprite and places it on your\nframes; its `rig` and `frames` drop straight into `rig`, `first_frame_keypoints` and\n`keypoints`.\n\n**Written motion:** no skeletons for the motion yet? Send `write_motion_frames` instead\nof `keypoints` and the motion is written from `action`, starting from\n`first_frame_keypoints` (18 joints or a `rig`). The finished job also returns the\nskeletons it drew in `last_response.keypoints` (x/y pinned into 0-1) and the motion's\nname in `last_response.motion_label`: edit them and send them back as `keypoints` to\nredraw.\n\n**Limits:** 3-15 frames (1-15 with a\n`rig`, so a single frame can be redrawn), canvas up to 256x256.\n\n**Cost:** by generation time, which depends on frame count and not on canvas size:\n3 frames = 2 generations,\n8 frames = 3,\n15 frames = 4. A longer clip\nis nearly free, so prefer one long clip to several short ones.\n\nTypical generation time: 2-3 minutes.",
         "operationId": "animate_with_skeleton_v3_animate_with_skeleton_v3_post",
         "requestBody": {
           "content": {
@@ -10810,18 +10863,54 @@
             },
             "type": "array",
             "title": "First Frame Keypoints",
-            "description": "The skeleton of the pose `first_frame` is IN, all 18 joints. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned."
+            "description": "The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned."
           },
           "keypoints": {
-            "items": {
-              "items": {
-                "$ref": "#/components/schemas/Keypoint-Input"
+            "anyOf": [
+              {
+                "items": {
+                  "items": {
+                    "$ref": "#/components/schemas/Keypoint-Input"
+                  },
+                  "type": "array"
+                },
+                "type": "array"
               },
-              "type": "array"
-            },
-            "type": "array",
+              {
+                "type": "null"
+              }
+            ],
             "title": "Keypoints",
-            "description": "The motion: one skeleton per frame you get back, all 18 joints each. 3 to 15 frames."
+            "description": "The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`."
+          },
+          "write_motion_frames": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 15.0,
+                "minimum": 3.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Write Motion Frames",
+            "description": "Instead of `keypoints`: have the motion written for you from `action`, this many frames (3-15), starting from `first_frame_keypoints`. The finished job also returns the skeletons it drew (`last_response.keypoints`), to edit and send back as `keypoints`."
+          },
+          "rig": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RigJoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rig",
+            "description": "A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here."
           },
           "template_id": {
             "type": "string",
@@ -10834,7 +10923,7 @@
               "lion"
             ],
             "title": "Template Id",
-            "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat.",
+            "description": "The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat. With a custom `rig`: dog for a four-legged body (the estimate's `kind`), else mannequin.",
             "default": "mannequin"
           },
           "seed": {
@@ -10858,8 +10947,7 @@
           "action",
           "direction",
           "first_frame",
-          "first_frame_keypoints",
-          "keypoints"
+          "first_frame_keypoints"
         ],
         "title": "AnimateWithSkeletonV3Request",
         "example": {
@@ -18092,6 +18180,30 @@
         "title": "Credits",
         "description": "USD credit balance"
       },
+      "CustomSkeletonReference": {
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/Base64Image",
+            "description": "The frame, PNG base64."
+          },
+          "keypoints": {
+            "items": {
+              "$ref": "#/components/schemas/Keypoint-Input"
+            },
+            "type": "array",
+            "title": "Keypoints",
+            "description": "Every joint of `rig` on that frame, x/y as fractions 0-1 of the image: one of a previous estimate's `frames` works as it is."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "image",
+          "keypoints"
+        ],
+        "title": "CustomSkeletonReference",
+        "description": "A frame your `rig` is already placed on, and where its joints are."
+      },
       "DeleteAnimationGroupResponse": {
         "properties": {
           "usage": {
@@ -19833,6 +19945,132 @@
           "enhanced_prompt"
         ],
         "title": "EnhancePixenPromptResponse"
+      },
+      "EstimateCustomSkeletonRequest": {
+        "properties": {
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/Base64Image"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Images",
+            "description": "The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Description",
+            "description": "What the sprite is, as a short phrase: 'red dragon with bat wings'. Optional; it helps the rig cover the right parts.",
+            "default": "",
+            "examples": [
+              "red dragon with bat wings"
+            ]
+          },
+          "action": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Action",
+            "description": "What it will be animated doing: 'flap', 'tail swipe'. Optional; the parts that move get joints.",
+            "default": "",
+            "examples": [
+              "flap"
+            ]
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction",
+            "description": "The direction the sprite faces."
+          },
+          "view": {
+            "$ref": "#/components/schemas/CameraView",
+            "description": "Camera angle.",
+            "default": "low top-down"
+          },
+          "rig": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RigJoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rig",
+            "description": "A rig you already have (a previous estimate's, edited or not), to place on `images` instead of building a new one. Send `reference` with it."
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CustomSkeletonReference"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "With `rig`: the frame it is already placed on. It is carried from there to every image."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "images",
+          "direction"
+        ],
+        "title": "EstimateCustomSkeletonRequest",
+        "example": {
+          "action": "flap",
+          "description": "red dragon with bat wings",
+          "direction": "east",
+          "images": [
+            {
+              "base64": "iVBORw0KGgo..."
+            }
+          ],
+          "view": "side"
+        }
+      },
+      "EstimateCustomSkeletonResponse": {
+        "properties": {
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Usage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": {
+              "type": "usd",
+              "usd": 0.02
+            }
+          },
+          "background_job_id": {
+            "type": "string",
+            "title": "Background Job Id",
+            "description": "Background job ID for polling the estimate"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current job status (processing, completed, failed)",
+            "default": "processing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "background_job_id"
+        ],
+        "title": "EstimateCustomSkeletonResponse",
+        "description": "Background job response. Poll GET /v2/background-jobs/{id} for the skeleton.",
+        "example": {
+          "background_job_id": "123e4567-e89b-12d3-a456-426614174000",
+          "status": "processing"
+        }
       },
       "EstimateSkeletonRequest": {
         "properties": {
@@ -22812,7 +23050,12 @@
             "description": "Vertical position, 0-1 down the image"
           },
           "label": {
-            "$ref": "#/components/schemas/SkeletonLabel"
+            "type": "string",
+            "title": "Label",
+            "description": "Which joint: one of the 18 humanoid joints (NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR), or with a custom `rig`, one of its joint names.",
+            "examples": [
+              "NOSE"
+            ]
           },
           "z_index": {
             "type": "integer",
@@ -25107,6 +25350,66 @@
         ],
         "title": "ResizeResponse",
         "description": "Response for completed resize"
+      },
+      "RigJoint": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "description": "The joint's name, unique in the rig ('left wing tip', 'tail 2'). Skeletons name their joints by it, as `label`.",
+            "examples": [
+              "left wing tip"
+            ]
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent",
+            "description": "The joint it hangs from, null for the rig's one root joint. List parents before their children.",
+            "examples": [
+              "left wing elbow"
+            ]
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "near",
+              "mid",
+              "far"
+            ],
+            "title": "Side",
+            "description": "Which side of the body it is on, seen from the camera: near, mid (the middle, e.g. a spine or tail) or far."
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate",
+            "description": "The humanoid joint it stands for, if any: one of NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR. A linked joint takes its depth from `template_id`'s body; leave it null for wings, tails and props."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "parent",
+          "side"
+        ],
+        "title": "RigJoint",
+        "description": "One joint of a custom rig."
       },
       "Room": {
         "properties": {
@@ -30714,7 +31017,7 @@
     },
     {
       "name": "Skeleton Animation",
-      "description": "Pose-driven animation for when you need exact control over limb placement instead of describing the motion. Call `estimate-skeleton` first to get keypoints for your sprite, then feed edited poses to `animate-with-skeleton-v3`, which draws every frame from one reference image along one skeleton per frame (3-15 frames, up to 256x256). `animate-with-skeleton` is the older three-frame engine."
+      "description": "Pose-driven animation for when you need exact control over limb placement instead of describing the motion. Call `estimate-skeleton` first to get keypoints for your sprite, then feed edited poses to `animate-with-skeleton-v3`, which draws every frame from one reference image along one skeleton per frame (3-15 frames, up to 256x256). For wings, tails, weapons or extra legs, `estimate-custom-skeleton` builds a custom rig for the sprite, which animate-with-skeleton-v3 takes as `rig`; with `write_motion_frames` it writes the motion from the action itself. `animate-with-skeleton` is the older three-frame engine."
     },
     {
       "name": "VFX",
