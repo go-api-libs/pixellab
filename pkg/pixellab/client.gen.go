@@ -9100,7 +9100,8 @@ func (c *Client) GetMapObject(ctx context.Context, objectID uuid.UUID) (*GetMapO
 // Paint one room (a 7 x 6 grid of 32 px floor cells; top-down
 // 256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways
 // where `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down
-// room's building kit can also come as a 16, 24, 48 or 64 px tileset (`tile_size`).
+// room's building kit can also come as a 16, 24, 48 or 64 px tileset, and an isometric or oblique
+// room can be drawn at those tile sizes (`tile_size`).
 //
 // Returns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with
 // `pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.

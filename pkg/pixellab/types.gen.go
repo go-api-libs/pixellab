@@ -1876,7 +1876,7 @@ type CreateRoomRequest struct {
 	View CameraView `json:"view,omitzero"`
 	// A project of yours to file the room in (a game also uses it); left out: your auto-add setting
 	ProjectID uuid.UUID `json:"project_id,omitzero"`
-	// Top-down rooms only: the tile size of the tileset its building kit comes as. 32 is the room's own; 16, 24, 48 or 64 also paints the kit at that size, so GET /rooms/{room_id}/kit.zip holds a tileset-15 sheet and its metadata at that size too. The room's picture stays 32 px cells. 48 or 64 costs 25 generations instead of 20
+	// Top-down: the tile size of the tileset its building kit comes as. 32 is the room's own; 16, 24, 48 or 64 also paints the kit at that size, so GET /rooms/{room_id}/kit.zip holds a tileset-15 sheet and its metadata at that size too; the room's picture stays 32 px cells. Isometric and oblique: the tile size the whole room is drawn at (an isometric floor cell a diamond that many px across and half as tall, an oblique one a square that many px; a 64 px room's picture is twice a 32 px one's). 48 or 64 costs 25 generations instead of 20
 	TileSize int `json:"tile_size,omitzero"`
 }
 
@@ -3445,6 +3445,8 @@ type GetRoomResponse struct {
 	Walkable []int `json:"walkable,omitzero"`
 	// Width: any. Height: any.
 	PictureSize ImageSize `json:"picture_size"`
+	// The tile size it is drawn at: an isometric or oblique room's (tile_size); 32 for top-down rooms, whose tileset can also come at others (kit_tile_sizes)
+	TileSize int `json:"tile_size"`
 	// The room's picture (PNG, the rock round its walls transparent), as last saved in the website's room editor, else as painted
 	ImageURL string `json:"image_url,omitzero"`
 	// Its furniture cut out as movable pieces: only when asked

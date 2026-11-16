@@ -6380,7 +6380,7 @@
           "Rooms"
         ],
         "summary": "Create room",
-        "description": "Paint one room (a 7 x 6 grid of 32 px floor cells; top-down\n256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways\nwhere `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down\nroom's building kit can also come as a 16, 24, 48 or 64 px tileset (`tile_size`).\n\nReturns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with\n`pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.\n\nCosts 20 generations (or $0.16 of credits) when the room is ready,\n25 ($0.20) with `tile_size` 48 or 64, and\n10 more for its pieces. Nothing is charged if it fails. Needs Tier 1 (Pixel\nApprentice) or higher.",
+        "description": "Paint one room (a 7 x 6 grid of 32 px floor cells; top-down\n256x256 px, isometric or oblique) as pixel art, built and furnished for its theme, its doorways\nwhere `doors` puts them so rooms join up; the rock round its walls is transparent. A top-down\nroom's building kit can also come as a 16, 24, 48 or 64 px tileset, and an isometric or oblique\nroom can be drawn at those tile sizes (`tile_size`).\n\nReturns at once with a `room_id`; the room takes ~4 minutes, 1 in 10 over 8 (~8-11 with\n`pieces`). Poll `GET /rooms/{room_id}` until `status` is `completed`.\n\nCosts 20 generations (or $0.16 of credits) when the room is ready,\n25 ($0.20) with `tile_size` 48 or 64, and\n10 more for its pieces. Nothing is charged if it fails. Needs Tier 1 (Pixel\nApprentice) or higher.",
         "operationId": "create_room_create_room_post",
         "requestBody": {
           "content": {
@@ -16595,7 +16595,7 @@
               64
             ],
             "title": "Tile Size",
-            "description": "Top-down rooms only: the tile size of the tileset its building kit comes as. 32 is the room's own; 16, 24, 48 or 64 also paints the kit at that size, so GET /rooms/{room_id}/kit.zip holds a tileset-15 sheet and its metadata at that size too. The room's picture stays 32 px cells. 48 or 64 costs 25 generations instead of 20",
+            "description": "Top-down: the tile size of the tileset its building kit comes as. 32 is the room's own; 16, 24, 48 or 64 also paints the kit at that size, so GET /rooms/{room_id}/kit.zip holds a tileset-15 sheet and its metadata at that size too; the room's picture stays 32 px cells. Isometric and oblique: the tile size the whole room is drawn at (an isometric floor cell a diamond that many px across and half as tall, an oblique one a square that many px; a 64 px room's picture is twice a 32 px one's). 48 or 64 costs 25 generations instead of 20",
             "default": 32
           }
         },
@@ -25215,6 +25215,11 @@
           "picture_size": {
             "$ref": "#/components/schemas/PictureSize"
           },
+          "tile_size": {
+            "type": "integer",
+            "title": "Tile Size",
+            "description": "The tile size it is drawn at: an isometric or oblique room's (tile_size); 32 for top-down rooms, whose tileset can also come at others (kit_tile_sizes)"
+          },
           "image_url": {
             "anyOf": [
               {
@@ -25331,6 +25336,7 @@
           "status",
           "doors",
           "picture_size",
+          "tile_size",
           "pieces_status",
           "building_kit",
           "kit_tile_sizes",
