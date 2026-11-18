@@ -6,6 +6,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -26,6 +27,11 @@ var declaredEnums = map[string]declaredEnum{
 		values: []string{
 			"angry", "attack", "attack-back", "attack-left", "attack-right",
 			"backflip", "bark", "breathing-idle", "cross-punch", "crouched-walking",
+		},
+		// a body template does not have every animation, and the API names those it has
+		rejected: &rejection{
+			by: "BodyTemplate",
+			re: regexp.MustCompile(`^Invalid template_animation_id '[^']*' for template '(?P<for>[^']+)'\. Available: (?P<values>.+)$`),
 		},
 		at: []string{
 			"CreateCharacterAnimationRequest.template_animation_id",
@@ -109,6 +115,106 @@ var declaredEnums = map[string]declaredEnum{
 type declaredEnum struct {
 	values, at []string
 	match      func(owner *openapi.Schema, property string, s *openapi.Schema) bool
+	rejected   *rejection
+}
+
+// rejection is how the API turns down a value of an enum, as a body template's animation it does not have: with the
+// values it takes instead, for a value of another enum. Every value a recorded 422 names is one of the enum, and the
+// enum tells which the other's values take.
+type rejection struct {
+	by string // the enum the value it answers for is of
+	// what the 422's detail says, its group "for" that value, its group "values" those it takes, comma-separated
+	re *regexp.Regexp
+}
+
+// accepted is, by the value of r.by each answers for, the values the 422s recorded in ias say it takes, in the order
+// they say them.
+func (r *rejection) accepted(ias cassette.Interactions) map[string][]string {
+	byFor := map[string][]string{}
+
+	for _, ia := range ias {
+		if ia.Response.StatusCode != 422 {
+			continue
+		}
+
+		var body struct {
+			Detail any `json:"detail"`
+		}
+		if json.Unmarshal(ia.Response.Body, &body) != nil {
+			continue
+		}
+
+		detail, _ := body.Detail.(string)
+
+		m := r.re.FindStringSubmatch(detail)
+		if m == nil {
+			continue
+		}
+
+		values := strings.Split(m[r.re.SubexpIndex("values")], ", ")
+		for i := range values {
+			values[i] = strings.TrimSpace(values[i])
+		}
+
+		byFor[m[r.re.SubexpIndex("for")]] = values
+	}
+
+	return byFor
+}
+
+// allValues is the values e documents and those every recorded 422 names, each once.
+func (e declaredEnum) allValues(ias cassette.Interactions) ([]string, error) {
+	values := slices.Clone(e.values)
+	if e.rejected == nil {
+		return values, nil
+	}
+
+	accepted := e.rejected.accepted(ias)
+	if len(accepted) == 0 {
+		return nil, fmt.Errorf("no recorded 422 turns a value down as %s", e.rejected.re)
+	}
+
+	for _, k := range slices.Sorted(maps.Keys(accepted)) {
+		for _, v := range accepted[k] {
+			if !slices.Contains(values, v) {
+				values = append(values, v)
+			}
+		}
+	}
+
+	return values, nil
+}
+
+// describeRejections tells, in each enum of declaredEnums the API turns values down of, which values of the other
+// enum take which of its own, as the recorded 422s say; each must be a value of that enum.
+func describeRejections(doc *openapi.Document, ias cassette.Interactions) error {
+	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
+		r := declaredEnums[name].rejected
+		if r == nil {
+			continue
+		}
+
+		enum, by := doc.Components.Schemas[name], doc.Components.Schemas[r.by]
+		if enum == nil || by == nil {
+			return fmt.Errorf("%s or %s is no schema", name, r.by)
+		}
+
+		var b strings.Builder
+		fmt.Fprintf(&b, "Not every %s takes every %s. As the API answers one it does not take:\n", r.by, name)
+
+		accepted := r.accepted(ias)
+		for _, k := range slices.Sorted(maps.Keys(accepted)) {
+			if !slices.ContainsFunc(by.Enum, func(v jsontext.Value) bool { return string(v) == `"`+k+`"` }) {
+				return fmt.Errorf("a recorded 422 names %q, which is no %s", k, r.by)
+			}
+
+			fmt.Fprintf(&b, "\n  - %s: %s", k, strings.Join(accepted[k], ", "))
+		}
+
+		enum.Description = strings.TrimSpace(enum.Description + "\n\n" + b.String())
+	}
+
+	return nil
 }
 
 // isJobStatus reports whether a property is a job's status: a status beside the job's background_job_id, or one that
@@ -125,11 +231,16 @@ const enumMark = "x-pixellab-enum"
 
 // declareEnums makes the strings declaredEnums names enums of the values it gives, marked with the enum's name, before
 // the recorded interactions add to them. It returns the places it found.
-func declareEnums(doc *openapi.Document) (map[string]bool, error) {
+func declareEnums(doc *openapi.Document, ias cassette.Interactions) (map[string]bool, error) {
 	declared := map[string]bool{}
 
 	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
 		e := declaredEnums[name]
+
+		values, err := e.allValues(ias)
+		if err != nil {
+			return nil, fmt.Errorf("declaredEnums: %s: %w", name, err)
+		}
 
 		mark, err := json.Marshal(map[string]string{enumMark: name})
 		if err != nil {
@@ -138,7 +249,7 @@ func declareEnums(doc *openapi.Document) (map[string]bool, error) {
 
 		for _, at := range e.at {
 			for _, s := range enumTargets(doc, at) {
-				if err := declareEnum(stringSchema(s), e.values, mark); err != nil {
+				if err := declareEnum(stringSchema(s), values, mark); err != nil {
 					return nil, fmt.Errorf("%s: %w", at, err)
 				}
 
@@ -158,7 +269,7 @@ func declareEnums(doc *openapi.Document) (map[string]bool, error) {
 					continue
 				}
 
-				if err := declareEnum(stringSchema(p), e.values, mark); err != nil {
+				if err := declareEnum(stringSchema(p), values, mark); err != nil {
 					return nil, fmt.Errorf("%s.%s: %w", schema, prop, err)
 				}
 
@@ -180,10 +291,15 @@ func referDeclaredEnums(doc *openapi.Document, declared map[string]bool, ias cas
 	var unused []string
 
 	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
+		values, err := declaredEnums[name].allValues(ias)
+		if err != nil {
+			return fmt.Errorf("declaredEnums: %s: %w", name, err)
+		}
+
 		enum := doc.Components.Schemas[name]
 		if enum == nil {
 			enum = &openapi.Schema{Title: name, Type: openapi.TypeString}
-			for _, v := range declaredEnums[name].values {
+			for _, v := range values {
 				enum.Enum = append(enum.Enum, jsontext.Value(`"`+v+`"`))
 			}
 		}
@@ -225,7 +341,7 @@ func referDeclaredEnums(doc *openapi.Document, declared map[string]bool, ias cas
 			strings.Join(unused, ", "))
 	}
 
-	return nil
+	return describeRejections(doc, ias)
 }
 
 // enumTargets is what at names: a property, as "Schema.property", the parameter of each operation of a path, as

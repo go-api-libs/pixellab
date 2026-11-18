@@ -229,12 +229,26 @@ func (c *Client) GenerateImage(ctx context.Context, body GenerateImageRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateImage: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -320,13 +334,27 @@ func (c *Client) CreateImagePixen(ctx context.Context, body CreateImagePixenRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixen: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -433,12 +461,26 @@ func (c *Client) GenerateWithStyle(ctx context.Context, body GenerateWithStyleRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateWithStyle: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -521,13 +563,27 @@ func (c *Client) CreateImagePixflux(ctx context.Context, body CreateImagePixflux
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImagePixflux: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -605,12 +661,26 @@ func (c *Client) CreateImagePixfluxBackground(ctx context.Context, body CreateIm
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateImagePixfluxBackground: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -695,13 +765,27 @@ func (c *Client) CreateImageBitforge(ctx context.Context, body CreateImageBitfor
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateImageBitforge: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -795,13 +879,27 @@ func (c *Client) ImageToPixelart(ctx context.Context, body ImageToPixelartReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid image size constraints
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("ImageToPixelart: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -896,12 +994,26 @@ func (c *Client) ImageToPixelartPro(ctx context.Context, body ImageToPixelartPro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("ImageToPixelartPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1092,12 +1204,26 @@ func (c *Client) CreateCharacter(ctx context.Context, body CreateCharacterReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error (bad dimensions, invalid image)
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacter: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (bad dimensions, invalid image)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1210,12 +1336,26 @@ func (c *Client) CreateCharacterPro(ctx context.Context, body CreateCharacterPro
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error (bad dimensions, missing required image)
 		// Concurrency limit reached
 		return nil, fmt.Errorf("CreateCharacterPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (bad dimensions, missing required image)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1425,14 +1565,28 @@ func (c *Client) AnimateCharacter(ctx context.Context, body CreateCharacterAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
 		// Character or animation_group_id not found
 		// animation_group_id already has one of the requested directions
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("AnimateCharacter: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1644,12 +1798,26 @@ func (c *Client) CreateCharacterWith4Directions(ctx context.Context, body Create
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith4Directions: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1794,12 +1962,26 @@ func (c *Client) CreateCharacterWith8Directions(ctx context.Context, body Create
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("CreateCharacterWith8Directions: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -1889,11 +2071,25 @@ func (c *Client) ListCharacters(ctx context.Context, params *ListCharactersParam
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusTooManyRequests:
 		// Invalid API token
-		// Invalid pagination parameters
 		// Too many requests
 		return nil, fmt.Errorf("ListCharacters: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2342,11 +2538,25 @@ func (c *Client) GetCharacterSpritesheet(ctx context.Context, characterID uuid.U
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusLocked:
+	case http.StatusNotFound, http.StatusLocked:
 		// Character not found
-		// Character generation failed
 		// Character or animations still being generated
 		return nil, fmt.Errorf("GetCharacterSpritesheet: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Character generation failed
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2520,12 +2730,26 @@ func (c *Client) Create1DirectionObject(ctx context.Context, body Create1Directi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient generations or credits
-		// Validation error
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create1DirectionObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -2593,12 +2817,26 @@ func (c *Client) Create8DirectionObject(ctx context.Context, body Create8Directi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient generations or credits
-		// Validation error
 		// Concurrent job limit reached
 		return nil, fmt.Errorf("Create8DirectionObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -3183,10 +3421,24 @@ func (c *Client) ListObjects(ctx context.Context, params *ListObjectsParams) (*L
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized:
 		// Invalid API token
-		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListObjects: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4031,12 +4283,26 @@ func (c *Client) AnimateWithTextV3(ctx context.Context, body AnimateWithTextV3Re
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithTextV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4123,12 +4389,26 @@ func (c *Client) AnimatePixminimax(ctx context.Context, body AnimatePixminimaxRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimatePixminimax: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4261,12 +4541,26 @@ func (c *Client) Interpolation(ctx context.Context, body InterpolationRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Interpolation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4386,12 +4680,26 @@ func (c *Client) EditAnimation(ctx context.Context, body EditAnimationRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4509,12 +4817,26 @@ func (c *Client) TransferOutfit(ctx context.Context, body TransferOutfitRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("TransferOutfit: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4644,12 +4966,26 @@ func (c *Client) AnimateWithTextV2(ctx context.Context, body AnimateWithTextV2Re
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("AnimateWithTextV2: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4739,13 +5075,27 @@ func (c *Client) AnimateWithText(ctx context.Context, body AnimateWithTextReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithText: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4828,13 +5178,27 @@ func (c *Client) EstimateSkeleton(ctx context.Context, body EstimateSkeletonRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("EstimateSkeleton: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -4923,12 +5287,26 @@ func (c *Client) EstimateCustomSkeleton(ctx context.Context, body EstimateCustom
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("EstimateCustomSkeleton: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -5028,12 +5406,26 @@ func (c *Client) AnimateWithSkeletonV3(ctx context.Context, body AnimateWithSkel
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("AnimateWithSkeletonV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -5125,13 +5517,27 @@ func (c *Client) AnimateWithSkeleton(ctx context.Context, body AnimateWithSkelet
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("AnimateWithSkeleton: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -5236,14 +5642,28 @@ func (c *Client) CreateVfx(ctx context.Context, body CreateVfxRequest) (*CreateV
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusServiceUnavailable:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, http.StatusServiceUnavailable:
 		// A request to change (the detail says what)
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		// The renderer is busy; retry in a few seconds
 		return nil, fmt.Errorf("CreateVfx: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -5566,14 +5986,28 @@ func (c *Client) CreateMusic(ctx context.Context, body CreateMusicRequest) (*Sta
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusTooManyRequests:
 		// Invalid API token
 		// Not enough generations or credits
 		// Needs a tier 2 subscription or higher
 		// The song to restyle was not found
-		// The request breaks a rule (the detail says which)
 		// Too many jobs running
 		return nil, fmt.Errorf("CreateMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// The request breaks a rule (the detail says which)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -5637,15 +6071,29 @@ func (c *Client) SetMusicLoop(ctx context.Context, songID uuid.UUID) (*StartedMu
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
 		// Invalid API token
 		// Not enough generations or credits
 		// Needs a tier 2 subscription or higher
 		// Song not found
 		// The song has no audio yet
-		// The song can't be looped (the detail says why)
 		// Too many jobs running
 		return nil, fmt.Errorf("SetMusicLoop: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// The song can't be looped (the detail says why)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6012,11 +6460,25 @@ func (c *Client) UpdateMusic(ctx context.Context, songID uuid.UUID, body RenameR
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// Not found
-		// A blank name
 		return nil, fmt.Errorf("UpdateMusic: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A blank name
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6178,13 +6640,27 @@ func (c *Client) CreateSoundEffect(ctx context.Context, body CreateSoundEffectRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusTooManyRequests:
 		// Invalid API token
 		// Not enough generations or credits
 		// Needs a tier 2 subscription or higher
-		// Validation error
 		// Too many jobs running
 		return nil, fmt.Errorf("CreateSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6381,11 +6857,25 @@ func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID,
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// Not found
-		// A blank name
 		return nil, fmt.Errorf("UpdateSoundEffect: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A blank name
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6484,12 +6974,26 @@ func (c *Client) Generate8RotationsV3(ctx context.Context, body Generate8Rotatio
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent background jobs
 		return nil, fmt.Errorf("Generate8RotationsV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6601,12 +7105,26 @@ func (c *Client) Generate8RotationsV2(ctx context.Context, body Generate8Rotatio
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("Generate8RotationsV2: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6695,13 +7213,27 @@ func (c *Client) Rotate(ctx context.Context, body RotateRequest) (*ImageResponse
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("Rotate: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6816,12 +7348,26 @@ func (c *Client) EditImages(ctx context.Context, body EditImagesRequest) (*JobRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImages: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6909,13 +7455,27 @@ func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Image or canvas outside the supported sizes
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImagePixen: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -6989,14 +7549,28 @@ func (c *Client) SaveToAsset(ctx context.Context, body SaveToAssetRequest) (*Sav
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusInternalServerError:
+	case http.StatusUnauthorized, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests, http.StatusInternalServerError:
 		// Invalid API token
 		// Target not found or not yours
 		// Another save to this asset is running; retry
-		// Refused: the detail says what to change
 		// Too many calls; retry shortly
 		// Failed partway: `detail.previous_frames` restores what was there
 		return nil, fmt.Errorf("SaveToAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Refused: the detail says what to change
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7074,12 +7648,26 @@ func (c *Client) EditImage(ctx context.Context, body EditImageRequest) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("EditImage: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7185,12 +7773,26 @@ func (c *Client) InpaintV3(ctx context.Context, body InpaintV3Request) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("InpaintV3: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7276,13 +7878,27 @@ func (c *Client) Inpaint(ctx context.Context, body InpaintRequest) (*ImageRespon
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("Inpaint: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7356,10 +7972,24 @@ func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized:
 		// Invalid API token
-		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListTilesets: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7526,13 +8156,27 @@ func (c *Client) CreateTileset(ctx context.Context, body CreateTilesetRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -7868,10 +8512,24 @@ func (c *Client) SetTilesetImport(ctx context.Context, body SetTilesetImportRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized:
 		// Invalid API token
-		// Not a tileset sheet of a supported size
 		return nil, fmt.Errorf("SetTilesetImport: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Not a tileset sheet of a supported size
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8065,15 +8723,29 @@ func (c *Client) CreateSidescrollerTileset(ctx context.Context, body CreateSides
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
 		// mode='pro' needs a Tier 1+ plan
 		// lower_base_tile_id not found
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateSidescrollerTileset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8354,12 +9026,26 @@ func (c *Client) CreateTilesPro(ctx context.Context, body CreateTilesProRequest)
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("CreateTilesPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8591,10 +9277,24 @@ func (c *Client) SetTilesProImport(ctx context.Context, body SetTilesProImportRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized:
 		// Invalid API token
-		// A frame is not a PNG of the size tile_type needs
 		return nil, fmt.Errorf("SetTilesProImport: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// A frame is not a PNG of the size tile_type needs
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -8785,13 +9485,27 @@ func (c *Client) CreateIsometricTile(ctx context.Context, body CreateIsometricTi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests, 529:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests, 529:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		// Rate limit exceeded
 		return nil, fmt.Errorf("CreateIsometricTile: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9034,10 +9748,24 @@ func (c *Client) ListIsometricTiles(ctx context.Context, params *ListIsometricTi
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized:
 		// Invalid API token
-		// Invalid pagination parameters
 		return nil, fmt.Errorf("ListIsometricTiles: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid pagination parameters
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9115,12 +9843,26 @@ func (c *Client) CreateMapObject(ctx context.Context, body CreateMapObjectReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("CreateMapObject: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -9271,15 +10013,29 @@ func (c *Client) CreateRoom(ctx context.Context, body CreateRoomRequest) (*RoomQ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusConflict, http.StatusTooManyRequests:
 		// Invalid API token
 		// Not enough generations or credits
 		// Below Tier 1
 		// The style room or project isn't yours
 		// The style room can't be one (says why)
-		// Validation error (the floor plan or doors say what is wrong)
 		// Too many background jobs running
 		return nil, fmt.Errorf("CreateRoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (the floor plan or doors say what is wrong)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10861,12 +11617,26 @@ func (c *Client) CreateUIAsset(ctx context.Context, body CreateUIAssetRequest) (
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -10972,12 +11742,26 @@ func (c *Client) GenerateUI(ctx context.Context, body GenerateUIRequest) (*JobRe
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateUI: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11047,11 +11831,25 @@ func (c *Client) SetUIAssetSplit(ctx context.Context, uiAssetID uuid.UUID, body 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// UI asset not found
-		// Not a template, already split, or a box off the image
 		return nil, fmt.Errorf("SetUIAssetSplit: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Not a template, already split, or a box off the image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11120,13 +11918,27 @@ func (c *Client) CreateUIAssetState(ctx context.Context, body CreateUIAssetState
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusNotFound, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient generations or credits
 		// An element id that isn't one of your elements
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateUIAssetState: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11421,11 +12233,25 @@ func (c *Client) UpdateUIAsset(ctx context.Context, uiAssetID uuid.UUID, body Up
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// UI asset not found
-		// Validation error (the detail says what to change)
 		return nil, fmt.Errorf("UpdateUIAsset: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error (the detail says what to change)
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11598,13 +12424,27 @@ func (c *Client) CreatePortraitCharacterPro(ctx context.Context, body CreatePort
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// No internal style for this size/view
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreatePortraitCharacterPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11743,11 +12583,25 @@ func (c *Client) SetCharacterPortrait(ctx context.Context, characterID uuid.UUID
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// Character not found
-		// Image is not a valid PNG, or outside 16-256px
 		return nil, fmt.Errorf("SetCharacterPortrait: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Image is not a valid PNG, or outside 16-256px
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11804,11 +12658,25 @@ func (c *Client) DeleteCharacterPortrait(ctx context.Context, characterID uuid.U
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// Character not found, or it has no portrait
-		// character_id is not a valid id
 		return nil, fmt.Errorf("DeleteCharacterPortrait: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// character_id is not a valid id
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11867,11 +12735,25 @@ func (c *Client) DeleteCharacterVocalAnimation(ctx context.Context, characterID 
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusNotFound:
 		// Invalid API token
 		// Character not found, it has no mouth positions, or not this expression
-		// Invalid character id or mood
 		return nil, fmt.Errorf("DeleteCharacterVocalAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Invalid character id or mood
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -11959,15 +12841,29 @@ func (c *Client) CreateVocalAnimation(ctx context.Context, body CreateVocalAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden, http.StatusNotFound, http.StatusTooManyRequests:
 		// Character has no portrait, or viseme_count mismatch
 		// Invalid API token
 		// Insufficient resources
 		// Requires a paid plan
 		// Character not found
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("CreateVocalAnimation: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12113,12 +13009,26 @@ func (c *Client) TalkingGif(ctx context.Context, body TalkingGifRequest) (*Talki
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Character has no mouth positions, or unknown mood
 		// Invalid API token
 		// Character not found
-		// Validation error, or the line is too long to encode
 		return nil, fmt.Errorf("TalkingGif: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error, or the line is too long to encode
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12189,12 +13099,26 @@ func (c *Client) LipSync(ctx context.Context, body LipSyncRequest) (*LipSyncResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound, http.StatusUnprocessableEntity:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound:
 		// Character has no mouth positions, or unknown mood
 		// Invalid API token
 		// Character not found
-		// Validation error
 		return nil, fmt.Errorf("LipSync: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12285,12 +13209,26 @@ func (c *Client) GenerateFontPro(ctx context.Context, body GenerateFontProReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("GenerateFontPro: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12450,12 +13388,26 @@ func (c *Client) Unzoom(ctx context.Context, body UnzoomRequest) (*UnzoomRespons
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Image too small or too large
 		// Too many requests
 		return nil, fmt.Errorf("Unzoom: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Image too small or too large
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12537,12 +13489,26 @@ func (c *Client) CorrectPixelart(ctx context.Context, body CorrectPixelartReques
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("CorrectPixelart: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12627,12 +13593,26 @@ func (c *Client) ReduceColors(ctx context.Context, body ReduceColorsRequest) (*R
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("ReduceColors: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12721,12 +13701,26 @@ func (c *Client) RemoveBackground(ctx context.Context, body RemoveBackgroundRequ
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("RemoveBackground: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12821,13 +13815,27 @@ func (c *Client) NormalMap(ctx context.Context, body NormalMapRequest) (*JobResp
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Image outside the supported sizes
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many concurrent jobs
 		return nil, fmt.Errorf("NormalMap: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12922,13 +13930,27 @@ func (c *Client) Resize(ctx context.Context, body ResizeRequest) (*ImageResponse
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusTooManyRequests:
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusTooManyRequests:
 		// Invalid image size constraints
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		// Too many requests
 		return nil, fmt.Errorf("Resize: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -12993,11 +14015,25 @@ func (c *Client) EnhancePixenPrompt(ctx context.Context, body EnhancePixenPrompt
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusPaymentRequired:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		return nil, fmt.Errorf("EnhancePixenPrompt: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -13062,11 +14098,25 @@ func (c *Client) EnhanceCharacterV3Prompt(ctx context.Context, body EnhanceChara
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusPaymentRequired:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		return nil, fmt.Errorf("EnhanceCharacterV3Prompt: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -13142,11 +14192,25 @@ func (c *Client) EnhanceAnimationV3Prompt(ctx context.Context, body EnhanceAnima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity:
+	case http.StatusUnauthorized, http.StatusPaymentRequired:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error
 		return nil, fmt.Errorf("EnhanceAnimationV3Prompt: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}
@@ -13228,12 +14292,26 @@ func (c *Client) ImageToText(ctx context.Context, body ImageToTextRequest) (*Ima
 		default:
 			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
 		}
-	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusUnprocessableEntity, http.StatusServiceUnavailable:
+	case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusServiceUnavailable:
 		// Invalid API token
 		// Insufficient credits
-		// Validation error, unreadable or oversized image
 		// Temporarily unavailable upstream; retry
 		return nil, fmt.Errorf("ImageToText: status %s", rsp.Status)
+	case http.StatusUnprocessableEntity:
+		// Validation error, unreadable or oversized image
+		switch mt, _, _ := strings.Cut(rsp.Header.Get("Content-Type"), ";"); mt {
+		case "application/json":
+			var out HTTPValidationError
+			if err := json.UnmarshalRead(rsp.Body, &out, jsonOpts); err != nil {
+				if err := api.DecodeLenient(rsp, err, ia, cmp.Or(c.debugFile, defaultDebugFile), &out, jsonOpts); err != nil {
+					return nil, err
+				}
+			}
+
+			return nil, api.NewErrCustom(rsp, &out)
+		default:
+			return nil, c.failed(ia, api.NewErrUnknownContentType(rsp))
+		}
 	default:
 		return nil, c.failed(ia, api.NewErrUnknownStatusCode(rsp))
 	}

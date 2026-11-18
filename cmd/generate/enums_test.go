@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"maps"
 	"slices"
 	"testing"
 
+	"github.com/MarkRosemaker/cassette"
 	"github.com/MarkRosemaker/openapi"
 )
 
@@ -104,5 +107,35 @@ func TestMatchesPath(t *testing.T) {
 		if got := matchesPath(tc.path, "/background-jobs/{job_id}"); got != tc.want {
 			t.Errorf("matchesPath(%q) = %v, want %v", tc.path, got, tc.want)
 		}
+	}
+}
+
+// TestRejectionAccepted reads, from what the API answers an animation template a body template does not have, the
+// templates that body template has; any other 422 says none.
+func TestRejectionAccepted(t *testing.T) {
+	t.Parallel()
+
+	reject := func(detail string) *cassette.Interaction {
+		body, err := json.Marshal(map[string]string{"detail": detail})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return &cassette.Interaction{Response: cassette.Response{StatusCode: 422, Body: body}}
+	}
+
+	r := declaredEnums["AnimationTemplate"].rejected
+	got := r.accepted(cassette.Interactions{
+		reject("Invalid template_animation_id 'walking-8-frames' for template 'bear'. Available: angry, walk-4-frames"),
+		reject("Generation failed"),
+		{Response: cassette.Response{StatusCode: 200, Body: []byte(`{"detail": "Available: x"}`)}},
+	})
+
+	if want := map[string][]string{"bear": {"angry", "walk-4-frames"}}; !maps.EqualFunc(got, want, slices.Equal) {
+		t.Errorf("accepted = %v, want %v", got, want)
+	}
+
+	if _, err := (declaredEnum{rejected: r}).allValues(nil); err == nil {
+		t.Error("no recorded 422: no error")
 	}
 }
