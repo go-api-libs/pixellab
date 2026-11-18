@@ -3559,5 +3559,37 @@
 				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'cat'. Available: angry, drinking, eating, idle, jump, licking, running-4-frames, running-6-frames, running-8-frames, seated-on-belly-idle, sitting, sitting-on-belly, slow-run, standing, standing-from-belly, walk-4-frames, walk-6-frames, walk-8-frames, yawning"
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "https://api.pixellab.ai/v2/animate-character",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"character_id": "bca69b11-976b-47c3-b066-ef5cc95ea327",
+				"mode": "skeleton-v3",
+				"template_animation_id": "stand-on-hind-legs",
+				"directions": [
+					"south"
+				]
+			}
+		},
+		"response": {
+			"statusCode": 422,
+			"header": {
+				"Content-Length": "225",
+				"Content-Type": "application/json",
+				"Date": "Wed, 18 Nov 2026 01:30:31 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'dog'. Available: bark, fast-walk, idle, running-4-frames, running-6-frames, running-8-frames, sneaking, walk-4-frames, walk-6-frames, walk-8-frames"
+			}
+		}
 	}
 ]
