@@ -16429,7 +16429,10 @@
             "title": "Storage Urls",
             "description": "Download URLs for each tile (e.g. {\"tile_0\": \"https://...\", \"tile_1\": \"https://...\"})",
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": {
+              "type": "string",
+              "format": "uri"
+            }
           },
           "kind": {
             "title": "Kind",

@@ -54,6 +54,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if err := typeMaps(doc); err != nil {
+		return err
+	}
+
 	if err := typeStrings(doc, false); err != nil {
 		return err
 	}
