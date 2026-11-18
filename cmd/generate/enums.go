@@ -21,17 +21,18 @@ import (
 // shows it, as what a background job last answered, or every property match picks of the original's schemas. What a
 // recorded interaction shows besides is added to them. An entry, or a match, that names nothing fails the run.
 var declaredEnums = map[string]declaredEnum{
-	// "Animation template ID. Required for template mode. Available: `angry`, ..., `crouched-walking`, ...", the rest
-	// cut off; a character's animations name the template they were made from, which their GET filters by
+	// "Animation template ID. Required for template mode. Available: `angry`, ...", the rest cut off: each body
+	// template has animations of its own, which the API names when turned down one it does not have, and the
+	// recordings hold that answer for every body template; a character's animations name the template they were made
+	// from, which their GET filters by
 	"AnimationTemplate": {
-		values: []string{
-			"angry", "attack", "attack-back", "attack-left", "attack-right",
-			"backflip", "bark", "breathing-idle", "cross-punch", "crouched-walking",
-		},
 		// a body template does not have every animation, and the API names those it has
 		rejected: &rejection{
 			by: "BodyTemplate",
-			re: regexp.MustCompile(`^Invalid template_animation_id '[^']*' for template '(?P<for>[^']+)'\. Available: (?P<values>.+)$`),
+			// "`custom` skips the skeleton, for bodies no template fits; such a character can't use skeleton-based
+			// animations."
+			none: []string{"custom"},
+			re:   regexp.MustCompile(`^Invalid template_animation_id '[^']*' for template '(?P<for>[^']+)'\. Available: (?P<values>.+)$`),
 		},
 		at: []string{
 			"CreateCharacterAnimationRequest.template_animation_id",
@@ -42,7 +43,8 @@ var declaredEnums = map[string]declaredEnum{
 	},
 
 	// "'mannequin' (the only humanoid template), 'bear', 'cat', 'dog', 'horse', 'lion' (quadrupeds)", the body a
-	// character's skeleton is fitted to, which some requests declare an enum of and others, and the character, do not
+	// character's skeleton is fitted to, which some requests declare an enum of and others, and the character, do not;
+	// some requests take "custom" too, which "skips the skeleton, for bodies no template fits"
 	"BodyTemplate": {
 		values: []string{"mannequin", "bear", "cat", "dog", "horse", "lion"},
 		at: []string{
@@ -122,7 +124,8 @@ type declaredEnum struct {
 // values it takes instead, for a value of another enum. Every value a recorded 422 names is one of the enum, and the
 // enum tells which the other's values take.
 type rejection struct {
-	by string // the enum the value it answers for is of
+	by   string   // the enum the value it answers for is of
+	none []string // the values of by that take none, which no 422 can say
 	// what the 422's detail says, its group "for" that value, its group "values" those it takes, comma-separated
 	re *regexp.Regexp
 }
@@ -186,7 +189,7 @@ func (e declaredEnum) allValues(ias cassette.Interactions) ([]string, error) {
 }
 
 // describeRejections tells, in each enum of declaredEnums the API turns values down of, which values of the other
-// enum take which of its own, as the recorded 422s say; each must be a value of that enum.
+// enum take which of its own, as the recorded 422s say: for every value of that enum, and for no other.
 func describeRejections(doc *openapi.Document, ias cassette.Interactions) error {
 	for _, name := range slices.Sorted(maps.Keys(declaredEnums)) {
 		r := declaredEnums[name].rejected
@@ -200,15 +203,41 @@ func describeRejections(doc *openapi.Document, ias cassette.Interactions) error 
 		}
 
 		var b strings.Builder
-		fmt.Fprintf(&b, "Not every %s takes every %s. As the API answers one it does not take:\n", r.by, name)
+		fmt.Fprintf(&b, "Not every %s takes every %s. Each takes these, as the API answers one it does not take:\n", r.by, name)
 
 		accepted := r.accepted(ias)
+
+		var missing []string
+		for _, v := range by.Enum {
+			var k string
+			if json.Unmarshal(v, &k) == nil && accepted[k] == nil && !slices.Contains(r.none, k) {
+				missing = append(missing, k)
+			}
+		}
+
+		if len(missing) > 0 {
+			return fmt.Errorf("no recorded 422 tells which %s %s takes: record one turning down a value for each",
+				name, strings.Join(missing, ", "))
+		}
+
 		for _, k := range slices.Sorted(maps.Keys(accepted)) {
 			if !slices.ContainsFunc(by.Enum, func(v jsontext.Value) bool { return string(v) == `"`+k+`"` }) {
 				return fmt.Errorf("a recorded 422 names %q, which is no %s", k, r.by)
 			}
 
 			fmt.Fprintf(&b, "\n  - %s: %s", k, strings.Join(accepted[k], ", "))
+		}
+
+		for _, k := range r.none {
+			if !slices.ContainsFunc(by.Enum, func(v jsontext.Value) bool { return string(v) == `"`+k+`"` }) {
+				return fmt.Errorf("%q, which takes no %s, is no %s", k, name, r.by)
+			}
+
+			if accepted[k] != nil {
+				return fmt.Errorf("a recorded 422 names what %s takes, which takes no %s", k, name)
+			}
+
+			fmt.Fprintf(&b, "\n  - %s: none", k)
 		}
 
 		enum.Description = strings.TrimSpace(enum.Description + "\n\n" + b.String())

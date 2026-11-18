@@ -26,7 +26,8 @@ specification in five steps:
    the interactions add the values they show. A recorded 422 that turns a
    value down with those it takes, as an animation template a body template
    does not have, adds them too, and the enum's documentation tells which body
-   template takes which.
+   template takes which: every body template, but one that takes none, as
+   `custom`, must have such a 422 recorded.
 3. **Passes**: `openapi-enrich` with `api/interactions.json`, then
    `openapi-flatten`, `openapi-compress` and `openapi-flatten` again, as the
    commands of the same names would.

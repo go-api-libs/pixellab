@@ -40427,7 +40427,7 @@ func TestClient_Params(t *testing.T) {
 		}
 
 		_, _ = c.DeleteCharacterAnimations(t.Context(), uuid.Nil(), &DeleteCharacterAnimationsParams{
-			AnimationType: AnimationTemplateWalking8Frames,
+			AnimationType: AnimationTemplateWalking9,
 			Direction:     DirectionNone,
 		})
 
@@ -40435,8 +40435,8 @@ func TestClient_Params(t *testing.T) {
 			t.Fatal("no request was sent")
 		}
 
-		if v := got.URL.Query().Get("animation_type"); v != "walking-8-frames" {
-			t.Errorf("query %s: got %q, want %q", "animation_type", v, "walking-8-frames")
+		if v := got.URL.Query().Get("animation_type"); v != "walking-9" {
+			t.Errorf("query %s: got %q, want %q", "animation_type", v, "walking-9")
 		}
 		if v := got.URL.Query().Get("direction"); v != "none" {
 			t.Errorf("query %s: got %q, want %q", "direction", v, "none")
@@ -41231,6 +41231,61 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("8f88c512-3405-420e-bc04-62e7c791fb42"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateWalking8Frames,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("429214ad-0035-4ef8-b8bb-01743b053216"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("7c353090-b2bc-4df5-9151-7336b2ce4703"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("bca69b11-976b-47c3-b066-ef5cc95ea327"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("b39eb98c-f2cb-4a48-a3d2-24f1575ac232"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("82143a6d-b92b-4ed3-8f04-95a0b5e0fe16"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
 		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")

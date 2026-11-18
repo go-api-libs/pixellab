@@ -139,3 +139,48 @@ func TestRejectionAccepted(t *testing.T) {
 		t.Error("no recorded 422: no error")
 	}
 }
+
+// TestDescribeRejections tells which body template takes which animation templates, and fails for a body template
+// no recorded 422 tells of, unless it takes none.
+func TestDescribeRejections(t *testing.T) {
+	t.Parallel()
+
+	reject := func(template, values string) *cassette.Interaction {
+		body, err := json.Marshal(map[string]string{
+			"detail": "Invalid template_animation_id 'x' for template '" + template + "'. Available: " + values,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return &cassette.Interaction{Response: cassette.Response{StatusCode: 422, Body: body}}
+	}
+
+	doc := func() *openapi.Document {
+		return &openapi.Document{Components: openapi.Components{Schemas: openapi.Schemas{
+			"AnimationTemplate": {Type: openapi.TypeString, Enum: values("walk", "bark")},
+			"BodyTemplate":      {Type: openapi.TypeString, Enum: values("mannequin", "dog", "custom")},
+		}}}
+	}
+
+	d := doc()
+	if err := describeRejections(d, cassette.Interactions{reject("mannequin", "walk"), reject("dog", "walk, bark")}); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := d.Components.Schemas["AnimationTemplate"].Description,
+		"Not every BodyTemplate takes every AnimationTemplate. Each takes these, as the API answers one it does not take:\n"+
+			"\n  - dog: walk, bark\n  - mannequin: walk\n  - custom: none"; got != want {
+		t.Errorf("description:\n%s\nwant:\n%s", got, want)
+	}
+
+	if err := describeRejections(doc(), cassette.Interactions{reject("mannequin", "walk")}); err == nil {
+		t.Error("dog untold: no error")
+	}
+
+	if err := describeRejections(doc(), cassette.Interactions{
+		reject("mannequin", "walk"), reject("dog", "bark"), reject("cat", "walk"),
+	}); err == nil {
+		t.Error("cat, no BodyTemplate: no error")
+	}
+}
