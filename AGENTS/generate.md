@@ -10,8 +10,9 @@ way a rule no longer fits, `go generate` fails and names the one to update:
 - `declaredEnums` in `enums.go`: a string upstream holds to values it does not
   declare, with the values it documents, by where it is or by a rule, as
   `isJobStatus`.
-- `mapValues` in `maps.go`: the values of an object upstream leaves free-form.
-  An entry needs evidence of them, which its comment gives.
+- `freeForms` in `freeform.go`: the shape of an object upstream leaves
+  free-form, a map or a struct. An entry needs evidence of it, which its
+  comment gives.
 - `formats` in `formats.go`: the format of a string upstream leaves bare. An
   entry needs evidence that the API holds it to that format, which its comment
   gives.

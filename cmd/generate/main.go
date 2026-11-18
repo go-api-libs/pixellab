@@ -54,7 +54,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	if err := typeMaps(doc); err != nil {
+	if err := typeFreeForms(doc); err != nil {
 		return err
 	}
 

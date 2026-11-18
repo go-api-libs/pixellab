@@ -3609,7 +3609,7 @@ type GetTilesProResponse struct {
 	// What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).
 	Kind string `json:"kind,omitzero"`
 	// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
-	TileRules *struct{} `json:"tile_rules,omitzero"`
+	TileRules *TileRules `json:"tile_rules,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -6118,6 +6118,20 @@ type TilePattern4x4 struct {
 	Row2 []int `json:"row_2"`
 	// Bottom row with wildcards
 	Row3 []int `json:"row_3"`
+}
+
+// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
+type TileRules struct {
+	// How tiles connect: by their edges, their corners or an outline.
+	RuleType string `json:"rule_type,omitzero"`
+	// How many edges or corners a tile connects by: 4, or 6 for hex edges.
+	Arity *int `json:"arity,omitzero"`
+	// What a set bit connects to: the same terrain, or the other.
+	Connectivity string `json:"connectivity,omitzero"`
+	// The feature terrain, then the background.
+	Terrains []string `json:"terrains,omitzero"`
+	// Each tile's bitmask, keyed like storage_urls. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. A tile absent is stamp-only.
+	Tiles map[string]int `json:"tiles,omitzero"`
 }
 
 // TileType defines a model
