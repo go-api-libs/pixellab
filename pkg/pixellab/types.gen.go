@@ -3605,7 +3605,7 @@ func (v *GetRoomResponse) unknownEnum() bool {
 type GetTilesProResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Download URLs for each tile (e.g. {"tile_0": "https://...", "tile_1": "https://..."})
-	StorageURLs struct{} `json:"storage_urls"`
+	StorageURLs map[string]url.URL `json:"storage_urls"`
 	// What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).
 	Kind string `json:"kind,omitzero"`
 	// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
