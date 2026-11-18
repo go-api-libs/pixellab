@@ -20,8 +20,9 @@ specification in five steps:
    upstream types anywhere is typed everywhere, and `formats` gives what
    upstream leaves bare, so the library has a `uuid.UUID` or `url.URL`, not a
    `string`. This runs again after the passes, for what the interactions show.
-   Give each free-form object `mapValues` (`maps.go`) names the values it
-   holds, so the library has a map, not an empty struct that drops every key.
+   Give each free-form object `freeForms` (`freeform.go`) names its shape, so
+   the library has a map or a struct, not an empty struct that drops every
+   key.
    Make an enum of every string `declaredEnums` (`enums.go`) names, or picks
    by a rule, with the values upstream documents, as a template animation, a
    job's status, by what upstream writes of it, or a subscription's status:
