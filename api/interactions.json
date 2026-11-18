@@ -3463,5 +3463,37 @@
 				}
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "https://api.pixellab.ai/v2/animate-character",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"character_id": "8f88c512-3405-420e-bc04-62e7c791fb42",
+				"mode": "skeleton-v3",
+				"template_animation_id": "walking-8-frames",
+				"directions": [
+					"south"
+				]
+			}
+		},
+		"response": {
+			"statusCode": 422,
+			"header": {
+				"Content-Length": "383",
+				"Content-Type": "application/json",
+				"Date": "Wed, 18 Nov 2026 00:22:26 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"detail": "Invalid template_animation_id 'walking-8-frames' for template 'bear'. Available: angry, attack-left, attack-right, drinking, eating, going-to-sleep, idle-long, idle-resting, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting-down, stand-on-hind-legs, standing-up, waking-getting-up, walk-4-frames, walk-6-frames, walk-8-frames"
+			}
+		}
 	}
 ]
