@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/MarkRosemaker/openapi"
+	edit "github.com/MarkRosemaker/openapi-edit"
 )
 
 // The recorded interactions call the API at its host, with the version in the path.
@@ -37,7 +38,35 @@ func transform(doc *openapi.Document) error {
 
 	dropEmptyJSON(doc)
 
-	return detailEitherWay(doc)
+	if err := detailEitherWay(doc); err != nil {
+		return err
+	}
+
+	return validationBodies(doc)
+}
+
+// validationBodies gives each 422 upstream declares without a body the one FastAPI answers every 422 with, as it
+// declares for most: a 422 recorded of one, as an animation template a body template does not have, is then the
+// validation error it is, not a type of its own.
+func validationBodies(doc *openapi.Document) error {
+	if doc.Components.Schemas["HTTPValidationError"] == nil {
+		return errors.New("no HTTPValidationError any more")
+	}
+
+	for _, item := range doc.Paths.ByIndex() {
+		for _, op := range item.Operations {
+			r := op.Responses["422"]
+			if r == nil || r.Ref != nil || r.Value == nil || len(r.Value.Content) > 0 {
+				continue
+			}
+
+			r.Value.Content = openapi.Content{
+				"application/json": {Schema: edit.SchemaRef(doc, "HTTPValidationError")},
+			}
+		}
+	}
+
+	return nil
 }
 
 // narrowRefs moves the properties upstream declares beside a reference, which may be null, into a copy of what it

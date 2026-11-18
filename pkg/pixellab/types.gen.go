@@ -403,7 +403,9 @@ func (v *AnimationJobResponse) unknownEnum() bool {
 		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
-// AnimationTemplate defines a model
+// Not every BodyTemplate takes every AnimationTemplate. As the API answers one it does not take:
+//
+// - bear: angry, attack-left, attack-right, drinking, eating, going-to-sleep, idle-long, idle-resting, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting-down, stand-on-hind-legs, standing-up, waking-getting-up, walk-4-frames, walk-6-frames, walk-8-frames
 type AnimationTemplate string
 
 const (
@@ -418,9 +420,25 @@ const (
 	AnimationTemplateCrossPunch             AnimationTemplate = "cross-punch"
 	AnimationTemplateCrouchedWalking        AnimationTemplate = "crouched-walking"
 	AnimationTemplateDrinking               AnimationTemplate = "drinking"
+	AnimationTemplateEating                 AnimationTemplate = "eating"
+	AnimationTemplateGoingToSleep           AnimationTemplate = "going-to-sleep"
+	AnimationTemplateIdleLong               AnimationTemplate = "idle-long"
+	AnimationTemplateIdleResting            AnimationTemplate = "idle-resting"
+	AnimationTemplateIdleSitting            AnimationTemplate = "idle-sitting"
+	AnimationTemplateJump                   AnimationTemplate = "jump"
+	AnimationTemplateJumpAttack             AnimationTemplate = "jump-attack"
+	AnimationTemplateRunning4Frames         AnimationTemplate = "running-4-frames"
+	AnimationTemplateRunning6Frames         AnimationTemplate = "running-6-frames"
+	AnimationTemplateRunning8Frames         AnimationTemplate = "running-8-frames"
+	AnimationTemplateSittingDown            AnimationTemplate = "sitting-down"
+	AnimationTemplateStandOnHindLegs        AnimationTemplate = "stand-on-hind-legs"
+	AnimationTemplateStandingUp             AnimationTemplate = "standing-up"
+	AnimationTemplateWakingGettingUp        AnimationTemplate = "waking-getting-up"
+	AnimationTemplateWalk4Frames            AnimationTemplate = "walk-4-frames"
+	AnimationTemplateWalk6Frames            AnimationTemplate = "walk-6-frames"
+	AnimationTemplateWalk8Frames            AnimationTemplate = "walk-8-frames"
 	AnimationTemplateFightStanceIdle8Frames AnimationTemplate = "fight-stance-idle-8-frames"
 	AnimationTemplatePickingUp              AnimationTemplate = "picking-up"
-	AnimationTemplateRunning8Frames         AnimationTemplate = "running-8-frames"
 	AnimationTemplateSadWalk                AnimationTemplate = "sad-walk"
 	AnimationTemplateWalking8Frames         AnimationTemplate = "walking-8-frames"
 )
@@ -428,7 +446,7 @@ const (
 // Valid indicates whether the value is a known member of the AnimationTemplate enum.
 func (e AnimationTemplate) Valid() bool {
 	switch e {
-	case AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateRunning8Frames, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames:
+	case AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateEating, AnimationTemplateGoingToSleep, AnimationTemplateIdleLong, AnimationTemplateIdleResting, AnimationTemplateIdleSitting, AnimationTemplateJump, AnimationTemplateJumpAttack, AnimationTemplateRunning4Frames, AnimationTemplateRunning6Frames, AnimationTemplateRunning8Frames, AnimationTemplateSittingDown, AnimationTemplateStandOnHindLegs, AnimationTemplateStandingUp, AnimationTemplateWakingGettingUp, AnimationTemplateWalk4Frames, AnimationTemplateWalk6Frames, AnimationTemplateWalk8Frames, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames:
 		return true
 	default:
 		return false
@@ -4193,7 +4211,10 @@ type LastResponse struct {
 	TargetPalette         *struct{}         `json:"target_palette,omitzero"`
 	MotionAdjustments     MotionAdjustments `json:"motion_adjustments,omitzero"`
 	AnimationDescription  string            `json:"animation_description,omitzero"`
-	TemplateAnimationID   AnimationTemplate `json:"template_animation_id,omitzero"`
+	// Not every BodyTemplate takes every AnimationTemplate. As the API answers one it does not take:
+	//
+	// - bear: angry, attack-left, attack-right, drinking, eating, going-to-sleep, idle-long, idle-resting, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting-down, stand-on-hind-legs, standing-up, waking-getting-up, walk-4-frames, walk-6-frames, walk-8-frames
+	TemplateAnimationID AnimationTemplate `json:"template_animation_id,omitzero"`
 	// Width: any. Height: any.
 	Size               ImageSize `json:"size,omitzero"`
 	ObjectID           uuid.UUID `json:"object_id,omitzero"`

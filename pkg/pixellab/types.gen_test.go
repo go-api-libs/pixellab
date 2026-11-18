@@ -12,7 +12,7 @@ import (
 
 // TestEnums_Valid checks that every member of an enum is valid, and that a value of its type none is, is not.
 func TestEnums_Valid(t *testing.T) {
-	for _, v := range []AnimationTemplate{AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateRunning8Frames, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames} {
+	for _, v := range []AnimationTemplate{AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateEating, AnimationTemplateGoingToSleep, AnimationTemplateIdleLong, AnimationTemplateIdleResting, AnimationTemplateIdleSitting, AnimationTemplateJump, AnimationTemplateJumpAttack, AnimationTemplateRunning4Frames, AnimationTemplateRunning6Frames, AnimationTemplateRunning8Frames, AnimationTemplateSittingDown, AnimationTemplateStandOnHindLegs, AnimationTemplateStandingUp, AnimationTemplateWakingGettingUp, AnimationTemplateWalk4Frames, AnimationTemplateWalk6Frames, AnimationTemplateWalk8Frames, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames} {
 		if !v.Valid() {
 			t.Errorf("AnimationTemplate %v: not valid", v)
 		}

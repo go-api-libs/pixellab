@@ -181,6 +181,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -194,17 +263,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateImage(t.Context(), GenerateImageRequest{}); err == nil || !strings.Contains(err.Error(), "GenerateImage: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -382,6 +440,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -395,17 +522,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixen(t.Context(), CreateImagePixenRequest{}); err == nil || !strings.Contains(err.Error(), "CreateImagePixen: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -594,6 +710,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -607,17 +792,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateWithStyle(t.Context(), GenerateWithStyleRequest{}); err == nil || !strings.Contains(err.Error(), "GenerateWithStyle: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -795,6 +969,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixflux(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixflux(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixflux(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixflux(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -808,17 +1051,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixflux(t.Context(), CreateImagePixfluxRequest{}); err == nil || !strings.Contains(err.Error(), "CreateImagePixflux: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1007,6 +1239,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixfluxBackground(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixfluxBackground(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixfluxBackground(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImagePixfluxBackground(t.Context(), CreateImagePixfluxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -1020,17 +1321,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImagePixfluxBackground(t.Context(), CreateImagePixfluxRequest{}); err == nil || !strings.Contains(err.Error(), "CreateImagePixfluxBackground: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1208,6 +1498,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageBitforge(t.Context(), CreateImageBitforgeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageBitforge(t.Context(), CreateImageBitforgeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageBitforge(t.Context(), CreateImageBitforgeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateImageBitforge(t.Context(), CreateImageBitforgeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -1221,17 +1580,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateImageBitforge(t.Context(), CreateImageBitforgeRequest{}); err == nil || !strings.Contains(err.Error(), "CreateImageBitforge: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1420,6 +1768,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -1444,17 +1861,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ImageToPixelart(t.Context(), ImageToPixelartRequest{}); err == nil || !strings.Contains(err.Error(), "ImageToPixelart: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1632,6 +2038,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -1645,17 +2120,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ImageToPixelartPro(t.Context(), ImageToPixelartProRequest{}); err == nil || !strings.Contains(err.Error(), "ImageToPixelartPro: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2059,6 +2523,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -2072,17 +2605,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateCharacter(t.Context(), CreateCharacterRequest{}); err == nil || !strings.Contains(err.Error(), "CreateCharacter: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2260,6 +2782,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -2273,17 +2864,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateCharacterPro(t.Context(), CreateCharacterProRequest{}); err == nil || !strings.Contains(err.Error(), "CreateCharacterPro: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2687,6 +3267,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -2722,17 +3371,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("409 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateCharacter(t.Context(), CreateCharacterAnimationRequest{}); err == nil || !strings.Contains(err.Error(), "AnimateCharacter: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3191,6 +3829,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -3204,17 +3911,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateCharacterWith4Directions(t.Context(), CreateCharacterWith4DirectionsRequest{}); err == nil || !strings.Contains(err.Error(), "CreateCharacterWith4Directions: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3392,6 +4088,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -3405,17 +4170,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateCharacterWith8Directions(t.Context(), CreateCharacterWith8DirectionsRequest{}); err == nil || !strings.Contains(err.Error(), "CreateCharacterWith8Directions: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -3593,19 +4347,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListCharacters(t.Context(), nil); err == nil || !strings.Contains(err.Error(), "ListCharacters: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListCharacters(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -4606,19 +5418,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("404 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.GetCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil || !strings.Contains(err.Error(), "GetCharacterSpritesheet: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GetCharacterSpritesheet(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("404 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5077,6 +5947,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -5090,17 +6029,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Create1DirectionObject(t.Context(), Create1DirectionObjectRequest{}); err == nil || !strings.Contains(err.Error(), "Create1DirectionObject: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -5278,6 +6206,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -5291,17 +6288,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Create8DirectionObject(t.Context(), Create8DirectionObjectRequest{}); err == nil || !strings.Contains(err.Error(), "Create8DirectionObject: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -7132,19 +8118,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListObjects(t.Context(), nil); err == nil || !strings.Contains(err.Error(), "ListObjects: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListObjects(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9552,6 +10596,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV3(t.Context(), AnimateWithTextV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV3(t.Context(), AnimateWithTextV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV3(t.Context(), AnimateWithTextV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV3(t.Context(), AnimateWithTextV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -9565,17 +10678,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateWithTextV3(t.Context(), AnimateWithTextV3Request{}); err == nil || !strings.Contains(err.Error(), "AnimateWithTextV3: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9753,6 +10855,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -9766,17 +10937,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimatePixminimax(t.Context(), AnimatePixminimaxRequest{}); err == nil || !strings.Contains(err.Error(), "AnimatePixminimax: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -9954,6 +11114,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -9967,17 +11196,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Interpolation(t.Context(), InterpolationRequest{}); err == nil || !strings.Contains(err.Error(), "Interpolation: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10155,6 +11373,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -10168,17 +11455,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditAnimation(t.Context(), EditAnimationRequest{}); err == nil || !strings.Contains(err.Error(), "EditAnimation: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10356,6 +11632,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -10369,17 +11714,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TransferOutfit(t.Context(), TransferOutfitRequest{}); err == nil || !strings.Contains(err.Error(), "TransferOutfit: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10557,6 +11891,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -10570,17 +11973,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateWithTextV2(t.Context(), AnimateWithTextV2Request{}); err == nil || !strings.Contains(err.Error(), "AnimateWithTextV2: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10758,6 +12150,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -10771,17 +12232,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateWithText(t.Context(), AnimateWithTextRequest{}); err == nil || !strings.Contains(err.Error(), "AnimateWithText: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -10970,6 +12420,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -10983,17 +12502,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EstimateSkeleton(t.Context(), EstimateSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateSkeleton: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11182,6 +12690,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -11195,17 +12772,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EstimateCustomSkeleton(t.Context(), EstimateCustomSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "EstimateCustomSkeleton: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11383,6 +12949,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -11396,17 +13031,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateWithSkeletonV3(t.Context(), AnimateWithSkeletonV3Request{}); err == nil || !strings.Contains(err.Error(), "AnimateWithSkeletonV3: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11584,6 +13208,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -11597,17 +13290,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.AnimateWithSkeleton(t.Context(), AnimateWithSkeletonRequest{}); err == nil || !strings.Contains(err.Error(), "AnimateWithSkeleton: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -11796,6 +13478,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -11820,17 +13571,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateVfx(t.Context(), CreateVfxRequest{}); err == nil || !strings.Contains(err.Error(), "CreateVfx: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12752,6 +14492,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMusic(t.Context(), CreateMusicRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMusic(t.Context(), CreateMusicRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMusic(t.Context(), CreateMusicRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMusic(t.Context(), CreateMusicRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -12787,17 +14596,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateMusic(t.Context(), CreateMusicRequest{}); err == nil || !strings.Contains(err.Error(), "CreateMusic: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -12975,6 +14773,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetMusicLoop(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetMusicLoop(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetMusicLoop(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetMusicLoop(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -13021,17 +14888,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("409 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.SetMusicLoop(t.Context(), uuid.Nil()); err == nil || !strings.Contains(err.Error(), "SetMusicLoop: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14245,6 +16101,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateMusic(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateMusic(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateMusic(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateMusic(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -14258,17 +16183,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateMusic(t.Context(), uuid.Nil(), RenameRequest{}); err == nil || !strings.Contains(err.Error(), "UpdateMusic: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -14672,6 +16586,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSoundEffect(t.Context(), CreateSoundEffectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSoundEffect(t.Context(), CreateSoundEffectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSoundEffect(t.Context(), CreateSoundEffectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSoundEffect(t.Context(), CreateSoundEffectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -14696,17 +16679,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("403 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusForbidden, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateSoundEffect(t.Context(), CreateSoundEffectRequest{}); err == nil || !strings.Contains(err.Error(), "CreateSoundEffect: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15380,6 +17352,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateSoundEffect(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateSoundEffect(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateSoundEffect(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateSoundEffect(t.Context(), uuid.Nil(), RenameRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -15393,17 +17434,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateSoundEffect(t.Context(), uuid.Nil(), RenameRequest{}); err == nil || !strings.Contains(err.Error(), "UpdateSoundEffect: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15570,6 +17600,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV3(t.Context(), Generate8RotationsV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV3(t.Context(), Generate8RotationsV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV3(t.Context(), Generate8RotationsV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV3(t.Context(), Generate8RotationsV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -15583,17 +17682,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Generate8RotationsV3(t.Context(), Generate8RotationsV3Request{}); err == nil || !strings.Contains(err.Error(), "Generate8RotationsV3: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15771,6 +17859,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -15784,17 +17941,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Generate8RotationsV2(t.Context(), Generate8RotationsV2Request{}); err == nil || !strings.Contains(err.Error(), "Generate8RotationsV2: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -15972,6 +18118,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -15985,17 +18200,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Rotate(t.Context(), RotateRequest{}); err == nil || !strings.Contains(err.Error(), "Rotate: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16184,6 +18388,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -16197,17 +18470,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditImages(t.Context(), EditImagesRequest{}); err == nil || !strings.Contains(err.Error(), "EditImages: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16385,6 +18647,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -16409,17 +18740,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditImagePixen(t.Context(), EditImagePixenRequest{}); err == nil || !strings.Contains(err.Error(), "EditImagePixen: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16597,6 +18917,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SaveToAsset(t.Context(), SaveToAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SaveToAsset(t.Context(), SaveToAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SaveToAsset(t.Context(), SaveToAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SaveToAsset(t.Context(), SaveToAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -16621,17 +19010,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("409 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.SaveToAsset(t.Context(), SaveToAssetRequest{}); err == nil || !strings.Contains(err.Error(), "SaveToAsset: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -16820,6 +19198,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImage(t.Context(), EditImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImage(t.Context(), EditImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImage(t.Context(), EditImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EditImage(t.Context(), EditImageRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -16833,17 +19280,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EditImage(t.Context(), EditImageRequest{}); err == nil || !strings.Contains(err.Error(), "EditImage: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17021,6 +19457,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -17034,17 +19539,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.InpaintV3(t.Context(), InpaintV3Request{}); err == nil || !strings.Contains(err.Error(), "InpaintV3: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17222,6 +19716,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -17235,17 +19798,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Inpaint(t.Context(), InpaintRequest{}); err == nil || !strings.Contains(err.Error(), "Inpaint: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17434,19 +19986,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListTilesets(t.Context(), nil); err == nil || !strings.Contains(err.Error(), "ListTilesets: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListTilesets(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -17592,6 +20202,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -17605,17 +20284,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTileset(t.Context(), CreateTilesetRequest{}); err == nil || !strings.Contains(err.Error(), "CreateTileset: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18570,19 +21238,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetTilesetImport(t.Context(), SetTilesetImportRequest{}); err == nil || !strings.Contains(err.Error(), "SetTilesetImport: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesetImport(t.Context(), SetTilesetImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesetImport(t.Context(), SetTilesetImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesetImport(t.Context(), SetTilesetImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesetImport(t.Context(), SetTilesetImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -18986,6 +21712,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -19021,17 +21816,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateSidescrollerTileset(t.Context(), CreateSidescrollerTilesetRequest{}); err == nil || !strings.Contains(err.Error(), "CreateSidescrollerTileset: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -19624,6 +22408,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -19637,17 +22490,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateTilesPro(t.Context(), CreateTilesProRequest{}); err == nil || !strings.Contains(err.Error(), "CreateTilesPro: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20354,19 +23196,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.SetTilesProImport(t.Context(), SetTilesProImportRequest{}); err == nil || !strings.Contains(err.Error(), "SetTilesProImport: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesProImport(t.Context(), SetTilesProImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesProImport(t.Context(), SetTilesProImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesProImport(t.Context(), SetTilesProImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetTilesProImport(t.Context(), SetTilesProImportRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20749,6 +23649,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -20762,17 +23731,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateIsometricTile(t.Context(), CreateIsometricTileRequest{}); err == nil || !strings.Contains(err.Error(), "CreateIsometricTile: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21479,19 +24437,77 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
-		t.Run("401 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil || !strings.Contains(err.Error(), "ListIsometricTiles: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
 			}
 		})
 
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ListIsometricTiles(t.Context(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
+		t.Run("401 response without a body", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -21658,6 +24674,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMapObject(t.Context(), CreateMapObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMapObject(t.Context(), CreateMapObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMapObject(t.Context(), CreateMapObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateMapObject(t.Context(), CreateMapObjectRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -21671,17 +24756,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateMapObject(t.Context(), CreateMapObjectRequest{}); err == nil || !strings.Contains(err.Error(), "CreateMapObject: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -22129,6 +25203,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateRoom(t.Context(), CreateRoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateRoom(t.Context(), CreateRoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateRoom(t.Context(), CreateRoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateRoom(t.Context(), CreateRoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -22175,17 +25318,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("409 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusConflict, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateRoom(t.Context(), CreateRoomRequest{}); err == nil || !strings.Contains(err.Error(), "CreateRoom: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27080,6 +30212,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -27093,17 +30294,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateUIAsset(t.Context(), CreateUIAssetRequest{}); err == nil || !strings.Contains(err.Error(), "CreateUIAsset: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27281,6 +30471,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -27294,17 +30553,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateUI(t.Context(), GenerateUIRequest{}); err == nil || !strings.Contains(err.Error(), "GenerateUI: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27560,6 +30808,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetUIAssetSplit(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetUIAssetSplit(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetUIAssetSplit(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetUIAssetSplit(t.Context(), uuid.Nil(), nil); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -27573,17 +30890,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.SetUIAssetSplit(t.Context(), uuid.Nil(), nil); err == nil || !strings.Contains(err.Error(), "SetUIAssetSplit: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -27750,6 +31056,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAssetState(t.Context(), CreateUIAssetStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAssetState(t.Context(), CreateUIAssetStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAssetState(t.Context(), CreateUIAssetStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateUIAssetState(t.Context(), CreateUIAssetStateRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -27774,17 +31149,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateUIAssetState(t.Context(), CreateUIAssetStateRequest{}); err == nil || !strings.Contains(err.Error(), "CreateUIAssetState: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -28695,6 +32059,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateUIAsset(t.Context(), uuid.Nil(), UpdateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateUIAsset(t.Context(), uuid.Nil(), UpdateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateUIAsset(t.Context(), uuid.Nil(), UpdateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.UpdateUIAsset(t.Context(), uuid.Nil(), UpdateUIAssetRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -28708,17 +32141,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.UpdateUIAsset(t.Context(), uuid.Nil(), UpdateUIAssetRequest{}); err == nil || !strings.Contains(err.Error(), "UpdateUIAsset: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29054,6 +32476,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -29078,17 +32569,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreatePortraitCharacterPro(t.Context(), CreatePortraitCharacterProRequest{}); err == nil || !strings.Contains(err.Error(), "CreatePortraitCharacterPro: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29536,6 +33016,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetCharacterPortrait(t.Context(), uuid.Nil(), SetCharacterPortraitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetCharacterPortrait(t.Context(), uuid.Nil(), SetCharacterPortraitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetCharacterPortrait(t.Context(), uuid.Nil(), SetCharacterPortraitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.SetCharacterPortrait(t.Context(), uuid.Nil(), SetCharacterPortraitRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -29549,17 +33098,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.SetCharacterPortrait(t.Context(), uuid.Nil(), SetCharacterPortraitRequest{}); err == nil || !strings.Contains(err.Error(), "SetCharacterPortrait: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29726,6 +33264,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterPortrait(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterPortrait(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterPortrait(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterPortrait(t.Context(), uuid.Nil()); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -29739,17 +33346,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteCharacterPortrait(t.Context(), uuid.Nil()); err == nil || !strings.Contains(err.Error(), "DeleteCharacterPortrait: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -29916,6 +33512,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterVocalAnimation(t.Context(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterVocalAnimation(t.Context(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterVocalAnimation(t.Context(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.DeleteCharacterVocalAnimation(t.Context(), uuid.Nil(), ""); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -29929,17 +33594,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.DeleteCharacterVocalAnimation(t.Context(), uuid.Nil(), ""); err == nil || !strings.Contains(err.Error(), "DeleteCharacterVocalAnimation: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30106,6 +33760,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -30152,17 +33875,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CreateVocalAnimation(t.Context(), CreateVocalAnimationRequest{}); err == nil || !strings.Contains(err.Error(), "CreateVocalAnimation: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30599,6 +34311,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -30623,17 +34404,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.TalkingGif(t.Context(), TalkingGifRequest{}); err == nil || !strings.Contains(err.Error(), "TalkingGif: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -30800,6 +34570,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -30824,17 +34663,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("404 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusNotFound, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.LipSync(t.Context(), LipSyncRequest{}); err == nil || !strings.Contains(err.Error(), "LipSync: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31001,6 +34829,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -31014,17 +34911,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.GenerateFontPro(t.Context(), GenerateFontProRequest{}); err == nil || !strings.Contains(err.Error(), "GenerateFontPro: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31472,6 +35358,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -31485,17 +35440,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Unzoom(t.Context(), UnzoomRequest{}); err == nil || !strings.Contains(err.Error(), "Unzoom: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31673,6 +35617,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -31686,17 +35699,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.CorrectPixelart(t.Context(), CorrectPixelartRequest{}); err == nil || !strings.Contains(err.Error(), "CorrectPixelart: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -31874,6 +35876,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -31887,17 +35958,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ReduceColors(t.Context(), ReduceColorsRequest{}); err == nil || !strings.Contains(err.Error(), "ReduceColors: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32075,6 +36135,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -32088,17 +36217,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.RemoveBackground(t.Context(), RemoveBackgroundRequest{}); err == nil || !strings.Contains(err.Error(), "RemoveBackground: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32276,6 +36394,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -32300,17 +36487,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.NormalMap(t.Context(), NormalMapRequest{}); err == nil || !strings.Contains(err.Error(), "NormalMap: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32488,6 +36664,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("400 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusBadRequest, "", nil)))
 			if err != nil {
@@ -32512,17 +36757,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.Resize(t.Context(), ResizeRequest{}); err == nil || !strings.Contains(err.Error(), "Resize: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32700,6 +36934,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhancePixenPrompt(t.Context(), EnhancePixenPromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhancePixenPrompt(t.Context(), EnhancePixenPromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhancePixenPrompt(t.Context(), EnhancePixenPromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhancePixenPrompt(t.Context(), EnhancePixenPromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -32713,17 +37016,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EnhancePixenPrompt(t.Context(), EnhancePixenPromptRequest{}); err == nil || !strings.Contains(err.Error(), "EnhancePixenPrompt: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -32890,6 +37182,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceCharacterV3Prompt(t.Context(), EnhanceCharacterV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceCharacterV3Prompt(t.Context(), EnhanceCharacterV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceCharacterV3Prompt(t.Context(), EnhanceCharacterV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceCharacterV3Prompt(t.Context(), EnhanceCharacterV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -32903,17 +37264,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EnhanceCharacterV3Prompt(t.Context(), EnhanceCharacterV3PromptRequest{}); err == nil || !strings.Contains(err.Error(), "EnhanceCharacterV3Prompt: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33080,6 +37430,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceAnimationV3Prompt(t.Context(), EnhanceAnimationV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceAnimationV3Prompt(t.Context(), EnhanceAnimationV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceAnimationV3Prompt(t.Context(), EnhanceAnimationV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.EnhanceAnimationV3Prompt(t.Context(), EnhanceAnimationV3PromptRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -33093,17 +37512,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.EnhanceAnimationV3Prompt(t.Context(), EnhanceAnimationV3PromptRequest{}); err == nil || !strings.Contains(err.Error(), "EnhanceAnimationV3Prompt: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -33270,6 +37678,75 @@ func TestClient_Error(t *testing.T) {
 			}
 		})
 
+		t.Run("422 response", func(t *testing.T) {
+			body, err := json.Marshal(HTTPValidationError{}, jsonOpts)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if apiErr, ok := errors.AsType[*api.Error](err); !ok {
+				t.Fatalf("got: %T, want: *api.Error", err)
+			} else if !apiErr.IsCustom || apiErr.Response.StatusCode != http.StatusUnprocessableEntity {
+				t.Fatalf("got: custom %t, status %d, want: custom, status %d", apiErr.IsCustom, apiErr.Response.StatusCode, http.StatusUnprocessableEntity)
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want it to be a *HTTPValidationError", err)
+			}
+		})
+
+		t.Run("422 response decoding error", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", []byte("invalid json"))))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*api.DecodingError](err); !ok {
+				t.Fatalf("got: %T, want: *api.DecodingError", err)
+			}
+		})
+
+		t.Run("422 response unknown content type", func(t *testing.T) {
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "foo", nil)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if !errors.Is(err, api.ErrUnknownContentType) {
+				t.Fatalf("want: %v, got: %v", api.ErrUnknownContentType, err)
+			}
+		})
+
+		t.Run("422 response debug mode keeps an unknown member", func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "interactions.json")
+
+			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "application/json", apitest.WithUnknownMember(t, HTTPValidationError{}, jsonOpts))), WithDebugFile(file))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil {
+				t.Fatal("expected error")
+			} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+				t.Fatalf("got: %v, want the *HTTPValidationError decoded leniently", err)
+			}
+
+			if ias, err := cassette.InteractionsReadFile(file); err != nil {
+				t.Fatal(err)
+			} else if len(ias) != 1 {
+				t.Fatalf("the debug file holds %d calls, want the one that failed to decode", len(ias))
+			}
+		})
+
 		t.Run("401 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnauthorized, "", nil)))
 			if err != nil {
@@ -33283,17 +37760,6 @@ func TestClient_Error(t *testing.T) {
 
 		t.Run("402 response without a body", func(t *testing.T) {
 			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusPaymentRequired, "", nil)))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			if _, err := c.ImageToText(t.Context(), ImageToTextRequest{}); err == nil || !strings.Contains(err.Error(), "ImageToText: status") {
-				t.Fatalf("got: %v, want an error naming the status", err)
-			}
-		})
-
-		t.Run("422 response without a body", func(t *testing.T) {
-			c, err := NewClient(WithBaseURL(apitest.BodyServer(t, http.StatusUnprocessableEntity, "", nil)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -36759,5 +41225,16 @@ func TestClient_Interactions(t *testing.T) {
 		if out != nil && out.unknownEnum() {
 			t.Errorf("GetBackgroundJob: holds a value of an enum the specification does not list")
 		}
+	}
+
+	if _, err := c.AnimateCharacter(ctx, CreateCharacterAnimationRequest{
+		CharacterID:         uuid.MustParse("8f88c512-3405-420e-bc04-62e7c791fb42"),
+		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
+		TemplateAnimationID: AnimationTemplateWalking8Frames,
+		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+	}); err == nil {
+		t.Fatal("AnimateCharacter: expected error")
+	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
+		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
 	}
 }

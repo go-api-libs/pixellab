@@ -37,6 +37,11 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	ias, err := cassette.InteractionsReadFile(interactionsPath)
+	if err != nil {
+		return err
+	}
+
 	if err := dropAliases(doc); err != nil {
 		return err
 	}
@@ -53,7 +58,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	declared, err := declareEnums(doc)
+	declared, err := declareEnums(doc, ias)
 	if err != nil {
 		return err
 	}
@@ -68,11 +73,6 @@ func run(ctx context.Context) error {
 
 	if err := doc.Validate(); err != nil {
 		return fmt.Errorf("transformed original: %w", err)
-	}
-
-	ias, err := cassette.InteractionsReadFile(interactionsPath)
-	if err != nil {
-		return err
 	}
 
 	// rewrite to reformat

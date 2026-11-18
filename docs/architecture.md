@@ -13,7 +13,8 @@ specification in five steps:
    compress merges the sizes alike but for that, drop the JSON of no
    schema FastAPI declares beside a download's own media type, and the operations
    that are only aliases of another, let a 422's detail be a message as well as
-   validation errors, and name every operation after its method
+   validation errors, give each 422 upstream declares without a body the
+   validation error FastAPI answers it with, and name every operation after its method
    and path, and every body after its operation.
    Type every string the API holds to one format (`formats.go`): an ID name
    upstream types anywhere is typed everywhere, and `formats` gives what
@@ -22,7 +23,10 @@ specification in five steps:
    Make an enum of every string `declaredEnums` (`enums.go`) names, or picks
    by a rule, with the values upstream documents, as a template animation, a
    job's status, by what upstream writes of it, or a subscription's status:
-   the interactions add the values they show.
+   the interactions add the values they show. A recorded 422 that turns a
+   value down with those it takes, as an animation template a body template
+   does not have, adds them too, and the enum's documentation tells which body
+   template takes which.
 3. **Passes**: `openapi-enrich` with `api/interactions.json`, then
    `openapi-flatten`, `openapi-compress` and `openapi-flatten` again, as the
    commands of the same names would.
