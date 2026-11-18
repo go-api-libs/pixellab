@@ -2078,7 +2078,7 @@ type CreateTilesProRequest struct {
 	TileDepthRatio *float64 `json:"tile_depth_ratio,omitzero"`
 	// Isometric top/bottom cap width: 2px classic or 4px modern. Only used when tile_type='isometric'.
 	TileFlatTopPx int `json:"tile_flat_top_px,omitzero"`
-	// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
+	// Tile guide style. outline: gray shading with outlines, and the tiles keep a dark inner outline. segmentation: color zones, and the tiles are drawn with NO dark outline, border or rim - the surface runs cleanly to the tile edge, for ground that should not show a grid.
 	OutlineMode OutlineMode `json:"outline_mode,omitzero"`
 	// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
 	TileFeature TileFeature `json:"tile_feature,omitzero"`
@@ -2168,9 +2168,9 @@ type CreateTilesetRequest struct {
 	SideWallPlacement *float64 `json:"side_wall_placement,omitzero"`
 	// mode='standard'. Which wobble raggedness draws (0-99, the website's Reshuffle): another number gives a different boundary at the same raggedness.
 	ShapeSeed int `json:"shape_seed,omitzero"`
-	// Whether the lower terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer.
+	// Whether the lower terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer.
 	LowerWalkable *bool `json:"lower_walkable,omitzero"`
-	// Whether the upper terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer.
+	// Whether the upper terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer.
 	UpperWalkable *bool `json:"upper_walkable,omitzero"`
 	// mode='pro' or shape_style only. Corner shape of the border between the two terrains: 0 = square, 1 = round, 2 = corners cut at 45 degrees (values in between blend). Above 1 needs mode='pro'. Omit for the default (0.85 on pro, 0.6 with shape_style). On tall pro sets (transition_size above 0.4) up to 1 leaves the corners to the shape picked from the descriptions, and 1-2 cuts them toward 45 degrees.
 	Roundness *float64 `json:"roundness,omitzero"`
@@ -4860,7 +4860,7 @@ func (e Outline) Valid() bool {
 	}
 }
 
-// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
+// Tile guide style. outline: gray shading with outlines, and the tiles keep a dark inner outline. segmentation: color zones, and the tiles are drawn with NO dark outline, border or rim - the surface runs cleanly to the tile edge, for ground that should not show a grid.
 type OutlineMode string
 
 const (

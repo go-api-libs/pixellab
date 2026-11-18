@@ -16883,7 +16883,7 @@
               "segmentation"
             ],
             "title": "Outline Mode",
-            "description": "Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.",
+            "description": "Tile guide style. outline: gray shading with outlines, and the tiles keep a dark inner outline. segmentation: color zones, and the tiles are drawn with NO dark outline, border or rim - the surface runs cleanly to the tile edge, for ground that should not show a grid.",
             "default": "outline"
           },
           "tile_feature": {
@@ -17400,7 +17400,7 @@
               }
             ],
             "title": "Lower Walkable",
-            "description": "Whether the lower terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer."
+            "description": "Whether the lower terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer."
           },
           "upper_walkable": {
             "anyOf": [
@@ -17412,7 +17412,7 @@
               }
             ],
             "title": "Upper Walkable",
-            "description": "Whether the upper terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer."
+            "description": "Whether the upper terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer."
           },
           "roundness": {
             "anyOf": [
