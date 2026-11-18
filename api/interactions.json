@@ -3591,5 +3591,37 @@
 				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'dog'. Available: bark, fast-walk, idle, running-4-frames, running-6-frames, running-8-frames, sneaking, walk-4-frames, walk-6-frames, walk-8-frames"
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "https://api.pixellab.ai/v2/animate-character",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"character_id": "b39eb98c-f2cb-4a48-a3d2-24f1575ac232",
+				"mode": "skeleton-v3",
+				"template_animation_id": "stand-on-hind-legs",
+				"directions": [
+					"south"
+				]
+			}
+		},
+		"response": {
+			"statusCode": 422,
+			"header": {
+				"Content-Length": "468",
+				"Content-Type": "application/json",
+				"Date": "Wed, 18 Nov 2026 01:33:28 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'horse'. Available: attack, attack-back, dying, eat-end, eat-start, eating, hit-left, hit-right, idle-shaking-head, lie-down, rest-cycle, rest-idle, running-4-frames, running-6-frames, running-8-frames, running-headbutt, running-turn-left, running-turn-right, sleep-cycle, stand-up, start-sleep, swimming, wake-up, walk-4-frames, walk-6-frames, walk-8-frames, walk-turn-left, walk-turn-right"
+			}
+		}
 	}
 ]
