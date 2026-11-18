@@ -403,22 +403,21 @@ func (v *AnimationJobResponse) unknownEnum() bool {
 		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
-// Not every BodyTemplate takes every AnimationTemplate. As the API answers one it does not take:
+// Not every BodyTemplate takes every AnimationTemplate. Each takes these, as the API answers one it does not take:
 //
+// - mannequin: backflip, breathing-idle, cross-punch, crouched-walking, crouching, drinking, falling-back-death, fight-stance-idle-8-frames, fireball, flying-kick, front-flip, getting-up, high-kick, hurricane-kick, jumping-1, jumping-2, lead-jab, leg-sweep, picking-up, pull-heavy-object, pushing, roundhouse-kick, running-4-frames, running-6-frames, running-8-frames, running-jump, running-slide, sad-walk, scary-walk, surprise-uppercut, taking-punch, throw-object, two-footed-jump, walk, walk-1, walk-2, walking, walking-10, walking-2, walking-3, walking-4, walking-4-frames, walking-5, walking-6, walking-6-frames, walking-7, walking-8, walking-8-frames, walking-9
 // - bear: angry, attack-left, attack-right, drinking, eating, going-to-sleep, idle-long, idle-resting, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting-down, stand-on-hind-legs, standing-up, waking-getting-up, walk-4-frames, walk-6-frames, walk-8-frames
+// - cat: angry, drinking, eating, idle, jump, licking, running-4-frames, running-6-frames, running-8-frames, seated-on-belly-idle, sitting, sitting-on-belly, slow-run, standing, standing-from-belly, walk-4-frames, walk-6-frames, walk-8-frames, yawning
+// - dog: bark, fast-walk, idle, running-4-frames, running-6-frames, running-8-frames, sneaking, walk-4-frames, walk-6-frames, walk-8-frames
+// - horse: attack, attack-back, dying, eat-end, eat-start, eating, hit-left, hit-right, idle-shaking-head, lie-down, rest-cycle, rest-idle, running-4-frames, running-6-frames, running-8-frames, running-headbutt, running-turn-left, running-turn-right, sleep-cycle, stand-up, start-sleep, swimming, wake-up, walk-4-frames, walk-6-frames, walk-8-frames, walk-turn-left, walk-turn-right
+// - lion: attack, drinking, eating, idle, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting, standing, walk-4-frames, walk-6-frames, walk-8-frames
+// - custom: none
 type AnimationTemplate string
 
 const (
 	AnimationTemplateAngry                  AnimationTemplate = "angry"
-	AnimationTemplateAttack                 AnimationTemplate = "attack"
-	AnimationTemplateAttackBack             AnimationTemplate = "attack-back"
 	AnimationTemplateAttackLeft             AnimationTemplate = "attack-left"
 	AnimationTemplateAttackRight            AnimationTemplate = "attack-right"
-	AnimationTemplateBackflip               AnimationTemplate = "backflip"
-	AnimationTemplateBark                   AnimationTemplate = "bark"
-	AnimationTemplateBreathingIdle          AnimationTemplate = "breathing-idle"
-	AnimationTemplateCrossPunch             AnimationTemplate = "cross-punch"
-	AnimationTemplateCrouchedWalking        AnimationTemplate = "crouched-walking"
 	AnimationTemplateDrinking               AnimationTemplate = "drinking"
 	AnimationTemplateEating                 AnimationTemplate = "eating"
 	AnimationTemplateGoingToSleep           AnimationTemplate = "going-to-sleep"
@@ -437,16 +436,90 @@ const (
 	AnimationTemplateWalk4Frames            AnimationTemplate = "walk-4-frames"
 	AnimationTemplateWalk6Frames            AnimationTemplate = "walk-6-frames"
 	AnimationTemplateWalk8Frames            AnimationTemplate = "walk-8-frames"
+	AnimationTemplateIdle                   AnimationTemplate = "idle"
+	AnimationTemplateLicking                AnimationTemplate = "licking"
+	AnimationTemplateSeatedOnBellyIdle      AnimationTemplate = "seated-on-belly-idle"
+	AnimationTemplateSitting                AnimationTemplate = "sitting"
+	AnimationTemplateSittingOnBelly         AnimationTemplate = "sitting-on-belly"
+	AnimationTemplateSlowRun                AnimationTemplate = "slow-run"
+	AnimationTemplateStanding               AnimationTemplate = "standing"
+	AnimationTemplateStandingFromBelly      AnimationTemplate = "standing-from-belly"
+	AnimationTemplateYawning                AnimationTemplate = "yawning"
+	AnimationTemplateBark                   AnimationTemplate = "bark"
+	AnimationTemplateFastWalk               AnimationTemplate = "fast-walk"
+	AnimationTemplateSneaking               AnimationTemplate = "sneaking"
+	AnimationTemplateAttack                 AnimationTemplate = "attack"
+	AnimationTemplateAttackBack             AnimationTemplate = "attack-back"
+	AnimationTemplateDying                  AnimationTemplate = "dying"
+	AnimationTemplateEatEnd                 AnimationTemplate = "eat-end"
+	AnimationTemplateEatStart               AnimationTemplate = "eat-start"
+	AnimationTemplateHitLeft                AnimationTemplate = "hit-left"
+	AnimationTemplateHitRight               AnimationTemplate = "hit-right"
+	AnimationTemplateIdleShakingHead        AnimationTemplate = "idle-shaking-head"
+	AnimationTemplateLieDown                AnimationTemplate = "lie-down"
+	AnimationTemplateRestCycle              AnimationTemplate = "rest-cycle"
+	AnimationTemplateRestIdle               AnimationTemplate = "rest-idle"
+	AnimationTemplateRunningHeadbutt        AnimationTemplate = "running-headbutt"
+	AnimationTemplateRunningTurnLeft        AnimationTemplate = "running-turn-left"
+	AnimationTemplateRunningTurnRight       AnimationTemplate = "running-turn-right"
+	AnimationTemplateSleepCycle             AnimationTemplate = "sleep-cycle"
+	AnimationTemplateStandUp                AnimationTemplate = "stand-up"
+	AnimationTemplateStartSleep             AnimationTemplate = "start-sleep"
+	AnimationTemplateSwimming               AnimationTemplate = "swimming"
+	AnimationTemplateWakeUp                 AnimationTemplate = "wake-up"
+	AnimationTemplateWalkTurnLeft           AnimationTemplate = "walk-turn-left"
+	AnimationTemplateWalkTurnRight          AnimationTemplate = "walk-turn-right"
+	AnimationTemplateBackflip               AnimationTemplate = "backflip"
+	AnimationTemplateBreathingIdle          AnimationTemplate = "breathing-idle"
+	AnimationTemplateCrossPunch             AnimationTemplate = "cross-punch"
+	AnimationTemplateCrouchedWalking        AnimationTemplate = "crouched-walking"
+	AnimationTemplateCrouching              AnimationTemplate = "crouching"
+	AnimationTemplateFallingBackDeath       AnimationTemplate = "falling-back-death"
 	AnimationTemplateFightStanceIdle8Frames AnimationTemplate = "fight-stance-idle-8-frames"
+	AnimationTemplateFireball               AnimationTemplate = "fireball"
+	AnimationTemplateFlyingKick             AnimationTemplate = "flying-kick"
+	AnimationTemplateFrontFlip              AnimationTemplate = "front-flip"
+	AnimationTemplateGettingUp              AnimationTemplate = "getting-up"
+	AnimationTemplateHighKick               AnimationTemplate = "high-kick"
+	AnimationTemplateHurricaneKick          AnimationTemplate = "hurricane-kick"
+	AnimationTemplateJumping1               AnimationTemplate = "jumping-1"
+	AnimationTemplateJumping2               AnimationTemplate = "jumping-2"
+	AnimationTemplateLeadJab                AnimationTemplate = "lead-jab"
+	AnimationTemplateLegSweep               AnimationTemplate = "leg-sweep"
 	AnimationTemplatePickingUp              AnimationTemplate = "picking-up"
+	AnimationTemplatePullHeavyObject        AnimationTemplate = "pull-heavy-object"
+	AnimationTemplatePushing                AnimationTemplate = "pushing"
+	AnimationTemplateRoundhouseKick         AnimationTemplate = "roundhouse-kick"
+	AnimationTemplateRunningJump            AnimationTemplate = "running-jump"
+	AnimationTemplateRunningSlide           AnimationTemplate = "running-slide"
 	AnimationTemplateSadWalk                AnimationTemplate = "sad-walk"
+	AnimationTemplateScaryWalk              AnimationTemplate = "scary-walk"
+	AnimationTemplateSurpriseUppercut       AnimationTemplate = "surprise-uppercut"
+	AnimationTemplateTakingPunch            AnimationTemplate = "taking-punch"
+	AnimationTemplateThrowObject            AnimationTemplate = "throw-object"
+	AnimationTemplateTwoFootedJump          AnimationTemplate = "two-footed-jump"
+	AnimationTemplateWalk                   AnimationTemplate = "walk"
+	AnimationTemplateWalk1                  AnimationTemplate = "walk-1"
+	AnimationTemplateWalk2                  AnimationTemplate = "walk-2"
+	AnimationTemplateWalking                AnimationTemplate = "walking"
+	AnimationTemplateWalking10              AnimationTemplate = "walking-10"
+	AnimationTemplateWalking2               AnimationTemplate = "walking-2"
+	AnimationTemplateWalking3               AnimationTemplate = "walking-3"
+	AnimationTemplateWalking4               AnimationTemplate = "walking-4"
+	AnimationTemplateWalking4Frames         AnimationTemplate = "walking-4-frames"
+	AnimationTemplateWalking5               AnimationTemplate = "walking-5"
+	AnimationTemplateWalking6               AnimationTemplate = "walking-6"
+	AnimationTemplateWalking6Frames         AnimationTemplate = "walking-6-frames"
+	AnimationTemplateWalking7               AnimationTemplate = "walking-7"
+	AnimationTemplateWalking8               AnimationTemplate = "walking-8"
 	AnimationTemplateWalking8Frames         AnimationTemplate = "walking-8-frames"
+	AnimationTemplateWalking9               AnimationTemplate = "walking-9"
 )
 
 // Valid indicates whether the value is a known member of the AnimationTemplate enum.
 func (e AnimationTemplate) Valid() bool {
 	switch e {
-	case AnimationTemplateAngry, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateBackflip, AnimationTemplateBark, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateDrinking, AnimationTemplateEating, AnimationTemplateGoingToSleep, AnimationTemplateIdleLong, AnimationTemplateIdleResting, AnimationTemplateIdleSitting, AnimationTemplateJump, AnimationTemplateJumpAttack, AnimationTemplateRunning4Frames, AnimationTemplateRunning6Frames, AnimationTemplateRunning8Frames, AnimationTemplateSittingDown, AnimationTemplateStandOnHindLegs, AnimationTemplateStandingUp, AnimationTemplateWakingGettingUp, AnimationTemplateWalk4Frames, AnimationTemplateWalk6Frames, AnimationTemplateWalk8Frames, AnimationTemplateFightStanceIdle8Frames, AnimationTemplatePickingUp, AnimationTemplateSadWalk, AnimationTemplateWalking8Frames:
+	case AnimationTemplateAngry, AnimationTemplateAttackLeft, AnimationTemplateAttackRight, AnimationTemplateDrinking, AnimationTemplateEating, AnimationTemplateGoingToSleep, AnimationTemplateIdleLong, AnimationTemplateIdleResting, AnimationTemplateIdleSitting, AnimationTemplateJump, AnimationTemplateJumpAttack, AnimationTemplateRunning4Frames, AnimationTemplateRunning6Frames, AnimationTemplateRunning8Frames, AnimationTemplateSittingDown, AnimationTemplateStandOnHindLegs, AnimationTemplateStandingUp, AnimationTemplateWakingGettingUp, AnimationTemplateWalk4Frames, AnimationTemplateWalk6Frames, AnimationTemplateWalk8Frames, AnimationTemplateIdle, AnimationTemplateLicking, AnimationTemplateSeatedOnBellyIdle, AnimationTemplateSitting, AnimationTemplateSittingOnBelly, AnimationTemplateSlowRun, AnimationTemplateStanding, AnimationTemplateStandingFromBelly, AnimationTemplateYawning, AnimationTemplateBark, AnimationTemplateFastWalk, AnimationTemplateSneaking, AnimationTemplateAttack, AnimationTemplateAttackBack, AnimationTemplateDying, AnimationTemplateEatEnd, AnimationTemplateEatStart, AnimationTemplateHitLeft, AnimationTemplateHitRight, AnimationTemplateIdleShakingHead, AnimationTemplateLieDown, AnimationTemplateRestCycle, AnimationTemplateRestIdle, AnimationTemplateRunningHeadbutt, AnimationTemplateRunningTurnLeft, AnimationTemplateRunningTurnRight, AnimationTemplateSleepCycle, AnimationTemplateStandUp, AnimationTemplateStartSleep, AnimationTemplateSwimming, AnimationTemplateWakeUp, AnimationTemplateWalkTurnLeft, AnimationTemplateWalkTurnRight, AnimationTemplateBackflip, AnimationTemplateBreathingIdle, AnimationTemplateCrossPunch, AnimationTemplateCrouchedWalking, AnimationTemplateCrouching, AnimationTemplateFallingBackDeath, AnimationTemplateFightStanceIdle8Frames, AnimationTemplateFireball, AnimationTemplateFlyingKick, AnimationTemplateFrontFlip, AnimationTemplateGettingUp, AnimationTemplateHighKick, AnimationTemplateHurricaneKick, AnimationTemplateJumping1, AnimationTemplateJumping2, AnimationTemplateLeadJab, AnimationTemplateLegSweep, AnimationTemplatePickingUp, AnimationTemplatePullHeavyObject, AnimationTemplatePushing, AnimationTemplateRoundhouseKick, AnimationTemplateRunningJump, AnimationTemplateRunningSlide, AnimationTemplateSadWalk, AnimationTemplateScaryWalk, AnimationTemplateSurpriseUppercut, AnimationTemplateTakingPunch, AnimationTemplateThrowObject, AnimationTemplateTwoFootedJump, AnimationTemplateWalk, AnimationTemplateWalk1, AnimationTemplateWalk2, AnimationTemplateWalking, AnimationTemplateWalking10, AnimationTemplateWalking2, AnimationTemplateWalking3, AnimationTemplateWalking4, AnimationTemplateWalking4Frames, AnimationTemplateWalking5, AnimationTemplateWalking6, AnimationTemplateWalking6Frames, AnimationTemplateWalking7, AnimationTemplateWalking8, AnimationTemplateWalking8Frames, AnimationTemplateWalking9:
 		return true
 	default:
 		return false
@@ -2005,7 +2078,7 @@ type CreateTilesProRequest struct {
 	TileDepthRatio *float64 `json:"tile_depth_ratio,omitzero"`
 	// Isometric top/bottom cap width: 2px classic or 4px modern. Only used when tile_type='isometric'.
 	TileFlatTopPx int `json:"tile_flat_top_px,omitzero"`
-	// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
+	// Tile guide style. outline: gray shading with outlines, and the tiles keep a dark inner outline. segmentation: color zones, and the tiles are drawn with NO dark outline, border or rim - the surface runs cleanly to the tile edge, for ground that should not show a grid.
 	OutlineMode OutlineMode `json:"outline_mode,omitzero"`
 	// Generate a connectable set instead of independent tiles. roads: 18-config path autotiles (square_topdown, isometric). tileset: terrain transition — a 16-tile corner set for square_topdown/isometric/oblique, or a 32-tile coastline for hex/hex_pointy; describe it as a transition ("grass to water"), first terrain is the main one. building: construction kit — floor, connectable walls, doorways, pillar and staircase (square_topdown, isometric, oblique). Connectable sets return per-tile placement rules; see GET /tiles-pro/{tile_id}. Cannot be combined with style_images. Note: for square top-down terrain transitions, /create-tileset is the dedicated tileset model and offers transition width, per-terrain reference images and style matching.
 	TileFeature TileFeature `json:"tile_feature,omitzero"`
@@ -2095,9 +2168,9 @@ type CreateTilesetRequest struct {
 	SideWallPlacement *float64 `json:"side_wall_placement,omitzero"`
 	// mode='standard'. Which wobble raggedness draws (0-99, the website's Reshuffle): another number gives a different boundary at the same raggedness.
 	ShapeSeed int `json:"shape_seed,omitzero"`
-	// Whether the lower terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer.
+	// Whether the lower terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through lower_base_tile_id keeps its own tileset's answer.
 	LowerWalkable *bool `json:"lower_walkable,omitzero"`
-	// Whether the upper terrain can be walked on: true / false, or omit to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer.
+	// Whether the upper terrain can be walked on: true / false, or omit (null) to leave it unstated (engine exports then guess from the terrain's name). Feeds the map and engine-export collision. Only for a terrain this tileset makes: a terrain reused through upper_base_tile_id keeps its own tileset's answer.
 	UpperWalkable *bool `json:"upper_walkable,omitzero"`
 	// mode='pro' or shape_style only. Corner shape of the border between the two terrains: 0 = square, 1 = round, 2 = corners cut at 45 degrees (values in between blend). Above 1 needs mode='pro'. Omit for the default (0.85 on pro, 0.6 with shape_style). On tall pro sets (transition_size above 0.4) up to 1 leaves the corners to the shape picked from the descriptions, and 1-2 cuts them toward 45 degrees.
 	Roundness *float64 `json:"roundness,omitzero"`
@@ -4211,9 +4284,15 @@ type LastResponse struct {
 	TargetPalette         *struct{}         `json:"target_palette,omitzero"`
 	MotionAdjustments     MotionAdjustments `json:"motion_adjustments,omitzero"`
 	AnimationDescription  string            `json:"animation_description,omitzero"`
-	// Not every BodyTemplate takes every AnimationTemplate. As the API answers one it does not take:
+	// Not every BodyTemplate takes every AnimationTemplate. Each takes these, as the API answers one it does not take:
 	//
+	// - mannequin: backflip, breathing-idle, cross-punch, crouched-walking, crouching, drinking, falling-back-death, fight-stance-idle-8-frames, fireball, flying-kick, front-flip, getting-up, high-kick, hurricane-kick, jumping-1, jumping-2, lead-jab, leg-sweep, picking-up, pull-heavy-object, pushing, roundhouse-kick, running-4-frames, running-6-frames, running-8-frames, running-jump, running-slide, sad-walk, scary-walk, surprise-uppercut, taking-punch, throw-object, two-footed-jump, walk, walk-1, walk-2, walking, walking-10, walking-2, walking-3, walking-4, walking-4-frames, walking-5, walking-6, walking-6-frames, walking-7, walking-8, walking-8-frames, walking-9
 	// - bear: angry, attack-left, attack-right, drinking, eating, going-to-sleep, idle-long, idle-resting, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting-down, stand-on-hind-legs, standing-up, waking-getting-up, walk-4-frames, walk-6-frames, walk-8-frames
+	// - cat: angry, drinking, eating, idle, jump, licking, running-4-frames, running-6-frames, running-8-frames, seated-on-belly-idle, sitting, sitting-on-belly, slow-run, standing, standing-from-belly, walk-4-frames, walk-6-frames, walk-8-frames, yawning
+	// - dog: bark, fast-walk, idle, running-4-frames, running-6-frames, running-8-frames, sneaking, walk-4-frames, walk-6-frames, walk-8-frames
+	// - horse: attack, attack-back, dying, eat-end, eat-start, eating, hit-left, hit-right, idle-shaking-head, lie-down, rest-cycle, rest-idle, running-4-frames, running-6-frames, running-8-frames, running-headbutt, running-turn-left, running-turn-right, sleep-cycle, stand-up, start-sleep, swimming, wake-up, walk-4-frames, walk-6-frames, walk-8-frames, walk-turn-left, walk-turn-right
+	// - lion: attack, drinking, eating, idle, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting, standing, walk-4-frames, walk-6-frames, walk-8-frames
+	// - custom: none
 	TemplateAnimationID AnimationTemplate `json:"template_animation_id,omitzero"`
 	// Width: any. Height: any.
 	Size               ImageSize `json:"size,omitzero"`
@@ -4781,7 +4860,7 @@ func (e Outline) Valid() bool {
 	}
 }
 
-// Tile guide style. outline: gray shading with outlines. segmentation: color zones without outlines, giving cleaner seamless edges.
+// Tile guide style. outline: gray shading with outlines, and the tiles keep a dark inner outline. segmentation: color zones, and the tiles are drawn with NO dark outline, border or rim - the surface runs cleanly to the tile edge, for ground that should not show a grid.
 type OutlineMode string
 
 const (
