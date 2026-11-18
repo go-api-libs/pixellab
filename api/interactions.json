@@ -3623,5 +3623,37 @@
 				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'horse'. Available: attack, attack-back, dying, eat-end, eat-start, eating, hit-left, hit-right, idle-shaking-head, lie-down, rest-cycle, rest-idle, running-4-frames, running-6-frames, running-8-frames, running-headbutt, running-turn-left, running-turn-right, sleep-cycle, stand-up, start-sleep, swimming, wake-up, walk-4-frames, walk-6-frames, walk-8-frames, walk-turn-left, walk-turn-right"
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "POST",
+			"url": "https://api.pixellab.ai/v2/animate-character",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"Content-Type": "application/json",
+				"User-Agent": "Pixel Lab API"
+			},
+			"body": {
+				"character_id": "82143a6d-b92b-4ed3-8f04-95a0b5e0fe16",
+				"mode": "skeleton-v3",
+				"template_animation_id": "stand-on-hind-legs",
+				"directions": [
+					"south"
+				]
+			}
+		},
+		"response": {
+			"statusCode": 422,
+			"header": {
+				"Content-Length": "277",
+				"Content-Type": "application/json",
+				"Date": "Wed, 18 Nov 2026 01:35:38 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'lion'. Available: attack, drinking, eating, idle, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting, standing, walk-4-frames, walk-6-frames, walk-8-frames"
+			}
+		}
 	}
 ]
