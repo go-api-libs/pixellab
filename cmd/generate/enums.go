@@ -207,12 +207,27 @@ func describeRejections(doc *openapi.Document, ias cassette.Interactions) error 
 
 		accepted := r.accepted(ias)
 
+		// in the order of the other enum's values, which is upstream's, as mannequin, "the only humanoid template",
+		// before the quadrupeds
 		var missing []string
 		for _, v := range by.Enum {
 			var k string
-			if json.Unmarshal(v, &k) == nil && accepted[k] == nil && !slices.Contains(r.none, k) {
+			if json.Unmarshal(v, &k) != nil {
+				continue
+			}
+
+			switch values, none := accepted[k], slices.Contains(r.none, k); {
+			case values != nil && none:
+				return fmt.Errorf("a recorded 422 names what %s takes, which takes no %s", k, name)
+			case none:
+				fmt.Fprintf(&b, "\n  - %s: none", k)
+			case values != nil:
+				fmt.Fprintf(&b, "\n  - %s: %s", k, strings.Join(values, ", "))
+			default:
 				missing = append(missing, k)
 			}
+
+			delete(accepted, k)
 		}
 
 		if len(missing) > 0 {
@@ -220,24 +235,14 @@ func describeRejections(doc *openapi.Document, ias cassette.Interactions) error 
 				name, strings.Join(missing, ", "))
 		}
 
-		for _, k := range slices.Sorted(maps.Keys(accepted)) {
-			if !slices.ContainsFunc(by.Enum, func(v jsontext.Value) bool { return string(v) == `"`+k+`"` }) {
-				return fmt.Errorf("a recorded 422 names %q, which is no %s", k, r.by)
-			}
-
-			fmt.Fprintf(&b, "\n  - %s: %s", k, strings.Join(accepted[k], ", "))
+		if len(accepted) > 0 {
+			return fmt.Errorf("a recorded 422 names %s, which is no %s", strings.Join(slices.Sorted(maps.Keys(accepted)), ", "), r.by)
 		}
 
 		for _, k := range r.none {
 			if !slices.ContainsFunc(by.Enum, func(v jsontext.Value) bool { return string(v) == `"`+k+`"` }) {
 				return fmt.Errorf("%q, which takes no %s, is no %s", k, name, r.by)
 			}
-
-			if accepted[k] != nil {
-				return fmt.Errorf("a recorded 422 names what %s takes, which takes no %s", k, name)
-			}
-
-			fmt.Fprintf(&b, "\n  - %s: none", k)
 		}
 
 		enum.Description = strings.TrimSpace(enum.Description + "\n\n" + b.String())

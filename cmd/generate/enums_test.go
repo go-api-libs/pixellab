@@ -140,8 +140,8 @@ func TestRejectionAccepted(t *testing.T) {
 	}
 }
 
-// TestDescribeRejections tells which body template takes which animation templates, and fails for a body template
-// no recorded 422 tells of, unless it takes none.
+// TestDescribeRejections tells which body template takes which animation templates, in the order of the body
+// templates, and fails for a body template no recorded 422 tells of, unless it takes none.
 func TestDescribeRejections(t *testing.T) {
 	t.Parallel()
 
@@ -170,7 +170,7 @@ func TestDescribeRejections(t *testing.T) {
 
 	if got, want := d.Components.Schemas["AnimationTemplate"].Description,
 		"Not every BodyTemplate takes every AnimationTemplate. Each takes these, as the API answers one it does not take:\n"+
-			"\n  - dog: walk, bark\n  - mannequin: walk\n  - custom: none"; got != want {
+			"\n  - mannequin: walk\n  - dog: walk, bark\n  - custom: none"; got != want {
 		t.Errorf("description:\n%s\nwant:\n%s", got, want)
 	}
 
