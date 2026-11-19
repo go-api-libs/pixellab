@@ -12439,9 +12439,16 @@
       "CharacterRotationUrls": {
         "properties": {
           "south": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "South",
-            "description": "URL for south-facing rotation"
+            "description": "URL for south-facing rotation (none on east + west ones)"
           },
           "west": {
             "type": "string",
@@ -12454,9 +12461,16 @@
             "description": "URL for east-facing rotation"
           },
           "north": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "North",
-            "description": "URL for north-facing rotation"
+            "description": "URL for north-facing rotation (none on east + west ones)"
           },
           "south-east": {
             "anyOf": [
@@ -12509,10 +12523,8 @@
         },
         "type": "object",
         "required": [
-          "south",
           "west",
-          "east",
-          "north"
+          "east"
         ],
         "title": "CharacterRotationUrls",
         "description": "URLs for character rotation images"

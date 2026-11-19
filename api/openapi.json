@@ -20427,10 +20427,17 @@
         "properties": {
           "south": {
             "title": "South",
-            "description": "URL for south-facing rotation",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/south.png?t=1791064587"
+            "description": "URL for south-facing rotation (none on east + west ones)",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/south.png?t=1791064587"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "west": {
             "title": "West",
@@ -20448,10 +20455,17 @@
           },
           "north": {
             "title": "North",
-            "description": "URL for north-facing rotation",
-            "type": "string",
-            "format": "uri",
-            "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
+            "description": "URL for north-facing rotation (none on east + west ones)",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "example": "https://backblaze.pixellab.ai/file/pixellab-characters/c50164f2-1a88-4983-9e1c-61ccbc17a724/11480c99-c7dc-4f63-aa67-7d1a09435cea/rotations/north.png?t=1791064587"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "south-east": {
             "title": "South-East",

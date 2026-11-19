@@ -5279,13 +5279,13 @@ type RotateRequest struct {
 
 // One image URL per direction; the diagonals only for 8 directions.
 type RotationURLs struct {
-	// URL for south-facing rotation
+	// URL for south-facing rotation (none on east + west ones)
 	South url.URL `json:"south,omitzero"`
 	// URL for west-facing rotation
 	West url.URL `json:"west,omitzero"`
 	// URL for east-facing rotation
 	East url.URL `json:"east,omitzero"`
-	// URL for north-facing rotation
+	// URL for north-facing rotation (none on east + west ones)
 	North url.URL `json:"north,omitzero"`
 	// URL for south-east rotation (8-dir only)
 	SouthEast url.URL `json:"south-east,omitzero"`
