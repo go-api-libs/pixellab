@@ -18,7 +18,8 @@ var freeForms = map[string]func() *openapi.Schema{
 		return mapOf(&openapi.Schema{Type: openapi.TypeString, Format: openapi.FormatURI})
 	},
 	// "rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity
-	// same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask"
+	// same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask", which a
+	// recorded tile set holds in an object of its own, as {"tile_2": {"mask": 5}}
 	"GetTilesProResponse.tile_rules": func() *openapi.Schema {
 		s := &openapi.Schema{Type: openapi.TypeObject}
 		s.Properties.Set("rule_type", &openapi.Schema{
@@ -34,11 +35,16 @@ var freeForms = map[string]func() *openapi.Schema{
 			Type: openapi.TypeArray, Items: &openapi.Schema{Type: openapi.TypeString},
 			Description: "The feature terrain, then the background.",
 		})
-		s.Properties.Set("tiles", &openapi.Schema{
-			Type: openapi.TypeObject, AdditionalProperties: &openapi.AdditionalProperties{Schema: &openapi.Schema{Type: openapi.TypeInteger}},
-			Description: "Each tile's bitmask, keyed like storage_urls. Edge/4: bit0=N bit1=E bit2=S bit3=W; " +
-				"edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. A tile absent is stamp-only.",
+		tile := &openapi.Schema{Type: openapi.TypeObject, Required: []string{"mask"}}
+		tile.Properties.Set("mask", &openapi.Schema{
+			Type: openapi.TypeInteger,
+			Description: "The tile's bitmask. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; " +
+				"corner/4: NW<<3|NE<<2|SW<<1|SE.",
 		})
+
+		tiles := mapOf(tile)
+		tiles.Description = "Each tile's placement, keyed like storage_urls. A tile absent is stamp-only."
+		s.Properties.Set("tiles", tiles)
 
 		return s
 	},

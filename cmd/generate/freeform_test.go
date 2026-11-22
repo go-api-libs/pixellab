@@ -45,6 +45,12 @@ func TestTypeFreeForms(t *testing.T) {
 		t.Errorf("tile_rules is %+v, want its documented properties", rules)
 	}
 
+	// each tile holds its bitmask in an object, as recorded: {"tile_2": {"mask": 5}}
+	if tile := rules.Properties["tiles"].AdditionalProperties.Schema; tile == nil || tile.Properties["mask"] == nil ||
+		tile.Properties["mask"].Type != openapi.TypeInteger {
+		t.Errorf("a tile is %+v, want an object of its mask", tile)
+	}
+
 	if len(props["tile_rules"].AnyOf) != 2 {
 		t.Error("tile_rules may still be null")
 	}

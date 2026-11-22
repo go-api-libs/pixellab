@@ -6108,6 +6108,12 @@ func (v *TileJobResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
+// TileMask defines a model
+type TileMask struct {
+	// The tile's bitmask. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE.
+	Mask int `json:"mask"`
+}
+
 // 4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)
 type TilePattern4x4 struct {
 	// Top row with wildcards
@@ -6130,8 +6136,8 @@ type TileRules struct {
 	Connectivity string `json:"connectivity,omitzero"`
 	// The feature terrain, then the background.
 	Terrains []string `json:"terrains,omitzero"`
-	// Each tile's bitmask, keyed like storage_urls. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. A tile absent is stamp-only.
-	Tiles map[string]int `json:"tiles,omitzero"`
+	// Each tile's placement, keyed like storage_urls. A tile absent is stamp-only.
+	Tiles map[string]TileMask `json:"tiles,omitzero"`
 }
 
 // TileType defines a model
