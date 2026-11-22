@@ -3655,5 +3655,113 @@
 				"detail": "Invalid template_animation_id 'stand-on-hind-legs' for template 'lion'. Available: attack, drinking, eating, idle, idle-sitting, jump, jump-attack, running-4-frames, running-6-frames, running-8-frames, sitting, standing, walk-4-frames, walk-6-frames, walk-8-frames"
 			}
 		}
+	},
+	{
+		"request": {
+			"method": "GET",
+			"url": "https://api.pixellab.ai/v2/tiles-pro/3d835f38-2143-4bf9-b260-8b80f393b9aa",
+			"header": {
+				"Authorization": "Bearer *************************************",
+				"User-Agent": "Pixel Lab API"
+			}
+		},
+		"response": {
+			"statusCode": 200,
+			"header": {
+				"Content-Type": "application/json",
+				"Date": "Sun, 22 Nov 2026 18:53:34 GMT",
+				"Server": "uvicorn",
+				"Vary": "Accept-Encoding"
+			},
+			"body": {
+				"usage": {
+					"type": "generations",
+					"generations": 25.0
+				},
+				"storage_urls": {
+					"tile_0": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_0.png",
+					"tile_1": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_1.png",
+					"tile_2": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_2.png",
+					"tile_3": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_3.png",
+					"tile_4": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_4.png",
+					"tile_5": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_5.png",
+					"tile_6": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_6.png",
+					"tile_7": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_7.png",
+					"tile_8": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_8.png",
+					"tile_9": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_9.png",
+					"tile_10": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_10.png",
+					"tile_11": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_11.png",
+					"tile_12": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_12.png",
+					"tile_13": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_13.png",
+					"tile_14": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_14.png",
+					"tile_15": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_15.png",
+					"tile_16": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_16.png",
+					"tile_17": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_17.png"
+				},
+				"kind": "paths",
+				"tile_rules": {
+					"arity": 4,
+					"tiles": {
+						"tile_0": {
+							"mask": 0
+						},
+						"tile_1": {
+							"mask": 0
+						},
+						"tile_2": {
+							"mask": 5
+						},
+						"tile_3": {
+							"mask": 10
+						},
+						"tile_4": {
+							"mask": 5
+						},
+						"tile_5": {
+							"mask": 10
+						},
+						"tile_6": {
+							"mask": 10
+						},
+						"tile_7": {
+							"mask": 5
+						},
+						"tile_8": {
+							"mask": 6
+						},
+						"tile_9": {
+							"mask": 12
+						},
+						"tile_10": {
+							"mask": 3
+						},
+						"tile_11": {
+							"mask": 9
+						},
+						"tile_12": {
+							"mask": 14
+						},
+						"tile_13": {
+							"mask": 13
+						},
+						"tile_14": {
+							"mask": 13
+						},
+						"tile_15": {
+							"mask": 7
+						},
+						"tile_16": {
+							"mask": 15
+						}
+					},
+					"terrains": [
+						"path",
+						"ground"
+					],
+					"rule_type": "edge",
+					"connectivity": "same"
+				}
+			}
+		}
 	}
 ]
