@@ -23365,7 +23365,8 @@
             "description": "template (a generated panel) | element (split from a template) | state (an element's hover/pressed/... variant); null while processing",
             "anyOf": [
               {
-                "type": "string"
+                "description": "template (a generated panel) | element (split from a template) | state (an element's hover/pressed/... variant); null while processing",
+                "$ref": "#/components/schemas/UIAssetKind"
               },
               {
                 "type": "null"
@@ -23439,6 +23440,15 @@
           "created_at"
         ]
       },
+      "UIAssetKind": {
+        "title": "UIAssetKind",
+        "type": "string",
+        "enum": [
+          "template",
+          "element",
+          "state"
+        ]
+      },
       "UIAssetPart": {
         "title": "UIAssetPart",
         "description": "A template's element, or an element's state.",
@@ -23462,9 +23472,8 @@
             ]
           },
           "kind": {
-            "title": "Kind",
             "description": "element | state",
-            "type": "string"
+            "$ref": "#/components/schemas/UIAssetKind"
           },
           "size": {
             "description": "Image size\nWidth: any. Height: any.",

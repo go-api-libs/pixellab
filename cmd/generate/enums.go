@@ -105,6 +105,13 @@ var declaredEnums = map[string]declaredEnum{
 		at:     []string{"Song.status", "SoundEffect.status"},
 	},
 
+	// "template (a generated panel) | element (split from a template) | state (an element's hover/pressed/... variant);
+	// null while processing" of a UI asset, and "element | state" of its parts, which are such assets too
+	"UIAssetKind": {
+		values: []string{"template", "element", "state"},
+		at:     []string{"UIAssetDetail.kind", "UIAssetPart.kind"},
+	},
+
 	// "What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain
 	// transition), coastline (hex edge set), building (construction kit)."
 	"TilesProKind": {

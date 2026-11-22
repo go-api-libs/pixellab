@@ -582,6 +582,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("TilesetMode(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []UIAssetKind{UIAssetKindTemplate, UIAssetKindElement, UIAssetKindState} {
+		if !v.Valid() {
+			t.Errorf("UIAssetKind %v: not valid", v)
+		}
+	}
+
+	if UIAssetKind("not a member").Valid() {
+		t.Errorf("UIAssetKind(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []UsageType{UsageTypeUsd, UsageTypeGenerations} {
 		if !v.Valid() {
 			t.Errorf("UsageType %v: not valid", v)
