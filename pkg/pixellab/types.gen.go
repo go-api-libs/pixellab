@@ -5558,7 +5558,8 @@ type SetUIAssetSplitResponse struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *SetUIAssetSplitResponse) unknownEnum() bool {
-	return v.Usage != nil && v.Usage.unknownEnum()
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		slices.ContainsFunc(v.Elements, func(x UIAssetPart) bool { return x.unknownEnum() })
 }
 
 // Shading defines a model
@@ -6408,7 +6409,7 @@ type UIAssetDetail struct {
 	// Estimated seconds remaining when processing
 	EtaSeconds *int `json:"eta_seconds,omitzero"`
 	// template (a generated panel) | element (split from a template) | state (an element's hover/pressed/... variant); null while processing
-	Kind string `json:"kind,omitzero"`
+	Kind UIAssetKind `json:"kind,omitzero"`
 	// Elements and states: the template they belong to
 	TemplateID string `json:"template_id,omitzero"`
 	// States: the element they are a state of
@@ -6426,7 +6427,29 @@ type UIAssetDetail struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *UIAssetDetail) unknownEnum() bool {
-	return v.Status != "" && !v.Status.Valid()
+	return v.Status != "" && !v.Status.Valid() ||
+		v.Kind != "" && !v.Kind.Valid() ||
+		slices.ContainsFunc(v.Elements, func(x UIAssetPart) bool { return x.unknownEnum() }) ||
+		slices.ContainsFunc(v.States, func(x UIAssetPart) bool { return x.unknownEnum() })
+}
+
+// UIAssetKind defines a model
+type UIAssetKind string
+
+const (
+	UIAssetKindTemplate UIAssetKind = "template"
+	UIAssetKindElement  UIAssetKind = "element"
+	UIAssetKindState    UIAssetKind = "state"
+)
+
+// Valid indicates whether the value is a known member of the UIAssetKind enum.
+func (e UIAssetKind) Valid() bool {
+	switch e {
+	case UIAssetKindTemplate, UIAssetKindElement, UIAssetKindState:
+		return true
+	default:
+		return false
+	}
 }
 
 // A template's element, or an element's state.
@@ -6436,7 +6459,7 @@ type UIAssetPart struct {
 	// Name
 	Name string `json:"name,omitzero"`
 	// element | state
-	Kind string `json:"kind"`
+	Kind UIAssetKind `json:"kind"`
 	// Image size
 	// Width: any. Height: any.
 	Size ImageSize `json:"size"`
@@ -6448,6 +6471,13 @@ type UIAssetPart struct {
 	TemplateBox UISplitBox `json:"template_box,omitzero"`
 	// Elements: their states (hover, pressed...)
 	States []UIAssetPart `json:"states,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *UIAssetPart) unknownEnum() bool {
+	return v.Kind != "" && !v.Kind.Valid() ||
+		slices.ContainsFunc(v.States, func(x UIAssetPart) bool { return x.unknownEnum() })
 }
 
 // UIAssetSummary defines a model
