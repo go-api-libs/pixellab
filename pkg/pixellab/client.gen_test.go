@@ -41292,4 +41292,14 @@ func TestClient_Interactions(t *testing.T) {
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
 		t.Fatalf("AnimateCharacter: got: %T, want: *HTTPValidationError", err)
 	}
+
+	if out, err := c.GetTilesPro(ctx, uuid.MustParse("3d835f38-2143-4bf9-b260-8b80f393b9aa")); err != nil {
+		t.Fatalf("GetTilesPro: %v", err)
+	} else {
+		apitest.DecodedAsSent(t, "GetTilesPro", out, last.Body, jsonOpts)
+
+		if out != nil && out.unknownEnum() {
+			t.Errorf("GetTilesPro: holds a value of an enum the specification does not list")
+		}
+	}
 }

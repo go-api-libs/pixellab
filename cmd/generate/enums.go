@@ -105,6 +105,13 @@ var declaredEnums = map[string]declaredEnum{
 		at:     []string{"Song.status", "SoundEffect.status"},
 	},
 
+	// "What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain
+	// transition), coastline (hex edge set), building (construction kit)."
+	"TilesProKind": {
+		values: []string{"tiles", "paths", "tileset", "coastline", "building"},
+		at:     []string{"GetTilesProResponse.kind"},
+	},
+
 	// "Subscription status: active, trial, expired, or none. Team (enterprise) members get enterprise, ..."
 	"SubscriptionStatus": {
 		values: []string{"active", "trial", "expired", "none", "enterprise"},

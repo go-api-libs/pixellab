@@ -16433,14 +16433,13 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "format": "uri"
+              "format": "uri",
+              "example": "https://backblaze.pixellab.ai/file/pixellab-tiles/e237178e-765b-4e05-9a89-d0236204161d/3d835f38-2143-4bf9-b260-8b80f393b9aa/tile_0.png"
             }
           },
           "kind": {
-            "title": "Kind",
             "description": "What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).",
-            "type": "string",
-            "default": "tiles"
+            "$ref": "#/components/schemas/TilesProKind"
           },
           "tile_rules": {
             "title": "Tile Rules",
@@ -22491,6 +22490,19 @@
           "tile_id"
         ]
       },
+      "TileMask": {
+        "type": "object",
+        "properties": {
+          "mask": {
+            "description": "The tile's bitmask. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE.",
+            "type": "integer",
+            "example": 0
+          }
+        },
+        "required": [
+          "mask"
+        ]
+      },
       "TilePattern4x4": {
         "title": "TilePattern4x4",
         "description": "4x4 pattern for tile matching with wildcards (255=wildcard, 0=lower, 1=upper, 2=transition)",
@@ -22542,28 +22554,32 @@
         "properties": {
           "rule_type": {
             "description": "How tiles connect: by their edges, their corners or an outline.",
-            "type": "string"
+            "type": "string",
+            "example": "edge"
           },
           "arity": {
             "description": "How many edges or corners a tile connects by: 4, or 6 for hex edges.",
-            "type": "integer"
+            "type": "integer",
+            "example": 4
           },
           "connectivity": {
             "description": "What a set bit connects to: the same terrain, or the other.",
-            "type": "string"
+            "type": "string",
+            "example": "same"
           },
           "terrains": {
             "description": "The feature terrain, then the background.",
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "example": "path"
             }
           },
           "tiles": {
-            "description": "Each tile's bitmask, keyed like storage_urls. Edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. A tile absent is stamp-only.",
+            "description": "Each tile's placement, keyed like storage_urls. A tile absent is stamp-only.",
             "type": "object",
             "additionalProperties": {
-              "type": "integer"
+              "$ref": "#/components/schemas/TileMask"
             }
           }
         }
@@ -22590,6 +22606,17 @@
           "side"
         ],
         "default": "low top-down"
+      },
+      "TilesProKind": {
+        "title": "TilesProKind",
+        "type": "string",
+        "enum": [
+          "tiles",
+          "paths",
+          "tileset",
+          "coastline",
+          "building"
+        ]
       },
       "TilesProStyleImage": {
         "title": "TilesProStyleImage",

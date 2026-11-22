@@ -562,6 +562,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("TileView(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []TilesProKind{TilesProKindTiles, TilesProKindPaths, TilesProKindTileset, TilesProKindCoastline, TilesProKindBuilding} {
+		if !v.Valid() {
+			t.Errorf("TilesProKind %v: not valid", v)
+		}
+	}
+
+	if TilesProKind("not a member").Valid() {
+		t.Errorf("TilesProKind(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []TilesetMode{TilesetModeTopdown, TilesetModeSidescroller} {
 		if !v.Valid() {
 			t.Errorf("TilesetMode %v: not valid", v)
