@@ -11569,7 +11569,9 @@
           "description": {
             "title": "Description",
             "description": "Text description of the tiles. For best control, number each tile variation: '1). grass tile 2). stone tile 3). lava tile'.",
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
           },
           "tile_type": {
             "description": "Shape of the tiles. hex: flat-top hexagonal, hex_pointy: pointy-top hexagonal, isometric: diamond/rhombus, oblique: true square top with the depth extruded diagonally down-right at 45 degrees (tileset/building only), octagon: 8-sided polygon, square_topdown: square at angle.",

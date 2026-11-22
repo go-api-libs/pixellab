@@ -16795,6 +16795,8 @@
         "properties": {
           "description": {
             "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
             "title": "Description",
             "description": "Text description of the tiles. For best control, number each tile variation: '1). grass tile 2). stone tile 3). lava tile'."
           },
