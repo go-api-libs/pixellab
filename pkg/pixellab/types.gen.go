@@ -3607,7 +3607,7 @@ type GetTilesProResponse struct {
 	// Download URLs for each tile (e.g. {"tile_0": "https://...", "tile_1": "https://..."})
 	StorageURLs map[string]url.URL `json:"storage_urls"`
 	// What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).
-	Kind string `json:"kind,omitzero"`
+	Kind TilesProKind `json:"kind,omitzero"`
 	// Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
 	TileRules *TileRules `json:"tile_rules,omitzero"`
 }
@@ -3615,7 +3615,8 @@ type GetTilesProResponse struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *GetTilesProResponse) unknownEnum() bool {
-	return v.Usage != nil && v.Usage.unknownEnum()
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.Kind != "" && !v.Kind.Valid()
 }
 
 // GetTilesetResponse defines a model
@@ -6176,6 +6177,27 @@ const (
 func (e TileView) Valid() bool {
 	switch e {
 	case TileViewTopDown, TileViewHighTopDown, TileViewLowTopDown, TileViewSide:
+		return true
+	default:
+		return false
+	}
+}
+
+// TilesProKind defines a model
+type TilesProKind string
+
+const (
+	TilesProKindTiles     TilesProKind = "tiles"
+	TilesProKindPaths     TilesProKind = "paths"
+	TilesProKindTileset   TilesProKind = "tileset"
+	TilesProKindCoastline TilesProKind = "coastline"
+	TilesProKindBuilding  TilesProKind = "building"
+)
+
+// Valid indicates whether the value is a known member of the TilesProKind enum.
+func (e TilesProKind) Valid() bool {
+	switch e {
+	case TilesProKindTiles, TilesProKindPaths, TilesProKindTileset, TilesProKindCoastline, TilesProKindBuilding:
 		return true
 	default:
 		return false

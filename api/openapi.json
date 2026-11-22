@@ -16438,11 +16438,8 @@
             }
           },
           "kind": {
-            "title": "Kind",
             "description": "What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain transition), coastline (hex edge set), building (construction kit).",
-            "type": "string",
-            "default": "tiles",
-            "example": "paths"
+            "$ref": "#/components/schemas/TilesProKind"
           },
           "tile_rules": {
             "title": "Tile Rules",
@@ -22609,6 +22606,17 @@
           "side"
         ],
         "default": "low top-down"
+      },
+      "TilesProKind": {
+        "title": "TilesProKind",
+        "type": "string",
+        "enum": [
+          "tiles",
+          "paths",
+          "tileset",
+          "coastline",
+          "building"
+        ]
       },
       "TilesProStyleImage": {
         "title": "TilesProStyleImage",
