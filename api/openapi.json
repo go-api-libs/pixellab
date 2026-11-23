@@ -10186,6 +10186,8 @@
             "default": 16
           },
           "isometric_tile_shape": {
+            "description": "Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height",
+            "default": "block",
             "$ref": "#/components/schemas/IsometricTileShape"
           },
           "color_image": {
@@ -11602,6 +11604,7 @@
           },
           "tile_view": {
             "description": "View angle controlling tile depth. top-down: no depth, high top-down: ~15%, low top-down: ~30%, side: ~50%.",
+            "default": "low top-down",
             "$ref": "#/components/schemas/TileView"
           },
           "tile_view_angle": {
@@ -16677,6 +16680,30 @@
           }
         ]
       },
+      "HumanoidJoint": {
+        "title": "HumanoidJoint",
+        "type": "string",
+        "enum": [
+          "NOSE",
+          "NECK",
+          "RIGHT SHOULDER",
+          "RIGHT ELBOW",
+          "RIGHT ARM",
+          "LEFT SHOULDER",
+          "LEFT ELBOW",
+          "LEFT ARM",
+          "RIGHT HIP",
+          "RIGHT KNEE",
+          "RIGHT LEG",
+          "LEFT HIP",
+          "LEFT KNEE",
+          "LEFT LEG",
+          "RIGHT EYE",
+          "LEFT EYE",
+          "RIGHT EAR",
+          "LEFT EAR"
+        ]
+      },
       "Image": {
         "type": "object",
         "properties": {
@@ -17681,15 +17708,13 @@
         }
       },
       "IsometricTileShape": {
-        "title": "Isometric Tile Shape",
-        "description": "Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height",
+        "title": "IsometricTileShape",
         "type": "string",
         "enum": [
           "thick tile",
           "thin tile",
           "block"
-        ],
-        "default": "block"
+        ]
       },
       "IsometricTileSummary": {
         "title": "IsometricTileSummary",
@@ -17736,7 +17761,8 @@
             "description": "Tile shape (thin tile, thick tile, block)",
             "anyOf": [
               {
-                "type": "string"
+                "description": "Tile shape (thin tile, thick tile, block)",
+                "$ref": "#/components/schemas/IsometricTileShape"
               },
               {
                 "type": "null"
@@ -19109,9 +19135,8 @@
         "type": "object",
         "properties": {
           "existing_direction": {
-            "title": "Existing Direction",
             "description": "The direction your original image was placed in",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "rotation_urls": {
             "title": "Rotation Urls",
@@ -20044,7 +20069,7 @@
             "description": "The humanoid joint it stands for, if any: one of NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR. A linked joint takes its depth from `template_id`'s body; leave it null for wings, tails and props.",
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/HumanoidJoint"
               },
               {
                 "type": "null"
@@ -20814,7 +20839,8 @@
         "type": "object",
         "properties": {
           "source_direction": {
-            "$ref": "#/components/schemas/SourceDirection"
+            "description": "Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.\nOne of: east, west, south-east, south-west, north-east, north-west.",
+            "$ref": "#/components/schemas/Direction"
           }
         },
         "required": [
@@ -20846,13 +20872,11 @@
             "format": "uuid"
           },
           "source_direction": {
-            "title": "Source Direction",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "target_direction": {
-            "title": "Target Direction",
             "description": "The direction that was created",
-            "type": "string"
+            "$ref": "#/components/schemas/Direction"
           },
           "frames_created": {
             "title": "Frames Created",
@@ -21041,6 +21065,7 @@
           },
           "tile_view": {
             "description": "The view the tiles are drawn in, recorded for the map editor.",
+            "default": "low top-down",
             "$ref": "#/components/schemas/TileView"
           },
           "tile_view_angle": {
@@ -21797,19 +21822,6 @@
           "failed"
         ]
       },
-      "SourceDirection": {
-        "title": "Source Direction",
-        "description": "Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.",
-        "type": "string",
-        "enum": [
-          "east",
-          "west",
-          "south-east",
-          "south-west",
-          "north-east",
-          "north-west"
-        ]
-      },
       "StartedMusicResponse": {
         "title": "StartedMusicResponse",
         "type": "object",
@@ -22400,6 +22412,15 @@
           "west"
         ]
       },
+      "TileConnectivity": {
+        "description": "What a set bit connects to: the same terrain, or the other.",
+        "type": "string",
+        "enum": [
+          "same",
+          "other"
+        ],
+        "example": "same"
+      },
       "TileCorners": {
         "title": "TileCorners",
         "description": "Corner terrain types for a tile",
@@ -22548,14 +22569,22 @@
           "row_3"
         ]
       },
+      "TileRuleType": {
+        "description": "How tiles connect: by their edges, their corners or an outline.",
+        "type": "string",
+        "enum": [
+          "edge",
+          "corner",
+          "outline"
+        ],
+        "example": "edge"
+      },
       "TileRules": {
         "description": "Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).",
         "type": "object",
         "properties": {
           "rule_type": {
-            "description": "How tiles connect: by their edges, their corners or an outline.",
-            "type": "string",
-            "example": "edge"
+            "$ref": "#/components/schemas/TileRuleType"
           },
           "arity": {
             "description": "How many edges or corners a tile connects by: 4, or 6 for hex edges.",
@@ -22563,9 +22592,7 @@
             "example": 4
           },
           "connectivity": {
-            "description": "What a set bit connects to: the same terrain, or the other.",
-            "type": "string",
-            "example": "same"
+            "$ref": "#/components/schemas/TileConnectivity"
           },
           "terrains": {
             "description": "The feature terrain, then the background.",
@@ -22585,7 +22612,7 @@
         }
       },
       "TileType": {
-        "title": "Tile Type",
+        "title": "TileType",
         "type": "string",
         "enum": [
           "hex",
@@ -22597,15 +22624,14 @@
         ]
       },
       "TileView": {
-        "title": "Tile View",
+        "title": "TileView",
         "type": "string",
         "enum": [
           "top-down",
           "high top-down",
           "low top-down",
           "side"
-        ],
-        "default": "low top-down"
+        ]
       },
       "TilesProKind": {
         "title": "TilesProKind",
@@ -22710,8 +22736,7 @@
             ]
           },
           "tile_type": {
-            "title": "Tile Type",
-            "type": "string"
+            "$ref": "#/components/schemas/TileType"
           },
           "tile_size": {
             "title": "Tile Size",
@@ -22739,7 +22764,7 @@
             "title": "Tile View",
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/TileView"
               },
               {
                 "type": "null"

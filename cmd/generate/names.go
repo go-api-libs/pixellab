@@ -275,6 +275,8 @@ var typeNames = map[string]string{
 	"NorthEastKeypoints":     "SkeletonKeypoints",
 	"NorthEastKeypointsNeck": "SkeletonPoint", // unlike Keypoint, which a request sends, unbounded
 	"TileRulesTilesValue":    "TileMask",      // a tile's bitmask, in an object of its own, of freeForms
+	"RuleType":               "TileRuleType",  // how a tile set's tiles connect, of freeForms
+	"TileRulesConnectivity":  "TileConnectivity",
 }
 
 // goNames gives the schemas of typeNames their names, and writes the initialisms of every component schema's name as

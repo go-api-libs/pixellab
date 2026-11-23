@@ -252,6 +252,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("GenerateFontProRequestWeight(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []HumanoidJoint{HumanoidJointNose, HumanoidJointNeck, HumanoidJointRightShoulder, HumanoidJointRightElbow, HumanoidJointRightArm, HumanoidJointLeftShoulder, HumanoidJointLeftElbow, HumanoidJointLeftArm, HumanoidJointRightHip, HumanoidJointRightKnee, HumanoidJointRightLeg, HumanoidJointLeftHip, HumanoidJointLeftKnee, HumanoidJointLeftLeg, HumanoidJointRightEye, HumanoidJointLeftEye, HumanoidJointRightEar, HumanoidJointLeftEar} {
+		if !v.Valid() {
+			t.Errorf("HumanoidJoint %v: not valid", v)
+		}
+	}
+
+	if HumanoidJoint("not a member").Valid() {
+		t.Errorf("HumanoidJoint(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []IsometricTileShape{IsometricTileShapeThickTile, IsometricTileShapeThinTile, IsometricTileShapeBlock} {
 		if !v.Valid() {
 			t.Errorf("IsometricTileShape %v: not valid", v)
@@ -492,16 +502,6 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("SoundStatus(%v): valid, though no member", "not a member")
 	}
 
-	for _, v := range []SourceDirection{SourceDirectionEast, SourceDirectionWest, SourceDirectionSouthEast, SourceDirectionSouthWest, SourceDirectionNorthEast, SourceDirectionNorthWest} {
-		if !v.Valid() {
-			t.Errorf("SourceDirection %v: not valid", v)
-		}
-	}
-
-	if SourceDirection("not a member").Valid() {
-		t.Errorf("SourceDirection(%v): valid, though no member", "not a member")
-	}
-
 	for _, v := range []SubscriptionStatus{SubscriptionStatusActive, SubscriptionStatusTrial, SubscriptionStatusExpired, SubscriptionStatusNone, SubscriptionStatusEnterprise} {
 		if !v.Valid() {
 			t.Errorf("SubscriptionStatus %v: not valid", v)
@@ -522,6 +522,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("TemplateAction(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []TileConnectivity{TileConnectivitySame, TileConnectivityOther} {
+		if !v.Valid() {
+			t.Errorf("TileConnectivity %v: not valid", v)
+		}
+	}
+
+	if TileConnectivity("not a member").Valid() {
+		t.Errorf("TileConnectivity(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []TileCornersNe{TileCornersNeLower, TileCornersNeUpper, TileCornersNeTransition} {
 		if !v.Valid() {
 			t.Errorf("TileCornersNe %v: not valid", v)
@@ -540,6 +550,16 @@ func TestEnums_Valid(t *testing.T) {
 
 	if TileFeature("not a member").Valid() {
 		t.Errorf("TileFeature(%v): valid, though no member", "not a member")
+	}
+
+	for _, v := range []TileRuleType{TileRuleTypeEdge, TileRuleTypeCorner, TileRuleTypeOutline} {
+		if !v.Valid() {
+			t.Errorf("TileRuleType %v: not valid", v)
+		}
+	}
+
+	if TileRuleType("not a member").Valid() {
+		t.Errorf("TileRuleType(%v): valid, though no member", "not a member")
 	}
 
 	for _, v := range []TileType{TileTypeHex, TileTypeHexPointy, TileTypeIsometric, TileTypeOblique, TileTypeOctagon, TileTypeSquareTopdown} {

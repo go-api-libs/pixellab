@@ -3524,6 +3524,7 @@ type GetObjectResponse struct {
 func (v *GetObjectResponse) unknownEnum() bool {
 	return v.View != "" && !v.View.Valid() ||
 		v.Status != "" && !v.Status.Valid() ||
+		v.ExpansionReview.unknownEnum() ||
 		slices.ContainsFunc(v.Animations, func(x ObjectAnimationGroup) bool { return x.unknownEnum() })
 }
 
@@ -3616,7 +3617,8 @@ type GetTilesProResponse struct {
 // records.
 func (v *GetTilesProResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		v.Kind != "" && !v.Kind.Valid()
+		v.Kind != "" && !v.Kind.Valid() ||
+		v.TileRules != nil && v.TileRules.unknownEnum()
 }
 
 // GetTilesetResponse defines a model
@@ -3747,6 +3749,40 @@ func (v *HTTPValidationErrorDetail) MarshalJSONTo(enc *jsontext.Encoder) error {
 	}
 
 	return enc.WriteToken(jsontext.Null)
+}
+
+// HumanoidJoint defines a model
+type HumanoidJoint string
+
+const (
+	HumanoidJointNose          HumanoidJoint = "NOSE"
+	HumanoidJointNeck          HumanoidJoint = "NECK"
+	HumanoidJointRightShoulder HumanoidJoint = "RIGHT SHOULDER"
+	HumanoidJointRightElbow    HumanoidJoint = "RIGHT ELBOW"
+	HumanoidJointRightArm      HumanoidJoint = "RIGHT ARM"
+	HumanoidJointLeftShoulder  HumanoidJoint = "LEFT SHOULDER"
+	HumanoidJointLeftElbow     HumanoidJoint = "LEFT ELBOW"
+	HumanoidJointLeftArm       HumanoidJoint = "LEFT ARM"
+	HumanoidJointRightHip      HumanoidJoint = "RIGHT HIP"
+	HumanoidJointRightKnee     HumanoidJoint = "RIGHT KNEE"
+	HumanoidJointRightLeg      HumanoidJoint = "RIGHT LEG"
+	HumanoidJointLeftHip       HumanoidJoint = "LEFT HIP"
+	HumanoidJointLeftKnee      HumanoidJoint = "LEFT KNEE"
+	HumanoidJointLeftLeg       HumanoidJoint = "LEFT LEG"
+	HumanoidJointRightEye      HumanoidJoint = "RIGHT EYE"
+	HumanoidJointLeftEye       HumanoidJoint = "LEFT EYE"
+	HumanoidJointRightEar      HumanoidJoint = "RIGHT EAR"
+	HumanoidJointLeftEar       HumanoidJoint = "LEFT EAR"
+)
+
+// Valid indicates whether the value is a known member of the HumanoidJoint enum.
+func (e HumanoidJoint) Valid() bool {
+	switch e {
+	case HumanoidJointNose, HumanoidJointNeck, HumanoidJointRightShoulder, HumanoidJointRightElbow, HumanoidJointRightArm, HumanoidJointLeftShoulder, HumanoidJointLeftElbow, HumanoidJointLeftArm, HumanoidJointRightHip, HumanoidJointRightKnee, HumanoidJointRightLeg, HumanoidJointLeftHip, HumanoidJointLeftKnee, HumanoidJointLeftLeg, HumanoidJointRightEye, HumanoidJointLeftEye, HumanoidJointRightEar, HumanoidJointLeftEar:
+		return true
+	default:
+		return false
+	}
 }
 
 // Image defines a model
@@ -4035,7 +4071,7 @@ type InterpolationRequest struct {
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
 
-// Tile thickness. Thicker tiles allow more height variation in game maps. thin tile: ~15% canvas height, thick tile: ~25% height, block: ~50% height
+// IsometricTileShape defines a model
 type IsometricTileShape string
 
 const (
@@ -4065,7 +4101,7 @@ type IsometricTileSummary struct {
 	// Tile size in pixels
 	Size *int `json:"size,omitzero"`
 	// Tile shape (thin tile, thick tile, block)
-	TileShape string `json:"tile_shape,omitzero"`
+	TileShape IsometricTileShape `json:"tile_shape,omitzero"`
 	// ISO timestamp of tile creation
 	CreatedAt string `json:"created_at"`
 	// Generation status: completed, processing, or failed
@@ -4075,7 +4111,8 @@ type IsometricTileSummary struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *IsometricTileSummary) unknownEnum() bool {
-	return v.Status != "" && !v.Status.Valid()
+	return v.TileShape != "" && !v.TileShape.Valid() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // JobImages defines a model
@@ -4726,7 +4763,7 @@ func (v *ObjectAnimationGroup) unknownEnum() bool {
 // An expansion waiting to be kept or discarded.
 type ObjectExpansionReview struct {
 	// The direction your original image was placed in
-	ExistingDirection string `json:"existing_direction"`
+	ExistingDirection Direction `json:"existing_direction"`
 	// All 8 directions as they will be kept: your original image in `existing_direction`, the 7 new angles around it
 	RotationURLs map[string]string `json:"rotation_urls"`
 	// The object's width once kept
@@ -4735,6 +4772,12 @@ type ObjectExpansionReview struct {
 	Height int `json:"height"`
 	// The description given to the expansion, if any
 	Description string `json:"description,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *ObjectExpansionReview) unknownEnum() bool {
+	return v.ExistingDirection != "" && !v.ExistingDirection.Valid()
 }
 
 // ObjectJobResponse defines a model
@@ -5133,7 +5176,7 @@ type RigJoint struct {
 	// Which side of the body it is on, seen from the camera: near, mid (the middle, e.g. a spine or tail) or far.
 	Side RigJointSide `json:"side"`
 	// The humanoid joint it stands for, if any: one of NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT EYE, RIGHT EAR, LEFT EAR. A linked joint takes its depth from `template_id`'s body; leave it null for wings, tails and props.
-	Estimate string `json:"estimate,omitzero"`
+	Estimate HumanoidJoint `json:"estimate,omitzero"`
 }
 
 // Which side of the body it is on, seen from the camera: near, mid (the middle, e.g. a spine or tail) or far.
@@ -5406,23 +5449,26 @@ func (v *SelectObjectFramesResponse) unknownEnum() bool {
 // SetAnimationMirrorRequest defines a model
 type SetAnimationMirrorRequest struct {
 	// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
-	SourceDirection SourceDirection `json:"source_direction"`
+	// One of: east, west, south-east, south-west, north-east, north-west.
+	SourceDirection Direction `json:"source_direction"`
 }
 
 // SetAnimationMirrorResponse defines a model
 type SetAnimationMirrorResponse struct {
 	Usage            *Usage    `json:"usage,omitzero"`
 	AnimationGroupID uuid.UUID `json:"animation_group_id"`
-	SourceDirection  string    `json:"source_direction"`
+	SourceDirection  Direction `json:"source_direction"`
 	// The direction that was created
-	TargetDirection string `json:"target_direction"`
-	FramesCreated   int    `json:"frames_created"`
+	TargetDirection Direction `json:"target_direction"`
+	FramesCreated   int       `json:"frames_created"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *SetAnimationMirrorResponse) unknownEnum() bool {
-	return v.Usage != nil && v.Usage.unknownEnum()
+	return v.Usage != nil && v.Usage.unknownEnum() ||
+		v.SourceDirection != "" && !v.SourceDirection.Valid() ||
+		v.TargetDirection != "" && !v.TargetDirection.Valid()
 }
 
 // SetCharacterPortraitRequest defines a model
@@ -5786,28 +5832,6 @@ func (e SoundStatus) Valid() bool {
 	}
 }
 
-// Direction to flip. It becomes its mirror image: east <-> west, south-east <-> south-west, north-east <-> north-west. South and north face the camera and cannot be mirrored.
-type SourceDirection string
-
-const (
-	SourceDirectionEast      SourceDirection = "east"
-	SourceDirectionWest      SourceDirection = "west"
-	SourceDirectionSouthEast SourceDirection = "south-east"
-	SourceDirectionSouthWest SourceDirection = "south-west"
-	SourceDirectionNorthEast SourceDirection = "north-east"
-	SourceDirectionNorthWest SourceDirection = "north-west"
-)
-
-// Valid indicates whether the value is a known member of the SourceDirection enum.
-func (e SourceDirection) Valid() bool {
-	switch e {
-	case SourceDirectionEast, SourceDirectionWest, SourceDirectionSouthEast, SourceDirectionSouthWest, SourceDirectionNorthEast, SourceDirectionNorthWest:
-		return true
-	default:
-		return false
-	}
-}
-
 // StartedMusicResponse defines a model
 type StartedMusicResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -6034,6 +6058,24 @@ type TileConnections struct {
 	West []string `json:"west"`
 }
 
+// What a set bit connects to: the same terrain, or the other.
+type TileConnectivity string
+
+const (
+	TileConnectivitySame  TileConnectivity = "same"
+	TileConnectivityOther TileConnectivity = "other"
+)
+
+// Valid indicates whether the value is a known member of the TileConnectivity enum.
+func (e TileConnectivity) Valid() bool {
+	switch e {
+	case TileConnectivitySame, TileConnectivityOther:
+		return true
+	default:
+		return false
+	}
+}
+
 // Corner terrain types for a tile
 type TileCorners struct {
 	// Northwest corner terrain type
@@ -6128,18 +6170,44 @@ type TilePattern4x4 struct {
 	Row3 []int `json:"row_3"`
 }
 
+// How tiles connect: by their edges, their corners or an outline.
+type TileRuleType string
+
+const (
+	TileRuleTypeEdge    TileRuleType = "edge"
+	TileRuleTypeCorner  TileRuleType = "corner"
+	TileRuleTypeOutline TileRuleType = "outline"
+)
+
+// Valid indicates whether the value is a known member of the TileRuleType enum.
+func (e TileRuleType) Valid() bool {
+	switch e {
+	case TileRuleTypeEdge, TileRuleTypeCorner, TileRuleTypeOutline:
+		return true
+	default:
+		return false
+	}
+}
+
 // Placement rules for connectable sets; null for plain tiles. rule_type edge|corner|outline, arity 4 (square/iso edges or corners) or 6 (hex edges), connectivity same|other, terrains [feature, background], and tiles keyed like storage_urls with each tile's bitmask. Mask semantics — edge/4: bit0=N bit1=E bit2=S bit3=W; edge/6: hex edges CCW from vertex 0; corner/4: NW<<3|NE<<2|SW<<1|SE. Tiles absent from the map are stamp-only (no placement semantics).
 type TileRules struct {
 	// How tiles connect: by their edges, their corners or an outline.
-	RuleType string `json:"rule_type,omitzero"`
+	RuleType TileRuleType `json:"rule_type,omitzero"`
 	// How many edges or corners a tile connects by: 4, or 6 for hex edges.
 	Arity *int `json:"arity,omitzero"`
 	// What a set bit connects to: the same terrain, or the other.
-	Connectivity string `json:"connectivity,omitzero"`
+	Connectivity TileConnectivity `json:"connectivity,omitzero"`
 	// The feature terrain, then the background.
 	Terrains []string `json:"terrains,omitzero"`
 	// Each tile's placement, keyed like storage_urls. A tile absent is stamp-only.
 	Tiles map[string]TileMask `json:"tiles,omitzero"`
+}
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v *TileRules) unknownEnum() bool {
+	return v.RuleType != "" && !v.RuleType.Valid() ||
+		v.Connectivity != "" && !v.Connectivity.Valid()
 }
 
 // TileType defines a model
@@ -6232,10 +6300,10 @@ type TilesProSummary struct {
 	ID          uuid.UUID   `json:"id"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
-	TileType    string      `json:"tile_type"`
+	TileType    TileType    `json:"tile_type"`
 	TileSize    int         `json:"tile_size"`
 	NTiles      int         `json:"n_tiles"`
-	TileView    string      `json:"tile_view"`
+	TileView    TileView    `json:"tile_view"`
 	CreatedAt   string      `json:"created_at"`
 	Status      AssetStatus `json:"status"`
 }
@@ -6243,7 +6311,9 @@ type TilesProSummary struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *TilesProSummary) unknownEnum() bool {
-	return v.Status != "" && !v.Status.Valid()
+	return v.TileType != "" && !v.TileType.Valid() ||
+		v.TileView != "" && !v.TileView.Valid() ||
+		v.Status != "" && !v.Status.Valid()
 }
 
 // Tileset containing individual tiles

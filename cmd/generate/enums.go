@@ -112,6 +112,36 @@ var declaredEnums = map[string]declaredEnum{
 		at:     []string{"UIAssetDetail.kind", "UIAssetPart.kind"},
 	},
 
+	// "Tile shape (thin tile, thick tile, block)" of an isometric tile, the shape its request takes an enum of
+	"IsometricTileShape": {
+		values: []string{"thick tile", "thin tile", "block"},
+		at:     []string{"CreateIsometricTileRequest.isometric_tile_shape", "IsometricTileSummary.tile_shape"},
+	},
+
+	// the shape and the view of a tile set, which its requests take an enum of, "hex, hex_pointy, isometric, oblique,
+	// octagon, square_topdown" and "top-down, high top-down, low top-down, side", and its summary holds
+	"TileType": {
+		values: []string{"hex", "hex_pointy", "isometric", "oblique", "octagon", "square_topdown"},
+		at:     []string{"CreateTilesProRequest.tile_type", "ImportTilesProRequest.tile_type", "TilesProSummary.tile_type"},
+	},
+	"TileView": {
+		values: []string{"top-down", "high top-down", "low top-down", "side"},
+		at:     []string{"CreateTilesProRequest.tile_view", "ImportTilesProRequest.tile_view", "TilesProSummary.tile_view"},
+	},
+
+	// "The humanoid joint it stands for, if any: one of NOSE, NECK, RIGHT SHOULDER, RIGHT ELBOW, RIGHT ARM, LEFT
+	// SHOULDER, LEFT ELBOW, LEFT ARM, RIGHT HIP, RIGHT KNEE, RIGHT LEG, LEFT HIP, LEFT KNEE, LEFT LEG, RIGHT EYE, LEFT
+	// EYE, RIGHT EAR, LEFT EAR." A keypoint's label is one of them too, or the name of a custom rig's joint, which no
+	// enum holds.
+	"HumanoidJoint": {
+		values: []string{
+			"NOSE", "NECK", "RIGHT SHOULDER", "RIGHT ELBOW", "RIGHT ARM", "LEFT SHOULDER", "LEFT ELBOW", "LEFT ARM",
+			"RIGHT HIP", "RIGHT KNEE", "RIGHT LEG", "LEFT HIP", "LEFT KNEE", "LEFT LEG", "RIGHT EYE", "LEFT EYE",
+			"RIGHT EAR", "LEFT EAR",
+		},
+		at: []string{"RigJoint.estimate"},
+	},
+
 	// "What this group is: tiles (independent variations), paths (road autotiles), tileset (corner wang terrain
 	// transition), coastline (hex edge set), building (construction kit)."
 	"TilesProKind": {

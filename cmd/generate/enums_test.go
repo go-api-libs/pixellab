@@ -16,12 +16,12 @@ func TestDeclareEnum(t *testing.T) {
 
 	mark := jsontext.Value(`{"x-pixellab-enum":"BodyTemplate"}`)
 
-	s := &openapi.Schema{Type: openapi.TypeString, Enum: values("lion", "custom")}
+	s := &openapi.Schema{Type: openapi.TypeString, Enum: jsonStrings("lion", "custom")}
 	if err := declareEnum(s, []string{"mannequin", "lion"}, mark); err != nil {
 		t.Fatal(err)
 	}
 
-	if got, want := s.Enum, values("lion", "custom", "mannequin"); !slices.EqualFunc(got, want,
+	if got, want := s.Enum, jsonStrings("lion", "custom", "mannequin"); !slices.EqualFunc(got, want,
 		func(a, b jsontext.Value) bool { return string(a) == string(b) }) {
 		t.Errorf("enum = %s, want %s", got, want)
 	}
@@ -48,7 +48,7 @@ func TestDeclareEnum(t *testing.T) {
 func TestEnumValues(t *testing.T) {
 	t.Parallel()
 
-	s := &openapi.Schema{Type: openapi.TypeString, Enum: values("side", "top-down"), Default: jsontext.Value(`"side"`)}
+	s := &openapi.Schema{Type: openapi.TypeString, Enum: jsonStrings("side", "top-down"), Default: jsontext.Value(`"side"`)}
 
 	if got, want := enumValues(s, propertyRef{owner: "CreateRoomRequest", schema: &openapi.Schema{}}),
 		`One of: side, top-down. Defaults to "side".`; got != want {
@@ -59,16 +59,6 @@ func TestEnumValues(t *testing.T) {
 		"One of: side, top-down."; got != want {
 		t.Errorf("response: got %q, want %q", got, want)
 	}
-}
-
-// values is the strings as JSON.
-func values(ss ...string) []jsontext.Value {
-	vs := make([]jsontext.Value, len(ss))
-	for i, s := range ss {
-		vs[i] = jsontext.Value(`"` + s + `"`)
-	}
-
-	return vs
 }
 
 func TestIsJobStatus(t *testing.T) {
@@ -85,7 +75,7 @@ func TestIsJobStatus(t *testing.T) {
 		{"status", &openapi.Schema{Type: openapi.TypeString, Const: jsontext.Value(`"processing"`), Default: jsontext.Value(`"processing"`)}, false},
 		{"status", &openapi.Schema{Type: openapi.TypeString, Description: "Generation status: 'completed', 'failed', or 'pending'."}, false},
 		{"state", &openapi.Schema{Type: openapi.TypeString, Default: jsontext.Value(`"processing"`)}, false},
-		{"status", &openapi.Schema{Type: openapi.TypeString, Enum: values("queued", "rate_limited"), Default: jsontext.Value(`"processing"`)}, false},
+		{"status", &openapi.Schema{Type: openapi.TypeString, Enum: jsonStrings("queued", "rate_limited"), Default: jsontext.Value(`"processing"`)}, false},
 	} {
 		if got := isJobStatus(&openapi.Schema{}, tc.property, tc.s); got != tc.want {
 			t.Errorf("isJobStatus(%q, %+v) = %v, want %v", tc.property, tc.s, got, tc.want)
@@ -158,8 +148,8 @@ func TestDescribeRejections(t *testing.T) {
 
 	doc := func() *openapi.Document {
 		return &openapi.Document{Components: openapi.Components{Schemas: openapi.Schemas{
-			"AnimationTemplate": {Type: openapi.TypeString, Enum: values("walk", "bark")},
-			"BodyTemplate":      {Type: openapi.TypeString, Enum: values("mannequin", "dog", "custom")},
+			"AnimationTemplate": {Type: openapi.TypeString, Enum: jsonStrings("walk", "bark")},
+			"BodyTemplate":      {Type: openapi.TypeString, Enum: jsonStrings("mannequin", "dog", "custom")},
 		}}}
 	}
 
