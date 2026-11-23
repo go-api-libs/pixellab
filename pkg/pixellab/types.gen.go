@@ -3155,8 +3155,17 @@ func (e Generate8RotationsV2RequestMethod) Valid() bool {
 
 // Request model for generate-8-rotations-v3 endpoint
 type Generate8RotationsV3Request struct {
-	// Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels)
+	// Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels). The 8 frames start at it and turn clockwise.
 	FirstFrame BaseImage `json:"first_frame"`
+	// The direction `first_frame` faces (south = towards the camera). Frame 0 is that direction, then clockwise: south, south-east, east, north-east, north, north-west, west, south-west, wrapping around.
+	// One of: south, south-east, east, north-east, north, north-west, west, south-west. Defaults to "south".
+	FirstFrameDirection Direction `json:"first_frame_direction,omitzero"`
+	// Sprites you already drew for other directions (not `first_frame_direction`). The rotation sees all of them, so the directions it draws match your sprites, and your sprites come back exactly as sent. Up to 6 (leave at least one direction to generate). Every sprite must have `first_frame`'s canvas size: pad them to one canvas so they line up. Requires `view`. Same price as a rotation from `first_frame` alone.
+	// One of: south, south-east, east, north-east, north, north-west, west, south-west.
+	DirectionImages map[string]BaseImage `json:"direction_images,omitzero"`
+	// Camera view of your sprites. Required with `direction_images`, not used without them.
+	// One of: low top-down, high top-down, side.
+	View CameraView `json:"view,omitzero"`
 	// Optional description of the subject in the reference frame, used to improve rotation consistency. The subject is always analyzed from the reference frame; this text is taken into account as an extra hint.
 	Description string `json:"description,omitzero"`
 	// Remove background from generated frames

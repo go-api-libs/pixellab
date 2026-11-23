@@ -6891,6 +6891,13 @@ func (c *Client) UpdateSoundEffect(ctx context.Context, soundEffectID uuid.UUID,
 // 2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.
 // 3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.
 //
+// **Directions you already drew:** say which way `first_frame` faces in
+// `first_frame_direction` (default south), send the others in `direction_images`, and
+// set `view`. The rotation sees every sprite you sent, draws only the missing directions
+// to match them, and returns yours unchanged. The frames come back clockwise from
+// `first_frame_direction`, in the order south, south-east, east, north-east, north,
+// north-west, west, south-west (wrapping around).
+//
 // **Size Limits:**
 // - Maximum image dimension: 256x256 pixels
 //

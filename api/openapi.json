@@ -2538,7 +2538,7 @@
           "Rotate"
         ],
         "summary": "Generate 8 rotations (v3)",
-        "description": "Generate 8 directional rotations from a reference frame.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Submit the reference frame; receive a `background_job_id` immediately.\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.\n3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.\n\n**Size Limits:**\n- Maximum image dimension: 256x256 pixels\n\nTypical generation time: 30-180 seconds.\n\nUsing the Python client:\n```python\nimport pixellab, time\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\njob = client.generate_8_rotations_v3(\n    first_frame=reference_image,\n)\n\nwhile True:\n    result = client.get_background_job(job.background_job_id)\n    if result.status == \"completed\":\n        images = [img.pil_image() for img in result.last_response[\"images\"]]\n        break\n    if result.status == \"failed\":\n        raise RuntimeError(result.last_response[\"detail\"])\n    time.sleep(2)\n```",
+        "description": "Generate 8 directional rotations from a reference frame.\n\nReturns immediately with a background job ID. Poll `GET /v2/background-jobs/{job_id}`\nto retrieve results when generation completes.\n\n**How it works:**\n1. Submit the reference frame; receive a `background_job_id` immediately.\n2. Poll `GET /v2/background-jobs/{background_job_id}` every 2-5 seconds.\n3. When `status` is `completed`, the 8 rotation frames are available at `last_response.images`.\n\n**Directions you already drew:** say which way `first_frame` faces in\n`first_frame_direction` (default south), send the others in `direction_images`, and\nset `view`. The rotation sees every sprite you sent, draws only the missing directions\nto match them, and returns yours unchanged. The frames come back clockwise from\n`first_frame_direction`, in the order south, south-east, east, north-east, north,\nnorth-west, west, south-west (wrapping around).\n\n**Size Limits:**\n- Maximum image dimension: 256x256 pixels\n\nTypical generation time: 30-180 seconds.\n\nUsing the Python client:\n```python\nimport pixellab, time\n\nclient = pixellab.Client(secret=\"YOUR_API_TOKEN\")\n\njob = client.generate_8_rotations_v3(\n    first_frame=reference_image,\n)\n\nwhile True:\n    result = client.get_background_job(job.background_job_id)\n    if result.status == \"completed\":\n        images = [img.pil_image() for img in result.last_response[\"images\"]]\n        break\n    if result.status == \"failed\":\n        raise RuntimeError(result.last_response[\"detail\"])\n    time.sleep(2)\n```",
         "operationId": "Generate8RotationsV3",
         "requestBody": {
           "$ref": "#/components/requestBodies/Generate8RotationsV3"
@@ -14677,8 +14677,45 @@
         "type": "object",
         "properties": {
           "first_frame": {
-            "description": "Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels)",
+            "description": "Reference frame to generate 8 rotations from (PNG/JPEG base64, max 256x256 pixels). The 8 frames start at it and turn clockwise.",
             "$ref": "#/components/schemas/BaseImage"
+          },
+          "first_frame_direction": {
+            "description": "The direction `first_frame` faces (south = towards the camera). Frame 0 is that direction, then clockwise: south, south-east, east, north-east, north, north-west, west, south-west, wrapping around.\nOne of: south, south-east, east, north-east, north, north-west, west, south-west. Defaults to \"south\".",
+            "default": "south",
+            "$ref": "#/components/schemas/Direction"
+          },
+          "direction_images": {
+            "title": "Direction Images",
+            "description": "Sprites you already drew for other directions (not `first_frame_direction`). The rotation sees all of them, so the directions it draws match your sprites, and your sprites come back exactly as sent. Up to 6 (leave at least one direction to generate). Every sprite must have `first_frame`'s canvas size: pad them to one canvas so they line up. Requires `view`. Same price as a rotation from `first_frame` alone.\nOne of: south, south-east, east, north-east, north, north-west, west, south-west.",
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+                  "$ref": "#/components/schemas/BaseImage"
+                },
+                "propertyNames": {
+                  "$ref": "#/components/schemas/Direction"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "view": {
+            "title": "View",
+            "description": "Camera view of your sprites. Required with `direction_images`, not used without them.\nOne of: low top-down, high top-down, side.",
+            "anyOf": [
+              {
+                "description": "Camera view of your sprites. Required with `direction_images`, not used without them.",
+                "$ref": "#/components/schemas/CameraView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "description": {
             "title": "Description",
@@ -14724,14 +14761,32 @@
           "first_frame"
         ],
         "additionalProperties": false,
-        "example": {
-          "description": "elf warrior with a dark cape and a sword strapped across her back",
-          "first_frame": {
-            "base64": "data:image/png;base64,..."
+        "examples": [
+          {
+            "description": "elf warrior with a dark cape and a sword strapped across her back",
+            "first_frame": {
+              "base64": "data:image/png;base64,..."
+            },
+            "no_background": true,
+            "seed": 42
           },
-          "no_background": true,
-          "seed": 42
-        }
+          {
+            "direction_images": {
+              "north": {
+                "base64": "data:image/png;base64,..."
+              },
+              "west": {
+                "base64": "data:image/png;base64,..."
+              }
+            },
+            "first_frame": {
+              "base64": "data:image/png;base64,..."
+            },
+            "first_frame_direction": "east",
+            "no_background": true,
+            "view": "side"
+          }
+        ]
       },
       "GenerateFontProRequest": {
         "title": "GenerateFontProRequest",
@@ -31397,7 +31452,7 @@
     },
     {
       "name": "Rotate",
-      "description": "Generate the other directional views of a character or object from a single image. **`generate-8-rotations-v3` is the recommended default**; the Pro variant is a different model, not a newer one — try v3 first."
+      "description": "Generate the other directional views of a character or object from a single image, or from the directions you already drew (`generate-8-rotations-v3` `direction_images`). **`generate-8-rotations-v3` is the recommended default**; the Pro variant is a different model, not a newer one — try v3 first."
     },
     {
       "name": "Edit",
