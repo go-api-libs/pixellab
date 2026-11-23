@@ -937,7 +937,7 @@ func (v *CreateCanvaResponse) unknownEnum() bool {
 type CreateCharacterAnimationRequest struct {
 	// ID of existing character to animate
 	CharacterID uuid.UUID `json:"character_id"`
-	// Pass the animation_group_id of an existing animation on this character to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it. Same semantics as animate_object. A direction the group already has is rejected with 409: delete it first, or omit the id to create a new animation.
+	// Pass the animation_group_id of an existing animation on this character to add more directions to it. Omit to create a new animation; the new animation_group_id is returned so subsequent calls can extend it. Same semantics as animate_object. A direction the group already has is rejected with 409: delete it first, or omit the id to create a new animation. So is a v3/pixminimax direction with another mode than the animation was made with. Other frame_count or keep_first_frame values are allowed, and `note` in the response says the directions will differ in length.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Name for this animation (defaults to action_description if not provided)
 	AnimationName string `json:"animation_name,omitzero"`
@@ -1031,6 +1031,8 @@ type CreateCharacterAnimationResponse struct {
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
 	EnhanceUsage *Usage `json:"enhance_usage,omitzero"`
+	// Set when directions were added to an animation with other frame_count or keep_first_frame values than it was made with: allowed, but its directions then differ in length.
+	Note string `json:"note,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
