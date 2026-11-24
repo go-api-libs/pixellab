@@ -20,7 +20,7 @@ const schemaRefPrefix = "#/components/schemas/"
 // them, mean the same in every request. Upstream writes one per endpoint, each with the values that endpoint accepts.
 var enumFamilies = map[string][]string{
 	"CameraView": {"view"},
-	"Direction":  {"direction", "directions", "deleted_directions"},
+	"Direction":  {"direction", "directions", "deleted_directions", "existing_direction", "source_direction", "target_direction"},
 	"Outline":    {"outline"},
 	"Detail":     {"detail"},
 	"Shading":    {"shading"},

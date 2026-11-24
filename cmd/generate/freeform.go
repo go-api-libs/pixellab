@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json/jsontext"
 	"fmt"
 	"maps"
 	"slices"
@@ -23,13 +24,15 @@ var freeForms = map[string]func() *openapi.Schema{
 	"GetTilesProResponse.tile_rules": func() *openapi.Schema {
 		s := &openapi.Schema{Type: openapi.TypeObject}
 		s.Properties.Set("rule_type", &openapi.Schema{
-			Type: openapi.TypeString, Description: "How tiles connect: by their edges, their corners or an outline.",
+			Type: openapi.TypeString, Enum: jsonStrings("edge", "corner", "outline"),
+			Description: "How tiles connect: by their edges, their corners or an outline.",
 		})
 		s.Properties.Set("arity", &openapi.Schema{
 			Type: openapi.TypeInteger, Description: "How many edges or corners a tile connects by: 4, or 6 for hex edges.",
 		})
 		s.Properties.Set("connectivity", &openapi.Schema{
-			Type: openapi.TypeString, Description: "What a set bit connects to: the same terrain, or the other.",
+			Type: openapi.TypeString, Enum: jsonStrings("same", "other"),
+			Description: "What a set bit connects to: the same terrain, or the other.",
 		})
 		s.Properties.Set("terrains", &openapi.Schema{
 			Type: openapi.TypeArray, Items: &openapi.Schema{Type: openapi.TypeString},
@@ -48,6 +51,16 @@ var freeForms = map[string]func() *openapi.Schema{
 
 		return s
 	},
+}
+
+// jsonStrings is the strings as JSON, as an enum holds them.
+func jsonStrings(ss ...string) []jsontext.Value {
+	vs := make([]jsontext.Value, len(ss))
+	for i, s := range ss {
+		vs[i] = jsontext.Value(`"` + s + `"`)
+	}
+
+	return vs
 }
 
 // mapOf is an object of any keys, each holding a value of a schema.
