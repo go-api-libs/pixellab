@@ -17935,7 +17935,7 @@
               }
             ],
             "title": "Pieces",
-            "description": "Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius}, circle {x,y,r}, polygon {x,y,r,sides,phase}. Coords are on a virtual editor canvas: the longer side spans 0–512 and the shorter side scales to the output aspect ratio (a 16:9 panel uses a 512×288 coordinate grid — this is the coordinate space, not the output size). When omitted, a single full-canvas rounded-rect panel is used."
+            "description": "Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius} — x,y is its TOP-LEFT corner; circle {x,y,r} and polygon {x,y,r,sides,phase} — x,y is the CENTRE and r a radius. Coords are on a virtual editor canvas, never the output size: the longer side spans 0–512 and the shorter side is round(512 * shorter / longer) of the OUTPUT, so the 16:9 688x384 panel is authored on 512x286 and 600x448 on 512x382. Coords past the grid are clipped, not refused. `label` steers what is DRAWN inside a piece (a label containing 'icon' gets a pictogram); an UNLABELLED piece is drawn as a plain empty container frame — no icon, text or artwork, and its label is drawn across the guide image rather than clipped to the shape, so a long one bleeds over its neighbours. Omit `pieces` AND `elements` for a default full-canvas rounded-rect panel; with `elements` alone you get those elements, not a panel."
           },
           "elements": {
             "anyOf": [
