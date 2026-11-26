@@ -217,11 +217,11 @@ type AnimateWithSkeletonRequest struct {
 	// Generate in oblique projection
 	ObliqueProjection bool `json:"oblique_projection,omitzero"`
 	// Initial images to start the generation from
-	InitImages []BaseImage `json:"init_images,omitzero"`
+	InitImages BaseImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength int `json:"init_image_strength,omitzero"`
 	// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
-	SkeletonKeypoints []Point `json:"skeleton_keypoints,omitzero"`
+	SkeletonKeypoints PointsList `json:"skeleton_keypoints,omitzero"`
 	// Reference image
 	ReferenceImage BaseImage `json:"reference_image"`
 	// Images used for showing the model with connected skeleton
@@ -249,13 +249,13 @@ type AnimateWithSkeletonV3Request struct {
 	// The sprite to animate, PNG base64, up to 256x256. Frames come back at this size.
 	FirstFrame BaseImage `json:"first_frame"`
 	// The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.
-	FirstFrameKeypoints []Keypoint `json:"first_frame_keypoints"`
+	FirstFrameKeypoints Keypoints `json:"first_frame_keypoints"`
 	// The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`.
-	Keypoints []Keypoint `json:"keypoints,omitzero"`
+	Keypoints KeypointsList `json:"keypoints,omitzero"`
 	// Instead of `keypoints`: have the motion written for you from `action`, this many frames (3-15), starting from `first_frame_keypoints`. The finished job also returns the skeletons it drew (`last_response.keypoints`), to edit and send back as `keypoints`.
 	WriteMotionFrames int `json:"write_motion_frames,omitzero"`
 	// A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here.
-	Rig []RigJoint `json:"rig,omitzero"`
+	Rig RigJoints `json:"rig,omitzero"`
 	// The body a joint's missing `depth` is taken from: mannequin, bear, cat, dog, horse or lion. A quadruped posed with mannequin depth comes out flat. With a custom `rig`: dog for a four-legged body (the estimate's `kind`), else mannequin.
 	TemplateID BodyTemplate `json:"template_id,omitzero"`
 	// 0 for a random seed.
@@ -289,7 +289,7 @@ type AnimateWithTextRequest struct {
 	// One of: north, north-east, east, south-east, south, south-west, west, north-west. Defaults to "east".
 	Direction Direction `json:"direction,omitzero"`
 	// Initial images to start the generation from
-	InitImages []BaseImage `json:"init_images,omitzero"`
+	InitImages BaseImages `json:"init_images,omitzero"`
 	// Strength of the initial image influence
 	InitImageStrength int `json:"init_image_strength,omitzero"`
 	// Reference image
@@ -364,6 +364,15 @@ func (v *AnimationDirection) unknownEnum() bool {
 	return v.Direction != "" && !v.Direction.Valid()
 }
 
+// AnimationDirections defines a model
+type AnimationDirections []AnimationDirection
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v AnimationDirections) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x AnimationDirection) bool { return x.unknownEnum() })
+}
+
 // AnimationGroup defines a model
 type AnimationGroup struct {
 	// Template animation ID (e.g. 'walk', 'run')
@@ -371,15 +380,24 @@ type AnimationGroup struct {
 	// Custom display name if set
 	DisplayName string `json:"display_name,omitzero"`
 	// ID of this animation. Every direction of it shares this id, and it is what the PixelLab website groups animations by. Use it to delete the animation ([DELETE /v2/characters/{character_id}/animations/{animation_group_id}](#tag/character-library/DELETE/characters/{character_id}/animations/{animation_group_id})) or add directions to it ([animate-character](#tag/character-creation/POST/characters/animations)'s `animation_group_id`).
-	AnimationGroupID uuid.UUID            `json:"animation_group_id,omitzero"`
-	Directions       []AnimationDirection `json:"directions"`
+	AnimationGroupID uuid.UUID           `json:"animation_group_id,omitzero"`
+	Directions       AnimationDirections `json:"directions"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *AnimationGroup) unknownEnum() bool {
 	return v.AnimationType != "" && !v.AnimationType.Valid() ||
-		slices.ContainsFunc(v.Directions, func(x AnimationDirection) bool { return x.unknownEnum() })
+		v.Directions.unknownEnum()
+}
+
+// All animations grouped by type and direction
+type AnimationGroups []AnimationGroup
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v AnimationGroups) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x AnimationGroup) bool { return x.unknownEnum() })
 }
 
 // Background job response. Poll GET /v2/background-jobs/{id} for results.
@@ -582,6 +600,18 @@ func (e BackgroundRemovalTask) Valid() bool {
 	}
 }
 
+// Base64Images2 defines a model
+type Base64Images2 []BaseImage
+
+// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
+type Base64Images3 []BaseImage
+
+// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
+type Base64Images4 []BaseImage
+
+// An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.
+type Base64Images6 []BaseImage
+
 // BaseImage defines a model
 type BaseImage struct {
 	// Image data type
@@ -591,6 +621,9 @@ type BaseImage struct {
 	// Image format
 	Format string `json:"format,omitzero"`
 }
+
+// BaseImages defines a model
+type BaseImages []BaseImage
 
 // BillingUsage defines a model
 type BillingUsage struct {
@@ -809,6 +842,15 @@ func (e CharacterStatus) Valid() bool {
 	}
 }
 
+// List of user's characters
+type CharacterSummaries []CharacterSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v CharacterSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x CharacterSummary) bool { return x.unknownEnum() })
+}
+
 // Summary of a character for listing
 type CharacterSummary struct {
 	// Unique character identifier
@@ -856,7 +898,7 @@ func (v *CharacterSummary) unknownEnum() bool {
 // Request model for the pixel art correction endpoint
 type CorrectPixelartRequest struct {
 	// Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.
-	Images []BaseImage `json:"images"`
+	Images Base64Images2 `json:"images"`
 	// How far the model may move from your art. Low values tidy stray pixels and edges; high values redraw more aggressively and can change details.
 	Strength *float64 `json:"strength,omitzero"`
 }
@@ -870,7 +912,7 @@ type Create1DirectionObjectRequest struct {
 	// One of: top-down, sidescroller. Defaults to "top-down".
 	View CameraView `json:"view,omitzero"`
 	// Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.
-	StyleImages []BaseImage `json:"style_images,omitzero"`
+	StyleImages BaseImages `json:"style_images,omitzero"`
 	// Per-object descriptions when the effective size produces multiple objects. Length must not exceed the object count derived from size. Supplying FEWER is allowed and does not shrink the grid: the remaining slots are generated from `description` instead, so they come back as extra objects in the same style rather than as variations of the items you listed.
 	ItemDescriptions []string `json:"item_descriptions,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every object is one of them; max_colors (2-64) caps the colours of every object.
@@ -933,6 +975,15 @@ func (v *CreateCanvaResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
+// CreateCharacterAnimationDirections defines a model
+type CreateCharacterAnimationDirections []Direction
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v CreateCharacterAnimationDirections) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x Direction) bool { return !x.Valid() })
+}
+
 // Request model for character animation endpoint
 type CreateCharacterAnimationRequest struct {
 	// ID of existing character to animate
@@ -978,7 +1029,7 @@ type CreateCharacterAnimationRequest struct {
 	// Detail level (uses character's original if not specified). Template mode only.
 	Detail Detail `json:"detail,omitzero"`
 	// List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
-	Directions CreateCharacterAnimationRequestDirections `json:"directions,omitzero"`
+	Directions CreateCharacterAnimationDirections `json:"directions,omitzero"`
 	// Generate in isometric view
 	Isometric bool `json:"isometric,omitzero"`
 	// Color palette reference image
@@ -992,9 +1043,6 @@ type CreateCharacterAnimationRequest struct {
 	// If true, automatically expand `action_description` into a richer motion description before generating — equivalent to calling /v2/enhance-animation-v3-prompt with the character's south-facing frame first. The same enhanced description is reused across all requested directions. Only valid for mode='v3' (returns 422 with template/pro). Costs an additional 0.05 generations (or equivalent credits). The expanded text is returned in `enhanced_prompt`.
 	EnhancePrompt bool `json:"enhance_prompt,omitzero"`
 }
-
-// List of directions to animate (south, north, east, west, etc.). Template mode: defaults to all character directions. Custom mode: defaults to south only.
-type CreateCharacterAnimationRequestDirections []Direction
 
 // Animation mode. "template": skeleton-based from template_animation_id (1 gen/direction; canvases over ~100px run in batches billed 1 each, up to one per clip frame at 256px). "skeleton-v3": the same template_animation_id on the character's own skeleton. Every frame is still redrawn, so small details can shift, but colours hold closer to the character than in template mode. 2-4 generations and ~2-3 min per direction, beta. Without template_animation_id, "skeleton-v3" animates action_description instead: the action is written into one 3D motion (3-15 frames, ~15 s before the jobs start) that every direction of the animation is drawn from, so directions added later with animation_group_id move the same way (humanoid and four-legged characters). "v3": custom animation from action_description with frame_count control. "pixminimax": custom animation from action_description on PixMiniMax (beta) — up to 40 frames at any size, priced by size and frame count (64x64 at 8 frames = 1 generation, 40 frames = 6), ~1-7 min per direction. "pro" (legacy, prefer v3 or pixminimax): custom animation that generates directions sequentially, using completed sides as reference (10-25 gen/direction). Auto-detected: template if template_animation_id is provided, v3 otherwise.
 type CreateCharacterAnimationRequestMode string
@@ -1022,7 +1070,7 @@ type CreateCharacterAnimationResponse struct {
 	// List of background job IDs (one per direction)
 	BackgroundJobIDs []uuid.UUID `json:"background_job_ids"`
 	// List of directions being animated
-	Directions []Direction `json:"directions"`
+	Directions CreateCharacterAnimationDirections `json:"directions"`
 	// The group these directions belong to. Pass it back on a later call to add more directions to the same animation.
 	AnimationGroupID uuid.UUID `json:"animation_group_id,omitzero"`
 	// Overall status (processing, completed, failed)
@@ -1038,7 +1086,7 @@ type CreateCharacterAnimationResponse struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *CreateCharacterAnimationResponse) unknownEnum() bool {
-	return slices.ContainsFunc(v.Directions, func(x Direction) bool { return !x.Valid() }) ||
+	return v.Directions.unknownEnum() ||
 		v.Status != "" && !v.Status.Valid() ||
 		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
@@ -1429,7 +1477,7 @@ type CreateImageBitforgeRequest struct {
 	// How closely to follow the skeleton keypoints
 	SkeletonGuidanceScale *float64 `json:"skeleton_guidance_scale,omitzero"`
 	// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
-	SkeletonKeypoints []Point `json:"skeleton_keypoints,omitzero"`
+	SkeletonKeypoints Points `json:"skeleton_keypoints,omitzero"`
 	// Seed decides the starting noise
 	Seed *int `json:"seed,omitzero"`
 }
@@ -1843,7 +1891,7 @@ type CreateObjectAnimationResponse struct {
 	DisplayName      string                    `json:"display_name,omitzero"`
 	Description      string                    `json:"description"`
 	ObjectID         uuid.UUID                 `json:"object_id"`
-	Submissions      []DirectionSubmission     `json:"submissions"`
+	Submissions      DirectionSubmissions      `json:"submissions"`
 	// The expanded motion description used for generation. Populated only when enhance_prompt=true.
 	EnhancedPrompt string `json:"enhanced_prompt,omitzero"`
 	// Cost of the prompt enhancement, separate from generation usage. Populated only when enhance_prompt=true.
@@ -1855,7 +1903,7 @@ type CreateObjectAnimationResponse struct {
 func (v *CreateObjectAnimationResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
 		v.Mode != "" && !v.Mode.Valid() ||
-		slices.ContainsFunc(v.Submissions, func(x DirectionSubmission) bool { return x.unknownEnum() }) ||
+		v.Submissions.unknownEnum() ||
 		v.EnhanceUsage != nil && v.EnhanceUsage.unknownEnum()
 }
 
@@ -1957,7 +2005,7 @@ type CreateRoomRequest struct {
 	// What the room is, in one line: what it is and where decide its walls, floor and furniture (e.g. "The bridge of a starship.", "A blacksmith's forge under a castle.")
 	Theme string `json:"theme"`
 	// 1-8 doors. Each must sit on a wall of the floor, and an e/w doorway needs two cells of wall between it and an inner corner below it. Example for the full room: [{"side": "s", "col": 3, "row": 5}, {"side": "w", "col": 0, "row": 2}]
-	Doors []RoomDoorInput `json:"doors"`
+	Doors RoomDoorInputs `json:"doors"`
 	// The floor plan, seen from above: 6 rows of 7 characters, '#' floor and '.' solid rock, the floor in one piece. Left out: the whole grid is floor. An L-shaped room: ["####...", "####...", "#######", "#######", "#######", "#######"]
 	Cells []string `json:"cells,omitzero"`
 	// Optional name; named from the theme when left out
@@ -2111,7 +2159,7 @@ type CreateTilesProRequest struct {
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 	// Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.
-	StyleImages []TilesProStyleImage `json:"style_images,omitzero"`
+	StyleImages TilesProStyleImages `json:"style_images,omitzero"`
 	// Options for what to copy from the style images. Only used when style_images is provided.
 	StyleOptions *TilesProStyleOptions `json:"style_options,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every tile is one of them; max_colors (2-64) caps the colours of every tile.
@@ -2230,7 +2278,7 @@ type CreateUIAssetRequest struct {
 	// Width: 192-688 px, 256 by default. Height: 192-688 px, 256 by default.
 	ImageSize ImageSize `json:"image_size,omitzero"`
 	// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius} — x,y is its TOP-LEFT corner; circle {x,y,r} and polygon {x,y,r,sides,phase} — x,y is the CENTRE and r a radius. Coords are on a virtual editor canvas, never the output size: the longer side spans 0–512 and the shorter side is round(512 * shorter / longer) of the OUTPUT, so the 16:9 688x384 panel is authored on 512x286 and 600x448 on 512x382. Coords past the grid are clipped, not refused. `label` steers what is DRAWN inside a piece (a label containing 'icon' gets a pictogram); an UNLABELLED piece is drawn as a plain empty container frame — no icon, text or artwork, and its label is drawn across the guide image rather than clipped to the shape, so a long one bleeds over its neighbours. Omit `pieces` AND `elements` for a default full-canvas rounded-rect panel; with `elements` alone you get those elements, not a panel.
-	Pieces []CreateUIAssetRequestPiecesItem `json:"pieces,omitzero"`
+	Pieces CreateUIAssetRequestPiecesItems `json:"pieces,omitzero"`
 	// Optional named UI element types to scaffold the panel from (auto-positioned, no coords needed). Available: button, icon_button, toolbar, tab, panel, window, health_bar, avatar, triangle, pentagon, hexagon, octagon. Combine with `pieces` for custom shapes; omit both for a default full-canvas panel.
 	Elements []string `json:"elements,omitzero"`
 	// Optional style reference image (PNG/JPEG base64)
@@ -2332,6 +2380,9 @@ func (v *CreateUIAssetRequestPiecesItem) MarshalJSONTo(enc *jsontext.Encoder) er
 	return enc.WriteValue(out)
 }
 
+// Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius} — x,y is its TOP-LEFT corner; circle {x,y,r} and polygon {x,y,r,sides,phase} — x,y is the CENTRE and r a radius. Coords are on a virtual editor canvas, never the output size: the longer side spans 0–512 and the shorter side is round(512 * shorter / longer) of the OUTPUT, so the 16:9 688x384 panel is authored on 512x286 and 600x448 on 512x382. Coords past the grid are clipped, not refused. `label` steers what is DRAWN inside a piece (a label containing 'icon' gets a pictogram); an UNLABELLED piece is drawn as a plain empty container frame — no icon, text or artwork, and its label is drawn across the guide image rather than clipped to the shape, so a long one bleeds over its neighbours. Omit `pieces` AND `elements` for a default full-canvas rounded-rect panel; with `elements` alone you get those elements, not a panel.
+type CreateUIAssetRequestPiecesItems []CreateUIAssetRequestPiecesItem
+
 // CreateUIAssetResponse defines a model
 type CreateUIAssetResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
@@ -2355,7 +2406,7 @@ type CreateUIAssetStateRequest struct {
 	// Elements to make the states for (ids from a split template's `elements`). All of them in one generation: the states match across them.
 	ElementIDs []uuid.UUID `json:"element_ids"`
 	// The states every element gets
-	States []UIStateSpec `json:"states"`
+	States UIStateSpecs `json:"states"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of every state is one of them; max_colors (2-64) caps the colours of every state.
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
 }
@@ -2487,7 +2538,7 @@ type CustomSkeletonReference struct {
 	// The frame, PNG base64.
 	Image BaseImage `json:"image"`
 	// Every joint of `rig` on that frame, x/y as fractions 0-1 of the image: one of a previous estimate's `frames` works as it is.
-	Keypoints []Keypoint `json:"keypoints"`
+	Keypoints Keypoints `json:"keypoints"`
 }
 
 // DeleteAnimationsResponse defines a model
@@ -2514,7 +2565,7 @@ type DeleteCharacterAnimationResponse struct {
 	// The animation the rows belonged to
 	AnimationGroupID uuid.UUID `json:"animation_group_id"`
 	// Directions removed, one animation row each
-	DeletedDirections []Direction `json:"deleted_directions"`
+	DeletedDirections CreateCharacterAnimationDirections `json:"deleted_directions"`
 	// Display name of the animation
 	Label string `json:"label"`
 }
@@ -2523,7 +2574,7 @@ type DeleteCharacterAnimationResponse struct {
 // records.
 func (v *DeleteCharacterAnimationResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.DeletedDirections, func(x Direction) bool { return !x.Valid() })
+		v.DeletedDirections.unknownEnum()
 }
 
 // DeleteCharacterPortraitResponse defines a model
@@ -2779,6 +2830,15 @@ func (e DirectionSubmissionStatus) Valid() bool {
 	}
 }
 
+// DirectionSubmissions defines a model
+type DirectionSubmissions []DirectionSubmission
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v DirectionSubmissions) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x DirectionSubmission) bool { return x.unknownEnum() })
+}
+
 // DirectionalImages defines a model
 type DirectionalImages struct {
 	East  Image `json:"east"`
@@ -2798,12 +2858,15 @@ func (v *DismissObjectReviewResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum()
 }
 
+// EditAnimationFrameImages defines a model
+type EditAnimationFrameImages []InpaintImage
+
 // Request model for edit-animation-v2 endpoint
 type EditAnimationRequest struct {
 	// Description of the edit to apply (e.g., 'add a red cape', 'make it glow blue')
 	Description string `json:"description"`
 	// Animation frames to edit (2-16 frames)
-	Frames []InpaintImage `json:"frames"`
+	Frames EditAnimationFrameImages `json:"frames"`
 	// Size of the output frames
 	// Width: 16-256 px. Height: 16-256 px.
 	ImageSize ImageSize `json:"image_size"`
@@ -2906,12 +2969,15 @@ type EditImageRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 }
 
+// Images to edit (1-16 images depending on size)
+type EditImages []EditImage
+
 // Request model for edit-images endpoint
 type EditImagesRequest struct {
 	// Edit method: 'edit_with_text' or 'edit_with_reference'
 	Method EditImagesRequestMethod `json:"method,omitzero"`
 	// Images to edit (1-16 images depending on size)
-	EditImages []EditImage `json:"edit_images"`
+	EditImages EditImages `json:"edit_images"`
 	// Size of output images
 	// Width: 32-512 px. Height: 32-512 px.
 	ImageSize ImageSize `json:"image_size"`
@@ -3036,7 +3102,7 @@ func (v *EnhancedPromptResponse) unknownEnum() bool {
 // EstimateCustomSkeletonRequest defines a model
 type EstimateCustomSkeletonRequest struct {
 	// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
-	Images []BaseImage `json:"images"`
+	Images Base64Images3 `json:"images"`
 	// What the sprite is, as a short phrase: 'red dragon with bat wings'. Optional; it helps the rig cover the right parts.
 	Description string `json:"description,omitzero"`
 	// What it will be animated doing: 'flap', 'tail swipe'. Optional; the parts that move get joints.
@@ -3048,7 +3114,7 @@ type EstimateCustomSkeletonRequest struct {
 	// One of: side, low top-down, high top-down. Defaults to "low top-down".
 	View CameraView `json:"view,omitzero"`
 	// A rig you already have (a previous estimate's, edited or not), to place on `images` instead of building a new one. Send `reference` with it.
-	Rig []RigJoint `json:"rig,omitzero"`
+	Rig RigJoints `json:"rig,omitzero"`
 	// With `rig`: the frame it is already placed on. It is carried from there to every image.
 	Reference CustomSkeletonReference `json:"reference,omitzero"`
 }
@@ -3061,8 +3127,8 @@ type EstimateSkeletonRequest struct {
 
 // EstimateSkeletonResponse defines a model
 type EstimateSkeletonResponse struct {
-	Usage     *Usage           `json:"usage,omitzero"`
-	Keypoints []KeypointOutput `json:"keypoints"`
+	Usage     *Usage          `json:"usage,omitzero"`
+	Keypoints KeypointOutputs `json:"keypoints"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -3224,7 +3290,7 @@ type GenerateImageRequest struct {
 	// Remove background from generated images
 	NoBackground *bool `json:"no_background,omitzero"`
 	// Optional reference images for subject guidance (up to 4)
-	ReferenceImages []GenerateImageV2ReferenceImage `json:"reference_images,omitzero"`
+	ReferenceImages GenerateImageV2ReferenceImages `json:"reference_images,omitzero"`
 	// Optional style image for pixel size and style reference
 	StyleImage GenerateImageV2ReferenceImage `json:"style_image,omitzero"`
 	// Options for what to copy from the style image
@@ -3246,6 +3312,9 @@ type GenerateImageV2ReferenceImage struct {
 	// Optional description of how this reference should be used
 	UsageDescription string `json:"usage_description,omitzero"`
 }
+
+// Optional reference images for subject guidance (up to 4)
+type GenerateImageV2ReferenceImages []GenerateImageV2ReferenceImage
 
 // Request model for generate-ui-v2 endpoint
 type GenerateUIRequest struct {
@@ -3270,7 +3339,7 @@ type GenerateUIRequest struct {
 // Request model for generate-with-style-v2 endpoint
 type GenerateWithStyleRequest struct {
 	// Style reference images (1-4 images)
-	StyleImages []EditImage `json:"style_images"`
+	StyleImages StyleImages `json:"style_images"`
 	// Description of what to generate
 	Description string `json:"description"`
 	// Description of the style to match
@@ -3363,7 +3432,7 @@ type GetCharacterResponse struct {
 	// 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
 	Skeletons *GetCharacterResponseSkeletons `json:"skeletons,omitzero"`
 	// All animations grouped by type and direction
-	Animations []AnimationGroup `json:"animations,omitzero"`
+	Animations AnimationGroups `json:"animations,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -3374,7 +3443,7 @@ func (v *GetCharacterResponse) unknownEnum() bool {
 		v.Status != "" && !v.Status.Valid() ||
 		v.StyleSettings != nil && v.StyleSettings.unknownEnum() ||
 		v.Skeletons != nil && v.Skeletons.unknownEnum() ||
-		slices.ContainsFunc(v.Animations, func(x AnimationGroup) bool { return x.unknownEnum() })
+		v.Animations.unknownEnum()
 }
 
 // 2D skeleton keypoints with depth. Format for rotations: {direction: [keypoints]}. Format for animations: stored in character_animations table.
@@ -3527,7 +3596,7 @@ type GetObjectResponse struct {
 	// Estimated seconds remaining when not yet completed
 	EtaSeconds *int `json:"eta_seconds,omitzero"`
 	// Animations on this object, grouped by animation_group_id
-	Animations []ObjectAnimationGroup `json:"animations,omitzero"`
+	Animations ObjectAnimationGroups `json:"animations,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -3536,7 +3605,7 @@ func (v *GetObjectResponse) unknownEnum() bool {
 	return v.View != "" && !v.View.Valid() ||
 		v.Status != "" && !v.Status.Valid() ||
 		v.ExpansionReview.unknownEnum() ||
-		slices.ContainsFunc(v.Animations, func(x ObjectAnimationGroup) bool { return x.unknownEnum() })
+		v.Animations.unknownEnum()
 }
 
 // GetPortraitCharacterProJobResponse defines a model
@@ -3574,8 +3643,8 @@ type GetRoomResponse struct {
 	// Why it failed (nothing was charged)
 	Err string `json:"error,omitzero"`
 	// The floor plan ('#' floor, '.' rock); null for rooms made before floor plans
-	Cells []string   `json:"cells,omitzero"`
-	Doors []RoomDoor `json:"doors"`
+	Cells []string  `json:"cells,omitzero"`
+	Doors RoomDoors `json:"doors"`
 	// Top-down rooms: x0, y0, x1, y1 rects of walkable floor in picture px; the rest is wall or rock. Furniture is painted on the floor: block it from the picture
 	Walkable []int `json:"walkable,omitzero"`
 	// Width: any. Height: any.
@@ -3611,6 +3680,15 @@ func (v *GetRoomResponse) unknownEnum() bool {
 	return v.View != "" && !v.View.Valid() ||
 		v.Status != "" && !v.Status.Valid() ||
 		v.PiecesStatus != "" && !v.PiecesStatus.Valid()
+}
+
+// Your rooms, newest first
+type GetRoomResponses []GetRoomResponse
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v GetRoomResponses) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x GetRoomResponse) bool { return x.unknownEnum() })
 }
 
 // GetTilesProResponse defines a model
@@ -3656,7 +3734,7 @@ func (v *GetTilesetResponse) unknownEnum() bool {
 type GetVfxEffectsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Newest-saved first; fewer than `limit` = the last page
-	Effects []VfxEffectSummary `json:"effects"`
+	Effects VfxEffectSummaries `json:"effects"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -3701,8 +3779,8 @@ type HTTPValidationError struct {
 // HTTPValidationErrorDetail defines a model
 // HTTPValidationErrorDetail is an untagged oneOf union: exactly one field is set after unmarshaling.
 type HTTPValidationErrorDetail struct {
-	String          string
-	ValidationError []ValidationError
+	String           string
+	ValidationErrors ValidationErrors
 }
 
 // UnmarshalJSONFrom implements [json.UnmarshalerFrom]. Null sets no alternative.
@@ -3735,9 +3813,9 @@ func (v *HTTPValidationErrorDetail) UnmarshalJSONFrom(dec *jsontext.Decoder) err
 
 	// leniently, more than one may match, and the first does
 	if strict || matched == 0 {
-		var vv []ValidationError
+		var vv ValidationErrors
 		if err := json.Unmarshal(raw, &vv, opts); err == nil {
-			v.ValidationError = vv
+			v.ValidationErrors = vv
 			matched++
 		}
 	}
@@ -3755,8 +3833,8 @@ func (v *HTTPValidationErrorDetail) MarshalJSONTo(enc *jsontext.Encoder) error {
 	switch {
 	case v.String != "":
 		return json.MarshalEncode(enc, v.String, jsonOptsTo(enc))
-	case v.ValidationError != nil:
-		return json.MarshalEncode(enc, v.ValidationError, jsonOptsTo(enc))
+	case v.ValidationErrors != nil:
+		return json.MarshalEncode(enc, v.ValidationErrors, jsonOptsTo(enc))
 	}
 
 	return enc.WriteToken(jsontext.Null)
@@ -3920,8 +3998,9 @@ type Images []Image
 
 // ImagesResponse defines a model
 type ImagesResponse struct {
-	Usage  *Usage      `json:"usage,omitzero"`
-	Images []BaseImage `json:"images"`
+	Usage *Usage `json:"usage,omitzero"`
+	// Initial images to start the generation from
+	Images BaseImages `json:"images"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -4099,6 +4178,15 @@ func (e IsometricTileShape) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// List of user's isometric tiles
+type IsometricTileSummaries []IsometricTileSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v IsometricTileSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x IsometricTileSummary) bool { return x.unknownEnum() })
 }
 
 // Summary of an isometric tile for listing
@@ -4284,6 +4372,15 @@ type KeypointOutput struct {
 	ZIndex float64 `json:"z_index"`
 }
 
+// KeypointOutputs defines a model
+type KeypointOutputs []KeypointOutput
+
+// The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.
+type Keypoints []Keypoint
+
+// The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`.
+type KeypointsList []Keypoints
+
 // Latest response data from the job
 type LastResponse struct {
 	Code                  *int              `json:"code,omitzero"`
@@ -4399,6 +4496,9 @@ type LipSyncFrameOut struct {
 	TextOffset int `json:"text_offset"`
 }
 
+// LipSyncFrameOuts defines a model
+type LipSyncFrameOuts []LipSyncFrameOut
+
 // LipSyncRequest defines a model
 type LipSyncRequest struct {
 	// The line of dialogue to lip-sync.
@@ -4421,9 +4521,9 @@ type LipSyncResponse struct {
 	Text    string `json:"text"`
 	TotalMs int    `json:"total_ms"`
 	// Spritesheet column order.
-	VisemeOrder []string          `json:"viseme_order"`
-	Frames      []LipSyncFrameOut `json:"frames"`
-	Mood        string            `json:"mood,omitzero"`
+	VisemeOrder []string         `json:"viseme_order"`
+	Frames      LipSyncFrameOuts `json:"frames"`
+	Mood        string           `json:"mood,omitzero"`
 	// Spritesheet to read frames from (character form only).
 	GridURL string `json:"grid_url,omitzero"`
 	// Row of `mood` in the spritesheet (character form only).
@@ -4442,7 +4542,7 @@ func (v *LipSyncResponse) unknownEnum() bool {
 type ListCharactersResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// List of user's characters
-	Characters []CharacterSummary `json:"characters"`
+	Characters CharacterSummaries `json:"characters"`
 	// Total number of characters (for pagination)
 	Total int `json:"total"`
 }
@@ -4451,14 +4551,14 @@ type ListCharactersResponse struct {
 // records.
 func (v *ListCharactersResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Characters, func(x CharacterSummary) bool { return x.unknownEnum() })
+		v.Characters.unknownEnum()
 }
 
 // Response for isometric tile listing
 type ListIsometricTilesResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// List of user's isometric tiles
-	Tiles []IsometricTileSummary `json:"tiles"`
+	Tiles IsometricTileSummaries `json:"tiles"`
 	// Total number of isometric tiles (for pagination)
 	Total int `json:"total"`
 }
@@ -4467,12 +4567,12 @@ type ListIsometricTilesResponse struct {
 // records.
 func (v *ListIsometricTilesResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Tiles, func(x IsometricTileSummary) bool { return x.unknownEnum() })
+		v.Tiles.unknownEnum()
 }
 
 // ListMusicResponse defines a model
 type ListMusicResponse struct {
-	Songs []Song `json:"songs"`
+	Songs Songs `json:"songs"`
 	// All your songs
 	Total int `json:"total"`
 }
@@ -4480,14 +4580,14 @@ type ListMusicResponse struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *ListMusicResponse) unknownEnum() bool {
-	return slices.ContainsFunc(v.Songs, func(x Song) bool { return x.unknownEnum() })
+	return v.Songs.unknownEnum()
 }
 
 // Response for object listing
 type ListObjectsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// List of user's objects
-	Objects []ObjectSummary `json:"objects"`
+	Objects ObjectSummaries `json:"objects"`
 	// Total number of objects (for pagination)
 	Total int `json:"total"`
 }
@@ -4496,28 +4596,28 @@ type ListObjectsResponse struct {
 // records.
 func (v *ListObjectsResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Objects, func(x ObjectSummary) bool { return x.unknownEnum() })
+		v.Objects.unknownEnum()
 }
 
 // ListRoomsResponse defines a model
 type ListRoomsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// Your rooms, newest first
-	Rooms []GetRoomResponse `json:"rooms"`
-	Total int               `json:"total"`
+	Rooms GetRoomResponses `json:"rooms"`
+	Total int              `json:"total"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *ListRoomsResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Rooms, func(x GetRoomResponse) bool { return x.unknownEnum() })
+		v.Rooms.unknownEnum()
 }
 
 // ListSidescrollerTilesetsResponse defines a model
 type ListSidescrollerTilesetsResponse struct {
 	Usage    *Usage                       `json:"usage,omitzero"`
-	Tilesets []SidescrollerTilesetSummary `json:"tilesets"`
+	Tilesets SidescrollerTilesetSummaries `json:"tilesets"`
 	// Total number of sidescroller tilesets the user owns (unpaginated)
 	Total int `json:"total"`
 }
@@ -4526,12 +4626,12 @@ type ListSidescrollerTilesetsResponse struct {
 // records.
 func (v *ListSidescrollerTilesetsResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Tilesets, func(x SidescrollerTilesetSummary) bool { return x.unknownEnum() })
+		v.Tilesets.unknownEnum()
 }
 
 // ListSoundEffectsResponse defines a model
 type ListSoundEffectsResponse struct {
-	SoundEffects []SoundEffect `json:"sound_effects"`
+	SoundEffects SoundEffects `json:"sound_effects"`
 	// All your sound effects
 	Total int `json:"total"`
 }
@@ -4539,13 +4639,13 @@ type ListSoundEffectsResponse struct {
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *ListSoundEffectsResponse) unknownEnum() bool {
-	return slices.ContainsFunc(v.SoundEffects, func(x SoundEffect) bool { return x.unknownEnum() })
+	return v.SoundEffects.unknownEnum()
 }
 
 // ListTilesProResponse defines a model
 type ListTilesProResponse struct {
 	Usage *Usage            `json:"usage,omitzero"`
-	Tiles []TilesProSummary `json:"tiles"`
+	Tiles TilesProSummaries `json:"tiles"`
 	// Total number of tiles the user owns (unpaginated)
 	Total int `json:"total"`
 }
@@ -4554,14 +4654,14 @@ type ListTilesProResponse struct {
 // records.
 func (v *ListTilesProResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Tiles, func(x TilesProSummary) bool { return x.unknownEnum() })
+		v.Tiles.unknownEnum()
 }
 
 // Response for tileset listing
 type ListTilesetsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// List of user's tilesets
-	Tilesets []TilesetSummary `json:"tilesets"`
+	Tilesets TilesetSummaries `json:"tilesets"`
 	// Total number of tilesets (for pagination)
 	Total int `json:"total"`
 }
@@ -4570,14 +4670,14 @@ type ListTilesetsResponse struct {
 // records.
 func (v *ListTilesetsResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Tilesets, func(x TilesetSummary) bool { return x.unknownEnum() })
+		v.Tilesets.unknownEnum()
 }
 
 // ListUIAssetsResponse defines a model
 type ListUIAssetsResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The user's UI assets (templates), newest first
-	UIAssets []UIAssetSummary `json:"ui_assets"`
+	UIAssets UIAssetSummaries `json:"ui_assets"`
 	// Total template assets (for pagination)
 	Total int `json:"total"`
 }
@@ -4586,7 +4686,7 @@ type ListUIAssetsResponse struct {
 // records.
 func (v *ListUIAssetsResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.UIAssets, func(x UIAssetSummary) bool { return x.unknownEnum() })
+		v.UIAssets.unknownEnum()
 }
 
 // Manual mask image for precise control
@@ -4747,6 +4847,15 @@ func (v *ObjectAnimationDirection) unknownEnum() bool {
 	return v.Direction != "" && !v.Direction.Valid()
 }
 
+// One entry per distinct direction (deduped by MAX(created_at))
+type ObjectAnimationDirections []ObjectAnimationDirection
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v ObjectAnimationDirections) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x ObjectAnimationDirection) bool { return x.unknownEnum() })
+}
+
 // An animation grouped across one or more directions, keyed by animation_group_id.
 //
 // Legacy rows that share an animation_name but lack a group_id are bucketed
@@ -4762,13 +4871,22 @@ type ObjectAnimationGroup struct {
 	// Frame count from the latest row in the group
 	FrameCount int `json:"frame_count"`
 	// One entry per distinct direction (deduped by MAX(created_at))
-	Directions []ObjectAnimationDirection `json:"directions"`
+	Directions ObjectAnimationDirections `json:"directions"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *ObjectAnimationGroup) unknownEnum() bool {
-	return slices.ContainsFunc(v.Directions, func(x ObjectAnimationDirection) bool { return x.unknownEnum() })
+	return v.Directions.unknownEnum()
+}
+
+// Animations on this object, grouped by animation_group_id
+type ObjectAnimationGroups []ObjectAnimationGroup
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v ObjectAnimationGroups) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x ObjectAnimationGroup) bool { return x.unknownEnum() })
 }
 
 // An expansion waiting to be kept or discarded.
@@ -4830,6 +4948,15 @@ func (e ObjectStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// List of user's objects
+type ObjectSummaries []ObjectSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v ObjectSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x ObjectSummary) bool { return x.unknownEnum() })
 }
 
 // Summary of an object for listing
@@ -4999,6 +5126,12 @@ type Point struct {
 	ZIndex int           `json:"z_index,omitzero"`
 }
 
+// Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality
+type Points []Point
+
+// Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.
+type PointsList []Points
+
 // The native source rectangle within the additional context image.
 type ProFlashBoundingBox struct {
 	X      int `json:"x"`
@@ -5076,7 +5209,7 @@ func (v *RectangleInpainting) unmarshalJSONMember(dec *jsontext.Decoder, name st
 // Request model for the reduce-colors endpoint
 type ReduceColorsRequest struct {
 	// Image(s) to quantize (PNG base64). Several frames are quantized together onto ONE shared palette and must all be the same size — pass an animation's frames or a character's directions in one call so their colors stay consistent.
-	Images []BaseImage `json:"images"`
+	Images Base64Images2 `json:"images"`
 	// Target number of colors. Omit to auto-detect a good palette size from the image itself. Mutually exclusive with palette_image.
 	NumColors int `json:"num_colors,omitzero"`
 	// An image whose colors become the palette (max 256 colors). Use it to force frames onto an existing game palette. Mutually exclusive with num_colors.
@@ -5109,8 +5242,9 @@ func (e ReduceColorsRequestDithering) Valid() bool {
 
 // Response for a completed quantization
 type ReduceColorsResponse struct {
-	Usage  *Usage      `json:"usage,omitzero"`
-	Images []BaseImage `json:"images"`
+	Usage *Usage `json:"usage,omitzero"`
+	// Initial images to start the generation from
+	Images BaseImages `json:"images"`
 	// A 1px-tall strip of the resulting palette, most frequent color first. Feed it back as palette_image to lock later frames to it.
 	Palette BaseImage `json:"palette"`
 	// Colors in the quantized result
@@ -5209,6 +5343,9 @@ func (e RigJointSide) Valid() bool {
 	}
 }
 
+// A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here.
+type RigJoints []RigJoint
+
 // Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.
 type RoofProfile string
 
@@ -5270,6 +5407,12 @@ func (e RoomDoorInputSide) Valid() bool {
 		return false
 	}
 }
+
+// 1-8 doors. Each must sit on a wall of the floor, and an e/w doorway needs two cells of wall between it and an inner corner below it. Example for the full room: [{"side": "s", "col": 3, "row": 5}, {"side": "w", "col": 0, "row": 2}]
+type RoomDoorInputs []RoomDoorInput
+
+// RoomDoors defines a model
+type RoomDoors []RoomDoor
 
 // RoomQueuedResponse defines a model
 type RoomQueuedResponse struct {
@@ -5359,7 +5502,7 @@ type SaveToAssetRequest struct {
 	// One PNG (one frame: a rotation, a gallery image, a tileset sheet) or an animated GIF (an animation's frames, one duration for all). Give `image` or `frames`, not both.
 	Image BaseImage `json:"image,omitzero"`
 	// An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.
-	Frames []BaseImage `json:"frames,omitzero"`
+	Frames Base64Images6 `json:"frames,omitzero"`
 	// Only with target "gallery:new": what the image shows, kept as its gallery description.
 	Description string `json:"description,omitzero"`
 	// Only with target "gallery:new": the image's name.
@@ -5380,7 +5523,7 @@ type SaveToAssetResponse struct {
 	// Pixels that look different from what was stored.
 	ChangedPixels int `json:"changed_pixels"`
 	// The replaced frames, as PNGs. POST them back as `frames` (or `image` for one) to the same target to undo. Set when action is saved.
-	PreviousFrames []BaseImage `json:"previous_frames,omitzero"`
+	PreviousFrames BaseImages `json:"previous_frames,omitzero"`
 	// What else does or does not pick the change up.
 	Note string `json:"note,omitzero"`
 	// For an object rotation placed on maps: which placements now show it.
@@ -5534,7 +5677,7 @@ func (v *SetObjectImportResponse) unknownEnum() bool {
 // Your own tile images as one completed tile group (the website's Import tiles).
 type SetTilesProImportRequest struct {
 	// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
-	Frames []BaseImage `json:"frames"`
+	Frames Base64Images4 `json:"frames"`
 	// Shape of the tiles (as in /create-tiles-pro).
 	TileType TileType `json:"tile_type"`
 	// Tile size in pixels (the frames' width).
@@ -5602,21 +5745,21 @@ func (v *SetTilesetImportResponse) unknownEnum() bool {
 // SetUIAssetSplitRequest defines a model
 type SetUIAssetSplitRequest struct {
 	// Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.
-	Boxes []UISplitBox `json:"boxes,omitzero"`
+	Boxes UISplitBoxes `json:"boxes,omitzero"`
 }
 
 // SetUIAssetSplitResponse defines a model
 type SetUIAssetSplitResponse struct {
 	Usage *Usage `json:"usage,omitzero"`
 	// The new elements
-	Elements []UIAssetPart `json:"elements"`
+	Elements UIAssetParts `json:"elements"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *SetUIAssetSplitResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
-		slices.ContainsFunc(v.Elements, func(x UIAssetPart) bool { return x.unknownEnum() })
+		v.Elements.unknownEnum()
 }
 
 // Shading defines a model
@@ -5656,6 +5799,15 @@ func (e ShapeStyle) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// SidescrollerTilesetSummaries defines a model
+type SidescrollerTilesetSummaries []SidescrollerTilesetSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v SidescrollerTilesetSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x SidescrollerTilesetSummary) bool { return x.unknownEnum() })
 }
 
 // SidescrollerTilesetSummary defines a model
@@ -5798,6 +5950,15 @@ func (v *Song) unknownEnum() bool {
 	return v.Status != "" && !v.Status.Valid()
 }
 
+// Songs defines a model
+type Songs []Song
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v Songs) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x Song) bool { return x.unknownEnum() })
+}
+
 // SoundEffect defines a model
 type SoundEffect struct {
 	// The sound effect's id
@@ -5821,6 +5982,15 @@ type SoundEffect struct {
 // records.
 func (v *SoundEffect) unknownEnum() bool {
 	return v.Status != "" && !v.Status.Valid()
+}
+
+// SoundEffects defines a model
+type SoundEffects []SoundEffect
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v SoundEffects) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x SoundEffect) bool { return x.unknownEnum() })
 }
 
 // SoundStatus defines a model
@@ -5851,7 +6021,7 @@ type StartedMusicResponse struct {
 	// Job status
 	Status JobStatus `json:"status,omitzero"`
 	// The two takes, pending
-	Songs []Song `json:"songs"`
+	Songs Songs `json:"songs"`
 	// What it costs, charged only when the takes are made
 	QuotedGenerations float64 `json:"quoted_generations"`
 	// The price in credits, when you pay with credits
@@ -5863,7 +6033,7 @@ type StartedMusicResponse struct {
 func (v *StartedMusicResponse) unknownEnum() bool {
 	return v.Usage != nil && v.Usage.unknownEnum() ||
 		v.Status != "" && !v.Status.Valid() ||
-		slices.ContainsFunc(v.Songs, func(x Song) bool { return x.unknownEnum() })
+		v.Songs.unknownEnum()
 }
 
 // StateResponse defines a model
@@ -5897,6 +6067,9 @@ type StorageURLs struct {
 	SouthEast url.URL   `json:"south-east,omitzero"`
 	SouthWest url.URL   `json:"south-west,omitzero"`
 }
+
+// Style reference images (1-4 images)
+type StyleImages []EditImage
 
 // Style settings used during generation
 type StyleSettings struct {
@@ -6263,6 +6436,15 @@ func (e TileView) Valid() bool {
 	}
 }
 
+// List of individual tiles with metadata
+type Tiles []Tile
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v Tiles) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x Tile) bool { return x.unknownEnum() })
+}
+
 // TilesProKind defines a model
 type TilesProKind string
 
@@ -6294,6 +6476,9 @@ type TilesProStyleImage struct {
 	Height int `json:"height"`
 }
 
+// Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.
+type TilesProStyleImages []TilesProStyleImage
+
 // Options for what to copy from the style images.
 type TilesProStyleOptions struct {
 	// Match color palette from style tiles
@@ -6304,6 +6489,15 @@ type TilesProStyleOptions struct {
 	Detail *bool `json:"detail,omitzero"`
 	// Match shading style from style tiles
 	Shading *bool `json:"shading,omitzero"`
+}
+
+// TilesProSummaries defines a model
+type TilesProSummaries []TilesProSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v TilesProSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x TilesProSummary) bool { return x.unknownEnum() })
 }
 
 // TilesProSummary defines a model
@@ -6336,13 +6530,13 @@ type TilesetData struct {
 	// Available terrain types
 	TerrainTypes []string `json:"terrain_types"`
 	// List of individual tiles with metadata
-	Tiles []Tile `json:"tiles"`
+	Tiles Tiles `json:"tiles"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *TilesetData) unknownEnum() bool {
-	return slices.ContainsFunc(v.Tiles, func(x Tile) bool { return x.unknownEnum() })
+	return v.Tiles.unknownEnum()
 }
 
 // Response for background tileset generation (async-only)
@@ -6422,6 +6616,15 @@ func (v *TilesetSheet) unknownEnum() bool {
 	return v.Layout != "" && !v.Layout.Valid()
 }
 
+// List of user's tilesets
+type TilesetSummaries []TilesetSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v TilesetSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x TilesetSummary) bool { return x.unknownEnum() })
+}
+
 // Summary of a tileset for listing
 type TilesetSummary struct {
 	// Unique tileset identifier
@@ -6454,7 +6657,7 @@ type TransferOutfitRequest struct {
 	// Reference image containing the outfit/appearance to transfer
 	ReferenceImage InpaintImage `json:"reference_image"`
 	// Animation frames to apply the outfit to (2-16 frames)
-	Frames []InpaintImage `json:"frames"`
+	Frames EditAnimationFrameImages `json:"frames"`
 	// Size of the output frames
 	// Width: 32-256 px. Height: 32-256 px.
 	ImageSize ImageSize `json:"image_size"`
@@ -6498,11 +6701,11 @@ type UIAssetDetail struct {
 	// 9-slice insets, or null for plain scaling
 	NineSlice UINineSlice `json:"nine_slice,omitzero"`
 	// Templates: the elements split from it, each with its states
-	Elements []UIAssetPart `json:"elements,omitzero"`
+	Elements UIAssetParts `json:"elements,omitzero"`
 	// Elements: their states
-	States []UIAssetPart `json:"states,omitzero"`
+	States UIAssetParts `json:"states,omitzero"`
 	// A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)
-	SplitPreview []UISplitBox `json:"split_preview,omitzero"`
+	SplitPreview UISplitBoxes2 `json:"split_preview,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -6510,8 +6713,8 @@ type UIAssetDetail struct {
 func (v *UIAssetDetail) unknownEnum() bool {
 	return v.Status != "" && !v.Status.Valid() ||
 		v.Kind != "" && !v.Kind.Valid() ||
-		slices.ContainsFunc(v.Elements, func(x UIAssetPart) bool { return x.unknownEnum() }) ||
-		slices.ContainsFunc(v.States, func(x UIAssetPart) bool { return x.unknownEnum() })
+		v.Elements.unknownEnum() ||
+		v.States.unknownEnum()
 }
 
 // UIAssetKind defines a model
@@ -6551,14 +6754,32 @@ type UIAssetPart struct {
 	// Elements: where it was cut from the template (template pixels)
 	TemplateBox UISplitBox `json:"template_box,omitzero"`
 	// Elements: their states (hover, pressed...)
-	States []UIAssetPart `json:"states,omitzero"`
+	States UIAssetParts `json:"states,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
 // records.
 func (v *UIAssetPart) unknownEnum() bool {
 	return v.Kind != "" && !v.Kind.Valid() ||
-		slices.ContainsFunc(v.States, func(x UIAssetPart) bool { return x.unknownEnum() })
+		v.States.unknownEnum()
+}
+
+// The new elements
+type UIAssetParts []UIAssetPart
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v UIAssetParts) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x UIAssetPart) bool { return x.unknownEnum() })
+}
+
+// The user's UI assets (templates), newest first
+type UIAssetSummaries []UIAssetSummary
+
+// unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
+// records.
+func (v UIAssetSummaries) unknownEnum() bool {
+	return slices.ContainsFunc(v, func(x UIAssetSummary) bool { return x.unknownEnum() })
 }
 
 // UIAssetSummary defines a model
@@ -6716,6 +6937,12 @@ type UISplitBox struct {
 	Height int `json:"height"`
 }
 
+// Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.
+type UISplitBoxes []UISplitBox
+
+// A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)
+type UISplitBoxes2 []UISplitBox
+
 // UIStateSpec defines a model
 type UIStateSpec struct {
 	// The state's name, e.g. hover, pressed, disabled, selected
@@ -6723,6 +6950,9 @@ type UIStateSpec struct {
 	// How the element looks in this state, e.g. 'pushed in: darker, the face one pixel lower'
 	Description string `json:"description"`
 }
+
+// The states every element gets
+type UIStateSpecs []UIStateSpec
 
 // Request model for the unzoom endpoint
 type UnzoomRequest struct {
@@ -6893,11 +7123,11 @@ func (e UsageType) Valid() bool {
 
 // ValidationError defines a model
 type ValidationError struct {
-	Loc   []ValidationErrorLocItem `json:"loc"`
-	Msg   string                   `json:"msg"`
-	Type  string                   `json:"type"`
-	Input *struct{}                `json:"input,omitzero"`
-	Ctx   *struct{}                `json:"ctx,omitzero"`
+	Loc   ValidationErrorLocItems `json:"loc"`
+	Msg   string                  `json:"msg"`
+	Type  string                  `json:"type"`
+	Input *struct{}               `json:"input,omitzero"`
+	Ctx   *struct{}               `json:"ctx,omitzero"`
 }
 
 // ValidationErrorLocItem defines a model
@@ -6961,6 +7191,12 @@ func (v *ValidationErrorLocItem) MarshalJSONTo(enc *jsontext.Encoder) error {
 	return enc.WriteToken(jsontext.Null)
 }
 
+// ValidationErrorLocItems defines a model
+type ValidationErrorLocItems []ValidationErrorLocItem
+
+// ValidationErrors defines a model
+type ValidationErrors []ValidationError
+
 // VfxEffectCanvas defines a model
 type VfxEffectCanvas struct {
 	// Width in pixels
@@ -6968,6 +7204,9 @@ type VfxEffectCanvas struct {
 	// Height in pixels
 	H int `json:"h"`
 }
+
+// Newest-saved first; fewer than `limit` = the last page
+type VfxEffectSummaries []VfxEffectSummary
 
 // VfxEffectSummary defines a model
 type VfxEffectSummary struct {

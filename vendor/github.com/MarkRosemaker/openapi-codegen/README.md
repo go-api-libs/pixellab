@@ -198,6 +198,11 @@ How the specification maps onto Go:
   in another fails generation, since its name cannot tell them apart. A oneOf of
   a date-time and an integer reads either and is written as the others are, or
   as a string where they mix.
+- **Unix times in milliseconds** — an integer of format `date-time-ms`, such as
+  `1795464914123`, is a `time.Time` to the millisecond, written and read the same
+  way, through jsonutil's `TimeMarshalIntUnixMilli` and the like, by member name
+  where other forms are about. A query parameter of the format is sent and read
+  the same way.
 - **Dates in ISO 8601's basic form** — a string of format `date-basic`, such as
   `"20260320"`, is a `civil.Date`, written and read without separators: by one
   marshaler where every date is in that form, else by the names of the members
@@ -205,7 +210,8 @@ How the specification maps onto Go:
   like. A query parameter of the format is sent and read the same way.
 - **Ignored header parameters** — a header parameter named `Accept`,
   `Content-Type` or `Authorization` is ignored, as OpenAPI 3.1 says: the client
-  sends the request body's media type and the credential of the security scheme.
+  sends the request body's media type and the credential of the security scheme,
+  and no Accept, as Go's HTTP client does not.
 - **Unknown formats** — a format the generator does not know, which OpenAPI 3.1
   allows, gives the plain type: an `int`, a `float64` or a `string`.
 - **Empty dates** — an empty string, which an API may send for a date or

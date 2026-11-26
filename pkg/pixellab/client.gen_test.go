@@ -41041,7 +41041,7 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              CreateCharacterAnimationRequestModeV3,
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"north\",\"west\"]", jsonOpts),
+		Directions:        apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"north\",\"west\"]", jsonOpts),
 	}); err != nil {
 		t.Fatalf("CreateCharacterAnimation: %v", err)
 	} else {
@@ -41080,7 +41080,7 @@ func TestClient_Interactions(t *testing.T) {
 		Mode:              CreateCharacterAnimationRequestModeV3,
 		FrameCount:        8,
 		KeepFirstFrame:    new(true),
-		Directions:        apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\",\"east\",\"north\",\"west\"]", jsonOpts),
+		Directions:        apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\",\"east\",\"north\",\"west\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("CreateCharacterAnimation: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41231,7 +41231,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("8f88c512-3405-420e-bc04-62e7c791fb42"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateWalking8Frames,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41242,7 +41242,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("429214ad-0035-4ef8-b8bb-01743b053216"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41253,7 +41253,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("7c353090-b2bc-4df5-9151-7336b2ce4703"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41264,7 +41264,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("bca69b11-976b-47c3-b066-ef5cc95ea327"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41275,7 +41275,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("b39eb98c-f2cb-4a48-a3d2-24f1575ac232"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
@@ -41286,7 +41286,7 @@ func TestClient_Interactions(t *testing.T) {
 		CharacterID:         uuid.MustParse("82143a6d-b92b-4ed3-8f04-95a0b5e0fe16"),
 		Mode:                CreateCharacterAnimationRequestModeSkeletonV3,
 		TemplateAnimationID: AnimationTemplateStandOnHindLegs,
-		Directions:          apitest.MustDecode[CreateCharacterAnimationRequestDirections](t, "[\"south\"]", jsonOpts),
+		Directions:          apitest.MustDecode[CreateCharacterAnimationDirections](t, "[\"south\"]", jsonOpts),
 	}); err == nil {
 		t.Fatal("AnimateCharacter: expected error")
 	} else if _, ok := errors.AsType[*HTTPValidationError](err); !ok {
