@@ -6077,11 +6077,8 @@
             "description": "Initial images to start the generation from",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-                  "$ref": "#/components/schemas/BaseImage"
-                }
+                "description": "Initial images to start the generation from",
+                "$ref": "#/components/schemas/BaseImages"
               },
               {
                 "type": "null"
@@ -6097,15 +6094,7 @@
             "default": 300
           },
           "skeleton_keypoints": {
-            "title": "Skeleton Keypoints",
-            "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Point"
-              }
-            }
+            "$ref": "#/components/schemas/PointsList"
           },
           "reference_image": {
             "description": "Reference image",
@@ -6221,25 +6210,14 @@
             "$ref": "#/components/schemas/BaseImage"
           },
           "first_frame_keypoints": {
-            "title": "First Frame Keypoints",
-            "description": "The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Keypoint"
-            }
+            "$ref": "#/components/schemas/Keypoints"
           },
           "keypoints": {
             "title": "Keypoints",
             "description": "The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Keypoint"
-                  }
-                }
+                "$ref": "#/components/schemas/KeypointsList"
               },
               {
                 "type": "null"
@@ -6265,10 +6243,7 @@
             "description": "A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/RigJoint"
-                }
+                "$ref": "#/components/schemas/RigJoints"
               },
               {
                 "type": "null"
@@ -6430,11 +6405,8 @@
             "description": "Initial images to start the generation from",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-                  "$ref": "#/components/schemas/BaseImage"
-                }
+                "description": "Initial images to start the generation from",
+                "$ref": "#/components/schemas/BaseImages"
               },
               {
                 "type": "null"
@@ -6770,6 +6742,13 @@
           "frames"
         ]
       },
+      "AnimationDirections": {
+        "title": "Directions",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AnimationDirection"
+        }
+      },
       "AnimationGroup": {
         "title": "AnimationGroup",
         "type": "object",
@@ -6806,17 +6785,21 @@
             ]
           },
           "directions": {
-            "title": "Directions",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AnimationDirection"
-            }
+            "$ref": "#/components/schemas/AnimationDirections"
           }
         },
         "required": [
           "animation_type",
           "directions"
         ]
+      },
+      "AnimationGroups": {
+        "title": "Animations",
+        "description": "All animations grouped by type and direction",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/AnimationGroup"
+        }
       },
       "AnimationJobResponse": {
         "title": "AnimatePixminimaxResponse",
@@ -7070,6 +7053,47 @@
         ],
         "default": "remove_simple_background"
       },
+      "Base64Images2": {
+        "title": "Images",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
+      },
+      "Base64Images3": {
+        "title": "Images",
+        "description": "The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 16,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
+      },
+      "Base64Images4": {
+        "title": "Frames",
+        "description": "One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 32,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
+      },
+      "Base64Images6": {
+        "description": "An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 128,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
+      },
       "BaseImage": {
         "title": "Base64Image",
         "type": "object",
@@ -7097,6 +7121,13 @@
           "base64"
         ],
         "additionalProperties": false
+      },
+      "BaseImages": {
+        "type": "array",
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
       },
       "BillingUsage": {
         "type": "object",
@@ -7397,6 +7428,14 @@
           "pending"
         ]
       },
+      "CharacterSummaries": {
+        "title": "Characters",
+        "description": "List of user's characters",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/CharacterSummary"
+        }
+      },
       "CharacterSummary": {
         "title": "CharacterSummary",
         "description": "Summary of a character for listing",
@@ -7546,14 +7585,8 @@
         "type": "object",
         "properties": {
           "images": {
-            "title": "Images",
             "description": "Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "$ref": "#/components/schemas/Base64Images2"
           },
           "strength": {
             "title": "Strength",
@@ -7607,12 +7640,8 @@
             "$ref": "#/components/schemas/CameraView"
           },
           "style_images": {
-            "title": "Style Images",
             "description": "Style reference images, PNG/JPEG base64 (max 256x256 px each). The output size is derived from the largest of these images and determines the max count: ≤85 → 8, ≤170 → 4, else → 1. When empty, a default style is used based on `view`.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "$ref": "#/components/schemas/BaseImages"
           },
           "item_descriptions": {
             "title": "Item Descriptions",
@@ -9674,10 +9703,7 @@
             "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Point"
-                }
+                "$ref": "#/components/schemas/Points"
               },
               {
                 "type": "null"
@@ -10812,11 +10838,7 @@
             "format": "uuid"
           },
           "submissions": {
-            "title": "Submissions",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DirectionSubmission"
-            }
+            "$ref": "#/components/schemas/DirectionSubmissions"
           },
           "enhanced_prompt": {
             "title": "Enhanced Prompt",
@@ -11179,14 +11201,7 @@
             "maxLength": 300
           },
           "doors": {
-            "title": "Doors",
-            "description": "1-8 doors. Each must sit on a wall of the floor, and an e/w doorway needs two cells of wall between it and an inner corner below it. Example for the full room: [{\"side\": \"s\", \"col\": 3, \"row\": 5}, {\"side\": \"w\", \"col\": 0, \"row\": 2}]",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 8,
-            "items": {
-              "$ref": "#/components/schemas/RoomDoorInput"
-            }
+            "$ref": "#/components/schemas/RoomDoorInputs"
           },
           "cells": {
             "title": "Cells",
@@ -11830,10 +11845,7 @@
             "description": "Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/TilesProStyleImage"
-                }
+                "$ref": "#/components/schemas/TilesProStyleImages"
               },
               {
                 "type": "null"
@@ -12287,10 +12299,7 @@
             "description": "Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius} — x,y is its TOP-LEFT corner; circle {x,y,r} and polygon {x,y,r,sides,phase} — x,y is the CENTRE and r a radius. Coords are on a virtual editor canvas, never the output size: the longer side spans 0–512 and the shorter side is round(512 * shorter / longer) of the OUTPUT, so the 16:9 688x384 panel is authored on 512x286 and 600x448 on 512x382. Coords past the grid are clipped, not refused. `label` steers what is DRAWN inside a piece (a label containing 'icon' gets a pictogram); an UNLABELLED piece is drawn as a plain empty container frame — no icon, text or artwork, and its label is drawn across the guide image rather than clipped to the shape, so a long one bleeds over its neighbours. Omit `pieces` AND `elements` for a default full-canvas rounded-rect panel; with `elements` alone you get those elements, not a panel.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/CreateUIAssetRequestPiecesItem"
-                }
+                "$ref": "#/components/schemas/CreateUIAssetRequestPiecesItems"
               },
               {
                 "type": "null"
@@ -12420,6 +12429,14 @@
           }
         ]
       },
+      "CreateUIAssetRequestPiecesItems": {
+        "description": "Optional shape template (validated). Each piece needs a unique `id`, a `kind`, and an optional `label`. Allowed kinds: rounded_rect {x,y,w,h,radius} — x,y is its TOP-LEFT corner; circle {x,y,r} and polygon {x,y,r,sides,phase} — x,y is the CENTRE and r a radius. Coords are on a virtual editor canvas, never the output size: the longer side spans 0–512 and the shorter side is round(512 * shorter / longer) of the OUTPUT, so the 16:9 688x384 panel is authored on 512x286 and 600x448 on 512x382. Coords past the grid are clipped, not refused. `label` steers what is DRAWN inside a piece (a label containing 'icon' gets a pictogram); an UNLABELLED piece is drawn as a plain empty container frame — no icon, text or artwork, and its label is drawn across the guide image rather than clipped to the shape, so a long one bleeds over its neighbours. Omit `pieces` AND `elements` for a default full-canvas rounded-rect panel; with `elements` alone you get those elements, not a panel.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/CreateUIAssetRequestPiecesItem"
+        },
+        "x-flattened-from": "#/components/schemas/CreateUIAssetRequest/properties/pieces/anyOf/0"
+      },
       "CreateUIAssetResponse": {
         "title": "CreateUIAssetResponse",
         "type": "object",
@@ -12482,14 +12499,7 @@
             }
           },
           "states": {
-            "title": "States",
-            "description": "The states every element gets",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 16,
-            "items": {
-              "$ref": "#/components/schemas/UIStateSpec"
-            }
+            "$ref": "#/components/schemas/UIStateSpecs"
           },
           "target_palette": {
             "description": "Colours the result must use and/or a colour cap: {\"colors\": [\"#081820\", \"#346856\", \"#88c070\", \"#e0f8d0\"], \"name\": \"Game Boy\", \"max_colors\": 4}. With colors every pixel of every state is one of them; max_colors (2-64) caps the colours of every state.",
@@ -12867,12 +12877,8 @@
             "$ref": "#/components/schemas/BaseImage"
           },
           "keypoints": {
-            "title": "Keypoints",
             "description": "Every joint of `rig` on that frame, x/y as fractions 0-1 of the image: one of a previous estimate's `frames` works as it is.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Keypoint"
-            }
+            "$ref": "#/components/schemas/Keypoints"
           }
         },
         "required": [
@@ -13488,6 +13494,13 @@
           "rate_limited"
         ]
       },
+      "DirectionSubmissions": {
+        "title": "Submissions",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DirectionSubmission"
+        }
+      },
       "DirectionalImages": {
         "type": "object",
         "properties": {
@@ -13531,6 +13544,16 @@
           }
         }
       },
+      "EditAnimationFrameImages": {
+        "title": "Frames",
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 16,
+        "items": {
+          "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
+          "$ref": "#/components/schemas/TransferOutfitFrameImage"
+        }
+      },
       "EditAnimationRequest": {
         "title": "EditAnimationV2Request",
         "description": "Request model for edit-animation-v2 endpoint",
@@ -13544,15 +13567,8 @@
             "maxLength": 2000
           },
           "frames": {
-            "title": "Frames",
             "description": "Animation frames to edit (2-16 frames)",
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 16,
-            "items": {
-              "description": "Animation frame image with size.\n\nNested `size` object matches the animation-frame v2 subfamily\n(transfer-outfit-v2, interpolation-v2), which share this backend family.",
-              "$ref": "#/components/schemas/TransferOutfitFrameImage"
-            }
+            "$ref": "#/components/schemas/EditAnimationFrameImages"
           },
           "image_size": {
             "description": "Size of the output frames\nWidth: 16-256 px. Height: 16-256 px.",
@@ -13936,6 +13952,17 @@
           "width": 128
         }
       },
+      "EditImages": {
+        "title": "Edit Images",
+        "description": "Images to edit (1-16 images depending on size)",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 16,
+        "items": {
+          "description": "An image to edit with its dimensions.",
+          "$ref": "#/components/schemas/EditImage"
+        }
+      },
       "EditImagesRequest": {
         "title": "EditImagesV2Request",
         "description": "Request model for edit-images endpoint",
@@ -13945,15 +13972,7 @@
             "$ref": "#/components/schemas/EditImagesRequestMethod"
           },
           "edit_images": {
-            "title": "Edit Images",
-            "description": "Images to edit (1-16 images depending on size)",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 16,
-            "items": {
-              "description": "An image to edit with its dimensions.",
-              "$ref": "#/components/schemas/EditImage"
-            }
+            "$ref": "#/components/schemas/EditImages"
           },
           "image_size": {
             "description": "Size of output images\nWidth: 32-512 px. Height: 32-512 px.",
@@ -14303,15 +14322,7 @@
         "type": "object",
         "properties": {
           "images": {
-            "title": "Images",
-            "description": "The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 16,
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "$ref": "#/components/schemas/Base64Images3"
           },
           "description": {
             "title": "Description",
@@ -14347,10 +14358,7 @@
             "description": "A rig you already have (a previous estimate's, edited or not), to place on `images` instead of building a new one. Send `reference` with it.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/RigJoint"
-                }
+                "$ref": "#/components/schemas/RigJoints"
               },
               {
                 "type": "null"
@@ -14417,11 +14425,7 @@
             }
           },
           "keypoints": {
-            "title": "Keypoints",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/KeypointOutput"
-            }
+            "$ref": "#/components/schemas/KeypointOutputs"
           }
         },
         "required": [
@@ -14928,11 +14932,7 @@
             "description": "Optional reference images for subject guidance (up to 4)",
             "anyOf": [
               {
-                "type": "array",
-                "maxItems": 4,
-                "items": {
-                  "$ref": "#/components/schemas/GenerateImageV2ReferenceImage"
-                }
+                "$ref": "#/components/schemas/GenerateImageV2ReferenceImages"
               },
               {
                 "type": "null"
@@ -15022,6 +15022,14 @@
             "width": 64
           },
           "usage_description": "Use as color reference"
+        }
+      },
+      "GenerateImageV2ReferenceImages": {
+        "description": "Optional reference images for subject guidance (up to 4)",
+        "type": "array",
+        "maxItems": 4,
+        "items": {
+          "$ref": "#/components/schemas/GenerateImageV2ReferenceImage"
         }
       },
       "GenerateUIRequest": {
@@ -15124,15 +15132,7 @@
         "type": "object",
         "properties": {
           "style_images": {
-            "title": "Style Images",
-            "description": "Style reference images (1-4 images)",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 4,
-            "items": {
-              "description": "Style reference image with dimensions.",
-              "$ref": "#/components/schemas/EditImage"
-            }
+            "$ref": "#/components/schemas/StyleImages"
           },
           "description": {
             "title": "Description",
@@ -15488,12 +15488,7 @@
             ]
           },
           "animations": {
-            "title": "Animations",
-            "description": "All animations grouped by type and direction",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AnimationGroup"
-            }
+            "$ref": "#/components/schemas/AnimationGroups"
           }
         },
         "required": [
@@ -16129,12 +16124,7 @@
             ]
           },
           "animations": {
-            "title": "Animations",
-            "description": "Animations on this object, grouped by animation_group_id",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ObjectAnimationGroup"
-            }
+            "$ref": "#/components/schemas/ObjectAnimationGroups"
           }
         },
         "required": [
@@ -16328,11 +16318,7 @@
             ]
           },
           "doors": {
-            "title": "Doors",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RoomDoor"
-            }
+            "$ref": "#/components/schemas/RoomDoors"
           },
           "walkable": {
             "title": "Walkable",
@@ -16479,6 +16465,14 @@
           "updated_at"
         ]
       },
+      "GetRoomResponses": {
+        "title": "Rooms",
+        "description": "Your rooms, newest first",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/GetRoomResponse"
+        }
+      },
       "GetTilesProResponse": {
         "title": "GetTilesProResponse",
         "type": "object",
@@ -16590,12 +16584,7 @@
             }
           },
           "effects": {
-            "title": "Effects",
-            "description": "Newest-saved first; fewer than `limit` = the last page",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VfxEffectSummary"
-            }
+            "$ref": "#/components/schemas/VfxEffectSummaries"
           }
         },
         "required": [
@@ -16740,10 +16729,7 @@
             "example": "Generation failed"
           },
           {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            }
+            "$ref": "#/components/schemas/ValidationErrors"
           }
         ]
       },
@@ -17196,12 +17182,8 @@
             }
           },
           "images": {
-            "title": "Images",
-            "type": "array",
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "description": "Initial images to start the generation from",
+            "$ref": "#/components/schemas/BaseImages"
           }
         },
         "required": [
@@ -17783,6 +17765,14 @@
           "block"
         ]
       },
+      "IsometricTileSummaries": {
+        "title": "Tiles",
+        "description": "List of user's isometric tiles",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/IsometricTileSummary"
+        }
+      },
       "IsometricTileSummary": {
         "title": "IsometricTileSummary",
         "description": "Summary of an isometric tile for listing",
@@ -18020,6 +18010,29 @@
           "z_index"
         ],
         "additionalProperties": false
+      },
+      "KeypointOutputs": {
+        "title": "Keypoints",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/KeypointOutput"
+        }
+      },
+      "Keypoints": {
+        "title": "First Frame Keypoints",
+        "description": "The skeleton of the pose `first_frame` is IN: all 18 joints, or every joint of your `rig`. The model redraws this frame first and learns the background key and the colours from that redraw, so a skeleton that does not match the image quietly costs you transparency and colour accuracy. This frame is not returned.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Keypoint"
+        }
+      },
+      "KeypointsList": {
+        "description": "The motion: one skeleton per frame you get back, every joint each. 3 to 15 frames (1 to 15 with a `rig`). Send this or `write_motion_frames`.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Keypoints"
+        },
+        "x-flattened-from": "#/components/schemas/AnimateWithSkeletonV3Request/properties/keypoints/anyOf/0"
       },
       "LastResponse": {
         "description": "Latest response data from the job",
@@ -18299,6 +18312,13 @@
         ],
         "additionalProperties": false
       },
+      "LipSyncFrameOuts": {
+        "title": "Frames",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/LipSyncFrameOut"
+        }
+      },
       "LipSyncRequest": {
         "title": "LipSyncRequest",
         "type": "object",
@@ -18415,11 +18435,7 @@
             }
           },
           "frames": {
-            "title": "Frames",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LipSyncFrameOut"
-            }
+            "$ref": "#/components/schemas/LipSyncFrameOuts"
           },
           "mood": {
             "title": "Mood",
@@ -18496,12 +18512,7 @@
             }
           },
           "characters": {
-            "title": "Characters",
-            "description": "List of user's characters",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CharacterSummary"
-            }
+            "$ref": "#/components/schemas/CharacterSummaries"
           },
           "total": {
             "title": "Total",
@@ -18563,12 +18574,7 @@
             }
           },
           "tiles": {
-            "title": "Tiles",
-            "description": "List of user's isometric tiles",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IsometricTileSummary"
-            }
+            "$ref": "#/components/schemas/IsometricTileSummaries"
           },
           "total": {
             "title": "Total",
@@ -18586,11 +18592,7 @@
         "type": "object",
         "properties": {
           "songs": {
-            "title": "Songs",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Song"
-            }
+            "$ref": "#/components/schemas/Songs"
           },
           "total": {
             "title": "Total",
@@ -18623,12 +18625,7 @@
             }
           },
           "objects": {
-            "title": "Objects",
-            "description": "List of user's objects",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ObjectSummary"
-            }
+            "$ref": "#/components/schemas/ObjectSummaries"
           },
           "total": {
             "title": "Total",
@@ -18683,12 +18680,7 @@
             }
           },
           "rooms": {
-            "title": "Rooms",
-            "description": "Your rooms, newest first",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GetRoomResponse"
-            }
+            "$ref": "#/components/schemas/GetRoomResponses"
           },
           "total": {
             "title": "Total",
@@ -18719,11 +18711,7 @@
             }
           },
           "tilesets": {
-            "title": "Tilesets",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SidescrollerTilesetSummary"
-            }
+            "$ref": "#/components/schemas/SidescrollerTilesetSummaries"
           },
           "total": {
             "title": "Total",
@@ -18741,11 +18729,7 @@
         "type": "object",
         "properties": {
           "sound_effects": {
-            "title": "Sound Effects",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SoundEffect"
-            }
+            "$ref": "#/components/schemas/SoundEffects"
           },
           "total": {
             "title": "Total",
@@ -18777,11 +18761,7 @@
             }
           },
           "tiles": {
-            "title": "Tiles",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TilesProSummary"
-            }
+            "$ref": "#/components/schemas/TilesProSummaries"
           },
           "total": {
             "title": "Total",
@@ -18814,12 +18794,7 @@
             }
           },
           "tilesets": {
-            "title": "Tilesets",
-            "description": "List of user's tilesets",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TilesetSummary"
-            }
+            "$ref": "#/components/schemas/TilesetSummaries"
           },
           "total": {
             "title": "Total",
@@ -18851,12 +18826,7 @@
             }
           },
           "ui_assets": {
-            "title": "Ui Assets",
-            "description": "The user's UI assets (templates), newest first",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UIAssetSummary"
-            }
+            "$ref": "#/components/schemas/UIAssetSummaries"
           },
           "total": {
             "title": "Total",
@@ -19147,6 +19117,14 @@
           "created_at"
         ]
       },
+      "ObjectAnimationDirections": {
+        "title": "Directions",
+        "description": "One entry per distinct direction (deduped by MAX(created_at))",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ObjectAnimationDirection"
+        }
+      },
       "ObjectAnimationGroup": {
         "title": "ObjectAnimationGroup",
         "description": "An animation grouped across one or more directions, keyed by animation_group_id.\n\nLegacy rows that share an animation_name but lack a group_id are bucketed\nby name and surfaced here too — the animation_group_id field will be the\nbackfilled UUID after migration 005 runs.",
@@ -19181,12 +19159,7 @@
             "type": "integer"
           },
           "directions": {
-            "title": "Directions",
-            "description": "One entry per distinct direction (deduped by MAX(created_at))",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ObjectAnimationDirection"
-            }
+            "$ref": "#/components/schemas/ObjectAnimationDirections"
           }
         },
         "required": [
@@ -19195,6 +19168,14 @@
           "frame_count",
           "directions"
         ]
+      },
+      "ObjectAnimationGroups": {
+        "title": "Animations",
+        "description": "Animations on this object, grouped by animation_group_id",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ObjectAnimationGroup"
+        }
       },
       "ObjectExpansionReview": {
         "title": "ObjectExpansionReview",
@@ -19301,6 +19282,14 @@
           "expanding",
           "review-expansion"
         ]
+      },
+      "ObjectSummaries": {
+        "title": "Objects",
+        "description": "List of user's objects",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ObjectSummary"
+        }
       },
       "ObjectSummary": {
         "title": "ObjectSummary",
@@ -19552,6 +19541,22 @@
         ],
         "additionalProperties": false
       },
+      "Points": {
+        "description": "Skeleton points. Warning! Sizes that are not 16x16, 32x32 and 64x64 can cause the generations to be lower quality",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Point"
+        }
+      },
+      "PointsList": {
+        "title": "Skeleton Keypoints",
+        "description": "Skeleton pose keypoints. Requires EXACTLY 3 frames — the model is a 3-frame window; other counts are rejected with a 422.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Points"
+        },
+        "x-flattened-from": "#/components/schemas/AnimateWithSkeletonRequest/properties/skeleton_keypoints"
+      },
       "ProFlashBoundingBox": {
         "title": "ProFlashBoundingBox",
         "description": "The native source rectangle within the additional context image.",
@@ -19745,14 +19750,8 @@
         "type": "object",
         "properties": {
           "images": {
-            "title": "Images",
             "description": "Image(s) to quantize (PNG base64). Several frames are quantized together onto ONE shared palette and must all be the same size — pass an animation's frames or a character's directions in one call so their colors stay consistent.",
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "$ref": "#/components/schemas/Base64Images2"
           },
           "num_colors": {
             "title": "Num Colors",
@@ -19838,12 +19837,8 @@
             }
           },
           "images": {
-            "title": "Images",
-            "type": "array",
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "description": "Initial images to start the generation from",
+            "$ref": "#/components/schemas/BaseImages"
           },
           "palette": {
             "description": "A 1px-tall strip of the resulting palette, most frequent color first. Feed it back as palette_image to lock later frames to it.",
@@ -20161,6 +20156,13 @@
           "far"
         ]
       },
+      "RigJoints": {
+        "description": "A custom skeleton instead of the 18 humanoid joints: 2 to 64 joints, parents listed first, exactly one root. `POST /v2/estimate-custom-skeleton` returns one as `rig`, ready to pass here.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RigJoint"
+        }
+      },
       "RoofProfile": {
         "description": "Shape of a building kit's roof pieces' edges (materials layout only): gable = straight slope, round = curved. Each edge rises over half a tile and the roof is flat inside, so only a one-tile-wide roof peaks. There is no flat roof piece; for a flat roof or a roof terrace, lay the upper-floor tile (floor_roof) on top of the walls. Default gable.",
         "type": "string",
@@ -20277,6 +20279,23 @@
           "s",
           "w"
         ]
+      },
+      "RoomDoorInputs": {
+        "title": "Doors",
+        "description": "1-8 doors. Each must sit on a wall of the floor, and an e/w doorway needs two cells of wall between it and an inner corner below it. Example for the full room: [{\"side\": \"s\", \"col\": 3, \"row\": 5}, {\"side\": \"w\", \"col\": 0, \"row\": 2}]",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 8,
+        "items": {
+          "$ref": "#/components/schemas/RoomDoorInput"
+        }
+      },
+      "RoomDoors": {
+        "title": "Doors",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/RoomDoor"
+        }
       },
       "RoomQueuedResponse": {
         "title": "RoomQueuedResponse",
@@ -20646,13 +20665,7 @@
             "description": "An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.",
             "anyOf": [
               {
-                "type": "array",
-                "minItems": 1,
-                "maxItems": 128,
-                "items": {
-                  "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-                  "$ref": "#/components/schemas/BaseImage"
-                }
+                "$ref": "#/components/schemas/Base64Images6"
               },
               {
                 "type": "null"
@@ -20750,11 +20763,8 @@
             "description": "The replaced frames, as PNGs. POST them back as `frames` (or `image` for one) to the same target to undo. Set when action is saved.",
             "anyOf": [
               {
-                "type": "array",
-                "items": {
-                  "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-                  "$ref": "#/components/schemas/BaseImage"
-                }
+                "description": "Initial images to start the generation from",
+                "$ref": "#/components/schemas/BaseImages"
               },
               {
                 "type": "null"
@@ -21101,15 +21111,7 @@
         "type": "object",
         "properties": {
           "frames": {
-            "title": "Frames",
-            "description": "One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.",
-            "type": "array",
-            "minItems": 1,
-            "maxItems": 32,
-            "items": {
-              "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-              "$ref": "#/components/schemas/BaseImage"
-            }
+            "$ref": "#/components/schemas/Base64Images4"
           },
           "tile_type": {
             "description": "Shape of the tiles (as in /create-tiles-pro).",
@@ -21330,11 +21332,7 @@
             "description": "Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.",
             "anyOf": [
               {
-                "type": "array",
-                "maxItems": 64,
-                "items": {
-                  "$ref": "#/components/schemas/UISplitBox"
-                }
+                "$ref": "#/components/schemas/UISplitBoxes"
               },
               {
                 "type": "null"
@@ -21363,12 +21361,7 @@
             }
           },
           "elements": {
-            "title": "Elements",
-            "description": "The new elements",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UIAssetPart"
-            }
+            "$ref": "#/components/schemas/UIAssetParts"
           }
         },
         "required": [
@@ -21393,6 +21386,13 @@
           "square",
           "round"
         ]
+      },
+      "SidescrollerTilesetSummaries": {
+        "title": "Tilesets",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SidescrollerTilesetSummary"
+        }
       },
       "SidescrollerTilesetSummary": {
         "title": "SidescrollerTilesetSummary",
@@ -21800,6 +21800,13 @@
           "created_at"
         ]
       },
+      "Songs": {
+        "title": "Songs",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Song"
+        }
+      },
       "SoundEffect": {
         "title": "SoundEffect",
         "type": "object",
@@ -21879,6 +21886,13 @@
           "created_at"
         ]
       },
+      "SoundEffects": {
+        "title": "Sound Effects",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/SoundEffect"
+        }
+      },
       "SoundStatus": {
         "title": "SoundStatus",
         "type": "string",
@@ -21919,12 +21933,8 @@
             "$ref": "#/components/schemas/JobStatus"
           },
           "songs": {
-            "title": "Songs",
             "description": "The two takes, pending",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Song"
-            }
+            "$ref": "#/components/schemas/Songs"
           },
           "quoted_generations": {
             "title": "Quoted Generations",
@@ -22056,6 +22066,17 @@
             "format": "uri",
             "example": "https://backblaze.pixellab.ai/file/pixellab-characters/e237178e-765b-4e05-9a89-d0236204161d/18036593-b14a-4fda-9e5b-b9d882501173/rotations/south-west.png"
           }
+        }
+      },
+      "StyleImages": {
+        "title": "Style Images",
+        "description": "Style reference images (1-4 images)",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 4,
+        "items": {
+          "description": "Style reference image with dimensions.",
+          "$ref": "#/components/schemas/EditImage"
         }
       },
       "StyleSettings": {
@@ -22700,6 +22721,14 @@
           "side"
         ]
       },
+      "Tiles": {
+        "title": "Tiles",
+        "description": "List of individual tiles with metadata",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Tile"
+        }
+      },
       "TilesProKind": {
         "title": "TilesProKind",
         "type": "string",
@@ -22740,6 +22769,13 @@
           "height"
         ]
       },
+      "TilesProStyleImages": {
+        "description": "Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TilesProStyleImage"
+        }
+      },
       "TilesProStyleOptions": {
         "title": "TilesProStyleOptions",
         "description": "Options for what to copy from the style images.",
@@ -22769,6 +22805,13 @@
             "type": "boolean",
             "default": true
           }
+        }
+      },
+      "TilesProSummaries": {
+        "title": "Tiles",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TilesProSummary"
         }
       },
       "TilesProSummary": {
@@ -22894,12 +22937,7 @@
             ]
           },
           "tiles": {
-            "title": "Tiles",
-            "description": "List of individual tiles with metadata",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Tile"
-            }
+            "$ref": "#/components/schemas/Tiles"
           }
         },
         "required": [
@@ -23140,6 +23178,14 @@
           "height"
         ]
       },
+      "TilesetSummaries": {
+        "title": "Tilesets",
+        "description": "List of user's tilesets",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/TilesetSummary"
+        }
+      },
       "TilesetSummary": {
         "title": "TilesetSummary",
         "description": "Summary of a tileset for listing",
@@ -23256,15 +23302,8 @@
             "$ref": "#/components/schemas/TransferOutfitFrameImage"
           },
           "frames": {
-            "title": "Frames",
             "description": "Animation frames to apply the outfit to (2-16 frames)",
-            "type": "array",
-            "minItems": 2,
-            "maxItems": 16,
-            "items": {
-              "description": "Animation frame image to apply the outfit to.",
-              "$ref": "#/components/schemas/TransferOutfitFrameImage"
-            }
+            "$ref": "#/components/schemas/EditAnimationFrameImages"
           },
           "image_size": {
             "description": "Size of the output frames\nWidth: 32-256 px. Height: 32-256 px.",
@@ -23501,28 +23540,15 @@
             ]
           },
           "elements": {
-            "title": "Elements",
             "description": "Templates: the elements split from it, each with its states",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UIAssetPart"
-            }
+            "$ref": "#/components/schemas/UIAssetParts"
           },
           "states": {
-            "title": "States",
             "description": "Elements: their states",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UIAssetPart"
-            }
+            "$ref": "#/components/schemas/UIAssetParts"
           },
           "split_preview": {
-            "title": "Split Preview",
-            "description": "A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UISplitBox"
-            }
+            "$ref": "#/components/schemas/UISplitBoxes2"
           }
         },
         "required": [
@@ -23599,12 +23625,8 @@
             ]
           },
           "states": {
-            "title": "States",
             "description": "Elements: their states (hover, pressed...)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UIAssetPart"
-            }
+            "$ref": "#/components/schemas/UIAssetParts"
           }
         },
         "required": [
@@ -23613,6 +23635,22 @@
           "size",
           "image_url"
         ]
+      },
+      "UIAssetParts": {
+        "title": "Elements",
+        "description": "The new elements",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UIAssetPart"
+        }
+      },
+      "UIAssetSummaries": {
+        "title": "Ui Assets",
+        "description": "The user's UI assets (templates), newest first",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UIAssetSummary"
+        }
       },
       "UIAssetSummary": {
         "title": "UIAssetSummary",
@@ -23904,6 +23942,22 @@
         ],
         "additionalProperties": false
       },
+      "UISplitBoxes": {
+        "description": "Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.",
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "$ref": "#/components/schemas/UISplitBox"
+        }
+      },
+      "UISplitBoxes2": {
+        "title": "Split Preview",
+        "description": "A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UISplitBox"
+        }
+      },
       "UIStateSpec": {
         "title": "UIStateSpec",
         "type": "object",
@@ -23928,6 +23982,16 @@
           "description"
         ],
         "additionalProperties": false
+      },
+      "UIStateSpecs": {
+        "title": "States",
+        "description": "The states every element gets",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 16,
+        "items": {
+          "$ref": "#/components/schemas/UIStateSpec"
+        }
       },
       "UnzoomRequest": {
         "title": "UnzoomRequest",
@@ -24397,11 +24461,7 @@
         "type": "object",
         "properties": {
           "loc": {
-            "title": "Location",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValidationErrorLocItem"
-            }
+            "$ref": "#/components/schemas/ValidationErrorLocItems"
           },
           "msg": {
             "title": "Message",
@@ -24435,6 +24495,20 @@
           }
         ]
       },
+      "ValidationErrorLocItems": {
+        "title": "Location",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ValidationErrorLocItem"
+        },
+        "x-flattened-from": "#/components/schemas/ValidationError/properties/loc"
+      },
+      "ValidationErrors": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ValidationError"
+        }
+      },
       "VfxEffectCanvas": {
         "title": "VfxEffectCanvas",
         "type": "object",
@@ -24454,6 +24528,14 @@
           "w",
           "h"
         ]
+      },
+      "VfxEffectSummaries": {
+        "title": "Effects",
+        "description": "Newest-saved first; fewer than `limit` = the last page",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/VfxEffectSummary"
+        }
       },
       "VfxEffectSummary": {
         "title": "VfxEffectSummary",

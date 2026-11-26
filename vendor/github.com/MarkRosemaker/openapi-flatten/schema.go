@@ -1,7 +1,11 @@
 package flatten
 
 import (
+	"bytes"
+	"encoding/json/v2"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/MarkRosemaker/errpath"
 	"github.com/MarkRosemaker/openapi"
@@ -29,7 +33,12 @@ func inlineSchema(d *openapi.Document, s *openapi.Schema, name string, alwaysMov
 			// a tuple has a defined shape, positional but no less real than
 			// an object's properties: give it a name of its own the same way.
 			s = moveSchemaToComponents(d, name, s)
-		} else if items := s.Items; items != nil { // no items when only ever seen empty
+		} else if items := s.Items; items != nil && items.Ref != nil {
+			// a list of a component is named after it, so the component's list reads the same wherever it is
+			if item, ok := strings.CutPrefix(items.Ref.Identifier, "#/components/schemas/"); ok {
+				s = moveListToComponents(d, s, item)
+			}
+		} else if items != nil { // no items when only ever seen empty
 			switch items.Type {
 			case openapi.TypeInteger: // do nothing, just []int
 			case openapi.TypeNumber: // do nothing, just []float32 or []float64
@@ -155,6 +164,72 @@ func moveSchemaToComponents(d *openapi.Document, name string, s *openapi.Schema)
 	s.Replace(&openapi.Schema{Ref: &openapi.SchemaRef{Identifier: newRef("schemas", name).Identifier, Value: &moved}})
 
 	return &moved
+}
+
+// moveListToComponents makes s, a list of the component schema item, a reference to the component listing it, named
+// after item by [listName]: an existing one, if it is s but for what each says of itself, or else a new one. It returns
+// the component.
+func moveListToComponents(d *openapi.Document, s *openapi.Schema, item string) *openapi.Schema {
+	name := listName(d, item)
+
+	if existing, ok := d.Components.Schemas[name]; ok && sameButDocs(existing, s) {
+		s.Replace(&openapi.Schema{
+			Ref:         &openapi.SchemaRef{Identifier: newRef("schemas", name).Identifier, Value: existing},
+			Description: s.Description,
+		})
+
+		return existing
+	}
+
+	return moveSchemaToComponents(d, name, s)
+}
+
+// sameButDocs reports whether a and b are the same schema but for what each says of itself: its title, description,
+// examples and extensions.
+func sameButDocs(a, b *openapi.Schema) bool {
+	bare := func(s *openapi.Schema) ([]byte, error) {
+		rest := *s
+		rest.Title, rest.Description, rest.Example, rest.Examples, rest.Extensions = "", "", nil, nil, nil
+
+		return json.Marshal(&rest)
+	}
+
+	x, errA := bare(a)
+	y, errB := bare(b)
+
+	return errA == nil && errB == nil && bytes.Equal(x, y)
+}
+
+// uncountable are the endings of a name that adding s does not make plural, lower-cased.
+var uncountable = []string{"children", "data", "info", "media", "news", "people", "series"}
+
+// listName is the name of a list of the component schema item: its plural, or item and List where item is a list
+// itself or ends in a word that takes no s, such as RichTextsList of RichTexts and PageWithChildrenList of
+// PageWithChildren.
+func listName(d *openapi.Document, item string) string {
+	if s, ok := d.Components.Schemas[item]; ok && s.Type == openapi.TypeArray {
+		return item + "List"
+	}
+
+	lower := strings.ToLower(item)
+	if slices.ContainsFunc(uncountable, func(end string) bool { return strings.HasSuffix(lower, end) }) {
+		return item + "List"
+	}
+
+	return plural(item)
+}
+
+// plural is the English plural of a name, such as Orders of Order, Entries of Entry and Statuses of Status.
+func plural(name string) string {
+	switch {
+	case strings.HasSuffix(name, "s"), strings.HasSuffix(name, "x"), strings.HasSuffix(name, "z"),
+		strings.HasSuffix(name, "ch"), strings.HasSuffix(name, "sh"):
+		return name + "es"
+	case strings.HasSuffix(name, "y") && len(name) > 1 && !strings.ContainsRune("aeiouAEIOU", rune(name[len(name)-2])):
+		return name[:len(name)-1] + "ies"
+	default:
+		return name + "s"
+	}
 }
 
 // inlineBranches flattens the alternatives of a oneOf or anyOf, naming each by its title, or else by prefix and position.

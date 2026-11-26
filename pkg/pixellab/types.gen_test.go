@@ -671,9 +671,9 @@ func TestUnions_RoundTrip(t *testing.T) {
 		apitest.RoundTrip(t, HTTPValidationErrorDetail{String: v}, func(u HTTPValidationErrorDetail) bool { return u.String != "" }, jsonOpts)
 	})
 
-	t.Run("HTTPValidationErrorDetail/ValidationError", func(t *testing.T) {
-		v := []ValidationError{{}}
-		apitest.RoundTrip(t, HTTPValidationErrorDetail{ValidationError: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationError != nil }, jsonOpts)
+	t.Run("HTTPValidationErrorDetail/ValidationErrors", func(t *testing.T) {
+		v := ValidationErrors{ValidationError{}}
+		apitest.RoundTrip(t, HTTPValidationErrorDetail{ValidationErrors: v}, func(u HTTPValidationErrorDetail) bool { return u.ValidationErrors != nil }, jsonOpts)
 	})
 
 	t.Run("JobImages/DirectionalImages", func(t *testing.T) {

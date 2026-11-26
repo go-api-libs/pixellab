@@ -5,8 +5,8 @@ func (e *HTTPValidationError) Error() string {
 	switch d := e.Detail; {
 	case d.String != "":
 		return d.String
-	case len(d.ValidationError) > 0:
-		return d.ValidationError[len(d.ValidationError)-1].Msg
+	case len(d.ValidationErrors) > 0:
+		return d.ValidationErrors[len(d.ValidationErrors)-1].Msg
 	default:
 		return "validation error"
 	}
