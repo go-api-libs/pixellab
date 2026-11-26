@@ -18,8 +18,8 @@ github.com/MarkRosemaker/openapi-compress v0.0.0-20261126021444-b9b31c694973 h1:
 github.com/MarkRosemaker/openapi-compress v0.0.0-20261126021444-b9b31c694973/go.mod h1:uNdyGJMk2pv9QF8AwGYhWDYpHIP4/pDFAdFORgoNXBo=
 github.com/MarkRosemaker/openapi-edit v0.0.0-20261126021107-af2eb25df397 h1:ubJ+gbsuU/8o2ffGfGqtdFQTSCjlw7ersraqr7FhKVE=
 github.com/MarkRosemaker/openapi-edit v0.0.0-20261126021107-af2eb25df397/go.mod h1:Ll8I/87SBa69SUo6L92uDGfNoRDTz9SEm1lVpM8mJ40=
-github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126021330-41673fe93b39 h1:4/2FDtwYGKQWxuXmvo7dKKs/HgkLGlFQwDeYU4zhQ0o=
-github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126021330-41673fe93b39/go.mod h1:lsXw9cdLOwoqKbztvJWQkFM0zIrrYbukGYZnX9za8hs=
+github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126213416-480d749fc9ad h1:0dSLMq+S9LQzwlP6qFckHqqYm7Rs1SXCi+YHy2TGO/A=
+github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126213416-480d749fc9ad/go.mod h1:TyAf6IWNcewIQcOIK5qUwU5yGLllXJptTo2J4iEif/k=
 github.com/MarkRosemaker/openapi-flatten v0.0.0-20261126211153-365d7115eb5d h1:M+UesVnzBbcS/bCE21gL47Xp+dB3fRK9r4y8fqv8iGw=
 github.com/MarkRosemaker/openapi-flatten v0.0.0-20261126211153-365d7115eb5d/go.mod h1:P0XjkMH+/5nYg/gVdnlotmMsJCxIdYjaiih4WqV+SGw=
 github.com/MarkRosemaker/openapi-merge v0.0.0-20261126021108-70713f3342dc h1:ewRzjH2qNJG93AxmiaMrZ44S1c0dL8G1L8iZEIEYPfw=
@@ -32,8 +32,8 @@ github.com/MarkRosemaker/yaml2json v0.0.0-20261118230255-06c4fe76a5b8 h1:D4cujGs
 github.com/MarkRosemaker/yaml2json v0.0.0-20261118230255-06c4fe76a5b8/go.mod h1:DxNA9SDFrzw+RHsnxjIxjUzHy0I4+3hZg7R13u3SBvE=
 github.com/ettle/strcase v0.2.0 h1:fGNiVF21fHXpX1niBgk0aROov1LagYsOwV/xqKDKR/Q=
 github.com/ettle/strcase v0.2.0/go.mod h1:DajmHElDSaX76ITe3/VHVyMin4LWSJN5Z909Wp+ED1A=
-github.com/go-api-libs/api v0.0.0-20261126192751-f1f9ddf9559f h1:Ew7c4EiIsXipoimn6Dwi+iNZ1zLpPm11ZMVg0J/H6UU=
-github.com/go-api-libs/api v0.0.0-20261126192751-f1f9ddf9559f/go.mod h1:Ufm/wXwLKnrWlyaEOlKMUorgM03HlDpj0tLSgRFWuk4=
+github.com/go-api-libs/api v0.0.0-20261126213347-644b61a2edd7 h1:1YZNiA/y3/pbYtCnmdRVbFghh7IJTiL5nodZVKi5IbI=
+github.com/go-api-libs/api v0.0.0-20261126213347-644b61a2edd7/go.mod h1:BUGG23m2uHo5jJOugTpU2XZAwKMLLlubjxWnW7TfG8Q=
 github.com/go-api-libs/types v0.0.0-20261118230255-0e16a3d7de5d h1:WJpz1GJEMd/4zdJ1ElOXCSswW8BQzsWGRz27Y1TivrI=
 github.com/go-api-libs/types v0.0.0-20261118230255-0e16a3d7de5d/go.mod h1:z0z6qkZc45AvoRnluq7PkVSlSSF25sT0diJ+vrubYfA=
 github.com/go-quicktest/qt v1.102.0 h1:HSQxCeh5YZH3EL3W39ixjtyaEhcWSXQHtHnMBzSs474=

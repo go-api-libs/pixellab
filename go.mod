@@ -16,10 +16,10 @@ require (
 	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261126193125-3661a88fb2ef
 	github.com/MarkRosemaker/openapi-compress v0.0.0-20261126021444-b9b31c694973
 	github.com/MarkRosemaker/openapi-edit v0.0.0-20261126021107-af2eb25df397
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126021330-41673fe93b39
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261126213416-480d749fc9ad
 	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261126211153-365d7115eb5d
 	github.com/ettle/strcase v0.2.0
-	github.com/go-api-libs/api v0.0.0-20261126192751-f1f9ddf9559f
+	github.com/go-api-libs/api v0.0.0-20261126213347-644b61a2edd7
 	golang.org/x/sync v0.25.0
 )
 
