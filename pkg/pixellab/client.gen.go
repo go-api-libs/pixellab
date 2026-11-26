@@ -7495,8 +7495,9 @@ func (c *Client) EditImagePixen(ctx context.Context, body EditImagePixenRequest)
 //
 // `target` is one of: `character:<id>:<direction>` or `object:<id>[:<direction>]` (a rotation; a one-direction object needs no direction), the same with `:<group id>` added (one direction of an animation — the animation's group id, names can repeat), `gallery:<id>` (replace a Creator gallery image) or `gallery:new` (add one), `tileset:<id>` (a top-down or sidescroller tileset's whole sheet).
 //
-// The image must match what it replaces: the same canvas size and the same number of
-// frames (pad or crop with transparent pixels, never rescale). A different size can
+// The image must match what it replaces: the same canvas size (pad or crop with
+// transparent pixels, never rescale) and the same number of frames, except an
+// animation, which may be trimmed or lengthened (2 frames or more). A different size can
 // go to the gallery as a new image (`gallery:new`). A tileset takes its whole sheet,
 // the layout its download gives. Save each direction with its own call.
 //
