@@ -10,16 +10,16 @@ tool (
 )
 
 require (
-	github.com/MarkRosemaker/cassette v0.0.0-20261127155824-197919b5429c
-	github.com/MarkRosemaker/jsonutil v0.0.0-20261127154739-135cbaefd886
-	github.com/MarkRosemaker/openapi v0.0.0-20261127155839-5a67baf5db3a
-	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261127160359-0ae94f3e3a28
-	github.com/MarkRosemaker/openapi-compress v0.0.0-20261127160154-46a81187f11b
-	github.com/MarkRosemaker/openapi-edit v0.0.0-20261127155931-0af2c5866a34
-	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261127155413-b184beafe891
-	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261127155931-30652d5fb240
+	github.com/MarkRosemaker/cassette v0.0.0-20261127170207-3afd4a75907a
+	github.com/MarkRosemaker/jsonutil v0.0.0-20261127170131-4c1915dbe001
+	github.com/MarkRosemaker/openapi v0.0.0-20261127170219-d36302a815ce
+	github.com/MarkRosemaker/openapi-codegen v0.0.0-20261127170716-b02a6fc26e48
+	github.com/MarkRosemaker/openapi-compress v0.0.0-20261127170659-9cca99cd4951
+	github.com/MarkRosemaker/openapi-edit v0.0.0-20261127170256-0723c2a068f0
+	github.com/MarkRosemaker/openapi-enrich v0.0.0-20261127170416-96df356b0e83
+	github.com/MarkRosemaker/openapi-flatten v0.0.0-20261127170256-eaa31b52bd19
 	github.com/ettle/strcase v0.2.0
-	github.com/go-api-libs/api v0.0.0-20261127155855-e5b9ff99e44b
+	github.com/go-api-libs/api v0.0.0-20261127170236-f953c19a178c
 	golang.org/x/sync v0.25.0
 )
 
@@ -27,8 +27,8 @@ require (
 	cloud.google.com/go v0.123.0 // indirect
 	github.com/MarkRosemaker/errpath v0.0.0-20261127001931-41afc0b86075 // indirect
 	github.com/MarkRosemaker/json2yaml v0.0.0-20261127001931-55b661ab603c // indirect
-	github.com/MarkRosemaker/openapi-compare v0.0.0-20261127155930-d1da79ce95a7 // indirect
-	github.com/MarkRosemaker/openapi-merge v0.0.0-20261127155932-00d970016597 // indirect
+	github.com/MarkRosemaker/openapi-compare v0.0.0-20261127170255-4f8aa17a63d9 // indirect
+	github.com/MarkRosemaker/openapi-merge v0.0.0-20261127170615-815d644ab737 // indirect
 	github.com/MarkRosemaker/ordmap v0.0.0-20261127001949-5d682e0c3100 // indirect
 	github.com/MarkRosemaker/yaml v0.0.0-20261127001955-6df1e561eef1 // indirect
 	github.com/MarkRosemaker/yaml2json v0.0.0-20261127001931-8d8f24890a05 // indirect
