@@ -2061,6 +2061,8 @@ type CreateSidescrollerTilesetRequest struct {
 	TransitionReferenceImage BaseImage `json:"transition_reference_image,omitzero"`
 	// No effect: standard runs on pixen and pro ignores it; kept so existing calls work.
 	ColorImage BaseImage `json:"color_image,omitzero"`
+	// mode='pro' only. A picture of your game's own art (PNG or JPEG, pixel art at its own size, up to 1024 px a side): the tileset is painted as if it came from that game - its colours, shading, outlines and amount of detail. The terrains take their colours from the picture, so a dirt path in an all-green game comes out green. Not with palette colours (max_colors alone is fine).
+	StyleImage BaseImage `json:"style_image,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 }
@@ -2144,6 +2146,10 @@ type CreateTilesProRequest struct {
 	Elevation int `json:"elevation,omitzero"`
 	// Edge steepness, with elevation above 0: how far the drop spreads sideways. 0 = a cliff straight down (default), up to 2 = a gentle slope over more ground (the website steps it by 0.25).
 	StepSlope float64 `json:"step_slope,omitzero"`
+	// tile_feature='tileset': the tile id of one of your finished tilesets (made with tile_feature='tileset', any shape) whose terrain this set keeps pixel for pixel, so the two sets join on a map. This set takes that set's tile_type, tile_size, view angle, thickness, cap width, outline mode, wall tilt and terrain height: leave those out (a different value is refused). tile_feature defaults to 'tileset' with it. Name the kept terrain on its side of the description: keeping grass from 'grass to water', write 'grass to sand'. Needs keep_terrain.
+	KeepTerrainFrom uuid.UUID `json:"keep_terrain_from,omitzero"`
+	// With keep_terrain_from: which of that set's terrains to keep, 'first' (grass in 'grass to water') or 'second' (water). It keeps its side in this set's description. Uneven boundary, seed and palette stay this set's own.
+	KeepTerrain KeepTerrain `json:"keep_terrain,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 	// Style reference tiles. When provided, generated tiles will match these tiles' style and dimensions. The tile_type, tile_size, tile_view, tile_view_angle, and tile_depth_ratio are ignored — the style tiles define the shape.
@@ -2252,6 +2258,8 @@ type CreateTilesetRequest struct {
 	ColorImage BaseImage `json:"color_image,omitzero"`
 	// Colours the result must use and/or a colour cap: {"colors": ["#081820", "#346856", "#88c070", "#e0f8d0"], "name": "Game Boy", "max_colors": 4}. With colors every pixel of the tileset (mode='pro' only) is one of them; max_colors (2-64) caps the colours of the tileset (mode='pro' only).
 	TargetPalette *TargetPalette `json:"target_palette,omitzero"`
+	// mode='pro' only. A picture of your game's own art (PNG or JPEG, pixel art at its own size, up to 1024 px a side): the tileset is painted as if it came from that game - its colours, shading, outlines and amount of detail. The terrains take their colours from the picture, so a dirt path in an all-green game comes out green. Not with palette colours (max_colors alone is fine).
+	StyleImage BaseImage `json:"style_image,omitzero"`
 	// Seed for reproducible generation
 	Seed *int `json:"seed,omitzero"`
 }
@@ -4335,6 +4343,24 @@ const (
 func (e JobStatus) Valid() bool {
 	switch e {
 	case JobStatusQueued, JobStatusProcessing, JobStatusCompleted, JobStatusFailed, JobStatusPending, JobStatusRunning, JobStatusStalled, JobStatusFinalizing:
+		return true
+	default:
+		return false
+	}
+}
+
+// With keep_terrain_from: which of that set's terrains to keep, 'first' (grass in 'grass to water') or 'second' (water). It keeps its side in this set's description. Uneven boundary, seed and palette stay this set's own.
+type KeepTerrain string
+
+const (
+	KeepTerrainFirst  KeepTerrain = "first"
+	KeepTerrainSecond KeepTerrain = "second"
+)
+
+// Valid indicates whether the value is a known member of the KeepTerrain enum.
+func (e KeepTerrain) Valid() bool {
+	switch e {
+	case KeepTerrainFirst, KeepTerrainSecond:
 		return true
 	default:
 		return false

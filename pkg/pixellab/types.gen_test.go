@@ -292,6 +292,16 @@ func TestEnums_Valid(t *testing.T) {
 		t.Errorf("JobStatus(%v): valid, though no member", "not a member")
 	}
 
+	for _, v := range []KeepTerrain{KeepTerrainFirst, KeepTerrainSecond} {
+		if !v.Valid() {
+			t.Errorf("KeepTerrain %v: not valid", v)
+		}
+	}
+
+	if KeepTerrain("not a member").Valid() {
+		t.Errorf("KeepTerrain(%v): valid, though no member", "not a member")
+	}
+
 	for _, v := range []Layout{LayoutTileset15, LayoutWang, LayoutGodot} {
 		if !v.Valid() {
 			t.Errorf("Layout %v: not valid", v)

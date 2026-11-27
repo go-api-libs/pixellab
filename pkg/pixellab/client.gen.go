@@ -8040,6 +8040,7 @@ func (c *Client) ListTilesets(ctx context.Context, params *ListTilesetsParams) (
 // - Style control via outline, shading, and detail parameters
 // - Reference images for style guidance
 // - Color palette control
+// - A style image (mode='pro'): a picture of your game's art, painted in its style
 //
 // Response format:
 //   - Each tile includes: UUID, name, description, base64 image, corner data, 4x4 pattern
@@ -8639,6 +8640,7 @@ func (c *Client) ListSidescrollerTilesets(ctx context.Context, params *ListSides
 //   - **`pro`**: the richest platforms — painted texture, a cleaner cap — 15 generations, a few
 //     minutes; needs a Tier 1+ plan. Connect to an earlier tileset's platform body with
 //     `lower_base_tile_id` (or `lower_reference_image`).
+//     `style_image`: a picture of your game's art; the platforms are painted in its style.
 //
 // Requests without `mode` run `standard`. Until 2026-11 every request ran an older sidescroller
 // model (2-3 generations); `outline`, `text_guidance_scale`, `tile_strength`, the two
@@ -8920,7 +8922,10 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 //     hex/hex_pointy; describe it as a transition ("grass to water").
 //     Terrain shaping as on the website: `boundary_amplitude` + `boundary_seed`
 //     (uneven boundary), `elevation` (raised terrain, corner shapes) and
-//     `step_slope` (edge steepness of that raise)
+//     `step_slope` (edge steepness of that raise).
+//     To join a new set to one of yours, `keep_terrain_from` (its tile id) and
+//     `keep_terrain` (`first` / `second`) keep that terrain pixel for pixel; the
+//     new set takes the old one's shape and size settings.
 //   - **`tile_feature: "building"`** — a construction kit: floor, connectable
 //     wall segments, doorways, pillar and staircase (square_topdown, isometric,
 //     oblique; see the `building_*` parameters and `roof_profile`)
@@ -8966,6 +8971,15 @@ func (c *Client) DeleteSidescrollerTileset(ctx context.Context, tilesetID uuid.U
 //	tile_type="isometric",
 //	tile_size=32,
 //	tile_feature="tileset",
+//
+// )
+// # a second set keeping the first one's grass, so the two join on a map
+// response = client.create_tiles_pro(
+//
+//	description="grass to sand",
+//	tile_feature="tileset",
+//	keep_terrain_from="<tile id of the grass to water set>",
+//	keep_terrain="first",
 //
 // )
 // response = client.create_tiles_pro(
