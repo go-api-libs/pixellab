@@ -7053,47 +7053,6 @@
         ],
         "default": "remove_simple_background"
       },
-      "Base64Images2": {
-        "title": "Images",
-        "type": "array",
-        "minItems": 1,
-        "items": {
-          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-          "$ref": "#/components/schemas/BaseImage"
-        }
-      },
-      "Base64Images3": {
-        "title": "Images",
-        "description": "The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.",
-        "type": "array",
-        "minItems": 1,
-        "maxItems": 16,
-        "items": {
-          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-          "$ref": "#/components/schemas/BaseImage"
-        }
-      },
-      "Base64Images4": {
-        "title": "Frames",
-        "description": "One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.",
-        "type": "array",
-        "minItems": 1,
-        "maxItems": 32,
-        "items": {
-          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-          "$ref": "#/components/schemas/BaseImage"
-        }
-      },
-      "Base64Images6": {
-        "description": "An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.",
-        "type": "array",
-        "minItems": 1,
-        "maxItems": 128,
-        "items": {
-          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
-          "$ref": "#/components/schemas/BaseImage"
-        }
-      },
       "BaseImage": {
         "title": "Base64Image",
         "type": "object",
@@ -7586,7 +7545,7 @@
         "properties": {
           "images": {
             "description": "Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.",
-            "$ref": "#/components/schemas/Base64Images2"
+            "$ref": "#/components/schemas/ReduceColorsImages"
           },
           "strength": {
             "title": "Strength",
@@ -14322,7 +14281,7 @@
         "type": "object",
         "properties": {
           "images": {
-            "$ref": "#/components/schemas/Base64Images3"
+            "$ref": "#/components/schemas/EstimateCustomSkeletonRequestImages"
           },
           "description": {
             "title": "Description",
@@ -14392,6 +14351,17 @@
             }
           ],
           "view": "side"
+        }
+      },
+      "EstimateCustomSkeletonRequestImages": {
+        "title": "Images",
+        "description": "The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 16,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
         }
       },
       "EstimateSkeletonRequest": {
@@ -19744,6 +19714,15 @@
         },
         "additionalProperties": false
       },
+      "ReduceColorsImages": {
+        "title": "Images",
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
+      },
       "ReduceColorsRequest": {
         "title": "ReduceColorsRequest",
         "description": "Request model for the reduce-colors endpoint",
@@ -19751,7 +19730,7 @@
         "properties": {
           "images": {
             "description": "Image(s) to quantize (PNG base64). Several frames are quantized together onto ONE shared palette and must all be the same size — pass an animation's frames or a character's directions in one call so their colors stay consistent.",
-            "$ref": "#/components/schemas/Base64Images2"
+            "$ref": "#/components/schemas/ReduceColorsImages"
           },
           "num_colors": {
             "title": "Num Colors",
@@ -20665,7 +20644,7 @@
             "description": "An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.",
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Base64Images6"
+                "$ref": "#/components/schemas/SaveToAssetRequestFrames"
               },
               {
                 "type": "null"
@@ -20710,6 +20689,16 @@
             "base64": "iVBORw0KGgoAAAANS..."
           },
           "target": "character:3f0c7c1e-3f4a-4d8e-9a51-2f6d0c9e7b13:south"
+        }
+      },
+      "SaveToAssetRequestFrames": {
+        "description": "An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 128,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
         }
       },
       "SaveToAssetResponse": {
@@ -21111,7 +21100,7 @@
         "type": "object",
         "properties": {
           "frames": {
-            "$ref": "#/components/schemas/Base64Images4"
+            "$ref": "#/components/schemas/SetTilesProImportRequestFrames"
           },
           "tile_type": {
             "description": "Shape of the tiles (as in /create-tiles-pro).",
@@ -21172,6 +21161,17 @@
           "tile_size"
         ],
         "additionalProperties": false
+      },
+      "SetTilesProImportRequestFrames": {
+        "title": "Frames",
+        "description": "One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.",
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 32,
+        "items": {
+          "description": "A base64 encoded image.\n\nAttributes:\n    type (Literal[\"base64\"]): Always \"base64\" to indicate the image encoding type\n    base64 (str): The base64 encoded image data\n    format (str): The image format (e.g., \"png\", \"jpeg\")",
+          "$ref": "#/components/schemas/BaseImage"
+        }
       },
       "SetTilesProImportResponse": {
         "title": "ImportTilesProResponse",
@@ -21902,6 +21902,14 @@
           "completed",
           "failed"
         ]
+      },
+      "SplitPreview": {
+        "title": "Split Preview",
+        "description": "A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/UISplitBox"
+        }
       },
       "StartedMusicResponse": {
         "title": "StartedMusicResponse",
@@ -23548,7 +23556,7 @@
             "$ref": "#/components/schemas/UIAssetParts"
           },
           "split_preview": {
-            "$ref": "#/components/schemas/UISplitBoxes2"
+            "$ref": "#/components/schemas/SplitPreview"
           }
         },
         "required": [
@@ -23946,14 +23954,6 @@
         "description": "Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.",
         "type": "array",
         "maxItems": 64,
-        "items": {
-          "$ref": "#/components/schemas/UISplitBox"
-        }
-      },
-      "UISplitBoxes2": {
-        "title": "Split Preview",
-        "description": "A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)",
-        "type": "array",
         "items": {
           "$ref": "#/components/schemas/UISplitBox"
         }

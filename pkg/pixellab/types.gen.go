@@ -600,18 +600,6 @@ func (e BackgroundRemovalTask) Valid() bool {
 	}
 }
 
-// Base64Images2 defines a model
-type Base64Images2 []BaseImage
-
-// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
-type Base64Images3 []BaseImage
-
-// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
-type Base64Images4 []BaseImage
-
-// An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.
-type Base64Images6 []BaseImage
-
 // BaseImage defines a model
 type BaseImage struct {
 	// Image data type
@@ -898,7 +886,7 @@ func (v *CharacterSummary) unknownEnum() bool {
 // Request model for the pixel art correction endpoint
 type CorrectPixelartRequest struct {
 	// Pixel art image(s) to clean up (PNG base64), all the same size. Each frame is corrected separately.
-	Images Base64Images2 `json:"images"`
+	Images ReduceColorsImages `json:"images"`
 	// How far the model may move from your art. Low values tidy stray pixels and edges; high values redraw more aggressively and can change details.
 	Strength *float64 `json:"strength,omitzero"`
 }
@@ -3102,7 +3090,7 @@ func (v *EnhancedPromptResponse) unknownEnum() bool {
 // EstimateCustomSkeletonRequest defines a model
 type EstimateCustomSkeletonRequest struct {
 	// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
-	Images Base64Images3 `json:"images"`
+	Images EstimateCustomSkeletonRequestImages `json:"images"`
 	// What the sprite is, as a short phrase: 'red dragon with bat wings'. Optional; it helps the rig cover the right parts.
 	Description string `json:"description,omitzero"`
 	// What it will be animated doing: 'flap', 'tail swipe'. Optional; the parts that move get joints.
@@ -3118,6 +3106,9 @@ type EstimateCustomSkeletonRequest struct {
 	// With `rig`: the frame it is already placed on. It is carried from there to every image.
 	Reference CustomSkeletonReference `json:"reference,omitzero"`
 }
+
+// The frames to put the skeleton on, PNG base64, 1 to 16, all the same size, up to 256x256. Without a `rig`, the rig is built on the first one.
+type EstimateCustomSkeletonRequestImages []BaseImage
 
 // Request model for estimate skeleton endpoint
 type EstimateSkeletonRequest struct {
@@ -5206,10 +5197,13 @@ func (v *RectangleInpainting) unmarshalJSONMember(dec *jsontext.Decoder, name st
 	return false, nil
 }
 
+// ReduceColorsImages defines a model
+type ReduceColorsImages []BaseImage
+
 // Request model for the reduce-colors endpoint
 type ReduceColorsRequest struct {
 	// Image(s) to quantize (PNG base64). Several frames are quantized together onto ONE shared palette and must all be the same size — pass an animation's frames or a character's directions in one call so their colors stay consistent.
-	Images Base64Images2 `json:"images"`
+	Images ReduceColorsImages `json:"images"`
 	// Target number of colors. Omit to auto-detect a good palette size from the image itself. Mutually exclusive with palette_image.
 	NumColors int `json:"num_colors,omitzero"`
 	// An image whose colors become the palette (max 256 colors). Use it to force frames onto an existing game palette. Mutually exclusive with num_colors.
@@ -5502,12 +5496,15 @@ type SaveToAssetRequest struct {
 	// One PNG (one frame: a rotation, a gallery image, a tileset sheet) or an animated GIF (an animation's frames, one duration for all). Give `image` or `frames`, not both.
 	Image BaseImage `json:"image,omitzero"`
 	// An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.
-	Frames Base64Images6 `json:"frames,omitzero"`
+	Frames SaveToAssetRequestFrames `json:"frames,omitzero"`
 	// Only with target "gallery:new": what the image shows, kept as its gallery description.
 	Description string `json:"description,omitzero"`
 	// Only with target "gallery:new": the image's name.
 	Name string `json:"name,omitzero"`
 }
+
+// An animation's frames as PNGs, in order, all the same size. Give `image` or `frames`, not both.
+type SaveToAssetRequestFrames []BaseImage
 
 // SaveToAssetResponse defines a model
 type SaveToAssetResponse struct {
@@ -5677,7 +5674,7 @@ func (v *SetObjectImportResponse) unknownEnum() bool {
 // Your own tile images as one completed tile group (the website's Import tiles).
 type SetTilesProImportRequest struct {
 	// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
-	Frames Base64Images4 `json:"frames"`
+	Frames SetTilesProImportRequestFrames `json:"frames"`
 	// Shape of the tiles (as in /create-tiles-pro).
 	TileType TileType `json:"tile_type"`
 	// Tile size in pixels (the frames' width).
@@ -5691,6 +5688,9 @@ type SetTilesProImportRequest struct {
 	// The tiles' depth/thickness ratio (0-1), if known.
 	TileDepthRatio *float64 `json:"tile_depth_ratio,omitzero"`
 }
+
+// One PNG per tile, 1-32. square_topdown and octagon tiles are exactly tile_size x tile_size; isometric and hex tiles are tile_size wide and tile_size/2 to 2x tile_size tall; oblique tiles are tile_size to 2x tile_size tall and tile_size to their height wide.
+type SetTilesProImportRequestFrames []BaseImage
 
 // SetTilesProImportResponse defines a model
 type SetTilesProImportResponse struct {
@@ -6012,6 +6012,9 @@ func (e SoundStatus) Valid() bool {
 		return false
 	}
 }
+
+// A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)
+type SplitPreview []UISplitBox
 
 // StartedMusicResponse defines a model
 type StartedMusicResponse struct {
@@ -6705,7 +6708,7 @@ type UIAssetDetail struct {
 	// Elements: their states
 	States UIAssetParts `json:"states,omitzero"`
 	// A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)
-	SplitPreview UISplitBoxes2 `json:"split_preview,omitzero"`
+	SplitPreview SplitPreview `json:"split_preview,omitzero"`
 }
 
 // unknownEnum reports whether v holds a value of an enum the specification does not list, a response debug mode
@@ -6939,9 +6942,6 @@ type UISplitBox struct {
 
 // Your own crop boxes (template pixels), e.g. the template's `split_preview` with one moved. Omit to cut along the shapes the template was generated from.
 type UISplitBoxes []UISplitBox
-
-// A template not split yet: the boxes POST /v2/ui-assets/{id}/split cuts by default (from its saved shapes)
-type UISplitBoxes2 []UISplitBox
 
 // UIStateSpec defines a model
 type UIStateSpec struct {
